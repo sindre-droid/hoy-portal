@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>SOPer — House of Yachts</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+  <style>
+    :root{
+      --navy:#0a2140;--gold:#c9a84c;
+      --text:#1a1a2e;--text-light:#6b7280;
+      --bg:#f9fafb;--white:#ffffff;
+      --border:#e5e7eb;--border-light:#f3f4f6;
+      --active-bg:#eff6ff;--active-text:#1d4ed8;
+      --callout-warn:#fffbeb;--callout-warn-border:#f59e0b;
+      --callout-tip:#f0fdf4;--callout-tip-border:#22c55e;
+      --sidebar-w:280px;--topbar-h:52px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    html{-webkit-font-smoothing:antialiased}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+      background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+
+    /* Auth screens */
+    .screen{display:none;position:fixed;inset:0;background:var(--navy);align-items:center;justify-content:center;z-index:9000}
+    .screen.active{display:flex}
+    .login-box{background:#fff;border-radius:16px;padding:36px;width:min(380px,calc(100vw - 32px));box-shadow:0 20px 60px rgba(0,0,0,0.35)}
+    .login-logo{font-size:20px;font-weight:800;color:var(--navy)}
+    .login-sub{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:28px;margin-top:2px}
+    .login-h{font-size:17px;font-weight:700;color:var(--navy);margin-bottom:6px}
+    .login-p{font-size:13px;color:var(--text-light);margin-bottom:22px}
+    .field{margin-bottom:14px}
+    .field label{display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:5px}
+    .field input{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:8px;font-size:15px;font-family:inherit;background:var(--bg)}
+    .field input:focus{outline:none;border-color:var(--navy)}
+    .btn-login{width:100%;padding:13px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer}
+    .btn-login:disabled{opacity:0.5}
+    .login-err{color:#dc2626;font-size:12px;font-weight:600;margin-top:8px;display:none}
+    .loading-text{color:rgba(255,255,255,0.5);font-size:14px}
+
+    /* App */
+    .app{display:none;flex-direction:column;height:100vh}
+    .app.show{display:flex}
+
+    /* Topbar */
+    .topbar{height:var(--topbar-h);background:var(--white);border-bottom:1px solid var(--border);
+      display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0;z-index:100}
+    .topbar-back{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text-light);
+      text-decoration:none;padding:6px 10px;border-radius:6px;transition:background 0.15s;white-space:nowrap}
+    .topbar-back:hover{background:var(--border-light);color:var(--text)}
+    .topbar-sep{color:var(--border);font-size:18px;font-weight:200}
+    .topbar-title{font-size:15px;font-weight:700;color:var(--navy);white-space:nowrap}
+    .search-wrap{flex:1;max-width:520px;position:relative;margin:0 8px}
+    .search-wrap input{width:100%;padding:8px 12px 8px 36px;border:1.5px solid var(--border);
+      border-radius:8px;font-size:14px;font-family:inherit;background:var(--bg)}
+    .search-wrap input:focus{outline:none;border-color:var(--navy);background:var(--white)}
+    .search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-light);pointer-events:none}
+    .search-results{position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--white);
+      border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.12);
+      max-height:380px;overflow-y:auto;display:none;z-index:200}
+    .search-results.show{display:block}
+    .s-result{padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border-light)}
+    .s-result:last-child{border-bottom:none}
+    .s-result:hover{background:var(--active-bg)}
+    .s-title{font-size:13px;font-weight:600;color:var(--navy)}
+    .s-excerpt{font-size:12px;color:var(--text-light);line-height:1.4;margin-top:2px;
+      display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .s-excerpt mark{background:#fef08a;color:inherit;border-radius:2px;padding:0 1px}
+    .s-none{padding:16px;font-size:13px;color:var(--text-light);text-align:center}
+    .topbar-right{display:flex;align-items:center;gap:8px;margin-left:auto}
+    .user-name{font-size:12px;color:var(--text-light);white-space:nowrap}
+    .btn-logout{font-size:12px;padding:6px 12px;border:1.5px solid var(--border);border-radius:6px;background:none;color:var(--text-light);font-family:inherit;cursor:pointer}
+    .btn-logout:hover{border-color:var(--navy);color:var(--navy)}
+    .btn-menu{display:none;background:none;border:none;padding:6px;cursor:pointer;color:var(--text);font-size:18px;line-height:1}
+
+    /* Body */
+    .body{display:flex;flex:1;overflow:hidden}
+
+    /* Sidebar */
+    .sidebar{width:var(--sidebar-w);flex-shrink:0;background:var(--white);border-right:1px solid var(--border);overflow-y:auto}
+    .sidebar-label{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-light);padding:16px 16px 6px}
+    .nav-item{display:flex;align-items:center;gap:9px;padding:9px 14px 9px 16px;font-size:13px;color:var(--text-light);cursor:pointer;border-left:3px solid transparent;transition:background 0.1s,color 0.1s;user-select:none}
+    .nav-item:hover{background:var(--border-light);color:var(--text)}
+    .nav-item.active{background:var(--active-bg);color:var(--active-text);font-weight:600;border-left-color:var(--active-text)}
+    .nav-icon{font-size:14px;flex-shrink:0}
+
+    /* Content */
+    .content{flex:1;overflow-y:auto;background:var(--bg)}
+    .content-inner{max-width:740px;margin:0 auto;padding:40px 40px 100px}
+    .breadcrumb{font-size:12px;color:var(--text-light);margin-bottom:28px}
+
+    /* Markdown */
+    .md h1{font-size:26px;font-weight:800;color:var(--navy);margin:0 0 24px;padding-bottom:14px;border-bottom:2px solid var(--border)}
+    .md h2{font-size:16px;font-weight:700;color:var(--navy);margin:32px 0 10px;padding-top:4px}
+    .md h2:first-of-type{margin-top:0}
+    .md h3{font-size:13px;font-weight:700;color:var(--text);margin:18px 0 6px;text-transform:uppercase;letter-spacing:0.5px;opacity:0.75}
+    .md p{font-size:14px;line-height:1.75;color:var(--text);margin:0 0 10px}
+    .md ul,.md ol{padding-left:20px;margin:6px 0 12px}
+    .md li{font-size:14px;line-height:1.7;color:var(--text);margin-bottom:4px}
+    .md strong{font-weight:700}
+    .md table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13px}
+    .md th{background:var(--navy);color:#fff;padding:8px 12px;text-align:left;font-size:12px;font-weight:600}
+    .md td{padding:7px 12px;border-bottom:1px solid var(--border)}
+    .md tr:last-child td{border-bottom:none}
+    .md tr:nth-child(even) td{background:#f9fafb}
+    .md blockquote{margin:12px 0;padding:10px 14px 10px 14px;border-radius:8px;border-left:3px solid var(--callout-tip-border);background:var(--callout-tip)}
+    .md blockquote p{margin:0;font-size:13px;color:#166534}
+    .md blockquote.warn{border-left-color:var(--callout-warn-border);background:var(--callout-warn)}
+    .md blockquote.warn p{color:#92400e}
+    .md hr{border:none;border-top:1px solid var(--border);margin:24px 0}
+
+    /* Mobile */
+    .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:150}
+    .overlay.show{display:block}
+    @media(max-width:700px){
+      .sidebar{position:fixed;top:var(--topbar-h);left:0;bottom:0;z-index:160;transform:translateX(-100%);transition:transform 0.22s;box-shadow:4px 0 20px rgba(0,0,0,0.12)}
+      .sidebar.open{transform:translateX(0)}
+      .btn-menu{display:block}
+      .user-name{display:none}
+      .content-inner{padding:24px 16px 80px}
+      .md h1{font-size:22px}
+    }
+  </style>
+</head>
+<body>
+
+<div id="loadScreen" class="screen"><div class="loading-text">Laster…</div></div>
+<div id="loginScreen" class="screen">
+  <div class="login-box">
+    <div class="login-logo">HOUSE OF YACHTS</div>
+    <div class="login-sub">Intern portal</div>
+    <div class="login-h">Logg inn</div>
+    <div class="login-p">Tilgang kun for HoY-ansatte</div>
+    <div class="field"><label>E-post</label><input id="lEmail" type="email" placeholder="navn@h-y.no" autocomplete="email"></div>
+    <div class="field"><label>Passord</label><input id="lPass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()"></div>
+    <div class="login-err" id="lErr"></div>
+    <button class="btn-login" id="lBtn" onclick="login()">Logg inn</button>
+  </div>
+</div>
+
+<div id="app" class="app">
+  <div class="topbar">
+    <button class="btn-menu" onclick="toggleSidebar()">☰</button>
+    <a class="topbar-back" href="/">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 2L4 7L9 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Portal
+    </a>
+    <span class="topbar-sep">/</span>
+    <span class="topbar-title">SOPer</span>
+    <div class="search-wrap">
+      <svg class="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M10 10l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <input id="searchInput" type="search" placeholder="Søk i SOPer…" oninput="onSearch(this.value)" onfocus="showResults()" autocomplete="off">
+      <div id="searchResults" class="search-results"></div>
+    </div>
+    <div class="topbar-right">
+      <span class="user-name" id="userName"></span>
+      <button class="btn-logout" onclick="logout()">Logg ut</button>
+    </div>
+  </div>
+  <div class="body">
+    <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-label">Standard arbeidsrutiner</div>
+      <div id="navEl"></div>
+    </nav>
+    <main class="content" id="content" onclick="closeSidebar()">
+      <div class="content-inner">
+        <div class="breadcrumb" id="breadcrumb"></div>
+        <div id="mdContent" class="md"></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+'use strict';
+const IDENTITY = location.origin + '/.netlify/identity';
+const NAV = [{"id": "prospektering", "icon": "📞", "label": "SOP 01 — FSBO-prospektering"}, {"id": "verdivurdering", "icon": "🔍", "label": "SOP 02 — Verdivurdering & befaring"}, {"id": "signert-til-annonse", "icon": "📸", "label": "SOP 03 — Signert → Publisert annonse"}, {"id": "salgsperioden", "icon": "📊", "label": "SOP 04 — Salgsperioden"}, {"id": "bud-kontrakt", "icon": "🤝", "label": "SOP 05 — Bud → Kontrakt → Oppgjør"}, {"id": "closed-lost", "icon": "📁", "label": "SOP 06 — Closed Lost"}, {"id": "inbound-lead", "icon": "📥", "label": "SOP 07 — Inbound selger-lead"}, {"id": "ai-annonse", "icon": "🤖", "label": "SOP 08 — AI-agent for annonser"}, {"id": "selgerrapport", "icon": "📋", "label": "MINI SOP — Ukentlig selgerrapport"}];
+const PAGES = {"sop-01": "# SOP 01 — FSBO-prospektering og outreach\n\nUkesmål: **50 FSBO-eiere kontaktet** per megler.\n\n## Hvem, hva, hvorfor\n- **Eier:** Megler (backup: junior-megler)\n- **Frekvens:** Daglig blokk — minst 60 min kl. 09:00\n- **Primærkilde:** Finn.no (Båter → Privat, Oslofjord/Østlandet, 750k–15M NOK)\n- **Sekundærkilde:** Boat Wizard FSBO (bruk når Finn-volumet er lavt)\n\n## Ukesplanlegging (mandag, 10 min)\n- Planlegg 5 dager × 10 kontakter\n- Blokker tid i kalender\n\n## Finn relevante annonser\n- Filter: Selger = Privat, Område = Oslofjord/Østlandet, Pris = 750k–15M\n- Sorter: Nyeste først\n- Prioriter: Premium-merker, nyere årsmodeller, seriøse annonser\n- Hopp over: Prosjektbåter, ukjente merker, åpenbare feil\n\n## Registrering i HubSpot (Boat-objektet)\n- Opprett/oppdater Boat med: URL, merke/modell, selgers pris, årsmodell, område\n- Status: «Ny – ikke kontaktet»\n- **Ikke opprett Deal ennå**\n\n## Første kontakt\nHvis telefonnummer finnes — ring først:\n> «Hei, det er [Navn] fra House of Yachts. Jeg ser du har [båttype] ute på FINN — har du to minutter nå til å snakke om salget?»\n\nIngen telefon → bruk FINN/Boat Wizard kontaktskjema med standardmalen.\nLogg alltid aktiviteten på Boat-kortet.\n\n## Oppfølgingssekvens uten respons\n- Dag 1: Ytterligere 1 forsøk, annen kanal\n- Dag 3–4: 1 nytt forsøk\n- Dag 7: 1 forsøk + kort case i melding\n\n## Når opprettes Deal?\nKun når eier svarer positivt eller viser reell interesse.\n\n| Felt | Verdi |\n|---|---|\n| Navn | FSBO – [Merke/Modell] – [Sted] – [MNOK] |\n| Pipeline | Seller Acquisition (A) |\n| Stage | New Lead |\n| Kilde | FSBO FINN / FSBO Boat Wizard |\n\n## KPI-er (per megler, per uke)\n- 50 første kontaktforsøk\n- Antall nye Boats opprettet\n- Antall nye Deals fra FSBO\n- Antall bookede verdivurderinger\n- Konverteringsrate: møter / kontaktede eiere (mål ~10%)", "sop-02": "# SOP 02 — Verdivurdering & befaring\n\nFra interessert selger til signert oppdragsavtale. Mål: **90%+ close rate** fra befaring.\n\n## JA / NEI til oppdrag\n\n**JA hvis:**\n- Pris 750k–15M og realistisk forventning kan kalibreres\n- Båttype og stand passer porteføljen\n- Eier virker samarbeidsvillig\n\n**NEI hvis:**\n- Urealistisk pris + nekter å lytte til markedstall\n- Dårlig magefølelse / dårlig kjemi\n- Uavklart eierskap, heftelser, juridisk rot\n\n## Første kontakt ved interesse (speed to lead)\n- Ring innen **15 min** i arbeidstid (mål: under 5 min)\n- Kjør kort kvalifisering: Hvorfor selger de? Tidslinje? Prisforventning? Eierskap/gjeld?\n- Sett neste steg umiddelbart (BAMFAM)\n\n## Book befaring\n> «Neste naturlige steg er at jeg kommer ut, ser båten, gjør en ordentlig verdivurdering og legger frem konkret salgsforslag.»\n\n- Tilby to tidspunkter innen 48 timer\n- Legg inn i kalender + sett Deal-stage: **Valuation Booked**\n\n## Forberedelse\n- Gjennomfør markedsvurdering: sammenlignbare salg + aktive konkurrenter\n- Forbered Befaringsrapport-dokument med fakta, markedsdata og prisvurdering\n- Send bekreftelses-SMS med dato, tid, sted og hva selger bør ha klart\n\n## Gjennomføring av befaring (45–60 min)\n\n**Fase 1 — Relasjon & agenda (5–10 min)**\nTydelig agenda: «Først ser vi gjennom båten, så deler jeg markedsvurderingen, og til slutt går vi gjennom neste steg.»\n\n**Fase 2 — Teknisk gjennomgang (15–25 min)**\nGå systematisk: utvendig, innvendig, motor, utstyr. Noter alt.\n\n**Fase 3 — Markedsvurdering (10–15 min)**\nVis data først, mening etterpå. Bruk sammenlignbare salg. Kalibrer urealistiske forventninger med tall.\n\n**Fase 4 — Presentasjon av tjenesten (5–10 min)**\nHva vi gjør, hvordan vi skaper høyere netto, no cure/no pay-modellen.\n\n**Fase 5 — Closing (5–10 min)**\n> «Basert på det vi har sett mener jeg det er realistisk å få til [scenario]. Vil du at vi skal ta oppdraget?»\n\n- Ved JA: avklar praktiske detaljer, send Oneflow-avtale samme dag\n- Be om aksept innen 24 timer", "sop-03": "# SOP 03 — Signert oppdrag → Publisert annonse\n\nMål: **Annonse live innen 7 dager** fra signering.\n\n## Samme dag som signering\n- Verifiser at signert avtale + egenerklæring ligger på dealen\n- Pipeline A: sett til **Agreement Signed**\n- Pipeline B: opprett/oppdater deal med stage **Prep/Listing Ready**\n- Fyll ut: Lead Source, Lead Grade, Next Step, Next Showing/Meeting Date/Time\n- Send takk-melding til selger\n\n## Innen 24 timer — book ressurser\n- Book fototidspunkt innen 5 dager\n- Koordiner med fotograf og selger\n- Oppdater Pipeline B: Next Showing/Meeting = fototidspunkt\n\n## Forventningsavklaring til selger\nNår fototid er bekreftet, send e-post/SMS med:\n- Dato/tid for foto\n- Hva selger må ha klart (rent, ryddig, fendere av)\n- Overordnet plan for de neste 7 dagene\n- Estimert publiseringsdato\n\n> ⚠️ Krav til fotograf: samme dag som shoot skal fotograf sende megler konkret ETA for bildene.\n\n## Forbered annonse før bilder\n- Lag kladd til annonsetekst basert på befaringsrapport (bruk SOP 08 — AI-agent)\n- Definer endelig Final List Price og fyll ut i Pipeline B\n\n## Etter foto\n- Lagre bildene strukturert\n- Ferdigstill annonsetekst og prospekt\n- Få intern godkjenning (gjerne fra kollega)\n\n## Publisering\nPubliser i rekkefølge: **Finn → YachtWorld → Nettside → SoMe**\n\nOppdater Pipeline B:\n- Stage: **Live Listing**\n- Final List Price: sett\n- Next Step: «Første uker — samle leads, planlegge visninger, ukentlig rapport til selger»\n\nSend annonselenke + kort salgsperiodeplan til selger.\n\n## KPI-er\n- Dager fra signering → fotodato satt\n- Dager fra signering → live annonse (mål ≤ 7 dager)", "sop-04": "# SOP 04 — Salgsperioden\n\nFra annonse publisert til bud/kontrakt. **Ingen listings skal «dø stille».**\n\n## Når annonse går live\n- Sett Next Step: «Første uke — samle interessenter, planlegge visninger»\n- Sett Next Showing/Meeting: Første planlagte visning eller ukentlig statussamtale\n- Send go-live-melding til selger med linker og plan\n\n## Speed to lead på kjøperhenvendelser\nIdeell standard: svar innen **15 minutter** i arbeidstid.\n\nFor seriøse henvendelser:\n- Send prospekt + egenerklæringsskjema\n- Inviter til visning innen 3 dager\n- Oppdater Lead Grade og Next Showing/Meeting\n\n## Visninger\n**Før:** Sørg for at interessenten har fått prospekt + egenerklæring.\n\n**Etter (samme dag):**\n> «Takk for i dag, jeg er tilgjengelig på tlf. hvis du kommer på spørsmål.»\n\n**Neste dag:** Ring for feedback og kartlegg videre interesse. Oppdater Lead Grade og Financing Status.\n\n## Ukentlig selgeroppdatering\nHver uke — selv om det ikke er nyheter. Innhold:\n- Finn-statistikk (visninger, lagrede annonser)\n- Antall henvendelser og fysiske visninger\n- Feedback fra interessenter\n- Din anbefaling for neste uke\n\n## Testperiode (avtales ved oppstart)\nStandard: **30 dager ELLER 5 kvalifiserte visninger** — det som kommer først.\n\nVed testperiodens slutt, book samtale med selger og legg frem tre alternativer:\n1. Prisjustering (anbefalt)\n2. Endring i presentasjon/tiltak\n3. Trekke annonsen midlertidig\n\n> ⚠️ Aldri bare si «vi venter litt til» — alltid en konkret plan etter testperioden.\n\n## «Stuck» listings\nHvis båt har vært ute > 60 dager uten bud, eller > 10 visninger uten kvalifisert bud:\nBook review-møte med selger + DL for å beslutte: markant prisjustering, relansering, eller off-market/pause.", "sop-05": "# SOP 05 — Bud → Kontrakt → Oppgjør\n\nFra første kvalifiserte bud til Closed Won.\n\n## Forhåndskrav før bud mottas\nInteressenten skal ha fått:\n- Prospekt\n- Egenerklæringsskjema\n\nMegler skal ha avklart: opplevd stand, eventuelle dealbreakers, om de har sett båten.\n\n> ⚠️ Ingen «overraskelsesbud» fra folk uten info.\n\n## Mottak av første bud\nBud skal alltid ned på skrift (min. SMS/e-post, helst budskjema via Oneflow).\n\nBudet skal inneholde: pris, overtakelsesdato, eventuelle forbehold.\n\nOppdater HubSpot umiddelbart:\n- Highest Qualified Offer (NOK)\n- Financing Status\n- Inspection/Survey Status: Not started\n- Next Step: «Presenter bud til selger [dato/tid]»\n\n## Presentasjon av bud til selger\nPresenter alltid i kontekst: antall visninger, andre interessenter, seriøsitet.\n\nAvslutt samtalen med tydelig neste steg: godtar vi, gir vi motbud, eller venter vi?\n\n## Varsling av andre interessenter\nVed første kvalifiserte bud:\n> «Vi har idag mottatt et bud på [beløp], som selger nå vurderer. Gi snarlig beskjed dersom du fortsatt er interessert.»\n\n## Aksept\nBekreft skriftlig til budgiver: pris, overtakelsesdato, forbehold og frister.\n\nOppdater Pipeline B-stage: **Under Offer → In Contract**\n\nSend via Oneflow (rekkefølge):\n1. Budaksept-skjema\n2. Kjøpekontrakt (med salgsoppgave + egenerklæring vedlagt)\n3. Oppgjørsskjema til selger\n\n## Overlevering til oppgjør\nSamle komplett mappe:\n- Signert kjøpekontrakt\n- Signert salgsavtale (oppdragsavtale)\n- Egenerklæringsskjema\n- Oppgjørsskjema fra selger\n- Pantdokumentasjon\n\nSend til daglig leder/back-office.\n\n## Closed Won\nNår kjøpesum innbetalt, pant oppgjort og overleveringsprotokoll signert:\n- Sett Pipeline B-stage: **Closed Won**\n- Marker solgt på Finn/YachtWorld/nettside\n- Publiser solgt-post på SoMe\n- Send closing-gave (godkjenn med DL)", "sop-06": "# SOP 06 — Closed Lost\n\nRegistrering, læring og reaktivering. **Ingen zombie-deals i aktiv pipeline.**\n\n## Pipeline A — når settes til Closed Lost?\n- Selger har valgt annen megler\n- Selger har solgt privat\n- Selger vil ikke selge nå\n- Urealistisk / dårlig fit\n- Ghost etter gjentatte forsøk\n\n## Obligatoriske felter ved Closed Lost (Pipeline A)\n\n**Lost Reason** (velg én):\nCommission too high · Valuation disagreement · Hired another broker · Not ready/timing · Sold privately · Unresponsive/no-show · Authority/partner veto · Not a fit\n\n**Outcome** (velg én):\nHired competitor · Paused selling · Sold privately · Keeping boat\n\n**Terms Snapshot:**\n- Proposed Commission %\n- Our Valuation Offered (NOK)\n- Seller Expected Price (NOK)\n- Competitor Name (kun hvis Outcome = Hired competitor)\n\n## Pipeline B — når settes til Closed Lost?\n- Selger trekker båten\n- Listing utløper uten akseptable bud\n- Handel ryker på finansiering, survey eller timing\n\n## Obligatoriske felter ved Closed Lost (Pipeline B)\n\n**Lost Reason** (velg én):\nSeller withdrew · Listing expired/no acceptable offers · Seller refused market price · Sold with another broker · Sold privately · Buyer financing failed · Survey/inspection issues · Seasonality/timing\n\n**Outcome:**\nWithdrawn · Expired · Sold elsewhere · Sold privately\n\n**Market Snapshot:**\n- Final List Price (NOK)\n- Highest Qualified Offer (NOK)\n\n## Reaktivering\n**Lost Reason = Not ready / Seasonality:**\n- Sett Recontact Date = +60–90 dager\n- Opprett task: «Follow-back selger / reaktiver listing»", "sop-07": "# SOP 07 — Inbound selger-lead\n\nFra henvendelse til booket verdivurdering. **Speed to lead er alt.**\n\n## Speed-krav\n- I arbeidstid (09–17): kontakt innen **5 min** (maks 15 min)\n- Utenom arbeidstid: svar snarest med beskjed om neste kontaktpunkt\n- Tommelregel: Få «oi, det var kjapt!» minst én gang om dagen\n\n## Registrering i HubSpot (Pipeline A)\n- Sjekk om kontakt finnes fra før\n- Opprett Deal med:\n  - Navn: Inbound – [navn] – [båttype]\n  - Lead Source: riktig kilde\n  - Lead Grade: foreløpig B\n  - Next Step: «Første kontakt – kvalifisere og ev. booke verdivurdering»\n\n## Struktur på første samtale\n\n**Åpning:**\n> «Hei [navn], det er [megler] fra House of Yachts. Så henvendelsen din om [båt/salg]. Har du et par minutter nå?»\n\n**Kvalifisering — disse punktene skal avklares:**\n- Båttype, årsmodell, ca. verdi (750k–15M?)\n- Motivasjon og tidslinje\n- Prisforventning\n- Hvem tar beslutningen?\n- Hvor ligger båten?\n\n## Routing\n- **A-leads** (premium, sterk motivasjon, kort tidslinje) → mest erfarne megler\n- **B-leads** → hvilken som helst aktiv megler\n- **C-leads** → kun ved ledig kapasitet, ellers nurture/avslag\n\n## BAMFAM — book verdivurdering\n> «Neste naturlige steg er at jeg kommer ut og gjør en skikkelig verdivurdering. Jeg kan [dato] eller [dato] — hva passer best?»\n\nMål: fysisk befaring innen 48 timer.\n\n## Tre mulige utfall\n1. **Aktuell listing nå** → viderefør til SOP 02\n2. **Interessert, ikke klar** → Recontact Date +60–90 dager + task\n3. **Ikke match** → Closed Lost med riktig årsak (SOP 06)\n\n## KPI-er\n- 100% av inbound leads: første kontakt innen 15 min i arbeidstid\n- Ingen deals i Pipeline A uten Next Step + Next Meeting", "sop-08": "# SOP 08 — AI-agent for båtannonser\n\nHouse of Yachts Listing GPT. **Én båt = én chat. Aldri fler båter i samme tråd.**\n\n## Når bruker du agenten?\n- Ny listing skal ut (Pipeline B: Prep/Listing Ready)\n- Eksisterende annonse skal strammes inn\n- Du har befaringsrapport og vil ha første tekstutkast\n\n## Prosess — ny annonse\n\n**Steg 1:** Start ny chat i agenten\n\n**Steg 2:** Velg conversation starter\n- Ny båt uten tekst → «Start ny båtannonse»\n- Har befaringsrapport → «Lag annonse fra befaringsrapport»\n\n**Steg 3:** Fyll ut skjemaet i prompten\nInkluder: GRUNNINFO, PRIS, MOTOR, LAYOUT, NØKKELUTSTYR, TILSTAND, KONTAKT.\nHellere «ukjent» enn å gjette.\n\n**Steg 4:** Godkjenn faktalisten\nAgenten returnerer først en liste over manglende info og en FAKTALISTE.\nKorriger det som er feil, bekreft det som stemmer.\n\n**Steg 5:** Få ferdig annonsetekst\nSkriv f.eks. «Ok, skriv annonseteksten» etter godkjent faktaliste.\n\n**Steg 6:** Kvalitetssjekk\nSjekk mot befaring/prospekt: modell, år, motor, timer, pris, lokasjon.\nKorriger i chatten → be om nytt utkast.\n\n**Steg 7:** Kopier inn i Finn/YachtWorld/HubSpot\n\n## Prosess — forbedre eksisterende tekst\n1. Start ny chat\n2. Velg «Forbedre eksisterende annonsetekst» eller «Språkvask»\n3. Lim inn dagens annonse\n4. Gi klar instruks: «Stram opp språket, behold alle fakta»\n\n## Kvalitetskrav\n- Ingen fakta som ikke kan spores til chatten\n- Teksten skal følge HoY-struktur: tittel → intro → highlights → narrativ → specs → utstyr → CTA\n- Maks 1 runde manuell redigering per annonse\n\n> ⚠️ Typisk feil: flere båter i samme chat gir sammenblanding av data. Start alltid ny chat per båt.", "sop-mini": "# MINI SOP — Ukentlig selgerrapport\n\nMinst **1 oppdatering per uke** per aktiv listing, hele salgsperioden.\n\n## Data du henter hver uke (tar 2–5 min)\n- Finn-statistikk siste 7 dager (visninger, lagrede annonser)\n- Antall nye henvendelser\n- Antall fysiske visninger\n- Nedlastede prospekter\n\n## Fire faser — bruk riktig mal\n\n**Fase 1 — Lansering (uke 1–2)**\n> Hei [navn], kort status på [båtmodell] etter første uke: [X] visninger på Finn, [Y] henvendelser, [Z] visninger booket. Produkt og presentasjon ser bra ut. Bruker de første ukene på å samle nok data. Følger opp interessenter fortløpende.\n\n**Fase 2 — Datainnsamling & reality check (uke 3–4)**\n> Hei [navn], her er tallene så langt: totalt [X] visninger, [Y] henvendelser, [Z] fysiske visninger. Sammenlignet med lignende båter er dette [på nivå/litt under/tydelig under]. Vi nærmer oss testperioden — forbereder konkrete forslag til neste uke.\n\n**Fase 3 — Justering & ny giv (etter testperiode)**\n> Hei [navn], vi har nådd slutten av testperioden. [X] visninger, [Y] henvendelser, [Z] bud. Produkt og presentasjon er sterk — tilbakemeldingene handler om pris. Min anbefaling: juster til [ny pris] + [konkret tiltak]. Kan vi ta en kort prat [dato/tid]?\n\n**Fase 4 — Dype tiltak (uke 7+)**\n> Hei [navn], vi har testet [prisnivå] over tid med god presentasjon og aktiv oppfølging. Markedet gir oss et tydelig signal. Tre reelle valg: 1) Aggressiv prisjustering til [beløp], 2) Ny strategi [tiltak], 3) Pause og revurder. Mitt ærlige råd er alternativ [X]. La oss snakke [dato/tid].\n\n## Etter hver oppdatering — oppdater HubSpot\n- Next Step: hva du gjør neste uke\n- Next Showing/Meeting Date/Time: neste call/visning\n\n> ⚠️ Ingen listing skal noen gang stå uten neste definerte steg i Pipeline B."};
+const ID_MAP = {"prospektering": "sop-01", "verdivurdering": "sop-02", "signert-til-annonse": "sop-03", "salgsperioden": "sop-04", "bud-kontrakt": "sop-05", "closed-lost": "sop-06", "inbound-lead": "sop-07", "ai-annonse": "sop-08", "selgerrapport": "sop-mini"};
+
+let token = null, currentNavId = null;
+const $ = id => document.getElementById(id);
+
+function screen(name){
+  ['loadScreen','loginScreen'].forEach(id=>{$(id).className='screen'+(id===name?' active':'');});
+  $(name==='app'?'app':'loadScreen');
+  if(name==='app'){$('app').className='app show';}else{$('app').className='app';}
+}
+function parseJwt(t){try{return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));}catch{return{};}}
+
+addEventListener('DOMContentLoaded',async()=>{
+  screen('loadScreen');
+  const saved=localStorage.getItem('hoy_access_token');
+  if(saved){
+    try{
+      const r=await fetch(`${IDENTITY}/user`,{headers:{Authorization:`Bearer ${saved}`}});
+      if(!r.ok)throw new Error();
+      token=saved; onLogin(await r.json()); return;
+    }catch{localStorage.removeItem('hoy_access_token');}
+  }
+  screen('loginScreen');
+});
+
+async function login(){
+  const email=$('lEmail').value.trim(), pass=$('lPass').value;
+  $('lErr').style.display='none';
+  if(!email||!pass){$('lErr').textContent='Fyll inn e-post og passord';$('lErr').style.display='block';return;}
+  $('lBtn').disabled=true;$('lBtn').textContent='Laster…';
+  try{
+    const r=await fetch(`${IDENTITY}/token`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:`grant_type=password&username=${encodeURIComponent(email)}&password=${encodeURIComponent(pass)}`});
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error_description||'Feil e-post eller passord');}
+    const d=await r.json(); token=d.access_token;
+    localStorage.setItem('hoy_access_token',token);
+    const u=await fetch(`${IDENTITY}/user`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
+    onLogin(u);
+  }catch(e){$('lErr').textContent=e.message;$('lErr').style.display='block';$('lBtn').disabled=false;$('lBtn').textContent='Logg inn';}
+}
+
+function logout(){
+  if(!confirm('Logg ut?'))return;
+  localStorage.removeItem('hoy_access_token');
+  location.href='/';
+}
+
+function onLogin(user){
+  $('userName').textContent=user.user_metadata?.full_name||user.email||'';
+  screen('app');
+  buildNav();
+  const hash=location.hash.replace('#','');
+  navigate(hash&&NAV.find(n=>n.id===hash)?hash:NAV[0].id);
+}
+
+function buildNav(){
+  const el=$('navEl'); el.innerHTML='';
+  NAV.forEach(item=>{
+    const d=document.createElement('div');
+    d.className='nav-item'; d.id='nav-'+item.id;
+    d.onclick=()=>navigate(item.id);
+    d.innerHTML=`<span class="nav-icon">${item.icon}</span><span>${item.label}</span>`;
+    el.appendChild(d);
+  });
+}
+
+function navigate(id){
+  currentNavId=id; location.hash=id;
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  const navEl=$('nav-'+id);
+  if(navEl){navEl.classList.add('active');navEl.scrollIntoView({block:'nearest'});}
+  const item=NAV.find(n=>n.id===id);
+  $('breadcrumb').textContent=item?`SOPer / ${item.label}`:'SOPer';
+  const pageId=ID_MAP[id];
+  const md=PAGES[pageId];
+  $('mdContent').innerHTML=md?renderMd(md):`<p style="color:var(--text-light);padding-top:20px">Innhold mangler.</p>`;
+  closeSidebar();
+}
+
+function renderMd(md){
+  const renderer=new marked.Renderer();
+  renderer.blockquote=quote=>{
+    const inner=typeof quote==='object'?quote.body||quote.text||'':quote;
+    return`<blockquote class="${inner.includes('⚠️')?'warn':''}">${inner}</blockquote>`;
+  };
+  marked.setOptions({renderer,gfm:true,breaks:true});
+  return marked.parse(md);
+}
+
+let searchTimer=null;
+function onSearch(q){clearTimeout(searchTimer);searchTimer=setTimeout(()=>doSearch(q),120);}
+function doSearch(q){
+  const box=$('searchResults'), term=q.trim().toLowerCase();
+  if(!term){box.classList.remove('show');return;}
+  const results=[];
+  NAV.forEach(item=>{
+    const pageId=ID_MAP[item.id];
+    const content=(PAGES[pageId]||'').toLowerCase();
+    if(item.label.toLowerCase().includes(term)||content.includes(term)){
+      const idx=content.indexOf(term);
+      let excerpt='';
+      if(idx!==-1){
+        const raw=PAGES[pageId]||'';
+        excerpt=raw.slice(Math.max(0,idx-40),idx+80).replace(/[#*`>]/g,'').trim();
+        excerpt=excerpt.replace(new RegExp(q.trim().replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'),m=>`<mark>${m}</mark>`);
+      }
+      results.push({id:item.id,label:item.label,excerpt});
+    }
+  });
+  box.innerHTML=results.length
+    ?results.map(r=>`<div class="s-result" onclick="navigate('${r.id}');closeSearch()"><div class="s-title">${r.label}</div>${r.excerpt?`<div class="s-excerpt">${r.excerpt}</div>`:''}</div>`).join('')
+    :`<div class="s-none">Ingen treff på «${q}»</div>`;
+  box.classList.add('show');
+}
+function showResults(){if($('searchInput').value.trim())doSearch($('searchInput').value);}
+function closeSearch(){$('searchResults').classList.remove('show');$('searchInput').value='';}
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))closeSearch();});
+
+function toggleSidebar(){$('sidebar').classList.toggle('open');$('overlay').classList.toggle('show');}
+function closeSidebar(){$('sidebar').classList.remove('open');$('overlay').classList.remove('show');}
+</script>
+</body>
+</html>

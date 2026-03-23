@@ -1,0 +1,27 @@
+[build]
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+# Serve subfolder routes cleanly
+[[redirects]]
+  from = "/befaring"
+  to = "/befaring/"
+  status = 301
+
+[[redirects]]
+  from = "/handbok"
+  to = "/handbok/"
+  status = 301
+
+[[redirects]]
+  from = "/soper"
+  to = "/soper/"
+  status = 301
+
+[[redirects]]
+  from = "/sjekkliste"
+  to = "/sjekkliste/"
+  status = 301
+

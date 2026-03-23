@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Håndbok — House of Yachts</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+  <style>
+    :root{
+      --navy:#0a2140;--gold:#c9a84c;
+      --text:#1a1a2e;--text-light:#6b7280;
+      --bg:#f9fafb;--white:#ffffff;
+      --border:#e5e7eb;--border-light:#f3f4f6;
+      --active-bg:#eff6ff;--active-text:#1d4ed8;
+      --callout-warn:#fffbeb;--callout-warn-border:#f59e0b;
+      --callout-tip:#f0fdf4;--callout-tip-border:#22c55e;
+      --sidebar-w:260px;--topbar-h:52px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    html{font-size:15px;-webkit-font-smoothing:antialiased}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+      background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+
+    /* ── Auth screens ── */
+    .screen{display:none;position:fixed;inset:0;background:var(--navy);
+      align-items:center;justify-content:center;z-index:9000}
+    .screen.active{display:flex}
+    .login-box{background:#fff;border-radius:16px;padding:36px;width:min(380px,calc(100vw - 32px));
+      box-shadow:0 20px 60px rgba(0,0,0,0.35)}
+    .login-logo{font-size:20px;font-weight:800;color:var(--navy);letter-spacing:0.3px}
+    .login-sub{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:28px;margin-top:2px}
+    .login-h{font-size:17px;font-weight:700;color:var(--navy);margin-bottom:6px}
+    .login-p{font-size:13px;color:var(--text-light);margin-bottom:22px}
+    .field{margin-bottom:14px}
+    .field label{display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:5px}
+    .field input{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:8px;
+      font-size:15px;font-family:inherit;background:var(--bg);color:var(--text)}
+    .field input:focus{outline:none;border-color:var(--navy)}
+    .btn-login{width:100%;padding:13px;background:var(--navy);color:#fff;border:none;
+      border-radius:8px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:4px}
+    .btn-login:disabled{opacity:0.5;cursor:not-allowed}
+    .login-err{color:#dc2626;font-size:12px;font-weight:600;margin-top:8px;display:none}
+    .login-forgot{font-size:12px;color:var(--text-light);text-align:center;margin-top:14px;
+      cursor:pointer;text-decoration:underline}
+    .loading-text{color:rgba(255,255,255,0.5);font-size:14px}
+
+    /* ── App ── */
+    .app{display:none;flex-direction:column;height:100vh}
+    .app.show{display:flex}
+
+    /* ── Topbar ── */
+    .topbar{height:var(--topbar-h);background:var(--white);border-bottom:1px solid var(--border);
+      display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0;z-index:100;
+      position:relative}
+    .topbar-back{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text-light);
+      text-decoration:none;padding:6px 10px;border-radius:6px;transition:background 0.15s;white-space:nowrap}
+    .topbar-back:hover{background:var(--border-light);color:var(--text)}
+    .topbar-sep{color:var(--border);font-size:18px;font-weight:200;flex-shrink:0}
+    .topbar-title{font-size:15px;font-weight:700;color:var(--navy);white-space:nowrap}
+
+    /* ── Search ── */
+    .search-wrap{flex:1;max-width:520px;position:relative;margin:0 8px}
+    .search-wrap input{width:100%;padding:8px 12px 8px 36px;border:1.5px solid var(--border);
+      border-radius:8px;font-size:14px;font-family:inherit;background:var(--bg);color:var(--text)}
+    .search-wrap input:focus{outline:none;border-color:var(--navy);background:var(--white)}
+    .search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);
+      color:var(--text-light);pointer-events:none;width:16px;height:16px}
+    .search-results{position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--white);
+      border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.12);
+      max-height:380px;overflow-y:auto;display:none;z-index:200}
+    .search-results.show{display:block}
+    .search-result{padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border-light)}
+    .search-result:last-child{border-bottom:none}
+    .search-result:hover{background:var(--active-bg)}
+    .search-result-title{font-size:13px;font-weight:600;color:var(--navy)}
+    .search-result-section{font-size:11px;color:var(--text-light);margin-bottom:2px}
+    .search-result-excerpt{font-size:12px;color:var(--text-light);line-height:1.4;
+      display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .search-result-excerpt mark{background:#fef08a;color:inherit;border-radius:2px;padding:0 1px}
+    .search-no-results{padding:16px 14px;font-size:13px;color:var(--text-light);text-align:center}
+
+    .topbar-right{display:flex;align-items:center;gap:8px;margin-left:auto}
+    .user-name{font-size:12px;color:var(--text-light);white-space:nowrap}
+    .btn-logout{font-size:12px;padding:6px 12px;border:1.5px solid var(--border);border-radius:6px;
+      background:none;color:var(--text-light);font-family:inherit;cursor:pointer;white-space:nowrap}
+    .btn-logout:hover{border-color:var(--navy);color:var(--navy)}
+    .btn-menu{display:none;background:none;border:none;padding:6px;cursor:pointer;color:var(--text);font-size:18px}
+
+    /* ── Body ── */
+    .body{display:flex;flex:1;overflow:hidden}
+
+    /* ── Sidebar ── */
+    .sidebar{width:var(--sidebar-w);flex-shrink:0;background:var(--white);
+      border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+    .sidebar-section{padding:6px 0}
+    .sidebar-section + .sidebar-section{border-top:1px solid var(--border-light)}
+    .group-label{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;
+      color:var(--text-light);padding:14px 16px 4px;cursor:pointer;
+      display:flex;align-items:center;justify-content:space-between;user-select:none}
+    .group-label svg{transition:transform 0.18s;opacity:0.4}
+    .group.collapsed .group-label svg{transform:rotate(-90deg)}
+    .group.collapsed .group-items{display:none}
+    .group-items{padding-bottom:4px}
+    .nav-item{display:flex;align-items:center;gap:8px;padding:7px 14px 7px 16px;
+      font-size:13px;color:var(--text-light);cursor:pointer;border-left:3px solid transparent;
+      transition:background 0.1s,color 0.1s;border-radius:0;user-select:none}
+    .nav-item:hover{background:var(--border-light);color:var(--text)}
+    .nav-item.active{background:var(--active-bg);color:var(--active-text);
+      font-weight:600;border-left-color:var(--active-text)}
+    .nav-item-icon{font-size:14px;flex-shrink:0;opacity:0.8}
+
+    /* ── Content ── */
+    .content{flex:1;overflow-y:auto;background:var(--bg)}
+    .content-inner{max-width:740px;margin:0 auto;padding:40px 40px 100px}
+
+    /* ── Content header ── */
+    .content-meta{display:flex;align-items:center;justify-content:space-between;
+      margin-bottom:28px;gap:12px}
+    .breadcrumb{font-size:12px;color:var(--text-light)}
+    .btn-edit{display:none;align-items:center;gap:5px;padding:7px 14px;
+      border:1.5px solid var(--border);border-radius:7px;background:var(--white);
+      color:var(--text-light);font-size:12px;font-family:inherit;cursor:pointer}
+    .btn-edit.show{display:flex}
+    .btn-edit:hover{border-color:var(--navy);color:var(--navy)}
+
+    /* ── Markdown ── */
+    .md h1{font-size:28px;font-weight:800;color:var(--navy);margin:0 0 24px;
+      padding-bottom:14px;border-bottom:2px solid var(--border)}
+    .md h2{font-size:17px;font-weight:700;color:var(--navy);margin:32px 0 10px}
+    .md h2:first-of-type{margin-top:0}
+    .md h3{font-size:14px;font-weight:700;color:var(--text);margin:20px 0 8px;
+      text-transform:uppercase;letter-spacing:0.5px;opacity:0.8}
+    .md p{font-size:14px;line-height:1.75;color:var(--text);margin:0 0 12px}
+    .md ul,.md ol{padding-left:20px;margin:8px 0 14px}
+    .md li{font-size:14px;line-height:1.7;color:var(--text);margin-bottom:4px}
+    .md strong{font-weight:700}
+    .md table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+    .md th{background:var(--navy);color:#fff;padding:9px 12px;text-align:left;font-weight:600;font-size:12px}
+    .md td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text)}
+    .md tr:last-child td{border-bottom:none}
+    .md tr:nth-child(even) td{background:#f9fafb}
+
+    /* Callout boxes (blockquote rendered as callout) */
+    .md blockquote{border:none;margin:14px 0;padding:12px 14px 12px 16px;border-radius:8px;
+      border-left:3px solid var(--callout-tip-border);background:var(--callout-tip)}
+    .md blockquote p{margin:0;font-size:13px;color:#166534}
+    .md blockquote.warn{border-left-color:var(--callout-warn-border);background:var(--callout-warn)}
+    .md blockquote.warn p{color:#92400e}
+
+    /* ── Edit mode ── */
+    .edit-bar{display:none;align-items:center;gap:10px;padding:12px 0 16px;
+      border-bottom:1px solid var(--border);margin-bottom:16px}
+    .edit-bar.show{display:flex}
+    .btn-save{padding:8px 18px;background:var(--navy);color:#fff;border:none;
+      border-radius:7px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer}
+    .btn-save:disabled{opacity:0.5;cursor:not-allowed}
+    .btn-cancel{padding:8px 16px;background:none;border:1.5px solid var(--border);
+      border-radius:7px;font-size:13px;font-family:inherit;cursor:pointer;color:var(--text-light)}
+    .edit-status{font-size:12px;color:var(--text-light);margin-left:auto}
+    #editArea{display:none;width:100%;min-height:65vh;padding:14px;
+      border:1.5px solid var(--border);border-radius:8px;resize:vertical;
+      font-family:'SF Mono',monospace;font-size:13px;line-height:1.6;color:var(--text)}
+    #editArea:focus{outline:none;border-color:var(--navy)}
+
+    /* ── Empty / loading ── */
+    .empty{text-align:center;padding:80px 20px;color:var(--text-light)}
+    .empty h2{font-size:20px;color:var(--navy);margin-bottom:8px;font-weight:700}
+
+    /* ── Mobile sidebar overlay ── */
+    .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:150}
+    .overlay.show{display:block}
+
+    @media(max-width:700px){
+      .sidebar{position:fixed;top:var(--topbar-h);left:0;bottom:0;z-index:160;
+        transform:translateX(-100%);transition:transform 0.22s;
+        box-shadow:4px 0 20px rgba(0,0,0,0.12)}
+      .sidebar.open{transform:translateX(0)}
+      .btn-menu{display:block}
+      .user-name{display:none}
+      .content-inner{padding:24px 16px 80px}
+      .md h1{font-size:22px}
+    }
+  </style>
+</head>
+<body>
+
+<!-- Screens -->
+<div id="loadScreen" class="screen"><div class="loading-text">Laster…</div></div>
+<div id="loginScreen" class="screen">
+  <div class="login-box">
+    <div class="login-logo">HOUSE OF YACHTS</div>
+    <div class="login-sub">Intern portal</div>
+    <div class="login-h">Logg inn</div>
+    <div class="login-p">Tilgang kun for HoY-ansatte</div>
+    <div class="field"><label>E-post</label>
+      <input id="lEmail" type="email" placeholder="navn@h-y.no" autocomplete="email"></div>
+    <div class="field"><label>Passord</label>
+      <input id="lPass" type="password" placeholder="••••••••"
+        autocomplete="current-password" onkeydown="if(event.key==='Enter')login()"></div>
+    <div class="login-err" id="lErr"></div>
+    <button class="btn-login" id="lBtn" onclick="login()">Logg inn</button>
+    <div class="login-forgot" onclick="forgot()">Glemt passord?</div>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app" class="app">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <button class="btn-menu" onclick="toggleSidebar()">
+      <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
+        <path d="M1 1h16M1 7h16M1 13h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <a class="topbar-back" href="/">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M9 2L4 7L9 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Portal
+    </a>
+    <span class="topbar-sep">/</span>
+    <span class="topbar-title">Håndbok</span>
+
+    <div class="search-wrap">
+      <svg class="search-icon" viewBox="0 0 16 16" fill="none">
+        <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M10 10l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <input id="searchInput" type="search" placeholder="Søk i håndbok…"
+        oninput="onSearch(this.value)" onfocus="showSearchResults()" autocomplete="off">
+      <div id="searchResults" class="search-results"></div>
+    </div>
+
+    <div class="topbar-right">
+      <span class="user-name" id="userName"></span>
+      <button class="btn-logout" onclick="logout()">Logg ut</button>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="body">
+    <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+      <div id="navEl"></div>
+    </nav>
+
+    <!-- Content -->
+    <main class="content" id="content" onclick="closeSidebar()">
+      <div class="content-inner">
+        <div class="content-meta">
+          <div class="breadcrumb" id="breadcrumb"></div>
+          <button class="btn-edit" id="editBtn" onclick="startEdit()">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+              <path d="M11.5 2.5L13.5 4.5L5 13H3V11L11.5 2.5Z"
+                stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Rediger
+          </button>
+        </div>
+        <div class="edit-bar" id="editBar">
+          <button class="btn-save" id="saveBtn" onclick="saveEdit()">Lagre</button>
+          <button class="btn-cancel" onclick="cancelEdit()">Avbryt</button>
+          <span class="edit-status" id="editStatus"></span>
+        </div>
+        <textarea id="editArea" spellcheck="false"></textarea>
+        <div id="mdContent" class="md"></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+const IDENTITY = location.origin + '/.netlify/identity';
+const API = '/.netlify/functions/content';
+
+// ── Navigation config ──────────────────────────────────────────────────────
+const NAV = [
+  { id:'hr', label:'HR', icon:'🏢', items:[
+    { id:'generell-info',  icon:'📍', label:'Generell informasjon' },
+    { id:'kontoret',       icon:'🖥️', label:'Kontoret' },
+    { id:'sosiale-koder',  icon:'🤝', label:'Sosiale koder' },
+    { id:'leveregler',     icon:'⭐', label:'Leveregler' },
+    { id:'kalendersystem', icon:'📅', label:'Kalendersystem' },
+    { id:'oppvask',        icon:'🧼', label:'Oppvask' },
+  ]},
+  { id:'salg', label:'Salg', icon:'⚓', items:[
+    { id:'salgsprosessen',   icon:'🗺️', label:'Salgsprosessen' },
+    { id:'broker-playbook',  icon:'🏆', label:'Broker Playbook' },
+    { id:'kontraktutsending',icon:'📄', label:'Kontraktutsending' },
+  ]},
+];
+
+// ── Embedded default content (works without API / locally) ─────────────────
+const DEFAULT_PAGES = {"generell-info": "# Generell informasjon\n\n**House of Yachts AS**\nDicks vei 12, 1366 Lysaker, 2. etasje\n\n## Adkomst\n- **Nøkkel:** Hentes via Furuvik eller daglig leder. Bygget er låst.\n- **Parkering:** 2 plasser reservert, merket «House of Yachts»\n- **Kollektivt:** Lysaker stasjon — ca. 5 min gange\n\n## Møterom\n4 møterom i 1. etasje. Bookes via kalendersystemet i gangen.\n\n> 💡 Husk å frigjøre rommet i kalenderen hvis møtet avlyses — de er ofte fullt booket.", "kontoret": "# Kontoret\n\n## Arbeidsplasser\nFaste pulter — ingen hot-desking. Rydd etter deg selv.\n\n## Daglige regler\n- Hodetelefoner er OK for musikk — vis hensyn til kollegaer\n- Lunsj: 30 min, selvvalgt tidspunkt\n- Vaskehjelp kommer **hver fredag** — rydd pulten og kjøkkenet før de ankommer\n- Slå av lys og varmepumpe når du er sist ut\n- Bruk varmepumpen fremfor panelovner (mer energieffektivt)\n- Røyking er ikke tillatt på balkongen", "sosiale-koder": "# HoYs sosiale koder\n\nVi skal ha et trygt og inkluderende miljø der alle kan gjøre sitt beste arbeid — overfor hverandre og overfor kunder.\n\n## Nulltoleranse\nVi tolererer ikke trakassering, mobbing eller diskriminering av noe slag. Dette gjelder overfor kolleger, kunder og samarbeidspartnere.\n\nOpplever eller observerer du brudd på dette? Meld fra til nærmeste leder umiddelbart.\n\n## Hva vi er\n- Et lite, tett team der tillit og ærlighet er grunnmuren\n- Vi tar vare på hverandre — også i travle perioder\n- Vi er direkte, men aldri slemme", "leveregler": "# HoYs leveregler\n\nTre prinsipper som styrer hvordan vi jobber og opptrer — overfor hverandre og overfor kunder.\n\n## 1. Ta initiativ og ansvar\n- Følg salgsprosessen — alltid\n- Send «solgt»-mailen umiddelbart etter salg\n- Informer teamet på Slack ved nye listings — legg ved DL og oppdragsnummer\n- Send listing-rapporten hver måned\n- Hold CRM oppdatert og bruk det daglig\n- Møt opp og vær engasjert i felles teammøter\n- Gå gjennom eget arbeid før levering — grammatikk og skrivefeil\n- Gjør det du sier du skal gjøre, når du sa du skulle gjøre det\n\n## 2. Være ydmyke og respektfulle\n- Svar på alle e-poster og ring tilbake samme dag\n- Svar høflig og balansert — tenk deg om før du svarer\n- Ha to ører og én munn: lytt mer enn du snakker\n- Vær brutalt ærlig med hverandre og ta imot konstruktiv kritikk\n- Vi er individer, men jobber på lag — 1+1 er alltid 3\n- Respekter hverandres tid\n\n## 3. Være villig til å lære\n- Ta initiativ til å lære — prøv selv før du spør om hjelp\n- Gjør egne prisvurderinger og markedsanalyser\n- Ha en «can-do»-holdning, ikke «jeg vet ikke og får det ikke til»", "kalendersystem": "# Kalendersystem\n\nVi bruker **Google Kalender**. Alle i teamet har tilgang til hverandres kalendere.\n\n## Kalendertyper\n\n| Kalender | Brukes til |\n|---|---|\n| Møter | Interne og eksterne møter |\n| BVO | Befaring, Visning, Overtakelse |\n| Ferie | Ferieplaner for hele teamet |\n| Foto/video | Fotograferinger og videoinnspillinger |\n| Jobbreiser | Reiser knyttet til oppdrag |\n| Studioinnspilling | Innspillinger |\n| Timeblocks | Fokusblokker — ikke forstyrr |\n| Webinar/Amesto | Kurs og webinarer |\n\n## Viktig\n- Book BVO-avtaler så fort de er satt — synlighet for teamet er kritisk\n- Frigjør møterom i kalender umiddelbart hvis møtet avlyses\n\n> 💡 Når du er i en timeblock: sett status til «Ikke forstyrr» i Slack og lukk e-posten.", "oppvask": "# Oppvask og kjøkken\n\nVaskehjelp kommer **fredager**, men kjøkkenet er alles ansvar resten av uken.\n\n## Rotasjon (ukentlig, gjentas)\nUke 42: Daniel · Uke 43: Henrik · Uke 44: Sindre\n\n## Regler\n- Skyll av oppvasken før du setter den i maskinen\n- Tøm maskinen når den er ferdig — ikke la ren oppvask stå\n- Rengjør kaffemaskinen **hver mandag**\n- Tørk av benker etter bruk\n- Kast matrester — ikke la mat stå i kjøleskap over helgen\n\n> ⚠️ Uken det er din tur: du er ansvarlig for at kjøkkenet er ryddig ved slutten av arbeidsdagen.", "salgsprosessen": "# Salgsprosessen\n\nTo pipelines i HubSpot: **Pipeline A** (skaffe oppdrag) og **Pipeline B** (selge båten).\n\n## Pipeline A — Skaffe oppdrag\n\n### Fase 1: Orientering\n- Innhent dokumentasjon, fyll ut kunde- og båtdata i CRM\n- Gjennomfør innledende bli-kjent-samtale\n- Send HoY-presentasjonspitchen\n\n### Fase 2: Book befaring\n- Book befaring — avslutt aldri uten neste avtalte steg (BAMFAM)\n- Klargjør potensielle-kjøpere-listen\n\n### Fase 3: Signere oppdragsavtale\n- Send egenerklæring og salgsavtale via Oneflow\n- Lagre signerte avtaler i CRM\n- Fyll ut og lagre befaringsrapport\n\n### Fase 4: Klargjøring\n- Sjekk aktive registre for lån og heftelser\n- Send «hva du bør gjøre før visning» til selger\n- Avtal overlevering av nøkkel\n\n### Fase 5: Booke ressurser\n- Book fotograf og eventuelt videograf\n- Book takstmann hvis aktuelt\n- Book salgsklargjører (HoY Detailing) hvis aktuelt\n\n## Pipeline B — Selge båten\n\n### Fase 1: Klargjøre annonse\n- Skriv prospekt og annonse — få godkjenning\n- Klargjør alt markedsmateriell\n- Book publisering i SoMe og nyhetsbrev\n\n### Fase 2: Publisering\n- Publiser på Finn.no, YachtWorld og egen nettside\n- Send personlig e-post eller ring til kjøperlisten\n\n### Fase 3: Salgsperioden\n- Send statistikk-link til selger dagen etter publisering\n- Ukentlig oppdatering til selger (se MINI SOP: Ukentlig selgerrapport)\n- Følg opp alle registrerte interessenter løpende\n\n### Fase 4: Bud\n- Send egenerklæring og budskjema til interessent\n- Før budprotokoll fortløpende\n- Send budvarsel til alle registrerte interessenter ved nye bud\n\n### Fase 5: Kontrakt og oppgjør\n- Send budakseptbrev via Oneflow\n- Send kjøpekontrakter til kjøper og selger\n- Send oppgjørsskjema til selger\n\n### Fase 6: Solgt\n- Marker solgt overalt: Finn, YachtWorld, nettside, SoMe\n- Lever komplett mappe til back-office for oppgjør\n\n> 💡 Prinsipp: BAMFAM — Book A Meeting From A Meeting. Aldri avslutt en samtale uten et konkret neste steg i kalenderen.", "broker-playbook": "# Broker Playbook\n\nDin daglige guide til å lykkes som yachtmegler.\n\n## Daglig sjekkliste\n- Sjekk CRM — hvilke leads skal følges opp i dag?\n- Ring eller send melding til minst 5 selgere (FSBO, nettverk, referrals)\n- Følg opp alle varme leads — ingen skal bli glemt i CRM\n- Legg til 3+ nye leads i CRM\n- Hold selgere oppdatert med ukentlig rapport\n- Avtal visninger og møter\n\n## Pipeline-styring\n\n**HOT leads** — Klar til å signere\nRing daglig til de signerer. Sett tydelig deadline for avgjørelse.\n\n**WARM leads** — Interessert, trenger tid\nFølg opp hver 3.–5. dag med nye vinklinger. Inviter til møte eller visning.\n\n**COLD leads** — Ikke klar ennå\nLegg i CRM med oppfølgingsdato +30–60 dager. Send markedsoppdateringer innimellom.\n\n## Nøkkelscripts\n\n**Første kontakt (FSBO):**\n> «Hei [Navn], jeg så at du har en [båtmodell] til salgs på Finn.no. Vi har hatt flere interesserte kunder på lignende båter. Har du vurdert å bruke megler for å få bedre pris og raskere salg?»\n\n**Oppfølging uten svar (2–3 dager):**\n> «Hei igjen [Navn], jeg ville bare følge opp — vi har kjøpere akkurat nå som ser etter en [båtmodell]. Har du tid til en kort prat?»\n\n**Innvending — «vil prøve selv først»:**\n> «Helt forståelig! Mange starter privat, men velger megler når de ser at vi ofte oppnår bedre pris og selger raskere. Skal vi holde kontakten om noen uker?»\n\n**Closing:**\n> «Vi har kjøpere i markedet nå. Skal vi gjøre det offisielt i dag, så vi kan starte prosessen?»\n\n## Grunnregler\n- Jo raskere du ringer et lead, jo høyere er sjansen for avtale\n- 80 % av salg skjer etter 5+ oppfølginger — ikke gi opp for tidlig\n- Mål: få «oi, det var kjapt!» fra kunder minst én gang om dagen\n- Er det ikke logget i CRM, skjedde det ikke", "kontraktutsending": "# Kontraktutsending via Oneflow\n\nAlle kontrakter sendes fra HubSpot-dealen via Oneflow-integrasjonen.\n\n> ⚠️ Sørg alltid for at dealen er opprettet med riktig kontakt og båt-kort tilknyttet før du starter.\n\n## Oversikt — rekkefølge og maler\n\n| Dokument | Template | Tidspunkt |\n|---|---|---|\n| Egenerklæring | «Egenerklæring HoY» | Før publisering |\n| Salgsavtale | «Salgsavtale HoY» | Før publisering |\n| Budskjema | «Budskjema» | Når kjøper vil by |\n| Budaksept-skjema | «Budaksept-skjema HoY» | Etter aksept |\n| Kjøpekontrakt | «Kjøpekontrakt HoY» | Etter aksept |\n| Overtakelsesprotokoll | «Overtakelsesprotokoll HoY» | På overtakelsesdagen |\n| Oppgjørsskjema | «Oppgjørsskjema HoY» | Etter signert kontrakt |\n\n## Slik sender du (samme fremgangsmåte for alle dokumenter)\n\n1. Åpne dealen i HubSpot\n2. Scroll ned til **Oneflow**-blokken i høyre panel\n3. Klikk **«Create Contract»**\n4. Fyll ut: Contract Name, Workspace (House of Yachts AS), Template\n5. Velg mottaker(e) fra tilknyttede kontaktkort\n6. Gjør eventuelle endringer → klikk **«Lagre endringer»** (gul knapp)\n7. Klikk **«Send»** → velg meldingsmal → personaliser → send\n\n> ⚠️ **Budaksept og kjøpekontrakt:** Fyll inn salgssum og overtakelsesdato i HubSpot *før* du oppretter dokumentet. Oneflow henter data automatisk.\n\n> ⚠️ **Kjøpekontrakt:** Legg alltid ved salgsoppgave og egenerklæring som PDF-vedlegg. Sjekk at kjøper og selger er plassert riktig i kontraktfeltene."};
+
+// ── State ──────────────────────────────────────────────────────────────────
+let token = null, admin = false, pages = {}, currentId = null, editing = false;
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+function parseJwt(t){
+  try{return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));}
+  catch{return{};}
+}
+function screen(name){
+  ['loadScreen','loginScreen'].forEach(id=>{$(id).className='screen'+(id===name?' active':'');});
+  if(name==='app'){$('app').className='app show';}
+  else{$('app').className='app';}
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+addEventListener('DOMContentLoaded',async()=>{
+  screen('loadScreen');
+  const saved = localStorage.getItem('hoy_access_token');
+  if(saved){
+    try{
+      const r=await fetch(`${IDENTITY}/user`,{headers:{Authorization:`Bearer ${saved}`}});
+      if(!r.ok)throw new Error();
+      token=saved; onLogin(await r.json()); return;
+    }catch{localStorage.removeItem('hoy_access_token');}
+  }
+  screen('loginScreen');
+});
+
+// ── Login ─────────────────────────────────────────────────────────────────
+async function login(){
+  const email=$('lEmail').value.trim(), pass=$('lPass').value;
+  $('lErr').style.display='none';
+  if(!email||!pass){showErr('Fyll inn e-post og passord');return;}
+  $('lBtn').disabled=true; $('lBtn').textContent='Laster inn…';
+  try{
+    const r=await fetch(`${IDENTITY}/token`,{method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:`grant_type=password&username=${encodeURIComponent(email)}&password=${encodeURIComponent(pass)}`});
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error_description||'Feil e-post eller passord');}
+    const d=await r.json(); token=d.access_token;
+    localStorage.setItem('hoy_access_token',token);
+    const u=await fetch(`${IDENTITY}/user`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
+    onLogin(u);
+  }catch(e){
+    showErr(e.message); $('lBtn').disabled=false; $('lBtn').textContent='Logg inn';
+  }
+}
+function showErr(msg){const e=$('lErr');e.textContent=msg;e.style.display='block';}
+async function forgot(){
+  const email=$('lEmail').value.trim();
+  if(!email){showErr('Skriv inn e-posten din først');return;}
+  await fetch(`${IDENTITY}/recover`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+  alert('Tilbakestillingslenke sendt til '+email);
+}
+function logout(){
+  if(!confirm('Logg ut?'))return;
+  localStorage.removeItem('hoy_access_token');
+  location.href='/';
+}
+
+async function onLogin(user){
+  $('userName').textContent = user.user_metadata?.full_name || user.email || '';
+  const claims = parseJwt(token||'');
+  admin = (claims.app_metadata?.roles||[]).includes('admin');
+  screen('app');
+  buildNav();
+  await loadContent();
+  const hash = location.hash.replace('#','');
+  navigate(hash || NAV[0].items[0].id);
+}
+
+// ── Content loading ────────────────────────────────────────────────────────
+async function loadContent(){
+  pages = {...DEFAULT_PAGES};
+  try{
+    const r = await fetch(API);
+    if(r.ok){
+      const d = await r.json();
+      if(d.pages) pages = {...DEFAULT_PAGES, ...d.pages};
+    }
+  }catch{/* use defaults */}
+}
+
+// ── Nav ────────────────────────────────────────────────────────────────────
+function buildNav(){
+  const el = $('navEl'); el.innerHTML='';
+  NAV.forEach(group=>{
+    const sec = document.createElement('div');
+    sec.className='sidebar-section';
+    sec.innerHTML=`<div class="group" data-gid="${group.id}">
+      <div class="group-label" onclick="toggleGroup('${group.id}')">
+        <span>${group.label}</span>
+        <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
+          <path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="group-items">
+        ${group.items.map(item=>`
+          <div class="nav-item" id="nav-${item.id}" onclick="navigate('${item.id}')">
+            <span class="nav-item-icon">${item.icon}</span>
+            <span>${item.label}</span>
+          </div>`).join('')}
+      </div>
+    </div>`;
+    el.appendChild(sec);
+  });
+}
+
+function toggleGroup(id){
+  document.querySelector(`[data-gid="${id}"]`).classList.toggle('collapsed');
+}
+
+function navigate(id){
+  if(!id||editing)return;
+  currentId=id; location.hash=id;
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  const navEl = $('nav-'+id);
+  if(navEl){navEl.classList.add('active'); navEl.scrollIntoView({block:'nearest'});}
+
+  // Breadcrumb
+  let section='',label='';
+  NAV.forEach(g=>{const item=g.items.find(i=>i.id===id);if(item){section=g.label;label=item.label;}});
+  $('breadcrumb').textContent = section ? `${section} / ${label}` : label;
+
+  // Edit button
+  if(admin)$('editBtn').classList.add('show'); else $('editBtn').classList.remove('show');
+
+  // Render
+  const md = pages[id];
+  $('mdContent').innerHTML = md ? renderMd(md) : `<div class="empty"><h2>${label}</h2><p>Ingen innhold ennå.</p></div>`;
+  closeSidebar();
+}
+
+// ── Markdown rendering ─────────────────────────────────────────────────────
+function renderMd(md){
+  // Custom renderer for callout blockquotes
+  const renderer = new marked.Renderer();
+  renderer.blockquote = (quote) => {
+    const inner = typeof quote === 'object' ? quote.body || quote.text || '' : quote;
+    const isWarn = inner.includes('⚠️');
+    return `<blockquote class="${isWarn?'warn':''}">${inner}</blockquote>`;
+  };
+  marked.setOptions({renderer, gfm:true, breaks:true});
+  return marked.parse(md);
+}
+
+// ── Search ─────────────────────────────────────────────────────────────────
+let searchTimer = null;
+function onSearch(q){
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(()=>doSearch(q), 120);
+}
+
+function doSearch(q){
+  const box = $('searchResults');
+  const term = q.trim().toLowerCase();
+  if(!term){box.classList.remove('show'); return;}
+
+  const results = [];
+  NAV.forEach(group=>{
+    group.items.forEach(item=>{
+      const content = (pages[item.id]||'').toLowerCase();
+      const titleMatch = item.label.toLowerCase().includes(term);
+      const contentIdx = content.indexOf(term);
+      if(titleMatch || contentIdx !== -1){
+        // Get excerpt around match
+        let excerpt = '';
+        if(contentIdx !== -1){
+          const raw = pages[item.id]||'';
+          const start = Math.max(0, contentIdx-40);
+          const end = Math.min(raw.length, contentIdx+80);
+          excerpt = raw.slice(start,end).replace(/[#*`>]/g,'').trim();
+          // highlight
+          const re = new RegExp(q.trim().replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');
+          excerpt = excerpt.replace(re, m=>`<mark>${m}</mark>`);
+        }
+        results.push({id:item.id, label:item.label, section:group.label, excerpt});
+      }
+    });
+  });
+
+  if(!results.length){
+    box.innerHTML=`<div class="search-no-results">Ingen treff på «${q}»</div>`;
+  } else {
+    box.innerHTML = results.map(r=>`
+      <div class="search-result" onclick="navigate('${r.id}');closeSearch()">
+        <div class="search-result-section">${r.section}</div>
+        <div class="search-result-title">${r.label}</div>
+        ${r.excerpt?`<div class="search-result-excerpt">${r.excerpt}</div>`:''}
+      </div>`).join('');
+  }
+  box.classList.add('show');
+}
+
+function showSearchResults(){if($('searchInput').value.trim())doSearch($('searchInput').value);}
+function closeSearch(){
+  $('searchResults').classList.remove('show');
+  $('searchInput').value='';
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.search-wrap')) closeSearch();
+});
+
+// ── Edit ──────────────────────────────────────────────────────────────────
+function startEdit(){
+  editing=true;
+  $('editArea').value = pages[currentId]||'';
+  $('editArea').style.display='block';
+  $('mdContent').style.display='none';
+  $('editBar').classList.add('show');
+  $('editBtn').classList.remove('show');
+  $('editStatus').textContent='';
+  $('editArea').focus();
+}
+function cancelEdit(){
+  editing=false;
+  $('editArea').style.display='none';
+  $('mdContent').style.display='';
+  $('editBar').classList.remove('show');
+  if(admin)$('editBtn').classList.add('show');
+  $('editStatus').textContent='';
+}
+async function saveEdit(){
+  const content=$('editArea').value;
+  $('saveBtn').disabled=true; $('editStatus').textContent='Lagrer…';
+  try{
+    const r=await fetch(API,{method:'PUT',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+      body:JSON.stringify({id:currentId,content})});
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||'Feil');}
+    pages[currentId]=content;
+    $('editStatus').textContent='Lagret ✓';
+    setTimeout(()=>cancelEdit(),700);
+  }catch(e){$('editStatus').textContent='⚠️ '+e.message;}
+  finally{$('saveBtn').disabled=false;}
+}
+
+// ── Mobile sidebar ─────────────────────────────────────────────────────────
+function toggleSidebar(){
+  $('sidebar').classList.toggle('open');
+  $('overlay').classList.toggle('show');
+}
+function closeSidebar(){
+  $('sidebar').classList.remove('open');
+  $('overlay').classList.remove('show');
+}
+</script>
+</body>
+</html>

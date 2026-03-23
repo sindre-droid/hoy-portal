@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Befaringsskjema — House of Yachts</title>
+  <style>
+    :root{--navy:#0a2140;--gold:#c9a84c;--gold-light:#f0d88a;--white:#ffffff;--surface:#f5f7fa;--gray:#dde3ec;--gray-dark:#6b7a8d;--text:#12233a;--green:#166534;--green-bg:#dcfce7;--red:#991b1b;--red-bg:#fee2e2;--amber:#92400e;--amber-bg:#fef3c7;--blue-bg:#eff6ff;--blue-text:#1e40af;--radius:12px;--shadow:0 2px 16px rgba(10,33,64,0.10)}
+    *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html{scroll-behavior:smooth}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--surface);color:var(--text);margin:0;padding:0;min-height:100vh;-webkit-font-smoothing:antialiased}
+    .header{background:var(--navy);color:white;padding:14px 20px;position:sticky;top:0;z-index:200;box-shadow:0 2px 16px rgba(0,0,0,0.35)}
+    .header-inner{max-width:720px;margin:0 auto}
+    .header-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+    .brand-name{font-size:15px;font-weight:800;letter-spacing:0.8px}
+    .brand-sub{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--gold);font-weight:500}
+    .header-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+    .deal-chip{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);border-radius:20px;padding:5px 12px;font-size:12px;color:rgba(255,255,255,0.85);max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .boat-chip{font-size:11px;color:var(--gold-light)}
+    .user-chip{font-size:11px;color:rgba(255,255,255,0.55);cursor:pointer}
+    .progress-row{display:flex;align-items:center;gap:10px}
+    .pips{display:flex;gap:5px;flex:1}
+    .pip{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,0.18);transition:background 0.25s}
+    .pip.done{background:rgba(255,255,255,0.55)}
+    .pip.active{background:var(--gold)}
+    .pip-label{font-size:11px;color:rgba(255,255,255,0.65);white-space:nowrap}
+    .login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy)}
+    .login-box{background:white;border-radius:20px;padding:40px 36px;max-width:400px;width:calc(100% - 32px);text-align:center;box-shadow:0 8px 40px rgba(0,0,0,0.3)}
+    .login-logo{font-size:22px;font-weight:800;color:var(--navy);letter-spacing:0.5px;margin-bottom:4px}
+    .login-sub{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:28px}
+    .login-title{font-size:17px;font-weight:700;color:var(--navy);margin-bottom:8px}
+    .login-desc{font-size:14px;color:var(--gray-dark);margin-bottom:24px}
+    .btn-login{width:100%;padding:15px;background:var(--navy);color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;transition:opacity 0.2s}
+    .btn-login:disabled{opacity:0.55;cursor:not-allowed}
+    .login-form{display:flex;flex-direction:column;gap:12px;text-align:left;margin-bottom:20px}
+    .login-form label{font-size:13px;font-weight:600;color:var(--navy);margin-bottom:4px;display:block}
+    .login-form input{width:100%;padding:13px 15px;border:2px solid var(--gray);border-radius:10px;font-size:16px;color:var(--text);background:var(--surface);font-family:inherit;box-sizing:border-box}
+    .login-form input:focus{outline:none;border-color:var(--navy);background:white}
+    .login-error{color:var(--red);font-size:13px;font-weight:600;margin-top:-4px;display:none}
+    .login-forgot{font-size:13px;color:var(--gray-dark);text-align:center;margin-top:12px;cursor:pointer;text-decoration:underline}
+    .main{max-width:720px;margin:0 auto;padding:20px 14px 120px}
+    .deal-header{text-align:center;padding:28px 0 16px}
+    .deal-header h2{font-size:22px;font-weight:800;color:var(--navy);margin:0 0 6px}
+    .deal-header p{font-size:14px;color:var(--gray-dark);margin:0}
+    .search-bar{position:relative;margin-bottom:16px}
+    .search-bar input{width:100%;padding:14px 14px 14px 44px;border:2px solid var(--gray);border-radius:10px;font-size:16px;background:white;color:var(--text)}
+    .search-bar input:focus{outline:none;border-color:var(--navy)}
+    .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--gray-dark);display:flex;align-items:center}
+    .deal-list{display:flex;flex-direction:column;gap:10px}
+    .deal-card{background:white;border:2px solid var(--gray);border-radius:12px;padding:16px 18px;cursor:pointer;transition:border-color 0.2s,box-shadow 0.2s}
+    .deal-card:hover{border-color:var(--navy);box-shadow:0 4px 16px rgba(10,33,64,0.1)}
+    .deal-card-name{font-size:16px;font-weight:700;color:var(--navy);margin-bottom:4px}
+    .deal-card-meta{font-size:12px;color:var(--gray-dark);display:flex;gap:12px;flex-wrap:wrap}
+    .deal-stage-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:var(--blue-bg);color:var(--blue-text)}
+    .empty-state{text-align:center;padding:40px 20px;color:var(--gray-dark)}
+    .card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 20px;margin-bottom:14px}
+    .card-title{font-size:17px;font-weight:700;color:var(--navy);margin:0 0 3px}
+    .card-desc{font-size:12px;color:var(--gray-dark);margin:0 0 20px}
+    .field{margin-bottom:18px}
+    .field:last-child{margin-bottom:0}
+    label{display:block;font-size:13px;font-weight:600;color:var(--navy);margin-bottom:6px}
+    label .opt{font-weight:400;color:var(--gray-dark);font-size:11.5px}
+    input[type="text"],input[type="number"],input[type="datetime-local"],textarea,select{width:100%;padding:13px 15px;border:2px solid var(--gray);border-radius:10px;font-size:16px;color:var(--text);background:var(--surface);font-family:inherit;appearance:none;-webkit-appearance:none;transition:border-color 0.2s,background 0.2s,box-shadow 0.2s;line-height:1.4}
+    input:focus,textarea:focus,select:focus{outline:none;border-color:var(--navy);background:white;box-shadow:0 0 0 3px rgba(10,33,64,0.08)}
+    textarea{min-height:80px;resize:vertical}
+    select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%236b7a8d' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center;padding-right:42px;cursor:pointer}
+    .grid-2{display:grid;gap:14px}
+    @media(min-width:560px){.grid-2{grid-template-columns:1fr 1fr}}
+    .required-error{border-color:var(--red)!important;background:#fff5f5}
+    .cond-score-row{padding:0}
+    .comment-toggle{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--navy);cursor:pointer}
+    .comment-toggle .plus{width:22px;height:22px;background:var(--navy);color:white;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0}
+    .comment-required-note{font-size:11px;color:var(--red);font-weight:600;margin-bottom:4px;display:none}
+    .service-flag-row{display:flex;align-items:center;gap:10px;margin-top:14px;padding:10px 12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;cursor:pointer}
+    .service-flag-row input[type="checkbox"]{width:18px;height:18px;cursor:pointer;accent-color:#ea580c}
+    .service-flag-label{font-size:13px;font-weight:600;color:#9a3412}
+    .photo-upload-area{margin-top:14px}
+    .photo-upload-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;background:var(--surface);border:2px dashed var(--gray);border-radius:10px;font-size:13px;font-weight:600;color:var(--navy);cursor:pointer;width:100%;justify-content:center;transition:border-color 0.2s}
+    .photo-upload-btn:hover{border-color:var(--navy);background:white}
+    .photo-preview{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+    .photo-thumb{position:relative;width:72px;height:72px;border-radius:8px;overflow:hidden;border:2px solid var(--gray)}
+    .photo-thumb img{width:100%;height:100%;object-fit:cover}
+    .photo-thumb .remove-photo{position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);color:white;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+    .photo-upload-progress{font-size:12px;color:var(--gray-dark);margin-top:6px}
+    input.photo-file-input{display:none}
+    .mandatory-photo{background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:10px;padding:14px 16px;margin-bottom:14px}
+    .mandatory-photo-title{font-size:13px;font-weight:700;color:var(--blue-text);margin-bottom:8px}
+    .info-box{border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:14px}
+    .info-box.blue{background:var(--blue-bg);border:1px solid #bfdbfe;color:var(--blue-text)}
+    .info-box.amber{background:var(--amber-bg);border:1px solid #fcd34d;color:var(--amber)}
+    .info-box.red{background:var(--red-bg);border:1px solid #fca5a5;color:var(--red)}
+    .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray)}
+    .toggle-row:last-child{border-bottom:none}
+    .toggle-label{font-size:14px;font-weight:600;color:var(--navy)}
+    .toggle-desc{font-size:12px;color:var(--gray-dark);margin-top:2px}
+    .toggle{position:relative;display:inline-block;width:46px;height:26px;flex-shrink:0}
+    .toggle input{opacity:0;width:0;height:0}
+    .toggle-slider{position:absolute;cursor:pointer;inset:0;background:var(--gray);border-radius:26px;transition:background 0.2s}
+    .toggle-slider::before{content:'';position:absolute;height:20px;width:20px;left:3px;bottom:3px;background:white;border-radius:50%;transition:transform 0.2s}
+    .toggle input:checked+.toggle-slider{background:var(--navy)}
+    .toggle input:checked+.toggle-slider::before{transform:translateX(20px)}
+    .score-badge{display:inline-block;width:32px;height:32px;border-radius:50%;font-size:14px;font-weight:800;line-height:32px;text-align:center}
+    .score-5{background:#dcfce7;color:#166534}.score-4{background:#d1fae5;color:#065f46}.score-3{background:#fef3c7;color:#92400e}.score-2{background:#fee2e2;color:#991b1b}.score-1{background:#fecaca;color:#7f1d1d}.score-none{background:var(--gray);color:var(--gray-dark);font-size:10px}
+    .summary-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--gray)}
+    .summary-item:last-child{border-bottom:none}
+    .summary-title{font-size:14px;font-weight:700;color:var(--navy)}
+    .summary-comment{font-size:13px;color:var(--gray-dark);margin-top:3px}
+    .service-request-box{background:#fff7ed;border:2px solid #fed7aa;border-radius:12px;padding:20px;margin-top:20px}
+    .service-request-title{font-size:16px;font-weight:700;color:#9a3412;margin-bottom:10px}
+    .service-toggle-row{display:flex;align-items:center;gap:12px;cursor:pointer}
+    .service-toggle-row input[type="checkbox"]{width:20px;height:20px;cursor:pointer;accent-color:#ea580c}
+    .nav-bar{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--gray);padding:12px 16px;z-index:100;box-shadow:0 -4px 20px rgba(10,33,64,0.08)}
+    .nav-inner{max-width:720px;margin:0 auto;display:flex;gap:10px}
+    .btn{padding:14px 20px;border-radius:10px;font-size:15px;font-weight:700;border:none;cursor:pointer;transition:background 0.2s,opacity 0.2s;font-family:inherit}
+    .btn:disabled{opacity:0.45;cursor:not-allowed}
+    .btn-ghost{background:var(--surface);color:var(--navy);border:2px solid var(--gray);flex-shrink:0}
+    .btn-primary{background:var(--navy);color:white;flex:1}
+    .btn-save{background:var(--gold);color:var(--navy);flex:1}
+    .completion{text-align:center;padding:60px 20px}
+    .completion-circle{width:80px;height:80px;background:var(--green-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:36px}
+    .completion-title{font-size:24px;font-weight:800;color:var(--navy);margin:0 0 8px}
+    .completion-sub{font-size:15px;color:var(--gray-dark);margin:0 0 24px}
+    .completion-link{display:inline-block;padding:12px 24px;background:var(--navy);color:white;border-radius:10px;font-weight:700;font-size:14px;text-decoration:none;margin:6px}
+    .completion-link.secondary{background:var(--surface);color:var(--navy);border:2px solid var(--gray)}
+    .loading-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;background:var(--surface)}
+    .spinner{width:40px;height:40px;border:4px solid var(--gray);border-top-color:var(--navy);border-radius:50%;animation:spin 0.8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .loading-text{font-size:15px;color:var(--gray-dark);font-weight:600}
+  </style>
+</head>
+<body>
+
+<div id="loadingScreen" class="loading-screen">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">Starter…</div>
+</div>
+
+<div id="loginScreen" style="display:none">
+  <div class="login-screen">
+    <div class="login-box">
+      <div class="login-logo">HOUSE OF YACHTS</div>
+      <div class="login-sub">Befaringsskjema</div>
+      <div class="login-title">Logg inn for å fortsette</div>
+      <div class="login-form">
+        <div>
+          <label for="loginEmail">E-post</label>
+          <input type="email" id="loginEmail" placeholder="navn@houseofyachts.no" autocomplete="email">
+        </div>
+        <div>
+          <label for="loginPassword">Passord</label>
+          <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+        <div id="loginError" class="login-error"></div>
+      </div>
+      <button class="btn-login" id="loginBtn" onclick="doLogin()">🔐 Logg inn</button>
+      <div class="login-forgot" onclick="doForgotPassword()">Glemt passord?</div>
+    </div>
+  </div>
+</div>
+
+<div id="setPasswordScreen" style="display:none">
+  <div class="login-screen">
+    <div class="login-box">
+      <div class="login-logo">HOUSE OF YACHTS</div>
+      <div class="login-sub">Befaringsskjema</div>
+      <div class="login-title" id="setPasswordTitle">Sett passord</div>
+      <div class="login-desc" id="setPasswordDesc">Velg et passord for å aktivere kontoen din.</div>
+      <div class="login-form">
+        <div>
+          <label for="newPassword">Nytt passord</label>
+          <input type="password" id="newPassword" placeholder="Minst 8 tegn" autocomplete="new-password">
+        </div>
+        <div>
+          <label for="newPassword2">Gjenta passord</label>
+          <input type="password" id="newPassword2" placeholder="Gjenta passordet" autocomplete="new-password" onkeydown="if(event.key==='Enter')doSetPassword()">
+        </div>
+        <div id="setPasswordError" class="login-error"></div>
+      </div>
+      <button class="btn-login" id="setPasswordBtn" onclick="doSetPassword()">✅ Aktiver konto</button>
+    </div>
+  </div>
+</div>
+
+<div id="mainHeader" class="header" style="display:none">
+  <div class="header-inner">
+    <div class="header-row">
+      <div>
+        <a href="/" style="font-size:11px;color:rgba(255,255,255,0.45);text-decoration:none;display:block;margin-bottom:4px">← Portal</a>
+        <div onclick="goToDealSelector()" style="cursor:pointer;user-select:none" title="Tilbake til oppdrags­velger"><div class="brand-name">HOUSE OF YACHTS</div><div class="brand-sub">Befaringsskjema</div></div>
+      </div>
+      <div class="header-right">
+        <div class="deal-chip" id="dealChip">—</div>
+        <div class="boat-chip" id="boatChip"></div>
+        <div class="user-chip" id="userChip" onclick="confirmLogout()">👤 <span id="userChipName"></span> · Logg ut</div>
+      </div>
+    </div>
+    <div class="progress-row">
+      <div class="pips" id="pipContainer"></div>
+      <div class="pip-label" id="pipLabel">Seksjon 1</div>
+    </div>
+  </div>
+</div>
+
+<div id="dealSelectorScreen" style="display:none">
+  <div class="main">
+    <div class="deal-header">
+      <h2>Velg befaring</h2>
+      <p id="dealSelectorSub">Henter dine aktive oppdrag…</p>
+    </div>
+    <div class="search-bar">
+      <span class="search-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+      <input type="text" id="dealSearch" placeholder="Søk på båtnavn eller oppdragsnr…" oninput="filterDeals(this.value)">
+    </div>
+    <div class="deal-list" id="dealList"><div class="empty-state">Laster oppdrag…</div></div>
+  </div>
+</div>
+
+<div id="formScreen" style="display:none">
+  <div class="main" id="formMain"></div>
+</div>
+
+<nav class="nav-bar" id="navBar" style="display:none">
+  <div class="nav-inner">
+    <button class="btn btn-ghost" id="prevBtn" onclick="navigate(-1)" style="display:none">← Forrige</button>
+    <button class="btn btn-primary" id="nextBtn" onclick="navigateNext()">Neste →</button>
+    <button class="btn btn-save" id="saveBtn" onclick="saveBefaring()" style="display:none">💾 Lagre befaring</button>
+  </div>
+</nav>
+
+<script>
+'use strict';
+const PORTAL_ID='26753504',BOAT_OBJECT_TYPE='2-145214665',SELLER_PIPELINE='3205247197';
+// Primary owner lookup table: login email → HubSpot owner ID + display name
+const KNOWN_OWNERS={
+  'sindre@h-y.no': {id:'633479117', name:'Sindre Jacobsen'},
+  'daniel@h-y.no': {id:'29136352',  name:'Daniel Ruud'},
+  'henrik@h-y.no': {id:'77221549',  name:'Henrik Olaf Bratz'},
+};
+const CLOSED_STAGES=['4400020706','4400020707'];
+const API_BASE='/.netlify/functions/api',UPLOAD_BASE='/.netlify/functions/upload';
+const SERVICE_EMAIL='sindre@h-y.no';
+const STAGE_LABELS={'4400020701':'Første kontakt','4400020702':'Befaring planlagt','4400020703':'Befaring gjennomført','4400020704':'Verdivurdering sendt','4400020705':'Oppdragsavtale sendt','4400020706':'Vunnet','4400020707':'Tapt','4425071838':'Aktiv','4401874120':'Listing'};
+const SCORE_LABELS={5:'Utmerket',4:'Bra',3:'Akseptabel',2:'Mangelfull',1:'Kritisk'};
+const TILSTAND_MAP={5:'5 - Utmerket',4:'4 - Bra',3:'3 - Akseptabel',2:'2 - Mangelfull',1:'1 - Kritisk'};
+
+const SHARED_SECTIONS=[
+  {key:'skrog',title:'Skrog og dekk',desc:'Sprekker, delaminering, fukt, kjølbolter, gelcoat',photoKey:'skrog_bilde_url'},
+  {key:'undervann',title:'Undervannsskrog',desc:'Kun relevant hvis båten er på land — plastpest, kjølinnfesting, bunnstoff',onLandOnly:true,photoKey:'undervann_bilde_url'},
+  {key:'styring',title:'Styring',desc:'Slark i ratt/rorkult, vaier/tau, hydraulikk'},
+  {key:'interior',title:'Interiør',desc:'Fukt, lukt, overflater, puter, lekkasjer rundt vinduer/luker'},
+  {key:'elektrisk',title:'Elektrisk og instrumenter',desc:'Opplegg, batteribank, inverter, instrumenter, fukt/kondens'},
+  {key:'vvs',title:'VVS og vannsystemer',desc:'Ventiler, lekkasjer, slanger, toalett'},
+  {key:'motor',title:'Motor og mekanikk',desc:'Motorrom, lekkasjer, korrosjon, service-historikk, olje',photoKey:'motor_bilde_url'},
+];
+const SAIL_SECTIONS=[
+  {key:'dekk',title:'Dekk og utstyr',desc:'Dekksbelegg, pushpit/pulpit, rekke, ankervinsj, sprayhood, bimini'},
+  {key:'rigg',title:'Rigg og vant',desc:'Vaier/stag, master, bom, innfestinger, sprekker'},
+  {key:'seil',title:'Seil',desc:'Slitasje, sømmer, lik/akterlik, UV-duk'},
+];
+
+let currentUser=null,ownerRecord=null,allDeals=[],selectedDeal=null,ownersMap={};
+let boatData={},boatId=null,isSailboat=false,isOnLand=false;
+let sections=[],currentSec=0,condState={},dealFieldData={},saved=false;
+
+const $=id=>document.getElementById(id);
+const show=id=>{const e=$(id);if(e)e.style.display=''};
+const hide=id=>{const e=$(id);if(e)e.style.display='none'};
+
+function showScreen(name){
+  ['loadingScreen','loginScreen','setPasswordScreen','dealSelectorScreen','formScreen'].forEach(id=>{
+    const e=$(id);if(e)e.style.display='none';
+  });
+  // Hide mainHeader on auth/loading screens; loadDeals() and selectDeal() re-show it
+  if(['loadingScreen','loginScreen','setPasswordScreen'].includes(name)){hide('mainHeader');hide('navBar');}
+  const t=$(name);if(t)t.style.display=(name==='loadingScreen')?'flex':'block';
+}
+
+async function hs(method,path,body=null){
+  const res=await fetch(API_BASE+path,{method,headers:{'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
+  if(res.status===204)return null;
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok)throw new Error(`[${res.status}] ${data?.message||data?.error||res.statusText}`);
+  return data;
+}
+
+function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function scoreClass(s){return s?'score-'+s:'score-none'}
+
+// ── AUTH (GoTrue REST API) ────────────────────
+const IDENTITY=`${window.location.origin}/.netlify/identity`;
+let accessToken=null,pendingInviteToken=null,pendingTokenType=null;
+
+function getHashParams(){
+  // URLSearchParams preserves '=' inside base64 token values
+  const h=window.location.hash.replace(/^#/,'');
+  const p={};
+  try{new URLSearchParams(h).forEach((v,k)=>{p[k]=v;});}catch(e){}
+  return p;
+}
+
+window.addEventListener('DOMContentLoaded',async()=>{
+  $('loadingText').textContent='Starter…';
+  showScreen('loadingScreen');
+  const hp=getHashParams();
+  if(hp.invite_token||hp.recovery_token){
+    pendingInviteToken=hp.invite_token||hp.recovery_token;
+    pendingTokenType=hp.invite_token?'invite':'recovery';
+    history.replaceState(null,'',window.location.pathname);
+    $('setPasswordTitle').textContent=hp.recovery_token?'Tilbakestill passord':'Aktiver konto';
+    $('setPasswordDesc').textContent=hp.recovery_token?'Sett et nytt passord for kontoen din.':'Velg et passord for å aktivere kontoen din.';
+    $('setPasswordBtn').textContent=hp.recovery_token?'✅ Lagre nytt passord':'✅ Aktiver konto';
+    showScreen('setPasswordScreen');
+    return;
+  }
+  const tok=localStorage.getItem('hoy_access_token');
+  if(tok){
+    try{
+      const u=await fetchIdentityUser(tok);
+      accessToken=tok;await onLogin(u);return;
+    }catch(e){localStorage.removeItem('hoy_access_token');}
+  }
+  showScreen('loginScreen');
+});
+
+async function fetchIdentityUser(tok){
+  const r=await fetch(`${IDENTITY}/user`,{headers:{Authorization:`Bearer ${tok}`}});
+  if(!r.ok)throw new Error('Session utløpt');
+  return await r.json();
+}
+
+async function doLogin(){
+  const email=$('loginEmail').value.trim();
+  const pass=$('loginPassword').value;
+  const errEl=$('loginError');
+  errEl.style.display='none';
+  if(!email||!pass){errEl.textContent='Fyll inn e-post og passord';errEl.style.display='block';return;}
+  const btn=$('loginBtn');btn.disabled=true;btn.textContent='Logger inn…';
+  try{
+    const r=await fetch(`${IDENTITY}/token`,{
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:`grant_type=password&username=${encodeURIComponent(email)}&password=${encodeURIComponent(pass)}`
+    });
+    if(!r.ok){
+      const e=await r.json().catch(()=>({}));
+      throw new Error(e.error_description||'Feil e-post eller passord');
+    }
+    const data=await r.json();
+    accessToken=data.access_token;
+    localStorage.setItem('hoy_access_token',accessToken);
+    const user=await fetchIdentityUser(accessToken);
+    await onLogin(user);
+  }catch(e){
+    errEl.textContent=e.message;errEl.style.display='block';
+    btn.disabled=false;btn.textContent='🔐 Logg inn';
+  }
+}
+
+async function doSetPassword(){
+  const p1=$('newPassword').value;
+  const p2=$('newPassword2').value;
+  const errEl=$('setPasswordError');
+  errEl.style.display='none';
+  if(p1.length<8){errEl.textContent='Passordet må være minst 8 tegn';errEl.style.display='block';return;}
+  if(p1!==p2){errEl.textContent='Passordene stemmer ikke overens';errEl.style.display='block';return;}
+  const btn=$('setPasswordBtn');btn.disabled=true;btn.textContent='Behandler…';
+  try{
+    // Netlify's hosted GoTrue uses 'signup' for invite tokens, 'recovery' for password reset
+    const tokenType=pendingTokenType==='recovery'?'recovery':'signup';
+    const payload={token:pendingInviteToken,type:tokenType,password:p1};
+    console.log('Verify payload type:',tokenType,'token length:',pendingInviteToken?.length);
+    const vr=await fetch(`${IDENTITY}/verify`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    const vdata=await vr.json().catch(()=>({}));
+    if(!vr.ok){
+      console.error('Verify error:',vdata);
+      throw new Error(vdata.msg||vdata.error_description||vdata.error||`Feil ${vr.status} — prøv å be om ny invitasjon.`);
+    }
+    accessToken=vdata.access_token;
+    localStorage.setItem('hoy_access_token',accessToken);
+    const user=await fetchIdentityUser(accessToken);
+    pendingInviteToken=null;pendingTokenType=null;
+    await onLogin(user);
+  }catch(e){
+    errEl.textContent=e.message;errEl.style.display='block';
+    btn.disabled=false;btn.textContent='✅ Aktiver konto';
+  }
+}
+
+async function doForgotPassword(){
+  const email=$('loginEmail').value.trim()||prompt('Skriv inn e-postadressen din:');
+  if(!email)return;
+  try{
+    await fetch(`${IDENTITY}/recover`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email})
+    });
+    alert(`Lenke for tilbakestilling er sendt til ${email}. Sjekk e-posten din.`);
+  }catch(e){alert('Noe gikk galt. Prøv igjen.');}
+}
+
+async function onLogin(user){
+  currentUser=user;
+  $('loadingText').textContent='Henter meglerprofil…';
+  showScreen('loadingScreen');
+  try{await resolveOwner(user.email);await loadDeals();}
+  catch(err){alert('Feil: '+err.message);showScreen('loginScreen');}
+}
+
+function confirmLogout(){
+  if(confirm('Logg ut?')){
+    accessToken=null;localStorage.removeItem('hoy_access_token');
+    currentUser=null;ownerRecord=null;
+    window.location.href='/';
+  }
+}
+
+// ── OWNER ────────────────────────────────────
+async function resolveOwner(email){
+  const emailLc=email.toLowerCase();
+
+  // Step 1: set identity immediately from config table (instant, no API needed)
+  const fb=KNOWN_OWNERS[emailLc];
+  if(fb){
+    ownerRecord={id:fb.id,name:fb.name,email};
+    ownersMap[fb.id]=fb.name;
+  }else{
+    ownerRecord={id:null,name:email,email};
+  }
+  $('userChipName').textContent=ownerRecord.name;
+
+  // Step 2: fetch all owners in background to build complete ownersMap for deal cards
+  // (non-blocking — deal cards will show correct names once this resolves)
+  try{
+    const r=await hs('GET','/crm/v3/owners?limit=100');
+    const all=(r&&r.results)?r.results:[];
+    all.forEach(o=>{ownersMap[String(o.id)]=((o.firstName||'')+' '+(o.lastName||'')).trim()||o.email||'—';});
+    // If not in config table, try to match by email from API response
+    if(!fb){
+      const match=all.find(o=>o.email&&o.email.toLowerCase()===emailLc);
+      if(match){
+        const name=((match.firstName||'')+' '+(match.lastName||'')).trim()||match.email||email;
+        ownerRecord={id:String(match.id),name,email:match.email};
+        $('userChipName').textContent=ownerRecord.name;
+        console.log('Owner resolved via API:',ownerRecord.id,ownerRecord.name);
+      }else{
+        console.warn('Owner not in config or API:',email);
+      }
+    }
+  }catch(e){
+    console.warn('Could not fetch owners for display map:',e.message);
+  }
+}
+
+// ── DEALS ────────────────────────────────────
+async function loadDeals(){
+  $('loadingText').textContent='Henter aktive oppdrag…';
+  showScreen('loadingScreen');
+  try{
+    const pipelineFilter={propertyName:'pipeline',operator:'EQ',value:SELLER_PIPELINE};
+    let filterGroups;
+    if(ownerRecord.id){
+      // OR: deals I own, OR deals where I'm a split owner
+      filterGroups=[
+        {filters:[pipelineFilter,{propertyName:'hubspot_owner_id',operator:'EQ',value:ownerRecord.id}]},
+        {filters:[pipelineFilter,{propertyName:'hs_all_deal_split_owner_ids',operator:'CONTAINS_TOKEN',value:ownerRecord.id}]}
+      ];
+    }else{
+      filterGroups=[{filters:[pipelineFilter]}];
+    }
+    const body={filterGroups,properties:['dealname','dealstage','boat_id','pipeline','hubspot_owner_id'],sorts:[{propertyName:'hs_lastmodifieddate',direction:'DESCENDING'}],limit:100};
+    const res=await hs('POST','/crm/v3/objects/deals/search',body);
+    allDeals=(res.results||[]).filter(d=>!CLOSED_STAGES.includes(d.properties.dealstage));
+    renderDealList(allDeals);
+    showScreen('dealSelectorScreen');
+    // Show header in deal selector with simplified content
+    $('dealChip').textContent='Velg befaring';$('boatChip').textContent='';
+    $('pipContainer').innerHTML='';$('pipLabel').textContent='';
+    $('mainHeader').style.display='';
+    $('dealSelectorSub').textContent=ownerRecord.id?`${allDeals.length} oppdrag for ${ownerRecord.name}`:`Viser alle aktive oppdrag (eier ikke funnet)`;
+  }catch(err){alert('Kunne ikke hente oppdrag: '+err.message);showScreen('loginScreen');}
+}
+
+function goToDealSelector(){
+  if(saved||confirm('Gå tilbake til oppdragslisten? Ulagrede endringer går tapt.')){
+    saved=false;selectedDeal=null;boatData={};boatId=null;condState={};dealFieldData={};currentSec=0;
+    hide('navBar');
+    loadDeals(); // loadDeals shows mainHeader with deal-selector content
+  }
+}
+
+function renderDealList(deals){
+  const list=$('dealList');
+  if(!deals.length){list.innerHTML='<div class="empty-state">Ingen aktive oppdrag funnet</div>';return;}
+  list.innerHTML=deals.map(d=>{
+    const p=d.properties,stage=STAGE_LABELS[p.dealstage]||p.dealstage||'—';
+    const ownerName=ownersMap[String(p.hubspot_owner_id)]||'—';
+    const isMyDeal=ownerRecord.id&&String(p.hubspot_owner_id)===String(ownerRecord.id);
+    return`<div class="deal-card" onclick="selectDeal('${d.id}')">
+      <div class="deal-card-name">${escHtml(p.dealname||'Uten navn')}</div>
+      <div class="deal-card-meta">
+        <span class="deal-stage-badge">${escHtml(stage)}</span>
+        ${p.boat_id?'<span>🚤 Båt tilknyttet</span>':'<span style="color:#991b1b">⚠️ Ingen båt</span>'}
+        <span style="color:${isMyDeal?'var(--green)':'var(--gray-dark)'}">👤 ${escHtml(ownerName)}${isMyDeal?'':' (split)'}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterDeals(q){
+  renderDealList(allDeals.filter(d=>(d.properties.dealname||'').toLowerCase().includes(q.toLowerCase())));
+}
+
+async function selectDeal(dealId){
+  selectedDeal=allDeals.find(d=>d.id===dealId);
+  if(!selectedDeal)return;
+  $('loadingText').textContent='Laster befaringsdata…';
+  showScreen('loadingScreen');
+  try{
+    const fields='dealname,boat_id,seller_expected_price__nok_,authority_confirmed_,timeline_to_list,proposed_commission__,price_band,hs_next_step,next_meeting_date_time';
+    const deal=await hs('GET',`/crm/v3/objects/deals/${dealId}?properties=${fields}`);
+    dealFieldData=deal.properties||{};
+    boatId=dealFieldData.boat_id||null;
+    $('dealChip').textContent=dealFieldData.dealname||`Deal #${dealId}`;
+    if(boatId)await loadBoatData();else{boatData={};isSailboat=false;}
+    initCondState();buildFormSections();showSection(0);
+    $('mainHeader').style.display='';$('navBar').style.display='';$('formScreen').style.display='block';
+    hide('loadingScreen');
+  }catch(err){alert('Feil: '+err.message);showScreen('dealSelectorScreen');}
+}
+
+// ── BOAT ─────────────────────────────────────
+async function loadBoatData(){
+  try{
+    let allProps=[];
+    try{const schema=await hs('GET',`/crm/v3/schemas/${BOAT_OBJECT_TYPE}`);if(schema?.properties)allProps=schema.properties.map(p=>p.name);}catch(e){}
+    const propsParam=allProps.length?allProps.join(','):'batmerke,bat_modell,arsmodell,boat_type,kjenningssignal,hin__cin_nr,motorfabrikant,motorstorrelse,driftstimer_motor,location';
+    const boat=await hs('GET',`/crm/v3/objects/${BOAT_OBJECT_TYPE}/${boatId}?properties=${propsParam}`);
+    boatData=boat.properties||{};
+    isSailboat=(boatData.boat_type==='seilbat');
+    const name=[boatData.batmerke,boatData.bat_modell,boatData.arsmodell].filter(Boolean).join(' ')||boatData.page_title||'';
+    $('boatChip').textContent=name+(isSailboat?' ⛵':' 🚤');
+    [...SHARED_SECTIONS,...SAIL_SECTIONS].forEach(sec=>{
+      const tk=`${sec.key}_tilstand`,ck=`${sec.key}_kommentar`;
+      if(boatData[tk]||boatData[ck])condState[sec.key]={score:boatData[tk]?parseInt(boatData[tk]):null,comment:boatData[ck]||'',flag:boatData[tk]&&parseInt(boatData[tk])<=2,photos:[],photoUrls:[]};
+    });
+  }catch(err){console.error('Boat load error:',err);boatData={};isSailboat=false;}
+}
+
+// ── FORM BUILD ───────────────────────────────
+function initCondState(){
+  [...SHARED_SECTIONS,...(isSailboat?SAIL_SECTIONS:[])].forEach(s=>{
+    if(!condState[s.key])condState[s.key]={score:null,comment:'',flag:false,photos:[],photoUrls:[]};
+  });
+}
+
+function buildFormSections(){
+  sections=[];
+  const activeCond=[...SHARED_SECTIONS,...(isSailboat?SAIL_SECTIONS:[])];
+  sections.push({id:'sec_info',title:'Båtfakta',render:renderInfoSection});
+  sections.push({id:'sec_history',title:'Historikk',render:renderHistorySection});
+  activeCond.forEach(s=>sections.push({id:`sec_${s.key}`,title:s.title,secDef:s,render:()=>renderCondSection(s)}));
+  sections.push({id:'sec_deal',title:'Oppdrag',render:renderDealSection});
+  sections.push({id:'sec_summary',title:'Oppsummering',render:renderSummarySection});
+  const TOTAL=sections.length;
+  const pc=$('pipContainer');pc.innerHTML='';
+  sections.forEach((_,i)=>{const p=document.createElement('div');p.className='pip';p.id=`pip${i}`;pc.appendChild(p);});
+  const fm=$('formMain');fm.innerHTML='';
+  sections.forEach((sec,i)=>{const d=document.createElement('div');d.className='section';d.id=`section${i}`;d.style.display='none';d.innerHTML=sec.render();fm.appendChild(d);});
+}
+
+function showSection(idx){
+  currentSec=idx;const TOTAL=sections.length;
+  document.querySelectorAll('.section').forEach(s=>s.style.display='none');
+  const se=$(`section${idx}`);if(se)se.style.display='block';
+  for(let i=0;i<TOTAL;i++){const p=$(`pip${i}`);if(p)p.className='pip'+(i<idx?' done':i===idx?' active':'');}
+  $('pipLabel').textContent=`${sections[idx]?.title||''} · ${idx+1}/${TOTAL}`;
+  $('prevBtn').style.display=idx>0?'':'none';
+  $('nextBtn').style.display=idx<TOTAL-1?'':'none';
+  $('saveBtn').style.display=idx===TOTAL-1?'':'none';
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(sections[idx]?.id==='sec_summary')renderSummaryContent();
+}
+
+function navigate(dir){const n=currentSec+dir;if(n>=0&&n<sections.length)showSection(n);}
+function navigateNext(){if(!validateSection(currentSec))return;navigate(1);}
+
+function validateSection(idx){
+  const sec=sections[idx];if(!sec?.secDef)return true;
+  const key=sec.secDef.key,state=condState[key],score=state?.score;
+  if(sec.secDef.onLandOnly&&!isOnLand)return true;
+  if(!score)return true;
+  if(score<=2){
+    const cmtEl=$(`${key}_kommentar`);
+    if(!cmtEl?.value?.trim()){
+      cmtEl?.classList.add('required-error');
+      const note=$(`${key}_required_note`);if(note)note.style.display='block';
+      cmtEl?.focus();return false;
+    }
+  }
+  return true;
+}
+
+// ── RENDERERS ────────────────────────────────
+function renderInfoSection(){
+  const bd=boatData;
+  return`<div class="card">
+    <div class="card-title">🛥️ Båtfakta</div>
+    <div class="card-desc">Forhåndsutfylt fra HubSpot — korriger ved behov</div>
+    <div class="grid-2">
+      <div class="field"><label>Merke</label><input type="text" id="f_make" value="${escHtml(bd.batmerke||'')}"></div>
+      <div class="field"><label>Modell</label><input type="text" id="f_model" value="${escHtml(bd.bat_modell||'')}"></div>
+    </div>
+    <div class="grid-2">
+      <div class="field"><label>Byggeår</label><input type="number" id="f_year" value="${escHtml(bd.arsmodell||'')}"></div>
+      <div class="field"><label>HIN / CIN-nummer</label><input type="text" id="f_hin" value="${escHtml(bd.hin__cin_nr||'')}"></div>
+    </div>
+    <div class="grid-2">
+      <div class="field"><label>Kallesignal / Regnr.</label><input type="text" id="f_callsign" value="${escHtml(bd.kjenningssignal||bd.skipsreg||'')}"></div>
+      <div class="field"><label>Liggeplasskommunen <span class="opt">(valgfri)</span></label><input type="text" id="f_location" value="${escHtml(bd.location||'')}"></div>
+    </div>
+    ${isSailboat?`<div class="grid-2">
+      <div class="field"><label>Seilnummer</label><input type="text" id="f_seilnummer" value="${escHtml(bd.seilnummer||'')}"></div>
+      <div class="field"><label>CE konstruksjonskategori</label><input type="text" id="f_ce_kat" value="${escHtml(bd.ce_konstruksjonskategori||'')}"></div>
+    </div>`:`<div class="grid-2">
+      <div class="field"><label>Motor</label><input type="text" id="f_engine" value="${escHtml(bd.motorfabrikant||'')}"></div>
+      <div class="field"><label>Motorstørrelse (HK)</label><input type="number" id="f_engine_size" value="${escHtml(bd.motorstorrelse||'')}"></div>
+    </div>
+    <div class="field"><label>Driftstimer motor <span class="opt">(valgfri)</span></label><input type="number" id="f_engine_hours" value="${escHtml(bd.driftstimer_motor||'')}"></div>`}
+  </div>
+  <div class="card">
+    <div class="card-title">📸 Obligatoriske bilder</div>
+    <div class="card-desc">Disse bildene skal tas på ALLE befaringer</div>
+    ${renderMandatoryPhoto('hin','HIN/CIN-nummer','Tag på skroget')}
+    ${renderMandatoryPhoto('ce','CE-merking','Merkeplaten inne i båten')}
+  </div>
+  <div class="card">
+    <div class="card-title">⚙️ Befaringsforhold</div>
+    <div class="card-desc">Påvirker hvilke seksjoner som vises</div>
+    <div class="toggle-row">
+      <div><div class="toggle-label">Båten er på land</div><div class="toggle-desc">Aktiverer seksjonen for undervannsskrog</div></div>
+      <label class="toggle"><input type="checkbox" id="toggle_on_land" onchange="onLandToggle(this.checked)"><span class="toggle-slider"></span></label>
+    </div>
+  </div>`;
+}
+
+function renderMandatoryPhoto(key,label,hint){
+  return`<div class="mandatory-photo">
+    <div class="mandatory-photo-title">📷 ${label}</div>
+    <div style="font-size:12px;color:var(--gray-dark);margin-bottom:8px">${hint}</div>
+    <input type="file" accept="image/*" id="mphoto_${key}_input" class="photo-file-input" onchange="handleMandatoryPhoto('${key}',this)">
+    <label for="mphoto_${key}_input" class="photo-upload-btn" id="mphoto_${key}_btn">📷 Ta bilde / velg fil</label>
+    <div class="photo-preview" id="mphoto_${key}_preview"></div>
+    <div class="photo-upload-progress" id="mphoto_${key}_progress"></div>
+  </div>`;
+}
+
+function renderHistorySection(){
+  return`<div class="card">
+    <div class="card-title">📋 Historikk og bakgrunn</div>
+    <div class="card-desc">Tidligere skader, reparasjoner og relevant bakgrunnsinfo</div>
+    <div class="field"><label>Historikk og tidligere skader <span class="opt">(valgfri)</span></label>
+      <textarea id="f_historikk" rows="5" placeholder="Kjente skader, reparasjoner, grunnstøtinger, forsikringssaker o.l.">${escHtml(boatData.historikk_skader||'')}</textarea></div>
+  </div>`;
+}
+
+function renderCondSection(sec){
+  const state=condState[sec.key]||{};const score=state.score;
+  return`${sec.onLandOnly&&!isOnLand?`<div class="info-box blue" id="${sec.key}_land_warning">ℹ️ Denne seksjonen er kun relevant når båten er på land.</div>`:''}
+  <div id="${sec.key}_body" style="${sec.onLandOnly&&!isOnLand?'opacity:0.4;pointer-events:none':''}">
+    <div class="card">
+      <div class="card-title">${sec.title}</div>
+      <div class="card-desc">${sec.desc}</div>
+      <div class="field cond-score-row"><label>Tilstandsvurdering</label>
+        <select id="${sec.key}_tilstand" onchange="onScoreChange('${sec.key}',this.value)">
+          <option value="">— Ikke vurdert —</option>
+          <option value="5"${score===5?' selected':''}>5 — Utmerket</option>
+          <option value="4"${score===4?' selected':''}>4 — Bra</option>
+          <option value="3"${score===3?' selected':''}>3 — Akseptabel</option>
+          <option value="2"${score===2?' selected':''}>2 — Mangelfull</option>
+          <option value="1"${score===1?' selected':''}>1 — Kritisk</option>
+        </select>
+      </div>
+      <div id="${sec.key}_comment_wrapper" style="${score&&score<5?'':'display:none'}">
+        <div class="comment-required-note" id="${sec.key}_required_note">⚠️ Kommentar er påkrevd ved score 1 eller 2</div>
+        <div class="field"><label id="${sec.key}_comment_label">Kommentar${score&&score<=2?'':' <span class="opt">(valgfri)</span>'}</label>
+          <textarea id="${sec.key}_kommentar" placeholder="Beskriv tilstand, funn og observasjoner…">${escHtml(state.comment||'')}</textarea></div>
+      </div>
+      <div id="${sec.key}_add_comment_btn" style="${!score||score===5?'':'display:none'}">
+        <div class="comment-toggle" onclick="showCommentArea('${sec.key}')"><span class="plus">+</span> Legg til kommentar</div>
+      </div>
+      <div id="${sec.key}_flag_row" class="service-flag-row" style="${score&&score<=3?'':'display:none'}" onclick="toggleFlag('${sec.key}')">
+        <input type="checkbox" id="${sec.key}_flag"${state.flag?' checked':''} onclick="event.stopPropagation()">
+        <div class="service-flag-label">🔧 Trenger utbedring — meld til serviceavdelingen</div>
+      </div>
+      <div class="photo-upload-area" id="${sec.key}_photo_area" style="${score?'':'display:none'}">
+        <input type="file" accept="image/*" multiple id="${sec.key}_photo_input" class="photo-file-input" onchange="handleCondPhoto('${sec.key}',this)">
+        <label for="${sec.key}_photo_input" class="photo-upload-btn">📷 Ta bilde / velg fil</label>
+        <div class="photo-preview" id="${sec.key}_photo_preview"></div>
+        <div class="photo-upload-progress" id="${sec.key}_photo_progress"></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderDealSection(){
+  const dp=dealFieldData;
+  return`<div class="card">
+    <div class="card-title">💰 Verdi og oppdrag</div>
+    <div class="card-desc">Selgers forventninger og provisjon</div>
+    <div class="grid-2">
+      <div class="field"><label>Selgers prisforventning (NOK)</label><input type="number" id="f_seller_price" value="${escHtml(dp.seller_expected_price__nok_||'')}"></div>
+      <div class="field"><label>Foreslått provisjon (%)</label><input type="number" step="0.1" id="f_commission" value="${dp.proposed_commission__?(parseFloat(dp.proposed_commission__)*100).toFixed(1):''}"></div>
+    </div>
+    <div class="field"><label>Prisbånd <span class="opt">(valgfri)</span></label>
+      <select id="f_price_band">
+        <option value="">— Velg prisbånd —</option>
+        <option value="p_12_m"${dp.price_band==='p_12_m'?' selected':''}>Under 750 000</option>
+        <option value="p_24_m"${dp.price_band==='p_24_m'?' selected':''}>750 000 – 1 000 000</option>
+        <option value="p_410_m"${dp.price_band==='p_410_m'?' selected':''}>1 – 2 000 000</option>
+        <option value="2 - 4 000 000"${dp.price_band==='2 - 4 000 000'?' selected':''}>2 – 4 000 000</option>
+        <option value="4 -10 000 000"${dp.price_band==='4 -10 000 000'?' selected':''}>4 – 10 000 000</option>
+        <option value="Over 10 000 000"${dp.price_band==='Over 10 000 000'?' selected':''}>Over 10 000 000</option>
+      </select></div>
+  </div>
+  <div class="card">
+    <div class="card-title">📅 Selger og neste steg</div>
+    <div class="card-desc">Motivasjon, fullmakt og fremdrift</div>
+    <div class="field"><label>Fullmakt bekreftet</label>
+      <select id="f_authority"><option value="">— Velg —</option>
+        <option value="Yes"${dp.authority_confirmed_==='Yes'?' selected':''}>Ja</option>
+        <option value="No"${dp.authority_confirmed_==='No'?' selected':''}>Nei</option>
+      </select></div>
+    <div class="field"><label>Tidslinje til annonsering</label><input type="text" id="f_timeline" value="${escHtml(dp.timeline_to_list||'')}"></div>
+    <div class="field"><label>Selgers motivasjon <span class="opt">(valgfri)</span></label>
+      <textarea id="f_motivation" placeholder="Hva er bakgrunnen for salget?"></textarea></div>
+    <div class="field"><label>Neste steg</label><textarea id="f_next_step" rows="2">${escHtml(dp.hs_next_step||'')}</textarea></div>
+    <div class="field"><label>Neste møte <span class="opt">(valgfri)</span></label>
+      <input type="datetime-local" id="f_next_meeting" value="${dp.next_meeting_date_time?toLocalDT(dp.next_meeting_date_time):''}"></div>
+    <div class="field"><label>Meglers interne kommentar <span class="opt">(valgfri)</span></label>
+      <textarea id="f_broker_comment" rows="3" placeholder="Intern notat — vises ikke til selger"></textarea></div>
+  </div>`;
+}
+
+function renderSummarySection(){
+  return`<div class="card" id="summaryCard">
+    <div class="card-title">📊 Oppsummering</div>
+    <div class="card-desc">Oversikt over tilstandsvurderinger</div>
+    <div id="summaryList"></div>
+  </div>
+  <div class="service-request-box" id="serviceBox">
+    <div class="service-request-title">🔧 Tilbudsforespørsel til serviceavdelingen</div>
+    <div id="serviceItemsList" style="margin-bottom:14px;font-size:14px;"></div>
+    <div class="service-toggle-row" onclick="toggleServiceRequest()">
+      <input type="checkbox" id="chk_service_request">
+      <strong style="font-size:14px;color:#9a3412">Send tilbudsforespørsel til serviceavdelingen</strong>
+    </div>
+    <div id="serviceMessageArea" style="display:none">
+      <div class="field" style="margin-top:14px"><label>Melding til serviceavdelingen <span class="opt">(valgfri)</span></label>
+        <textarea id="f_service_message" rows="3" placeholder="Beskriv hva som bør sjekkes eller utbedres…"></textarea></div>
+    </div>
+  </div>`;
+}
+
+// ── COND LOGIC ───────────────────────────────
+function onLandToggle(checked){
+  isOnLand=checked;
+  const warn=$('undervann_land_warning'),body=$('undervann_body');
+  if(warn)warn.style.display=checked?'none':'';
+  if(body){body.style.opacity=checked?'1':'0.4';body.style.pointerEvents=checked?'':'none';}
+}
+
+function onScoreChange(key,val){
+  const score=val?parseInt(val):null;
+  condState[key]=condState[key]||{score:null,comment:'',flag:false,photos:[],photoUrls:[]};
+  condState[key].score=score;
+  const cw=$(`${key}_comment_wrapper`),ab=$(`${key}_add_comment_btn`);
+  const fr=$(`${key}_flag_row`),pa=$(`${key}_photo_area`);
+  const rn=$(`${key}_required_note`),cl=$(`${key}_comment_label`),ce=$(`${key}_kommentar`);
+  if(ce)ce.classList.remove('required-error');if(rn)rn.style.display='none';
+  if(!score){
+    if(cw)cw.style.display='none';if(ab)ab.style.display='';
+    if(fr)fr.style.display='none';if(pa)pa.style.display='none';
+  }else if(score===5){
+    if(cw)cw.style.display='none';if(ab)ab.style.display='';
+    if(fr)fr.style.display='none';if(pa)pa.style.display=''; // show photos even for score 5
+    condState[key].flag=false;const fc=$(`${key}_flag`);if(fc)fc.checked=false;
+  }else{
+    if(cw)cw.style.display='';if(ab)ab.style.display='none';
+    if(cl)cl.innerHTML=score<=2?'Kommentar':'Kommentar <span class="opt">(valgfri)</span>';
+    if(fr)fr.style.display=score<=3?'':'none';if(pa)pa.style.display=''; // always show photos when score set
+    if(score<=2){condState[key].flag=true;const fc=$(`${key}_flag`);if(fc)fc.checked=true;}
+  }
+  if(sections[currentSec]?.id==='sec_summary')renderSummaryContent();
+}
+
+function showCommentArea(key){
+  const cw=$(`${key}_comment_wrapper`),ab=$(`${key}_add_comment_btn`);
+  if(cw)cw.style.display='';if(ab)ab.style.display='none';
+}
+
+function toggleFlag(key){
+  condState[key]=condState[key]||{score:null,comment:'',flag:false,photos:[],photoUrls:[]};
+  const chk=$(`${key}_flag`);condState[key].flag=chk?chk.checked:!condState[key].flag;
+  if(chk)chk.checked=condState[key].flag;
+}
+
+// ── SUMMARY ──────────────────────────────────
+function renderSummaryContent(){
+  const list=$('summaryList');if(!list)return;
+  const activeSecs=[...SHARED_SECTIONS.filter(s=>!s.onLandOnly||isOnLand),...(isSailboat?SAIL_SECTIONS:[])];
+  const scored=[],unscored=[],flagged=[];
+  activeSecs.forEach(sec=>{
+    const state=condState[sec.key]||{};
+    if(state.score){scored.push({sec,state});if(state.flag)flagged.push({sec,state});}
+    else unscored.push(sec);
+  });
+  const scoreColor={5:'#166534',4:'#1e40af',3:'#92400e',2:'#c2410c',1:'#991b1b'};
+  const scoreBg={5:'#dcfce7',4:'#dbeafe',3:'#fef3c7',2:'#ffedd5',1:'#fee2e2'};
+  const scoreLabel={5:'Utmerket',4:'Bra',3:'Akseptabel',2:'Mangelfull',1:'Kritisk'};
+  // Score bar
+  const total=activeSecs.length,done=scored.length;
+  const pct=total?Math.round(done/total*100):0;
+  const avgScore=done?Math.round(scored.reduce((s,x)=>s+x.state.score,0)/done*10)/10:null;
+  let html=`<div style="margin-bottom:18px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:13px;font-weight:600;color:var(--navy)">${done}/${total} seksjoner vurdert</span>
+      ${avgScore?`<span style="font-size:13px;font-weight:700;color:${scoreColor[Math.round(avgScore)]||'var(--navy)'}">Snitt: ${avgScore}/5</span>`:''}
+    </div>
+    <div style="background:var(--gray);border-radius:4px;height:6px"><div style="background:var(--navy);width:${pct}%;height:6px;border-radius:4px;transition:width 0.3s"></div></div>
+  </div>`;
+  if(scored.length){
+    // Group by score band
+    const critical=scored.filter(x=>x.state.score<=2);
+    const warning=scored.filter(x=>x.state.score===3);
+    const good=scored.filter(x=>x.state.score>=4);
+    const renderGroup=(items,label,color,bg)=>{
+      if(!items.length)return'';
+      return`<div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:${color};margin-bottom:8px;padding:4px 10px;background:${bg};border-radius:6px;display:inline-block">${label} (${items.length})</div>
+        ${items.map(({sec,state})=>`
+          <div style="display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--gray)">
+            <div style="min-width:36px;height:36px;border-radius:8px;background:${scoreBg[state.score]};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:${scoreColor[state.score]}">${state.score}</div>
+            <div style="flex:1">
+              <div style="font-weight:600;font-size:14px;color:var(--navy)">${sec.title}</div>
+              ${state.comment?`<div style="font-size:13px;color:var(--gray-dark);margin-top:2px">${escHtml(state.comment)}</div>`:''}
+              <div style="display:flex;gap:10px;margin-top:4px;flex-wrap:wrap">
+                ${state.flag?`<div style="font-size:12px;color:#9a3412;font-weight:600">🔧 Trenger utbedring</div>`:''}
+                ${state.photoUrls?.length?`<div style="font-size:12px;color:var(--gray-dark)">📷 ${state.photoUrls.length} bilde${state.photoUrls.length>1?'r':''}</div>`:''}
+              </div>
+            </div>
+          </div>`).join('')}
+      </div>`;
+    };
+    html+=renderGroup(critical,'Kritisk / Mangelfull','#991b1b','#fee2e2');
+    html+=renderGroup(warning,'Akseptabel','#92400e','#fef3c7');
+    html+=renderGroup(good,'Bra / Utmerket','#166534','#dcfce7');
+  }
+  if(unscored.length){
+    html+=`<div style="margin-top:8px;padding:10px 14px;background:var(--surface);border-radius:8px;border:1px solid var(--gray)">
+      <div style="font-size:12px;font-weight:600;color:var(--gray-dark);margin-bottom:6px">IKKE VURDERT (${unscored.length})</div>
+      <div style="font-size:13px;color:var(--gray-dark)">${unscored.map(s=>s.title).join(' · ')}</div>
+    </div>`;
+  }
+  list.innerHTML=html;
+  const sb=$('serviceBox'),si=$('serviceItemsList');
+  if(sb&&si){
+    if(flagged.length){
+      si.innerHTML=`<p style="font-size:13px;color:#9a3412;margin:0 0 10px">Merket for utbedring:</p>`+flagged.map(({sec,state})=>`<div style="padding:8px 0;border-bottom:1px solid #fed7aa;display:flex;gap:10px;align-items:flex-start">
+        <span style="min-width:28px;height:28px;border-radius:6px;background:${scoreBg[state.score]};color:${scoreColor[state.score]};font-weight:800;font-size:14px;display:inline-flex;align-items:center;justify-content:center">${state.score}</span>
+        <div><strong style="font-size:14px">${escHtml(sec.title)}</strong>${state.comment?`<div style="font-size:12px;color:#9a3412;margin-top:2px">${escHtml(state.comment.substring(0,100))}${state.comment.length>100?'…':''}</div>`:''}</div>
+      </div>`).join('');
+    }else{
+      si.innerHTML='';
+    }
+  }
+}
+
+function toggleServiceRequest(){
+  const chk=$('chk_service_request');if(!chk)return;chk.checked=!chk.checked;
+  const ma=$('serviceMessageArea');if(ma)ma.style.display=chk.checked?'':'none';
+}
+
+// ── PHOTOS ───────────────────────────────────
+async function handleMandatoryPhoto(key,input){
+  const file=input.files[0];if(!file)return;
+  const preview=$(`mphoto_${key}_preview`),progress=$(`mphoto_${key}_progress`),btn=$(`mphoto_${key}_btn`);
+  const reader=new FileReader();
+  reader.onload=e=>{preview.innerHTML=`<div class="photo-thumb"><img src="${e.target.result}"><button class="remove-photo" onclick="removeMandatoryPhoto('${key}')">✕</button></div>`;};
+  reader.readAsDataURL(file);
+  if(progress)progress.textContent='Laster opp…';
+  try{
+    const {url,id}=await uploadPhoto(file,`befaring_${key}_${Date.now()}`);
+    if(key==='hin'){condState._hin_url=url;condState._hin_id=id;}
+    if(key==='ce'){condState._ce_url=url;condState._ce_id=id;}
+    if(btn)btn.innerHTML='✅ Bilde lastet opp';if(progress)progress.textContent='';
+  }catch(err){if(progress)progress.textContent='⚠️ Opplasting feilet: '+err.message;console.error(err);}
+}
+
+async function handleCondPhoto(key,input){
+  const files=Array.from(input.files);if(!files.length)return;
+  const preview=$(`${key}_photo_preview`),progress=$(`${key}_photo_progress`);
+  condState[key]=condState[key]||{score:null,comment:'',flag:false,photos:[],photoUrls:[],fileIds:[]};
+  for(const file of files){
+    const dataUrl=await new Promise(r=>{const rd=new FileReader();rd.onload=e=>r(e.target.result);rd.readAsDataURL(file);});
+    const tid=`thumb_${key}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`;
+    const thumb=document.createElement('div');thumb.className='photo-thumb';thumb.id=tid;
+    thumb.innerHTML=`<img src="${dataUrl}"><button class="remove-photo" onclick="document.getElementById('${tid}').remove()">✕</button>`;
+    if(preview)preview.appendChild(thumb);
+    if(progress)progress.textContent='Laster opp…';
+    try{
+      const {url,id}=await uploadPhoto(file,`befaring_${key}_${Date.now()}`);
+      condState[key].photoUrls.push(url);
+      if(id)condState[key].fileIds.push(id);
+      if(progress)progress.textContent=`${condState[key].photoUrls.length} bilde(r) lastet opp`;
+    }
+    catch(err){if(progress)progress.textContent='⚠️ Opplasting feilet: '+err.message;console.error(err);}
+  }
+}
+
+async function uploadPhoto(file,name){
+  const compressed=await compressImage(file,1200,0.82);
+  const base64=compressed.split(',')[1];
+  const res=await fetch(UPLOAD_BASE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64,filename:name+'.jpg',mimeType:'image/jpeg'})});
+  if(!res.ok){
+    let errMsg=`HTTP ${res.status}`;
+    try{const errBody=await res.json();errMsg+=' — '+(errBody.message||errBody.error||JSON.stringify(errBody));}catch(e){}
+    console.error('Upload error:',errMsg);
+    throw new Error(errMsg);
+  }
+  const data=await res.json();
+  if(!data.url)throw new Error('No URL in upload response: '+JSON.stringify(data));
+  return {url:data.url, id:String(data.id||'')};
+}
+
+function compressImage(file,maxWidth,quality){
+  return new Promise((resolve,reject)=>{
+    const img=new Image(),url=URL.createObjectURL(file);
+    img.onload=()=>{URL.revokeObjectURL(url);const r=Math.min(1,maxWidth/img.width);const c=document.createElement('canvas');c.width=img.width*r;c.height=img.height*r;c.getContext('2d').drawImage(img,0,0,c.width,c.height);resolve(c.toDataURL('image/jpeg',quality));};
+    img.onerror=reject;img.src=url;
+  });
+}
+function removeMandatoryPhoto(key){$(`mphoto_${key}_preview`).innerHTML='';const b=$(`mphoto_${key}_btn`);if(b)b.innerHTML='📷 Ta bilde / velg fil';}
+
+// ── SAVE ─────────────────────────────────────
+async function saveBefaring(){
+  if(saved)return;$('saveBtn').disabled=true;$('prevBtn').disabled=true;
+  const errors=[],dealId=selectedDeal.id;
+  const allSecs=[...SHARED_SECTIONS,...(isSailboat?SAIL_SECTIONS:[])];
+  allSecs.forEach(sec=>{
+    const se=$(`${sec.key}_tilstand`),ce=$(`${sec.key}_kommentar`),fc=$(`${sec.key}_flag`);
+    condState[sec.key]=condState[sec.key]||{score:null,comment:'',flag:false,photos:[],photoUrls:[]};
+    if(se?.value)condState[sec.key].score=parseInt(se.value);
+    if(ce?.value)condState[sec.key].comment=ce.value.trim();
+    if(fc)condState[sec.key].flag=fc.checked;
+  });
+  const bp={},set=(k,v)=>{if(v!==null&&v!==undefined&&v!=='')bp[k]=String(v);};
+  set('batmerke',$('f_make')?.value);set('bat_modell',$('f_model')?.value);set('arsmodell',$('f_year')?.value);
+  set('hin__cin_nr',$('f_hin')?.value);set('kjenningssignal',$('f_callsign')?.value);set('location',$('f_location')?.value);
+  if(isSailboat){set('seilnummer',$('f_seilnummer')?.value);set('ce_konstruksjonskategori',$('f_ce_kat')?.value);}
+  else{set('motorfabrikant',$('f_engine')?.value);set('motorstorrelse',$('f_engine_size')?.value);set('driftstimer_motor',$('f_engine_hours')?.value);}
+  set('historikk_skader',$('f_historikk')?.value);
+  allSecs.forEach(sec=>{
+    const state=condState[sec.key];
+    if(state?.score)set(`${sec.key}_tilstand`,TILSTAND_MAP[state.score]||state.score);
+    if(state?.comment)set(`${sec.key}_kommentar`,state.comment);
+    if(state?.photoUrls?.length)set(`${sec.key}_bilde_url`,state.photoUrls[0]);
+  });
+  if(condState._hin_url)set('hin_bilde_url',condState._hin_url);
+  if(condState._ce_url)set('ce_bilde_url',condState._ce_url);
+  const dp={},setD=(k,v)=>{if(v!==null&&v!==undefined&&v!=='')dp[k]=v;};
+  setD('seller_expected_price__nok_',$('f_seller_price')?.value);
+  const comm=$('f_commission')?.value;if(comm)setD('proposed_commission__',String(parseFloat(comm)/100));
+  setD('price_band',$('f_price_band')?.value);
+  setD('authority_confirmed_',$('f_authority')?.value);setD('timeline_to_list',$('f_timeline')?.value);
+  setD('hs_next_step',$('f_next_step')?.value);
+  const nm=$('f_next_meeting')?.value;if(nm)setD('next_meeting_date_time',new Date(nm).toISOString());
+  const noteLines=[`📋 Befaringsnotat — ${new Date().toLocaleDateString('no-NO')} — ${ownerRecord?.name||''}\n`];
+  allSecs.forEach(sec=>{
+    const state=condState[sec.key];
+    if(state?.score){
+      const flag=state.flag?' 🔧':'';
+      noteLines.push(`\n${sec.title}: ${SCORE_LABELS[state.score]} (${state.score}/5)${flag}`);
+      if(state.comment)noteLines.push(`  → ${state.comment}`);
+      if(state.photoUrls?.length){
+        state.photoUrls.forEach((url,i)=>noteLines.push(`  📷 Bilde ${i+1}: ${url}`));
+      }
+    }
+  });
+  const motivation=$('f_motivation')?.value,brokerComment=$('f_broker_comment')?.value;
+  if(motivation)noteLines.push(`\nSelgers motivasjon:\n${motivation}`);
+  if(brokerComment)noteLines.push(`\nMeglers kommentar:\n${brokerComment}`);
+  const tasks=[
+    hs('PATCH',`/crm/v3/objects/deals/${dealId}`,{properties:dp}).catch(e=>errors.push(`Deal: ${e.message}`)),
+  ];
+  if(boatId&&Object.keys(bp).length>0)tasks.push(hs('PATCH',`/crm/v3/objects/${BOAT_OBJECT_TYPE}/${boatId}`,{properties:bp}).catch(e=>errors.push(`Boat: ${e.message}`)));
+  // Collect all uploaded file IDs for proper attachments in HubSpot
+  const allFileIds=[];
+  if(condState._hin_id)allFileIds.push({id:condState._hin_id});
+  if(condState._ce_id)allFileIds.push({id:condState._ce_id});
+  allSecs.forEach(sec=>{(condState[sec.key]?.fileIds||[]).forEach(id=>{if(id)allFileIds.push({id});});});
+  tasks.push(hs('POST','/engagements/v1/engagements',{engagement:{active:true,type:'NOTE',timestamp:Date.now()},associations:{dealIds:[parseInt(dealId,10)]},metadata:{body:noteLines.join('\n')},...(allFileIds.length?{attachments:allFileIds}:{})}).catch(e=>errors.push(`Note: ${e.message}`)));
+  const sendService=$('chk_service_request')?.checked;
+  if(sendService){
+    const serviceMsg=$('f_service_message')?.value||'';
+    const flagged=allSecs.filter(sec=>condState[sec.key]?.flag);
+    const serviceNote=`🔧 SERVICEANMODNING\n\nMegler: ${ownerRecord?.name||''}\nDato: ${new Date().toLocaleDateString('no-NO')}\nDeal: ${dealFieldData.dealname||dealId}\n\nPunkter som trenger utbedring:\n`+flagged.map(sec=>{const s=condState[sec.key];return`• ${sec.title} (${SCORE_LABELS[s.score]})${s.comment?': '+s.comment:''}`;}).join('\n')+(serviceMsg?`\n\nMeglers tillegg:\n${serviceMsg}`:'');
+    tasks.push(hs('POST','/engagements/v1/engagements',{engagement:{active:true,type:'NOTE',timestamp:Date.now()},associations:{dealIds:[parseInt(dealId,10)]},metadata:{body:serviceNote}}).catch(e=>errors.push(`Service note: ${e.message}`)));
+  }
+  await Promise.all(tasks);
+  saved=true;$('saveBtn').disabled=false;hide('navBar');
+  $('formMain').innerHTML=`<div class="completion">
+    <div class="completion-circle">${errors.length?'⚠️':'✓'}</div>
+    <h2 class="completion-title">${errors.length?'Delvis lagret':'Befaring lagret!'}</h2>
+    <p class="completion-sub">${errors.length?'Noen felt feilet:<br><small>'+errors.join('<br>')+'</small>':'Alle data er skrevet til HubSpot.'+(sendService?'<br>Serviceanmodning er opprettet.':'')}</p>
+    <a href="https://app-eu1.hubspot.com/contacts/${PORTAL_ID}/record/0-3/${selectedDeal.id}" class="completion-link" target="_blank">🔗 Åpne deal i HubSpot</a>
+    <a href="#" onclick="goToDealSelector()" class="completion-link secondary">← Velg ny befaring</a>
+  </div>`;
+}
+
+function toLocalDT(iso){const d=new Date(iso);return new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,16);}
+</script>
+</body>
+</html>

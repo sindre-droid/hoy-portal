@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>House of Yachts — Intern portal</title>
+  <style>
+    :root{--navy:#0a2140;--gold:#c9a84c;--gold-light:#f0d88a;--white:#ffffff;--surface:#f5f7fa;--gray:#dde3ec;--gray-dark:#6b7a8d;--text:#12233a;--green:#166534;--green-bg:#dcfce7;--radius:12px;--shadow:0 2px 16px rgba(10,33,64,0.10)}
+    *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html{scroll-behavior:smooth}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--surface);color:var(--text);margin:0;padding:0;min-height:100vh;-webkit-font-smoothing:antialiased}
+
+    /* ── Loading ── */
+    .loading-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy)}
+    .loading-text{color:rgba(255,255,255,0.5);font-size:15px}
+
+    /* ── Login ── */
+    .login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy)}
+    .login-box{background:white;border-radius:20px;padding:40px 36px;max-width:400px;width:calc(100% - 32px);text-align:center;box-shadow:0 8px 40px rgba(0,0,0,0.3)}
+    .login-logo{font-size:22px;font-weight:800;color:var(--navy);letter-spacing:0.5px;margin-bottom:4px}
+    .login-sub{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:28px}
+    .login-title{font-size:17px;font-weight:700;color:var(--navy);margin-bottom:8px}
+    .login-desc{font-size:14px;color:var(--gray-dark);margin-bottom:24px}
+    .login-form{display:flex;flex-direction:column;gap:12px;text-align:left;margin-bottom:20px}
+    .login-form label{font-size:13px;font-weight:600;color:var(--navy);margin-bottom:4px;display:block}
+    .login-form input{width:100%;padding:13px 15px;border:2px solid var(--gray);border-radius:10px;font-size:16px;color:var(--text);background:var(--surface);font-family:inherit}
+    .login-form input:focus{outline:none;border-color:var(--navy);background:white}
+    .btn-login{width:100%;padding:15px;background:var(--navy);color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;transition:opacity 0.2s}
+    .btn-login:disabled{opacity:0.55;cursor:not-allowed}
+    .login-error{color:#991b1b;font-size:13px;font-weight:600;margin-top:10px;display:none}
+    .login-forgot{font-size:13px;color:var(--gray-dark);text-align:center;margin-top:14px;cursor:pointer;text-decoration:underline}
+
+    /* ── Dashboard header ── */
+    .header{background:var(--navy);color:white;padding:14px 20px;position:sticky;top:0;z-index:200;box-shadow:0 2px 16px rgba(0,0,0,0.35)}
+    .header-inner{max-width:960px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}
+    .brand-name{font-size:15px;font-weight:800;letter-spacing:0.8px}
+    .brand-sub{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--gold);font-weight:500}
+    .header-right{display:flex;align-items:center;gap:14px}
+    .user-label{font-size:12px;color:rgba(255,255,255,0.6)}
+    .btn-logout{background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.18);border-radius:20px;color:rgba(255,255,255,0.85);padding:6px 14px;font-size:12px;font-family:inherit;cursor:pointer;transition:background 0.2s}
+    .btn-logout:hover{background:rgba(255,255,255,0.2)}
+
+    /* ── Dashboard body ── */
+    .dashboard{max-width:960px;margin:0 auto;padding:32px 16px 80px}
+    .section-label{font-size:12px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--gray-dark);margin:0 0 12px}
+    .tools-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;margin-bottom:36px}
+
+    /* ── Tool card ── */
+    .tool-card{background:white;border:2px solid var(--gray);border-radius:14px;padding:22px 20px;display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden;transition:border-color 0.2s,box-shadow 0.2s,transform 0.15s}
+    .tool-card.active{text-decoration:none;color:inherit;cursor:pointer}
+    .tool-card.active:hover{border-color:var(--navy);box-shadow:0 6px 24px rgba(10,33,64,0.12);transform:translateY(-2px)}
+    .tool-card.soon{opacity:0.55;cursor:default}
+    .tool-icon{font-size:26px;line-height:1;margin-bottom:2px}
+    .tool-title{font-size:16px;font-weight:700;color:var(--navy)}
+    .tool-desc{font-size:13px;color:var(--gray-dark);line-height:1.55;flex:1}
+    .tool-footer{display:flex;align-items:center;justify-content:space-between;margin-top:4px}
+    .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+    .badge-live{background:var(--green-bg);color:var(--green)}
+    .badge-soon{background:#f1f5f9;color:#64748b}
+    .badge-admin{background:#fef3c7;color:#92400e}
+    .card-arrow{font-size:16px;color:var(--gray);transition:color 0.2s,transform 0.2s}
+    .tool-card.active:hover .card-arrow{color:var(--navy);transform:translateX(3px)}
+  </style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loadingScreen" class="loading-screen" style="display:none">
+  <div class="loading-text" id="loadingText">Starter…</div>
+</div>
+
+<!-- Login -->
+<div id="loginScreen" class="login-screen" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">HOUSE OF YACHTS</div>
+    <div class="login-sub">Intern portal</div>
+    <div class="login-title">Logg inn</div>
+    <div class="login-desc">Tilgang kun for HoY-ansatte</div>
+    <div class="login-form">
+      <div>
+        <label for="loginEmail">E-post</label>
+        <input type="email" id="loginEmail" placeholder="navn@h-y.no" autocomplete="email">
+      </div>
+      <div>
+        <label for="loginPassword">Passord</label>
+        <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+    </div>
+    <div class="login-error" id="loginError"></div>
+    <button class="btn-login" id="loginBtn" onclick="doLogin()">🔐 Logg inn</button>
+    <div class="login-forgot" onclick="doForgot()">Glemt passord?</div>
+  </div>
+</div>
+
+<!-- Dashboard -->
+<div id="dashboardScreen" style="display:none">
+
+  <div class="header">
+    <div class="header-inner">
+      <div>
+        <div class="brand-name">HOUSE OF YACHTS</div>
+        <div class="brand-sub">Intern portal</div>
+      </div>
+      <div class="header-right">
+        <span class="user-label" id="userLabel"></span>
+        <button class="btn-logout" onclick="doLogout()">Logg ut</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="dashboard">
+
+    <div class="section-label">Verktøy</div>
+    <div class="tools-grid">
+
+      <a class="tool-card active" href="/befaring/">
+        <div class="tool-icon">📋</div>
+        <div class="tool-title">Befaringsskjema</div>
+        <div class="tool-desc">Inspeksjonsrapport for nye oppdrag — registrer tilstand, bilder og verdivurdering direkte til HubSpot.</div>
+        <div class="tool-footer">
+          <span class="badge badge-live">Aktiv</span>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+
+      <a class="tool-card active" href="/sjekkliste/">
+        <div class="tool-icon">☑️</div>
+        <div class="tool-title">Salgsprosess-sjekkliste</div>
+        <div class="tool-desc">Følg hvert oppdrag gjennom hele salgssyklusen — auto-sjekket fra HubSpot, manuelt der det trengs.</div>
+        <div class="tool-footer">
+          <span class="badge badge-live">Aktiv</span>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+
+      <div class="tool-card soon">
+        <div class="tool-icon">✍️</div>
+        <div class="tool-title">Annonsegenerator</div>
+        <div class="tool-desc">Generer salgstekster for båtannonser tilpasset HoYs tone og merkevareprofil.</div>
+        <div class="tool-footer"><span class="badge badge-soon">Kommer snart</span></div>
+      </div>
+
+      <div class="tool-card soon">
+        <div class="tool-icon">📊</div>
+        <div class="tool-title">Prisanalytiker</div>
+        <div class="tool-desc">Analyser markedspris basert på tilsvarende båter — gi selger et datadrevet prisforslag.</div>
+        <div class="tool-footer"><span class="badge badge-soon">Kommer snart</span></div>
+      </div>
+
+      <div class="tool-card soon">
+        <div class="tool-icon">🎯</div>
+        <div class="tool-title">Buyer Need Matching</div>
+        <div class="tool-desc">Match nye listings mot registrerte kjøperbehov og varsle megler automatisk ved treff.</div>
+        <div class="tool-footer"><span class="badge badge-soon">Kommer snart</span></div>
+      </div>
+
+      <div class="tool-card soon">
+        <div class="tool-icon">⏱️</div>
+        <div class="tool-title">Avspasering</div>
+        <div class="tool-desc">Logg overtid og ta ut avspasering — se din oppdaterte timebalanse.</div>
+        <div class="tool-footer"><span class="badge badge-soon">Kommer snart</span></div>
+      </div>
+
+    </div>
+
+    <div class="section-label">Ressurser</div>
+    <div class="tools-grid">
+
+      <a class="tool-card active" href="/handbok/">
+        <div class="tool-icon">📖</div>
+        <div class="tool-title">Håndbok</div>
+        <div class="tool-desc">Leveregler, salgsprosess og SOPer — alt på ett sted, søkbart og alltid oppdatert.</div>
+        <div class="tool-footer">
+          <span class="badge badge-live">Aktiv</span>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+
+      <a class="tool-card active" href="/soper/">
+        <div class="tool-icon">📄</div>
+        <div class="tool-title">SOPer</div>
+        <div class="tool-desc">Standard arbeidsrutiner og prosedyrer — søkbare, steg for steg.</div>
+        <div class="tool-footer">
+          <span class="badge badge-live">Aktiv</span>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+
+    </div>
+
+    <!-- Admin section — hidden until role confirmed -->
+    <div id="adminSection" style="display:none">
+      <div class="section-label">Administrasjon</div>
+      <div class="tools-grid">
+
+        <div class="tool-card soon">
+          <div class="tool-icon">🗂️</div>
+          <div class="tool-title">Back-office</div>
+          <div class="tool-desc">Regneark og back-office-verktøy. Kun synlig for administrator.</div>
+          <div class="tool-footer"><span class="badge badge-admin">Admin</span></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+'use strict';
+const IDENTITY=`${window.location.origin}/.netlify/identity`;
+let accessToken=null;
+
+const $=id=>document.getElementById(id);
+const show=id=>{const e=$(id);if(e)e.style.display=''};
+const hide=id=>{const e=$(id);if(e)e.style.display='none'};
+
+function showScreen(name){
+  ['loadingScreen','loginScreen','dashboardScreen'].forEach(id=>hide(id));
+  const el=$(name);
+  if(el)el.style.display=(name==='dashboardScreen')?'block':'flex';
+}
+
+function parseJwt(token){
+  try{const b=token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');return JSON.parse(atob(b));}
+  catch(e){return {};}
+}
+
+function getHashParams(){
+  const h=window.location.hash.replace(/^#/,'');
+  const p={};try{new URLSearchParams(h).forEach((v,k)=>{p[k]=v;});}catch(e){}
+  return p;
+}
+
+window.addEventListener('DOMContentLoaded',async()=>{
+  showScreen('loadingScreen');
+  // If there's a recovery/invite token in the hash, send to befaring which has the full set-password flow
+  const hp=getHashParams();
+  if(hp.recovery_token||hp.invite_token){
+    const param=hp.invite_token?'invite_token='+hp.invite_token:'recovery_token='+hp.recovery_token;
+    window.location.href='/befaring/#'+param;
+    return;
+  }
+  const tok=localStorage.getItem('hoy_access_token');
+  if(tok){
+    try{
+      const u=await fetchUser(tok);
+      accessToken=tok;
+      onLogin(u);
+      return;
+    }catch(e){localStorage.removeItem('hoy_access_token');}
+  }
+  showScreen('loginScreen');
+});
+
+async function fetchUser(tok){
+  const r=await fetch(`${IDENTITY}/user`,{headers:{Authorization:`Bearer ${tok}`}});
+  if(!r.ok)throw new Error('Session utløpt');
+  return await r.json();
+}
+
+async function doLogin(){
+  const email=$('loginEmail').value.trim();
+  const pass=$('loginPassword').value;
+  const errEl=$('loginError');
+  errEl.style.display='none';
+  if(!email||!pass){errEl.textContent='Fyll inn e-post og passord';errEl.style.display='block';return;}
+  const btn=$('loginBtn');btn.disabled=true;btn.textContent='Logger inn…';
+  try{
+    const r=await fetch(`${IDENTITY}/token`,{
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:`grant_type=password&username=${encodeURIComponent(email)}&password=${encodeURIComponent(pass)}`
+    });
+    if(!r.ok){
+      const e=await r.json().catch(()=>({}));
+      throw new Error(e.error_description||'Feil e-post eller passord');
+    }
+    const data=await r.json();
+    accessToken=data.access_token;
+    localStorage.setItem('hoy_access_token',accessToken);
+    const user=await fetchUser(accessToken);
+    onLogin(user);
+  }catch(e){
+    errEl.textContent=e.message;errEl.style.display='block';
+    btn.disabled=false;btn.textContent='🔐 Logg inn';
+  }
+}
+
+function onLogin(user){
+  const name=user.user_metadata?.full_name||user.email||'Bruker';
+  $('userLabel').textContent=name;
+  // Show admin section if user has admin role in JWT
+  const claims=parseJwt(accessToken||'');
+  const roles=claims.app_metadata?.roles||[];
+  if(roles.includes('admin'))show('adminSection');
+  showScreen('dashboardScreen');
+}
+
+async function doForgot(){
+  const email=$('loginEmail').value.trim();
+  if(!email){
+    const e=$('loginError');
+    e.textContent='Skriv inn e-postadressen din først';e.style.display='block';return;
+  }
+  try{
+    await fetch(`${IDENTITY}/recover`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+    alert('Tilbakestillingslenke sendt til '+email);
+  }catch(e){alert('Feil: '+e.message);}
+}
+
+function doLogout(){
+  localStorage.removeItem('hoy_access_token');
+  accessToken=null;
+  showScreen('loginScreen');
+}
+</script>
+</body>
+</html>
