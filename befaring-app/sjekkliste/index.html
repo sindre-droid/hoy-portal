@@ -231,6 +231,30 @@
       .topbar-title,.topbar-sep,.user-label{display:none}
     }
 
+    /* ── Toast notification ── */
+    .toast{position:fixed;bottom:24px;right:24px;background:#166534;color:white;
+      padding:12px 20px;border-radius:10px;font-size:14px;font-weight:600;
+      box-shadow:0 4px 20px rgba(0,0,0,.25);opacity:0;transform:translateY(8px);
+      transition:opacity .25s,transform .25s;pointer-events:none;z-index:999;max-width:320px}
+    .toast.visible{opacity:1;transform:translateY(0)}
+    /* ── B6 / oppgjør warning banner ── */
+    .b6-warn-banner{background:#fee2e2;border:2px solid #f87171;border-radius:10px;
+      padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+    .b6-warn-text{font-size:13px;font-weight:700;color:#991b1b;line-height:1.4}
+    .b6-warn-badge{font-size:10px;font-weight:700;background:#991b1b;color:white;
+      padding:2px 7px;border-radius:6px;white-space:nowrap;margin-left:auto;flex-shrink:0}
+    /* ── Team overview table ── */
+    .team-table{border:1.5px solid var(--gray);border-radius:10px;overflow:hidden;background:white;margin-top:16px}
+    .team-row{display:grid;grid-template-columns:1fr 80px 100px 100px 32px;
+      align-items:center;padding:12px 16px;gap:12px;cursor:pointer;border-bottom:1px solid var(--gray)}
+    .team-row:last-child{border-bottom:none}
+    .team-row:hover:not(.team-header){background:var(--surface)}
+    .team-header{background:var(--surface);font-size:10px;font-weight:700;text-transform:uppercase;
+      letter-spacing:.5px;color:var(--gray-dark);cursor:default}
+    .team-name{font-size:14px;font-weight:600;color:var(--text)}
+    .team-cell{font-size:13px;color:var(--gray-dark);text-align:center}
+    .team-completed{font-size:13px;color:var(--green);font-weight:600;text-align:center}
+    .team-arrow{color:var(--gray-dark);text-align:center}
     /* ── Traffic-light badges in deal list ── */
     .traf-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;white-space:nowrap;margin-left:auto}
     .traf-red   {background:var(--red-bg);color:var(--red)}
@@ -351,6 +375,8 @@
   </div>
 </div>
 
+<div id="toast" class="toast"></div>
+
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
 const IDENTITY_URL = '/.netlify/identity';
@@ -459,6 +485,9 @@ let filteredList = [];
 let stagesA = [], stagesB = [];
 let isAdmin      = false;
 // currentView is declared below with default 'min_dag'
+// Broker ID → display name (mirrors KNOWN_OWNERS in sjekkliste.js)
+// Update this map if new brokers are added.
+
 let currentDeal  = null;
 let manualState  = {};
 let hasBefara    = false;
@@ -471,6 +500,13 @@ let minDagLimit    = 5;      // How many deal groups to show in Min dag by defau
 let minDagExpanded = new Set(); // Which deal group keys are expanded in Min dag
 let completedToday = 0;      // Critical items checked during this session (reset on view switch)
 let currentView    = 'min_dag'; // Start on Min dag
+let toastTimer     = null;   // Timer handle for toast auto-dismiss
+
+const BROKER_NAMES = {
+  '633479117': 'Sindre',
+  '29136352':  'Daniel',
+  '77221549':  'Henrik',
+};
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 function parseJWT(t) {
@@ -526,10 +562,14 @@ async function showApp() {
 function addAdminTab() {
   const tabs = document.getElementById('viewTabs');
   if (tabs.querySelector('[data-view="teamets_aktive"]')) return;
-  const btn = document.createElement('button');
-  btn.className='view-tab'; btn.dataset.view='teamets_aktive'; btn.textContent='Teamets';
-  btn.onclick = () => switchView('teamets_aktive');
-  tabs.appendChild(btn);
+  const btn1 = document.createElement('button');
+  btn1.className='view-tab'; btn1.dataset.view='teamets_aktive'; btn1.textContent='Teamets';
+  btn1.onclick = () => switchView('teamets_aktive');
+  tabs.appendChild(btn1);
+  const btn2 = document.createElement('button');
+  btn2.className='view-tab'; btn2.dataset.view='team_oversikt'; btn2.textContent='Oversikt';
+  btn2.onclick = () => switchView('team_oversikt');
+  tabs.appendChild(btn2);
 }
 
 // ── View switching ────────────────────────────────────────────────────────────
@@ -537,18 +577,22 @@ async function switchView(view) {
   currentView=view; currentDeal=null; foldState={};
   if (view==='min_dag') { minDagLimit=5; minDagExpanded=new Set(); completedToday=0; }
   document.querySelectorAll('.view-tab').forEach(t=>t.classList.toggle('active',t.dataset.view===view));
-  document.getElementById('emptyState').style.display= view==='min_dag' ? 'none' : 'flex';
+  const hideList = view==='min_dag' || view==='team_oversikt';
+  document.getElementById('emptyState').style.display= hideList ? 'none' : 'flex';
   document.getElementById('checklistPanel').style.display='none';
   document.getElementById('minDagPanel').style.display='none';
   await loadDeals();
   if (view==='min_dag') renderMinDag();
+  else if (view==='team_oversikt') renderTeamOversikt();
 }
 
 // ── Load deals ─────────────────────────────────────────────────────────────────
 async function loadDeals() {
   document.getElementById('dealList').innerHTML='<div class="list-spinner"><div class="spinner"></div></div>';
-  // Min dag always uses mine_aktive data
-  const fetchView = currentView === 'min_dag' ? 'mine_aktive' : currentView;
+  // Min dag always uses mine_aktive data; team_oversikt fetches teamets_aktive
+  const fetchView = currentView === 'min_dag' ? 'mine_aktive'
+                  : currentView === 'team_oversikt' ? 'teamets_aktive'
+                  : currentView;
   try {
     const r = await fetch(`${API}?view=${fetchView}`,{headers:{Authorization:`Bearer ${token}`}});
     if (r.status===401){doLogout();return;}
@@ -585,12 +629,17 @@ function renderDealList() {
       const cls=(d.warmth<0)?'closed':'b';
       badges+=`<span class="stage-pill ${cls}">${escH(d.stage_b_label)}</span>`;
     }
+    // B6 warning badge: red "B6 !" for Closed Won deals with unconfirmed oppgjør
+    const b6Warn = hasCriticalOppgjorWarn(d)
+      ? `<span class="traf-badge traf-red" title="Oppgjør ikke bekreftet">B6 !</span>`
+      : '';
     const isAct = currentDeal&&dealKey(d)===dealKey(currentDeal);
     return `
       <div class="deal-item${isAct?' active':''}" onclick="selectDeal(${i})">
         <div class="deal-row1">
           <span class="warmth-dot ${wDotClass(d.warmth)}"></span>
           <span class="deal-name">${escH(d.name)}</span>
+          ${b6Warn}
         </div>
         <div class="deal-row2">${badges}<span class="traf-badge ${trafCls}">${trafLbl}</span></div>
       </div>`;
@@ -774,6 +823,19 @@ function renderChecklist() {
         ${deal.pipeline_b_id&&deal.stage_b_idx>=2?`<a class="hs-link" href="/budgivning/?deal=${deal.pipeline_b_id}">📋 Åpne budgivning →</a>`:''}
       </div>
     </div>`;
+
+  // ── B6 / Oppgjør warning banner ───────────────────────────────────────────
+  if (isClosedWon(deal) && !manualState['b6_oppgjor']) {
+    html += `
+      <div class="b6-warn-banner">
+        <span style="font-size:22px">⚠️</span>
+        <div class="b6-warn-text">
+          Dealen er markert Closed Won, men oppgjør er ikke bekreftet på klientkonto.<br>
+          <span style="font-weight:500">Bekreft B6 nedenfor så snart betaling er inne.</span>
+        </div>
+        <span class="b6-warn-badge">B6 mangler</span>
+      </div>`;
+  }
 
   // ── Fase A ────────────────────────────────────────────────────────────────
   html += renderPhaseSection({
@@ -980,6 +1042,12 @@ function toggleItem(id) {
   // Ignore if auto-checked via Oneflow
   if (isOneflowChecked(id)) return;
   manualState[id] = !manualState[id];
+  // Store timestamp when checking; remove when unchecking (used for "7-day completed" tracking)
+  if (manualState[id]) {
+    manualState[id + '_ts'] = Date.now();
+  } else {
+    delete manualState[id + '_ts'];
+  }
   // If unchecking an item with text, keep the text but the checkbox is off
   saveStatus='saving';
   renderChecklist();
@@ -1052,6 +1120,9 @@ const SHORT_LABELS = {
 function buildMinDagItems() {
   const result = [];
   for (const deal of allDeals) {
+    // Skip closed deals (warmth < 0 = historikk) — they shouldn't appear in Min dag
+    if (deal.warmth < 0) continue;
+
     let manual = {};
     try { manual = deal.sjekkliste_status ? JSON.parse(deal.sjekkliste_status) : {}; } catch {}
 
@@ -1274,6 +1345,12 @@ async function toggleMinDagItem(dealIdx, itemId) {
   try { manual = deal.sjekkliste_status ? JSON.parse(deal.sjekkliste_status) : {}; } catch {}
   const wasChecked = !!manual[itemId];
   manual[itemId] = !wasChecked;
+  // Store / clear timestamp for "7-day completed" tracking
+  if (manual[itemId]) {
+    manual[itemId + '_ts'] = Date.now();
+  } else {
+    delete manual[itemId + '_ts'];
+  }
   // Track session completions (only for critical items checked this session)
   const itemDef = CHECKLIST.find(c => c.id === itemId);
   if (itemDef?.gate) {
@@ -1296,6 +1373,14 @@ async function toggleMinDagItem(dealIdx, itemId) {
     manualState = manual;
   }
 
+  // Toast: if we just checked a critical item and this deal now has 0 open critical items
+  if (manual[itemId] && itemDef?.gate) {
+    const remaining = buildMinDagItems().filter(e => dealKey(e.deal) === dealKey(deal) && e.isCritical);
+    if (remaining.length === 0) {
+      showToast(`${deal.name} er ryddet opp! 🎉`);
+    }
+  }
+
   renderMinDag();
   renderDealList();
 }
@@ -1309,6 +1394,119 @@ function openDealFromMinDag(dealIdx) {
   const deal = allDeals[dealIdx];
   const fIdx = filteredList.indexOf(deal);
   selectDeal(fIdx >= 0 ? fIdx : dealIdx);
+}
+
+// ── Team oversikt ─────────────────────────────────────────────────────────────
+function renderTeamOversikt() {
+  const panel = document.getElementById('minDagPanel');
+  panel.style.display = 'block';
+
+  const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+  const since = Date.now() - SEVEN_DAYS;
+
+  // Group deals by owner_id
+  const brokerMap = new Map();
+  // Pre-seed with known brokers so they always appear (even with 0 deals)
+  for (const [ownerId, name] of Object.entries(BROKER_NAMES)) {
+    brokerMap.set(ownerId, { name, ownerId, deals: [], openCrit: 0, completed7d: 0 });
+  }
+
+  for (const deal of allDeals) {
+    const ownerId = String(deal.owner_id || '');
+    if (!brokerMap.has(ownerId)) {
+      brokerMap.set(ownerId, { name: ownerId || 'Ukjent', ownerId, deals: [], openCrit: 0, completed7d: 0 });
+    }
+    const broker = brokerMap.get(ownerId);
+    broker.deals.push(deal);
+    broker.openCrit    += quickCritUnresolved(deal);
+    broker.completed7d += countCompletedSince(deal, since);
+  }
+
+  // Filter to brokers with at least 1 deal, sort by open critical desc
+  const rows = [...brokerMap.values()].filter(b => b.deals.length > 0);
+  rows.sort((a, b) => b.openCrit - a.openCrit || a.name.localeCompare(b.name));
+
+  let html = `<div class="min-dag-view">
+    <div class="min-dag-header">
+      <div class="min-dag-title">Team-oversikt</div>
+      <div class="min-dag-sub" style="font-size:13px;color:var(--gray-dark);margin-top:3px">
+        Klikk på en megler for å se deres aktive oppdrag
+      </div>
+    </div>
+    <div class="team-table">
+      <div class="team-row team-header">
+        <div class="team-name">Megler</div>
+        <div class="team-cell">Aktive</div>
+        <div class="team-cell">Åpne kritiske</div>
+        <div class="team-completed">Fullført 7d</div>
+        <div class="team-arrow"></div>
+      </div>`;
+
+  for (const broker of rows) {
+    const critStyle = broker.openCrit > 3
+      ? 'color:var(--red);font-weight:700'
+      : broker.openCrit > 0
+      ? 'color:var(--amber);font-weight:600'
+      : 'color:var(--green);font-weight:600';
+    html += `
+      <div class="team-row" onclick="filterToBroker('${escH(broker.ownerId)}')">
+        <div class="team-name">${escH(broker.name)}</div>
+        <div class="team-cell">${broker.deals.length}</div>
+        <div class="team-cell" style="${critStyle}">${broker.openCrit}</div>
+        <div class="team-completed">${broker.completed7d > 0 ? '+' + broker.completed7d : '—'}</div>
+        <div class="team-arrow" style="font-size:16px;color:var(--gray-dark)">›</div>
+      </div>`;
+  }
+
+  html += `</div></div>`;
+  panel.innerHTML = html;
+}
+
+// Filter the deal list to a single broker and switch to their deals
+function filterToBroker(ownerId) {
+  currentView = 'teamets_aktive';
+  document.querySelectorAll('.view-tab').forEach(t => t.classList.toggle('active', t.dataset.view === 'teamets_aktive'));
+  document.getElementById('minDagPanel').style.display = 'none';
+  document.getElementById('emptyState').style.display = 'flex';
+  document.getElementById('checklistPanel').style.display = 'none';
+  filteredList = allDeals.filter(d => String(d.owner_id || '') === String(ownerId));
+  renderDealList();
+}
+
+// ── Helper: B6 / Closed Won warning ──────────────────────────────────────────
+// Returns true when a Pipeline B deal has reached stage 4+ (Closed Won / oppgjør)
+function isClosedWon(deal) {
+  return !!(deal.pipeline_b_id && deal.stage_b_idx >= 4);
+}
+
+// Returns true when deal is Closed Won AND b6_oppgjor is still unchecked
+function hasCriticalOppgjorWarn(deal) {
+  if (!isClosedWon(deal)) return false;
+  let manual = {};
+  try { manual = deal.sjekkliste_status ? JSON.parse(deal.sjekkliste_status) : {}; } catch {}
+  return !manual['b6_oppgjor'];
+}
+
+// ── Helper: Toast notification ────────────────────────────────────────────────
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('visible');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('visible'), 3500);
+}
+
+// ── Helper: Count items completed in last N ms (for "7 days" team scoreboard) ──
+function countCompletedSince(deal, sinceMs) {
+  let manual = {};
+  try { manual = deal.sjekkliste_status ? JSON.parse(deal.sjekkliste_status) : {}; } catch {}
+  let count = 0;
+  for (const item of CHECKLIST) {
+    if (!item.gate) continue;
+    const ts = manual[item.id + '_ts'];
+    if (ts && ts >= sinceMs) count++;
+  }
+  return count;
 }
 
 // ── Utility ───────────────────────────────────────────────────────────────────
