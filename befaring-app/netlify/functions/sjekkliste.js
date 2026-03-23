@@ -110,107 +110,6 @@ exports.handler = async (event) => {
   const ownerId = KNOWN_OWNERS[email] || null;
   const h       = { ...CORS, ...JSON_H };
 
-  // ── GET ?debug_oneflow_contract=ID → dump raw Oneflow contract fields ────────
-  // No login required — only works if ONEFLOW_API_TOKEN is configured server-side
-  if (event.httpMethod === 'GET' && event.queryStringParameters?.debug_oneflow_contract) {
-    const contractId = event.queryStringParameters.debug_oneflow_contract;
-    const ofToken = process.env.ONEFLOW_API_TOKEN;
-    const ofEmail = process.env.ONEFLOW_USER_EMAIL;
-    if (!ofToken) return { statusCode: 400, headers: h, body: JSON.stringify({ error: 'ONEFLOW_API_TOKEN not set' }) };
-    const r = await fetch(`https://api.oneflow.com/v1/contracts/${contractId}`, {
-      headers: { 'x-oneflow-api-token': ofToken, 'x-oneflow-user-email': ofEmail, 'Content-Type': 'application/json' },
-    });
-    const data = await r.json();
-    // Return all fields relevant for integration planning
-    return { statusCode: 200, headers: h, body: JSON.stringify({
-      id:              data._id || data.id,
-      name:            data.name,
-      custom_id:       data.custom_id,
-      lifecycle_state: data.lifecycle_state,
-      state:           data.state,
-      marked_as_signed:data.marked_as_signed,
-      template:        data.template,
-      template_id:     data.template_id || data.template?._id || data.template?.id,
-      tags:            data.tags,
-      parties_summary: (data.parties?.colleague_participants || data.parties || []).slice?.call(data.parties || [], 0, 3),
-      _all_keys:       Object.keys(data),
-    }, null, 2) };
-  }
-
-  // ── GET ?debug_oneflow_list → inspect list endpoint (name/template field presence) ──
-  // Fetches the first page of contracts and shows field structure on the first result.
-  // Use this to verify whether 'name' and 'template' are present in list responses.
-  if (event.httpMethod === 'GET' && event.queryStringParameters?.debug_oneflow_list !== undefined) {
-    const ofToken = process.env.ONEFLOW_API_TOKEN;
-    const ofEmail = process.env.ONEFLOW_USER_EMAIL;
-    if (!ofToken) return { statusCode: 400, headers: h, body: JSON.stringify({ error: 'ONEFLOW_API_TOKEN not set' }) };
-    const r = await fetch('https://api.oneflow.com/v1/contracts?limit=5', {
-      headers: { 'x-oneflow-api-token': ofToken, 'x-oneflow-user-email': ofEmail, 'Content-Type': 'application/json' },
-    });
-    const raw = await r.json();
-    const contracts = raw.data || raw._entities || raw.contracts || [];
-    // Dump first contract completely (including _private) to find name/template fields
-    const first = contracts[0] || null;
-    const sample = contracts.slice(0, 3).map(c => ({
-      id:              c._id || c.id,
-      name:            c.name,
-      state:           c.state,
-      lifecycle_state: c.lifecycle_state,
-      marked_as_signed:c.marked_as_signed,
-      template:        c.template,
-      template_id:     c.template?._id || c.template?.id || c.template_id,
-      template_name:   c.template?.name,
-      tags:            c.tags,
-      _private:        c._private,
-      _private_ownerside: c._private_ownerside,
-      _all_keys:       Object.keys(c),
-    }));
-    return { statusCode: 200, headers: h, body: JSON.stringify({
-      total:          raw._pagination?.total || raw.total || contracts.length,
-      top_level_keys: Object.keys(raw),
-      first_contract_raw: first,   // full dump — no field filtering
-      sample_contracts: sample,
-    }, null, 2) };
-  }
-
-  // ── GET ?debug_oneflow_match=DEAL_NAME → test matching for a deal name ────
-  if (event.httpMethod === 'GET' && event.queryStringParameters?.debug_oneflow_match !== undefined) {
-    const deal_name = event.queryStringParameters.debug_oneflow_match;
-    const ofToken = process.env.ONEFLOW_API_TOKEN;
-    const ofEmail = process.env.ONEFLOW_USER_EMAIL;
-    if (!ofToken) return { statusCode: 400, headers: h, body: JSON.stringify({ error: 'ONEFLOW_API_TOKEN not set' }) };
-    const dealNum  = (deal_name || '').match(/^(\d+)/)?.[1];
-    const boatName = (deal_name || '').replace(/^\d+\s*-\s*/, '').trim().toLowerCase();
-    const boatKey  = boatName.length >= 6 ? boatName : null;
-    const r = await fetch('https://api.oneflow.com/v1/contracts?limit=100', {
-      headers: { 'x-oneflow-api-token': ofToken, 'x-oneflow-user-email': ofEmail, 'Content-Type': 'application/json' },
-    });
-    const rawText = await r.text();
-    let raw;
-    try { raw = JSON.parse(rawText); } catch { raw = { parse_error: rawText.slice(0, 500) }; }
-    const contracts = raw.data || raw._entities || raw.contracts || [];
-    const matched = contracts.filter(c => {
-      const n = (c._private?.name || '').toLowerCase();
-      if (dealNum && n.includes(dealNum)) return true;
-      if (boatKey  && n.includes(boatKey))  return true;
-      return false;
-    }).map(c => ({
-      id:              c.id,
-      name:            c._private?.name,
-      state:           c.state,
-      template_id:     c._private_ownerside?.template_id,
-      is_signed:       c.state === 'signed' || c.lifecycle_state === 'active' || c.marked_as_signed === true,
-    }));
-    return { statusCode: 200, headers: h, body: JSON.stringify({
-      deal_name, dealNum: dealNum || null, boatKey,
-      http_status: r.status,
-      top_level_keys: typeof raw === 'object' ? Object.keys(raw) : [],
-      total_contracts: contracts.length,
-      matched_contracts: matched,
-      raw_preview: typeof raw === 'object' ? JSON.stringify(raw).slice(0, 300) : rawText.slice(0, 300),
-    }, null, 2) };
-  }
-
   // ── GET ?deal_a_id=X&deal_b_id=Y&deal_name=N → befaring + Oneflow status ──
   if (event.httpMethod === 'GET' && (event.queryStringParameters?.deal_a_id || event.queryStringParameters?.deal_b_id)) {
     const { deal_a_id, deal_b_id, deal_name } = event.queryStringParameters;
@@ -256,70 +155,73 @@ exports.handler = async (event) => {
           since.setMonth(since.getMonth() - 13);
           const sinceStr = since.toISOString().split('T')[0]; // YYYY-MM-DD
 
-          // Try date-filtered fetch first; fall back to newest 200 if filter unsupported
-          const filteredUrl = `https://api.oneflow.com/v1/contracts?limit=100&offset=0&published_time[gte]=${sinceStr}`;
-          const fallbackUrl = `https://api.oneflow.com/v1/contracts?limit=100&offset=0`;
-          let firstRes = await fetch(filteredUrl, { headers: ofHeaders });
-          const usingFilter = firstRes.ok;
-          if (!usingFilter) firstRes = await fetch(fallbackUrl, { headers: ofHeaders });
+          // Fetch pages one at a time, stopping as soon as we find a match.
+          // Contracts are sorted newest-first, so active deals are almost always
+          // in the first page (100). Older historikk deals may require 1-2 more pages.
+          // Hard cap at 5 pages (500 contracts) to prevent runaway fetching.
+          const MAX_PAGES = 5;
+          let contracts = [];
+          let offset = 0;
+          let foundMatch = false;
+          let totalCount = Infinity;
 
-          if (firstRes.ok) {
-            const firstData = await firstRes.json();
-            const totalCount = firstData.count || 0;
-            let contracts = firstData.data || [];
-            // Paginate if needed — cap at 4 extra pages (500 total) as safety limit
-            if (totalCount > 100) {
-              const extraPageCount = Math.min(Math.ceil(totalCount / 100) - 1, 4);
-              const baseUrl = usingFilter
-                ? `https://api.oneflow.com/v1/contracts?limit=100&published_time[gte]=${sinceStr}`
-                : `https://api.oneflow.com/v1/contracts?limit=100`;
-              const extraPages = await Promise.all(
-                Array.from({ length: extraPageCount }, (_, i) =>
-                  fetch(`${baseUrl}&offset=${(i + 1) * 100}`, { headers: ofHeaders })
-                    .then(r => r.ok ? r.json() : { data: [] })
-                    .then(d => d.data || [])
-                    .catch(() => [])
-                )
-              );
-              contracts = [...contracts, ...extraPages.flat()];
-            }
-
-            // Match if contract name contains the deal number OR the boat name.
-            // Boat name fallback handles contracts created before the deal number
-            // was assigned (egenerklæring + oppdragsavtale are signed first).
-            // Name is in _private.name, template ID is in _private_ownerside.template_id
-            const cName = c => (c._private?.name || '').toLowerCase();
-
-            const isMatch = c => {
-              const n = cName(c);
+          while (offset < totalCount && offset < MAX_PAGES * 100 && !foundMatch) {
+            const res = await fetch(
+              `https://api.oneflow.com/v1/contracts?limit=100&offset=${offset}`,
+              { headers: ofHeaders }
+            );
+            if (!res.ok) break;
+            const page = await res.json();
+            totalCount = page.count || 0;
+            const pageContracts = page.data || [];
+            contracts = [...contracts, ...pageContracts];
+            // Check if this page contains a match — if so, no need to fetch more
+            foundMatch = pageContracts.some(c => {
+              const n = (c._private?.name || '').toLowerCase();
               if (dealNum && n.includes(dealNum)) return true;
               if (boatKey  && n.includes(boatKey))  return true;
               return false;
-            };
+            });
+            offset += 100;
+          }
 
-            for (const c of contracts.filter(isMatch)) {
-              // state === 'signed' is the confirmed signing indicator
-              const isSigned = c.state === 'signed'
-                || c.lifecycle_state === 'active'
-                || c.marked_as_signed === true;
-              if (!isSigned) continue;
+          // Oneflow API responded — mark as live source regardless of match count
+          oneflow.source = 'oneflow_api';
 
-              // ── Primary: match by template ID (reliable, title-independent) ──
-              // Template ID lives in _private_ownerside.template_id
-              const tid = parseInt(c._private_ownerside?.template_id || c.template?._id || c.template?.id || 0);
-              if (tid) {
-                if (ONEFLOW_TEMPLATES.egenerklaring.includes(tid))  { oneflow.egenerklaring = true; continue; }
-                if (ONEFLOW_TEMPLATES.oppdragsavtale.includes(tid)) { oneflow.oppdragsavtale = true; continue; }
-                if (ONEFLOW_TEMPLATES.kjøpekontrakt.includes(tid))  { oneflow['kjøpekontrakt'] = true; continue; }
-              }
+          // Match if contract name contains the deal number OR the boat name.
+          // Boat name fallback handles contracts created before the deal number
+          // was assigned (egenerklæring + oppdragsavtale are signed first).
+          // Name is in _private.name, template ID is in _private_ownerside.template_id
+          const cName = c => (c._private?.name || '').toLowerCase();
 
-              // ── Fallback: match by contract name ──
-              const name = cName(c);
-              if (name.includes('egenerklær') || name.includes('egenerklaring'))               oneflow.egenerklaring = true;
-              if (name.includes('salgsavtale') || name.includes('oppdragsavtale'))             oneflow.oppdragsavtale = true;
-              if (name.includes('kjøpekontrakt') || name.includes('kjøpskontrakt'))            oneflow['kjøpekontrakt'] = true;
+          const isMatch = c => {
+            const n = cName(c);
+            if (dealNum && n.includes(dealNum)) return true;
+            if (boatKey  && n.includes(boatKey))  return true;
+            return false;
+          };
+
+          for (const c of contracts.filter(isMatch)) {
+            // state === 'signed' is the confirmed signing indicator
+            const isSigned = c.state === 'signed'
+              || c.lifecycle_state === 'active'
+              || c.marked_as_signed === true;
+            if (!isSigned) continue;
+
+            // ── Primary: match by template ID (reliable, title-independent) ──
+            // Template ID lives in _private_ownerside.template_id
+            const tid = parseInt(c._private_ownerside?.template_id || c.template?._id || c.template?.id || 0);
+            if (tid) {
+              if (ONEFLOW_TEMPLATES.egenerklaring.includes(tid))  { oneflow.egenerklaring = true; continue; }
+              if (ONEFLOW_TEMPLATES.oppdragsavtale.includes(tid)) { oneflow.oppdragsavtale = true; continue; }
+              if (ONEFLOW_TEMPLATES.kjøpekontrakt.includes(tid))  { oneflow['kjøpekontrakt'] = true; continue; }
             }
-            oneflow.source = 'oneflow_api';
+
+            // ── Fallback: match by contract name ──
+            const name = cName(c);
+            if (name.includes('egenerklær') || name.includes('egenerklaring'))               oneflow.egenerklaring = true;
+            if (name.includes('salgsavtale') || name.includes('oppdragsavtale'))             oneflow.oppdragsavtale = true;
+            if (name.includes('kjøpekontrakt') || name.includes('kjøpskontrakt'))            oneflow['kjøpekontrakt'] = true;
           }
         }
       } catch { /* Oneflow unavailable — fall through */ }
