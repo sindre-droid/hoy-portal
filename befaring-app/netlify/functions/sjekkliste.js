@@ -114,7 +114,9 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'GET' && (event.queryStringParameters?.deal_a_id || event.queryStringParameters?.deal_b_id)) {
     const { deal_a_id, deal_b_id, deal_name } = event.queryStringParameters;
     let hasBefaring = false;
-    const oneflow = { egenerklaring: false, oppdragsavtale: false, kjøpekontrakt: false, source: null };
+    // State values: null = not found, 'draft' = created not sent,
+    // 'pending' = sent awaiting signatures, 'signed' = fully signed
+    const oneflow = { egenerklaring: null, oppdragsavtale: null, kjøpekontrakt: null, source: null };
 
     // HTML stripper for note body text
     function stripHtml(s) {
@@ -201,27 +203,34 @@ exports.handler = async (event) => {
             return false;
           };
 
-          for (const c of contracts.filter(isMatch)) {
-            // state === 'signed' is the confirmed signing indicator
-            const isSigned = c.state === 'signed'
-              || c.lifecycle_state === 'active'
-              || c.marked_as_signed === true;
-            if (!isSigned) continue;
+          // State priority: signed > pending > draft > existing value
+          const STATE_RANK = { signed: 3, pending: 2, draft: 1 };
+          const resolveState = (current, contractState) => {
+            const incoming = contractState === 'signed'
+              || contractState === 'active' ? 'signed'
+              : contractState === 'pending' ? 'pending'
+              : 'draft';
+            if (!current) return incoming;
+            return (STATE_RANK[incoming] || 0) > (STATE_RANK[current] || 0) ? incoming : current;
+          };
 
-            // ── Primary: match by template ID (reliable, title-independent) ──
-            // Template ID lives in _private_ownerside.template_id
+          const setOneflowState = (key, contractState) => {
+            oneflow[key] = resolveState(oneflow[key], contractState);
+          };
+
+          for (const c of contracts.filter(isMatch)) {
+            // ── Primary: match by template ID ──
             const tid = parseInt(c._private_ownerside?.template_id || c.template?._id || c.template?.id || 0);
             if (tid) {
-              if (ONEFLOW_TEMPLATES.egenerklaring.includes(tid))  { oneflow.egenerklaring = true; continue; }
-              if (ONEFLOW_TEMPLATES.oppdragsavtale.includes(tid)) { oneflow.oppdragsavtale = true; continue; }
-              if (ONEFLOW_TEMPLATES.kjøpekontrakt.includes(tid))  { oneflow['kjøpekontrakt'] = true; continue; }
+              if (ONEFLOW_TEMPLATES.egenerklaring.includes(tid))  { setOneflowState('egenerklaring',  c.state); continue; }
+              if (ONEFLOW_TEMPLATES.oppdragsavtale.includes(tid)) { setOneflowState('oppdragsavtale', c.state); continue; }
+              if (ONEFLOW_TEMPLATES.kjøpekontrakt.includes(tid))  { setOneflowState('kjøpekontrakt',  c.state); continue; }
             }
-
             // ── Fallback: match by contract name ──
             const name = cName(c);
-            if (name.includes('egenerklær') || name.includes('egenerklaring'))               oneflow.egenerklaring = true;
-            if (name.includes('salgsavtale') || name.includes('oppdragsavtale'))             oneflow.oppdragsavtale = true;
-            if (name.includes('kjøpekontrakt') || name.includes('kjøpskontrakt'))            oneflow['kjøpekontrakt'] = true;
+            if (name.includes('egenerklær') || name.includes('egenerklaring'))               setOneflowState('egenerklaring',  c.state);
+            if (name.includes('salgsavtale') || name.includes('oppdragsavtale'))             setOneflowState('oppdragsavtale', c.state);
+            if (name.includes('kjøpekontrakt') || name.includes('kjøpskontrakt'))            setOneflowState('kjøpekontrakt',  c.state);
           }
         }
       } catch { /* Oneflow unavailable — fall through */ }
@@ -264,9 +273,9 @@ exports.handler = async (event) => {
     // Note-based Oneflow fallback (only if Oneflow API wasn't used)
     if (oneflow.source !== 'oneflow_api') {
       const signed = b => b.includes('signed') || b.includes('signert') || b.includes('completed');
-      oneflow.egenerklaring    = allNotes.some(b => (b.includes('egenerklær') || b.includes('egenerklaring'))           && signed(b));
-      oneflow.oppdragsavtale   = allNotes.some(b => (b.includes('salgsavtale') || b.includes('oppdragsavtale'))         && signed(b));
-      oneflow['kjøpekontrakt'] = allNotes.some(b => (b.includes('kjøpekontrakt') || b.includes('kjøpskontrakt'))        && signed(b));
+      oneflow.egenerklaring    = allNotes.some(b => (b.includes('egenerklær') || b.includes('egenerklaring'))           && signed(b)) ? 'signed' : null;
+      oneflow.oppdragsavtale   = allNotes.some(b => (b.includes('salgsavtale') || b.includes('oppdragsavtale'))         && signed(b)) ? 'signed' : null;
+      oneflow['kjøpekontrakt'] = allNotes.some(b => (b.includes('kjøpekontrakt') || b.includes('kjøpskontrakt'))        && signed(b)) ? 'signed' : null;
       oneflow.source = 'hs_notes';
     }
 
