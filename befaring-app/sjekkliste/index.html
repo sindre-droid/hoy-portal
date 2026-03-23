@@ -781,7 +781,11 @@ function renderPhaseSection({title, items, foldKey, deal, disabled, autoFoldHint
       if(!(deal.stage_b_idx>=1&&deal.stage_b_idx<2&&days!==null&&days>=item.conditional)) continue;
     }
 
-    const isAutoAlt = !!(item.autoAlt && evalAuto(item.autoAlt, deal));  // stage-inferred auto-check
+    // autoAlt for Oneflow items (a2/a3/b5) is only a fallback when Oneflow API
+    // is unavailable. If we have live Oneflow data, trust it — don't override.
+    const isOneflowItem = ['a2_egenerklaring','a3_oppdragsavtale','b5_kontrakt'].includes(item.id);
+    const oneflowApiLive = oneflowData?.source === 'oneflow_api';
+    const isAutoAlt = !!(item.autoAlt && evalAuto(item.autoAlt, deal) && !(isOneflowItem && oneflowApiLive));
     const isChk = item.auto
       ? evalAuto(item.auto, deal)
       : (manualState[item.id] || isOneflowChecked(item.id) || isAutoAlt || false);
