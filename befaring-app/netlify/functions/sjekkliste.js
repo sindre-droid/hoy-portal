@@ -173,6 +173,39 @@ exports.handler = async (event) => {
     }, null, 2) };
   }
 
+  // ── GET ?debug_oneflow_match=DEAL_NAME → test matching for a deal name ────
+  if (event.httpMethod === 'GET' && event.queryStringParameters?.debug_oneflow_match !== undefined) {
+    const deal_name = event.queryStringParameters.debug_oneflow_match;
+    const ofToken = process.env.ONEFLOW_API_TOKEN;
+    const ofEmail = process.env.ONEFLOW_USER_EMAIL;
+    if (!ofToken) return { statusCode: 400, headers: h, body: JSON.stringify({ error: 'ONEFLOW_API_TOKEN not set' }) };
+    const dealNum  = (deal_name || '').match(/^(\d+)/)?.[1];
+    const boatName = (deal_name || '').replace(/^\d+\s*-\s*/, '').trim().toLowerCase();
+    const boatKey  = boatName.length >= 6 ? boatName : null;
+    const r = await fetch('https://api.oneflow.com/v1/contracts?limit=200', {
+      headers: { 'x-oneflow-api-token': ofToken, 'x-oneflow-user-email': ofEmail, 'Content-Type': 'application/json' },
+    });
+    const raw = await r.json();
+    const contracts = raw.data || raw._entities || raw.contracts || [];
+    const matched = contracts.filter(c => {
+      const n = (c._private?.name || '').toLowerCase();
+      if (dealNum && n.includes(dealNum)) return true;
+      if (boatKey  && n.includes(boatKey))  return true;
+      return false;
+    }).map(c => ({
+      id:              c.id,
+      name:            c._private?.name,
+      state:           c.state,
+      template_id:     c._private_ownerside?.template_id,
+      is_signed:       c.state === 'signed' || c.lifecycle_state === 'active' || c.marked_as_signed === true,
+    }));
+    return { statusCode: 200, headers: h, body: JSON.stringify({
+      deal_name, dealNum, boatKey,
+      total_contracts: contracts.length,
+      matched_contracts: matched,
+    }, null, 2) };
+  }
+
   // ── GET ?deal_a_id=X&deal_b_id=Y&deal_name=N → befaring + Oneflow status ──
   if (event.httpMethod === 'GET' && (event.queryStringParameters?.deal_a_id || event.queryStringParameters?.deal_b_id)) {
     const { deal_a_id, deal_b_id, deal_name } = event.queryStringParameters;
