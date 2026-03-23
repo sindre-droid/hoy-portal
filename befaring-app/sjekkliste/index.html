@@ -195,6 +195,7 @@
     .cl-tag.gate-ok {background:var(--green-bg);color:var(--green)}
     /* Recommended = soft, not red */
     .cl-tag.optional{background:#f8fafc;color:#64748b;border:1px solid var(--gray)}
+    .cl-tag.pending {background:var(--amber-bg);color:var(--amber)}
 
     /* Shortcut button */
     .shortcut-btn{font-size:11px;font-weight:600;color:var(--blue);text-decoration:none;
@@ -621,13 +622,17 @@ function evalGate(g,deal){
 }
 function daysSince(s){if(!s)return null;return Math.floor((Date.now()-new Date(s))/86400000);}
 
-// Oneflow auto-check: returns true if Oneflow has detected a signed document for this item
+// Returns the Oneflow state for an item: 'signed'|'pending'|'draft'|null
+function getOneflowState(itemId) {
+  if (!oneflowData) return null;
+  if (itemId === 'a2_egenerklaring')  return oneflowData.egenerklaring  || null;
+  if (itemId === 'a3_oppdragsavtale') return oneflowData.oppdragsavtale || null;
+  if (itemId === 'b5_kontrakt')       return oneflowData['kjøpekontrakt'] || null;
+  return null;
+}
+// Returns true only if fully signed in Oneflow
 function isOneflowChecked(itemId) {
-  if (!oneflowData) return false;
-  if (itemId === 'a2_egenerklaring')  return !!oneflowData.egenerklaring;
-  if (itemId === 'a3_oppdragsavtale') return !!oneflowData.oppdragsavtale;
-  if (itemId === 'b5_kontrakt')       return !!oneflowData['kjøpekontrakt'];
-  return false;
+  return getOneflowState(itemId) === 'signed';
 }
 
 // Check if prereqs for an item are all met
@@ -803,7 +808,10 @@ function renderPhaseSection({title, items, foldKey, deal, disabled, autoFoldHint
     const boxCls = (item.auto||isAutoAlt) ? (isChk?'a-on':'a-off') : (isChk?'m-on':'m-off');
     // Oneflow-checked or stage-inferred items are not user-togglable
     const isOneflow = isOneflowChecked(item.id);
-    const isOneflowLocked = isOneflowItem && oneflowApiLive && !isAdmin; const isClickable = item.manual && !isDisabled && !isOneflow && !isAutoAlt && !isOneflowLocked;
+    // Oneflow items (a2/a3/b5) are not manually clickable when Oneflow API is live —
+    // Oneflow is the source of truth. Admins can still override manually.
+    const isOneflowLocked = isOneflowItem && oneflowApiLive && !isAdmin;
+    const isClickable = item.manual && !isDisabled && !isOneflow && !isAutoAlt && !isOneflowLocked;
     // onclick goes on cl-box only (not the whole row)
     const boxOnClick = isClickable
       ? `onclick="toggleItem('${item.id}')" role="checkbox" aria-checked="${isChk}"` : '';
@@ -814,9 +822,12 @@ function renderPhaseSection({title, items, foldKey, deal, disabled, autoFoldHint
     if(item.tag==='befaring') tagHtml='<span class="cl-tag befaring">Befaringsskjema</span>';
     if(item.tag==='optional') tagHtml='<span class="cl-tag optional">Anbefalt</span>';
     if(item.tag==='manual') {
-      if (isOneflow)      tagHtml=`<span class="cl-tag auto">✍ Signert via Oneflow</span>`;
-      else if (isAutoAlt) tagHtml=`<span class="cl-tag auto">✓ ${escH(item.autoAltLabel||'Auto-bekreftet')}</span>`;
-      else                tagHtml='<span class="cl-tag manual">Manuell</span>';
+      const ofState = getOneflowState(item.id);
+      if (ofState === 'signed')       tagHtml=`<span class="cl-tag auto">✍ Signert via Oneflow</span>`;
+      else if (ofState === 'pending') tagHtml=`<span class="cl-tag pending">📤 Sendt — venter på signering</span>`;
+      else if (ofState === 'draft')   tagHtml=`<span class="cl-tag optional">📝 Opprettet, ikke sendt</span>`;
+      else if (isAutoAlt)             tagHtml=`<span class="cl-tag auto">✓ ${escH(item.autoAltLabel||'Auto-bekreftet')}</span>`;
+      else                            tagHtml='<span class="cl-tag manual">Manuell</span>';
     }
     // Prereq-locked
     if(prereqLocked) tagHtml+='<span class="cl-tag optional">🔒 Venter på A2+A3</span>';
