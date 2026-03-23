@@ -185,7 +185,9 @@ exports.handler = async (event) => {
     const r = await fetch('https://api.oneflow.com/v1/contracts?limit=200', {
       headers: { 'x-oneflow-api-token': ofToken, 'x-oneflow-user-email': ofEmail, 'Content-Type': 'application/json' },
     });
-    const raw = await r.json();
+    const rawText = await r.text();
+    let raw;
+    try { raw = JSON.parse(rawText); } catch { raw = { parse_error: rawText.slice(0, 500) }; }
     const contracts = raw.data || raw._entities || raw.contracts || [];
     const matched = contracts.filter(c => {
       const n = (c._private?.name || '').toLowerCase();
@@ -200,9 +202,12 @@ exports.handler = async (event) => {
       is_signed:       c.state === 'signed' || c.lifecycle_state === 'active' || c.marked_as_signed === true,
     }));
     return { statusCode: 200, headers: h, body: JSON.stringify({
-      deal_name, dealNum, boatKey,
+      deal_name, dealNum: dealNum || null, boatKey,
+      http_status: r.status,
+      top_level_keys: typeof raw === 'object' ? Object.keys(raw) : [],
       total_contracts: contracts.length,
       matched_contracts: matched,
+      raw_preview: typeof raw === 'object' ? JSON.stringify(raw).slice(0, 300) : rawText.slice(0, 300),
     }, null, 2) };
   }
 
