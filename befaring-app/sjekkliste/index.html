@@ -525,8 +525,13 @@ let saveStatus   = 'idle';
 let foldState      = {};     // { phase_a: bool, phase_b_early: bool, _dealKey: str }
 let minDagLimit    = 5;      // How many deal groups to show in Min dag by default
 let minDagExpanded = new Set(); // Which deal group keys are expanded in Min dag
-let completedToday     = 0;           // Critical items completed today
-let completedTodayDate = new Date().toDateString(); // Track day for auto-reset
+// Restore daily counter from localStorage, reset if it's a new day
+const _savedDate  = localStorage.getItem('completedTodayDate') || '';
+const _savedCount = parseInt(localStorage.getItem('completedToday') || '0', 10);
+const _today      = new Date().toDateString();
+let completedToday     = _savedDate === _today ? _savedCount : 0;
+let completedTodayDate = _today;
+if (_savedDate !== _today) { localStorage.setItem('completedToday','0'); localStorage.setItem('completedTodayDate',_today); }
 let currentView        = 'min_dag';   // Start on Min dag
 let toastTimer         = null;        // Timer handle for toast auto-dismiss
 
@@ -636,7 +641,7 @@ async function switchView(view) {
     minDagLimit=5; minDagExpanded=new Set();
     // Only reset the daily counter when the actual calendar day has changed
     const today = new Date().toDateString();
-    if (today !== completedTodayDate) { completedToday=0; completedTodayDate=today; }
+    if (today !== completedTodayDate) { completedToday=0; completedTodayDate=today; localStorage.setItem('completedToday','0'); localStorage.setItem('completedTodayDate',today); }
   }
   updateDropdownLabel(view);
   const hideList = view==='min_dag' || view==='team_oversikt';
@@ -1439,6 +1444,8 @@ async function toggleMinDagItem(dealIdx, itemId) {
   if (itemDef?.gate) {
     if (manual[itemId]) completedToday++;
     else completedToday = Math.max(0, completedToday - 1);
+    localStorage.setItem('completedToday', completedToday);
+    localStorage.setItem('completedTodayDate', completedTodayDate);
   }
   deal.sjekkliste_status = JSON.stringify(manual);
 
