@@ -221,32 +221,34 @@ exports.handler = async (event) => {
             // Match if contract name contains the deal number OR the boat name.
             // Boat name fallback handles contracts created before the deal number
             // was assigned (egenerklæring + oppdragsavtale are signed first).
+            // Name is in _private.name, template ID is in _private_ownerside.template_id
+            const cName = c => (c._private?.name || '').toLowerCase();
+
             const isMatch = c => {
-              const n = (c.name || '').toLowerCase();
+              const n = cName(c);
               if (dealNum && n.includes(dealNum)) return true;
               if (boatKey  && n.includes(boatKey))  return true;
               return false;
             };
 
             for (const c of contracts.filter(isMatch)) {
-              // 'signed' = all parties have signed (confirmed working via debug).
-              // 'active' is the lifecycle_state equivalent but was null on individual
-              // contract fetch — list endpoint may differ. Check both.
+              // state === 'signed' is the confirmed signing indicator
               const isSigned = c.state === 'signed'
                 || c.lifecycle_state === 'active'
                 || c.marked_as_signed === true;
               if (!isSigned) continue;
 
               // ── Primary: match by template ID (reliable, title-independent) ──
-              const tid = parseInt(c.template?._id || c.template?.id || c.template_id || 0);
+              // Template ID lives in _private_ownerside.template_id
+              const tid = parseInt(c._private_ownerside?.template_id || c.template?._id || c.template?.id || 0);
               if (tid) {
                 if (ONEFLOW_TEMPLATES.egenerklaring.includes(tid))  { oneflow.egenerklaring = true; continue; }
                 if (ONEFLOW_TEMPLATES.oppdragsavtale.includes(tid)) { oneflow.oppdragsavtale = true; continue; }
                 if (ONEFLOW_TEMPLATES.kjøpekontrakt.includes(tid))  { oneflow['kjøpekontrakt'] = true; continue; }
               }
 
-              // ── Fallback: match by contract name (handles older/renamed contracts) ──
-              const name = (c.name || '').toLowerCase();
+              // ── Fallback: match by contract name ──
+              const name = cName(c);
               if (name.includes('egenerklær') || name.includes('egenerklaring'))               oneflow.egenerklaring = true;
               if (name.includes('salgsavtale') || name.includes('oppdragsavtale'))             oneflow.oppdragsavtale = true;
               if (name.includes('kjøpekontrakt') || name.includes('kjøpskontrakt'))            oneflow['kjøpekontrakt'] = true;
