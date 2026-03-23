@@ -60,12 +60,25 @@
     /* ── Sidebar ── */
     .sidebar{width:286px;min-width:240px;border-right:1px solid var(--gray);
       background:white;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
-    .view-tabs{display:flex;border-bottom:2px solid var(--gray);padding:0 4px}
-    .view-tab{flex:1;padding:9px 1px;font-size:10px;font-weight:700;color:var(--gray-dark);
-      background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;
-      cursor:pointer;font-family:inherit;text-transform:uppercase;letter-spacing:.3px;
-      transition:color .15s,border-color .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .view-tab.active{color:var(--navy);border-bottom-color:var(--navy)}
+    /* ── View dropdown (replaces tab row) ── */
+    .view-dropdown{position:relative;padding:10px 10px 0}
+    .view-dropdown-btn{width:100%;display:flex;align-items:center;justify-content:space-between;
+      padding:9px 13px;background:white;border:1.5px solid var(--gray);border-radius:9px;
+      font-size:13px;font-weight:700;color:var(--navy);font-family:inherit;
+      cursor:pointer;user-select:none;transition:border-color .15s,background .15s}
+    .view-dropdown-btn:hover{border-color:var(--navy);background:var(--surface)}
+    .view-dropdown-btn.open{border-color:var(--navy);border-bottom-left-radius:0;border-bottom-right-radius:0}
+    .view-dropdown-arrow{font-size:10px;color:var(--gray-dark);transition:transform .18s;flex-shrink:0}
+    .view-dropdown-btn.open .view-dropdown-arrow{transform:rotate(180deg)}
+    .view-dropdown-list{position:absolute;left:10px;right:10px;top:100%;background:white;
+      border:1.5px solid var(--navy);border-top:none;border-bottom-left-radius:9px;
+      border-bottom-right-radius:9px;z-index:100;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,.12)}
+    .view-dropdown-item{display:block;width:100%;padding:10px 14px;background:none;border:none;
+      font-size:13px;font-weight:600;color:var(--text);font-family:inherit;cursor:pointer;
+      text-align:left;transition:background .12s}
+    .view-dropdown-item:hover{background:var(--surface)}
+    .view-dropdown-item.active{color:var(--navy);background:var(--blue-bg)}
+    .view-dropdown-item + .view-dropdown-item{border-top:1px solid var(--gray)}
     .sidebar-search{padding:10px 10px 6px}
     .search-input{width:100%;padding:8px 12px;border:1.5px solid var(--gray);border-radius:8px;
       font-size:13px;font-family:inherit;background:var(--surface)}
@@ -349,10 +362,16 @@
 
   <div class="layout">
     <div class="sidebar">
-      <div class="view-tabs" id="viewTabs">
-        <button class="view-tab active" data-view="min_dag" onclick="switchView('min_dag')">Min dag</button>
-        <button class="view-tab" data-view="mine_aktive" onclick="switchView('mine_aktive')">Mine aktive</button>
-        <button class="view-tab" data-view="historikk" onclick="switchView('historikk')">Historikk</button>
+      <div class="view-dropdown" id="viewDropdown">
+        <button class="view-dropdown-btn" id="viewDropdownBtn" onclick="toggleViewDropdown()">
+          <span id="viewDropdownLabel">Min dag</span>
+          <span class="view-dropdown-arrow">▾</span>
+        </button>
+        <div class="view-dropdown-list" id="viewDropdownList" style="display:none">
+          <button class="view-dropdown-item active" data-view="min_dag"     onclick="selectViewDropdown('min_dag')">Min dag</button>
+          <button class="view-dropdown-item"        data-view="mine_aktive" onclick="selectViewDropdown('mine_aktive')">Mine aktive</button>
+          <button class="view-dropdown-item"        data-view="historikk"   onclick="selectViewDropdown('historikk')">Historikk</button>
+        </div>
       </div>
       <div class="sidebar-search">
         <input class="search-input" id="dealSearch" type="search"
@@ -559,24 +578,50 @@ async function showApp() {
   if (isAdmin) addAdminTab();
 }
 
+const VIEW_LABELS = {
+  min_dag:      'Min dag',
+  mine_aktive:  'Mine aktive',
+  historikk:    'Historikk',
+  team_oversikt:'Team',
+};
+
 function addAdminTab() {
-  const tabs = document.getElementById('viewTabs');
-  if (tabs.querySelector('[data-view="teamets_aktive"]')) return;
-  const btn1 = document.createElement('button');
-  btn1.className='view-tab'; btn1.dataset.view='teamets_aktive'; btn1.textContent='Teamets';
-  btn1.onclick = () => switchView('teamets_aktive');
-  tabs.appendChild(btn1);
-  const btn2 = document.createElement('button');
-  btn2.className='view-tab'; btn2.dataset.view='team_oversikt'; btn2.textContent='Oversikt';
-  btn2.onclick = () => switchView('team_oversikt');
-  tabs.appendChild(btn2);
+  const list = document.getElementById('viewDropdownList');
+  if (list.querySelector('[data-view="team_oversikt"]')) return;
+  const btn = document.createElement('button');
+  btn.className='view-dropdown-item'; btn.dataset.view='team_oversikt';
+  btn.textContent='Team';
+  btn.onclick = () => selectViewDropdown('team_oversikt');
+  list.appendChild(btn);
+}
+
+function toggleViewDropdown() {
+  const list = document.getElementById('viewDropdownList');
+  const trigger = document.getElementById('viewDropdownBtn');
+  const isOpen = list.style.display !== 'none';
+  list.style.display = isOpen ? 'none' : 'block';
+  trigger.classList.toggle('open', !isOpen);
+}
+
+function selectViewDropdown(view) {
+  // Close the dropdown
+  document.getElementById('viewDropdownList').style.display = 'none';
+  document.getElementById('viewDropdownBtn').classList.remove('open');
+  switchView(view);
+}
+
+function updateDropdownLabel(view) {
+  document.getElementById('viewDropdownLabel').textContent = VIEW_LABELS[view] || view;
+  document.querySelectorAll('.view-dropdown-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.view === view);
+  });
 }
 
 // ── View switching ────────────────────────────────────────────────────────────
 async function switchView(view) {
   currentView=view; currentDeal=null; foldState={};
   if (view==='min_dag') { minDagLimit=5; minDagExpanded=new Set(); completedToday=0; }
-  document.querySelectorAll('.view-tab').forEach(t=>t.classList.toggle('active',t.dataset.view===view));
+  updateDropdownLabel(view);
   const hideList = view==='min_dag' || view==='team_oversikt';
   document.getElementById('emptyState').style.display= hideList ? 'none' : 'flex';
   document.getElementById('checklistPanel').style.display='none';
@@ -1388,7 +1433,7 @@ async function toggleMinDagItem(dealIdx, itemId) {
 function openDealFromMinDag(dealIdx) {
   // Switch to Mine aktive and open that deal's full checklist
   currentView = 'mine_aktive';
-  document.querySelectorAll('.view-tab').forEach(t => t.classList.toggle('active', t.dataset.view === 'mine_aktive'));
+  updateDropdownLabel('mine_aktive');
   document.getElementById('minDagPanel').style.display = 'none';
   document.getElementById('emptyState').style.display = 'none';
   const deal = allDeals[dealIdx];
@@ -1465,7 +1510,7 @@ function renderTeamOversikt() {
 // Filter the deal list to a single broker and switch to their deals
 function filterToBroker(ownerId) {
   currentView = 'teamets_aktive';
-  document.querySelectorAll('.view-tab').forEach(t => t.classList.toggle('active', t.dataset.view === 'teamets_aktive'));
+  updateDropdownLabel('teamets_aktive');
   document.getElementById('minDagPanel').style.display = 'none';
   document.getElementById('emptyState').style.display = 'flex';
   document.getElementById('checklistPanel').style.display = 'none';
@@ -1515,6 +1560,14 @@ function escH(s){
 }
 document.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&document.getElementById('loginScreen').style.display!=='none') doLogin();
+});
+// Close the view dropdown when clicking outside it
+document.addEventListener('click', e => {
+  const dd = document.getElementById('viewDropdown');
+  if (dd && !dd.contains(e.target)) {
+    document.getElementById('viewDropdownList').style.display = 'none';
+    document.getElementById('viewDropdownBtn')?.classList.remove('open');
+  }
 });
 </script>
 </body>
