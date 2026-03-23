@@ -120,6 +120,8 @@
     /* Next step banner */
     .next-step-box{background:var(--amber-bg);border:1.5px solid var(--amber-border);border-radius:9px;
       padding:9px 14px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-start}
+    .next-step-box.empty{background:var(--surface);border-color:var(--gray)}
+    .next-step-box.empty .next-step-label{color:var(--gray-dark)}
     .next-step-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;
       color:var(--amber);white-space:nowrap;margin-top:2px}
     .next-step-text{font-size:13px;color:var(--text);line-height:1.5;flex:1}
@@ -877,11 +879,13 @@ function renderChecklist() {
         ${deal.pipeline_b_id&&deal.stage_b_idx>=2?`<a class="hs-link" href="/budgivning/?deal=${deal.pipeline_b_id}">📋 Åpne budgivning →</a>`:''}
       </div>
     </div>
-    ${deal.next_step ? `
-      <div class="next-step-box">
-        <span class="next-step-label">Next step</span>
-        <span class="next-step-text">${escH(deal.next_step)}</span>
-      </div>` : ''}
+    <div class="next-step-box${deal.next_step ? '' : ' empty'}">
+      <span class="next-step-label">Next step</span>
+      <span class="next-step-text">${deal.next_step
+        ? escH(deal.next_step)
+        : '<span style="color:var(--gray-dark);font-weight:400;font-style:italic">Ikke fylt ut i HubSpot</span>'
+      }</span>
+    </div>
     `;
 
   // ── B6 / Oppgjør warning banner ───────────────────────────────────────────
