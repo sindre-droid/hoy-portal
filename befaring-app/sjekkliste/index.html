@@ -60,11 +60,11 @@
     /* ── Sidebar ── */
     .sidebar{width:286px;min-width:240px;border-right:1px solid var(--gray);
       background:white;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
-    .view-tabs{display:flex;border-bottom:2px solid var(--gray);padding:0 6px}
-    .view-tab{flex:1;padding:10px 2px;font-size:11px;font-weight:700;color:var(--gray-dark);
+    .view-tabs{display:flex;border-bottom:2px solid var(--gray);padding:0 4px}
+    .view-tab{flex:1;padding:9px 1px;font-size:10px;font-weight:700;color:var(--gray-dark);
       background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;
-      cursor:pointer;font-family:inherit;text-transform:uppercase;letter-spacing:.6px;
-      transition:color .15s,border-color .15s;white-space:nowrap}
+      cursor:pointer;font-family:inherit;text-transform:uppercase;letter-spacing:.3px;
+      transition:color .15s,border-color .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .view-tab.active{color:var(--navy);border-bottom-color:var(--navy)}
     .sidebar-search{padding:10px 10px 6px}
     .search-input{width:100%;padding:8px 12px;border:1.5px solid var(--gray);border-radius:8px;
@@ -246,7 +246,8 @@
     .min-dag-counter{border-radius:12px;padding:11px 16px;font-size:14px;font-weight:600;margin-bottom:18px;
       display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--blue-bg);color:var(--blue)}
     .min-dag-counter.all-ok{background:var(--green-bg);color:var(--green)}
-    .min-dag-backlog{font-size:12px;font-weight:400;color:var(--gray-dark);margin-left:auto}
+    .min-dag-progress{font-size:12px;color:var(--green);font-weight:600;margin-top:4px}
+    .min-dag-backlog{font-size:12px;color:var(--gray-dark);margin-top:2px}
     .mdag-empty{text-align:center;padding:56px 0;font-size:16px;color:var(--gray-dark)}
     /* Deal groups */
     .mdag-group{background:white;border:1.5px solid var(--gray);border-radius:10px;
@@ -259,6 +260,8 @@
     .mdag-group-name{font-size:14px;font-weight:600;color:var(--text);
       display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .mdag-group-stage{font-size:11px;color:var(--gray-dark)}
+    .mdag-group-mangler{font-size:11px;color:var(--gray-dark);margin-top:2px;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
     .mdag-group-arrow{font-size:11px;color:var(--gray-dark);flex-shrink:0;margin-left:4px}
     .mdag-group-body{border-top:1px solid var(--gray);padding:10px 12px 6px}
     .mdag-item{background:var(--surface);border-radius:8px;
@@ -323,9 +326,9 @@
   <div class="layout">
     <div class="sidebar">
       <div class="view-tabs" id="viewTabs">
-        <button class="view-tab active" data-view="mine_aktive" onclick="switchView('mine_aktive')">Mine aktive</button>
+        <button class="view-tab active" data-view="min_dag" onclick="switchView('min_dag')">Min dag</button>
+        <button class="view-tab" data-view="mine_aktive" onclick="switchView('mine_aktive')">Mine aktive</button>
         <button class="view-tab" data-view="historikk" onclick="switchView('historikk')">Historikk</button>
-        <button class="view-tab" data-view="min_dag" onclick="switchView('min_dag')">Min dag</button>
       </div>
       <div class="sidebar-search">
         <input class="search-input" id="dealSearch" type="search"
@@ -455,7 +458,7 @@ let allDeals     = [];
 let filteredList = [];
 let stagesA = [], stagesB = [];
 let isAdmin      = false;
-let currentView  = 'mine_aktive';
+// currentView is declared below with default 'min_dag'
 let currentDeal  = null;
 let manualState  = {};
 let hasBefara    = false;
@@ -466,6 +469,8 @@ let saveStatus   = 'idle';
 let foldState      = {};     // { phase_a: bool, phase_b_early: bool, _dealKey: str }
 let minDagLimit    = 5;      // How many deal groups to show in Min dag by default
 let minDagExpanded = new Set(); // Which deal group keys are expanded in Min dag
+let completedToday = 0;      // Critical items checked during this session (reset on view switch)
+let currentView    = 'min_dag'; // Start on Min dag
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 function parseJWT(t) {
@@ -522,7 +527,7 @@ function addAdminTab() {
   const tabs = document.getElementById('viewTabs');
   if (tabs.querySelector('[data-view="teamets_aktive"]')) return;
   const btn = document.createElement('button');
-  btn.className='view-tab'; btn.dataset.view='teamets_aktive'; btn.textContent='Teamets aktive';
+  btn.className='view-tab'; btn.dataset.view='teamets_aktive'; btn.textContent='Teamets';
   btn.onclick = () => switchView('teamets_aktive');
   tabs.appendChild(btn);
 }
@@ -530,7 +535,7 @@ function addAdminTab() {
 // ── View switching ────────────────────────────────────────────────────────────
 async function switchView(view) {
   currentView=view; currentDeal=null; foldState={};
-  if (view==='min_dag') { minDagLimit=5; minDagExpanded=new Set(); }
+  if (view==='min_dag') { minDagLimit=5; minDagExpanded=new Set(); completedToday=0; }
   document.querySelectorAll('.view-tab').forEach(t=>t.classList.toggle('active',t.dataset.view===view));
   document.getElementById('emptyState').style.display= view==='min_dag' ? 'none' : 'flex';
   document.getElementById('checklistPanel').style.display='none';
@@ -1026,6 +1031,21 @@ async function saveState() {
 
 // ── Min dag ───────────────────────────────────────────────────────────────────
 
+// Short user-friendly labels for each checklist item (used in "Mangler: ..." row)
+const SHORT_LABELS = {
+  a1_qualified:      'Kvalifisert',
+  a2_egenerklaring:  'Egenerklæring',
+  a3_oppdragsavtale: 'Oppdragsavtale',
+  b0_fotograf:       'Fotograf',
+  b1_hin:            'HIN-data',
+  b2_kvalitet:       'Befaringsnotat',
+  b3_rapport:        '1. selgerrapport',
+  b4_prisstrategi:   'Prisstrategi',
+  b5_kontrakt:       'Kjøpekontrakt',
+  b6_oppgjor:        'Oppgjør bekreftet',
+  b7_notat:          'Læringsnotat',
+};
+
 // Build a flat list of all pending manual items across the user's active deals.
 // autoAlt items (including stage-inferred ones added to a1/b0/b1/b2) are
 // treated as done and excluded — this eliminates "fake debt" for old deals.
@@ -1122,51 +1142,74 @@ function renderMinDag() {
   const panel = document.getElementById('minDagPanel');
   panel.style.display = 'block';
 
-  const groups    = buildMinDagGroups();
-  const totalCrit = groups.reduce((n, g) => n + g.items.filter(i => i.isCritical).length, 0);
-  const visGroups = groups.slice(0, minDagLimit);
-  const hiddenGrp = groups.slice(minDagLimit);
-  const hiddenCrit= hiddenGrp.reduce((n, g) => n + g.items.filter(i => i.isCritical).length, 0);
+  const groups         = buildMinDagGroups();
+  const totalCrit      = groups.reduce((n, g) => n + g.items.filter(i => i.isCritical).length, 0);
+  const dealsWithCrit  = groups.filter(g => g.items.some(i => i.isCritical)).length;
+  const visGroups      = groups.slice(0, minDagLimit);
+  const hiddenGrp      = groups.slice(minDagLimit);
+  const hiddenCrit     = hiddenGrp.reduce((n, g) => n + g.items.filter(i => i.isCritical).length, 0);
 
-  // Motivating banner — neutral blue, not red. Only items carry urgency colour.
-  const counterCls = totalCrit === 0 ? 'all-ok' : '';
-  const counterMain = totalCrit === 0
-    ? '✓ Ingen åpne kritiske punkter — bra jobbet!'
-    : `Du har <strong>${totalCrit}</strong> kritiske punkt${totalCrit===1?'':'er'} å løse`;
-  const backlogTxt = groups.length > visGroups.length
-    ? `Viser ${visGroups.length} av ${groups.length} oppdrag`
-    : groups.length > 0 ? `${groups.length} oppdrag med åpne punkter` : '';
+  // ── Header ──────────────────────────────────────────────────────────────────
+  // Focus-oriented, not shame-focused. Neutral blue always; no red header.
+  const progressLine = completedToday > 0
+    ? `<div class="min-dag-progress">Du har fullført ${completedToday} kritiske punkt${completedToday===1?'':'er'} i dag ✓</div>`
+    : '';
+  const backlogLine = totalCrit > 0
+    ? `<div class="min-dag-backlog">Totalt ${totalCrit} kritiske gjenstår på ${groups.length} oppdrag</div>`
+    : '';
 
   let html = `<div class="min-dag-view">
     <div class="min-dag-header">
       <div class="min-dag-title">Min dag</div>
-    </div>
-    <div class="min-dag-counter ${counterCls}">
-      <span>${counterMain}</span>
-      ${backlogTxt ? `<span class="min-dag-backlog">${backlogTxt}</span>` : ''}
+      <div class="min-dag-counter${totalCrit===0?' all-ok':''}">
+        ${totalCrit === 0
+          ? '<span>Dagens fokus: alle båtene er trygge 🌊</span>'
+          : `<span>Dagens fokus: <strong>${dealsWithCrit}</strong> båt${dealsWithCrit===1?'':'er'} med åpne kritiske punkter</span>`
+        }
+      </div>
+      ${progressLine}${backlogLine}
     </div>`;
 
-  if (groups.length === 0) {
-    html += `<div class="mdag-empty">🎉 Alle kritiske punkter er i orden på dine aktive oppdrag!</div>`;
+  // ── Empty state ──────────────────────────────────────────────────────────────
+  if (totalCrit === 0) {
+    html += `
+      <div style="text-align:center;padding:52px 20px">
+        <div style="font-size:48px;margin-bottom:16px">🌊</div>
+        <div style="font-size:20px;font-weight:800;color:var(--navy);margin-bottom:8px">Alle båtene dine er trygge</div>
+        <div style="font-size:14px;color:var(--gray-dark);margin-bottom:28px">Bruk resten av blokken på å fylle på pipeline.</div>
+        <a href="/fsbo" style="display:inline-block;padding:12px 24px;background:var(--navy);color:white;
+          border-radius:10px;font-size:14px;font-weight:700;text-decoration:none;margin-right:10px">
+          Åpne FSBO-verktøy →
+        </a>
+      </div>`;
   } else {
+    // ── Deal groups ────────────────────────────────────────────────────────────
     for (let gi = 0; gi < visGroups.length; gi++) {
-      const grp = visGroups[gi];
-      const gk  = dealKey(grp.deal);
+      const grp  = visGroups[gi];
+      // Use pipeline ID as key (always numeric, safe in onclick)
+      const gk   = grp.deal.pipeline_b_id || grp.deal.pipeline_a_id || String(gi);
       const isExp    = minDagExpanded.has(gk);
       const critN    = grp.items.filter(i => i.isCritical).length;
       const overdueN = grp.items.filter(i => i.urgency === 'overdue').length;
       const trafCls  = critN === 0 ? 'traf-green' : overdueN > 0 ? 'traf-red' : critN === 1 ? 'traf-yellow' : 'traf-red';
       const icon     = overdueN > 0 ? '⚠️' : critN > 1 ? '🔴' : critN === 1 ? '🟡' : '🟢';
       const stageLbl = grp.deal.stage_b_label || grp.deal.stage_a_label || '—';
-      const gkJs     = JSON.stringify(gk);
+
+      // "Mangler: HIN-data • 1. selgerrapport +1"
+      const critItems = grp.items.filter(i => i.isCritical);
+      const MAX_SHOWN = 3;
+      const shownLabels = critItems.slice(0, MAX_SHOWN).map(e => SHORT_LABELS[e.item.id] || e.item.label);
+      const extraN = critItems.length - shownLabels.length;
+      const manglerTxt = shownLabels.join(' • ') + (extraN > 0 ? ` +${extraN}` : '');
 
       html += `
         <div class="mdag-group${isExp?' expanded':''}">
-          <div class="mdag-group-hdr" onclick="toggleMinDagGroup(${gkJs})">
+          <div class="mdag-group-hdr" onclick="toggleMinDagGroup('${gk}')">
             <span class="mdag-group-icon">${icon}</span>
             <div class="mdag-group-info">
               <span class="mdag-group-name">${escH(grp.deal.name)}</span>
               <span class="mdag-group-stage">${escH(stageLbl)}</span>
+              ${critN > 0 ? `<span class="mdag-group-mangler">Mangler: ${escH(manglerTxt)}</span>` : ''}
             </div>
             <span class="traf-badge ${trafCls}">${critN} kritisk${critN===1?'':'e'}</span>
             <span class="mdag-group-arrow">${isExp?'▼':'▶'}</span>
@@ -1200,7 +1243,7 @@ function renderMinDag() {
 
     if (hiddenGrp.length > 0) {
       html += `<button class="btn-load-more" onclick="loadMoreMinDag()">
-        Last inn ${hiddenGrp.length} oppdrag til${hiddenCrit > 0 ? ` (${hiddenCrit} kritiske punkter)` : ''} →
+        Last inn ${hiddenGrp.length} oppdrag til${hiddenCrit > 0 ? ` (${hiddenCrit} kritiske)` : ''} →
       </button>`;
     }
   }
@@ -1229,7 +1272,14 @@ async function toggleMinDagItem(dealIdx, itemId) {
   }
   let manual = {};
   try { manual = deal.sjekkliste_status ? JSON.parse(deal.sjekkliste_status) : {}; } catch {}
-  manual[itemId] = !manual[itemId];
+  const wasChecked = !!manual[itemId];
+  manual[itemId] = !wasChecked;
+  // Track session completions (only for critical items checked this session)
+  const itemDef = CHECKLIST.find(c => c.id === itemId);
+  if (itemDef?.gate) {
+    if (manual[itemId]) completedToday++;
+    else completedToday = Math.max(0, completedToday - 1);
+  }
   deal.sjekkliste_status = JSON.stringify(manual);
 
   // Save to HubSpot
