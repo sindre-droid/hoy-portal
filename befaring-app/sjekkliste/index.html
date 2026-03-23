@@ -239,33 +239,47 @@
 
     /* ── Min dag view ── */
     .min-dag-view{max-width:680px;margin:0 auto}
-    .min-dag-header{margin-bottom:16px}
+    .min-dag-header{margin-bottom:14px}
     .min-dag-title{font-size:22px;font-weight:800;color:var(--navy)}
     .min-dag-sub{font-size:13px;color:var(--gray-dark);margin-top:3px}
-    .min-dag-counter{border-radius:12px;padding:12px 18px;font-size:14px;font-weight:600;margin-bottom:20px}
-    .min-dag-counter.has-issues{background:var(--red-bg);color:var(--red)}
+    /* Neutral blue counter — individual items carry the urgency colour, not the header */
+    .min-dag-counter{border-radius:12px;padding:11px 16px;font-size:14px;font-weight:600;margin-bottom:18px;
+      display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--blue-bg);color:var(--blue)}
     .min-dag-counter.all-ok{background:var(--green-bg);color:var(--green)}
+    .min-dag-backlog{font-size:12px;font-weight:400;color:var(--gray-dark);margin-left:auto}
     .mdag-empty{text-align:center;padding:56px 0;font-size:16px;color:var(--gray-dark)}
-    .mdag-section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;
-      color:var(--gray-dark);margin:22px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--gray)}
-    .mdag-item{background:white;border:1.5px solid var(--gray);border-radius:10px;
-      padding:13px 14px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start;
-      transition:border-color .15s,box-shadow .15s}
-    .mdag-item:hover{border-color:#93c5fd;box-shadow:0 2px 8px rgba(0,0,0,.07)}
-    .mdag-box{width:22px;height:22px;border-radius:6px;border:2px dashed #94a3b8;
+    /* Deal groups */
+    .mdag-group{background:white;border:1.5px solid var(--gray);border-radius:10px;
+      margin-bottom:8px;overflow:hidden;transition:border-color .15s}
+    .mdag-group.expanded{border-color:#93c5fd}
+    .mdag-group-hdr{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none}
+    .mdag-group-hdr:hover{background:var(--surface)}
+    .mdag-group-icon{font-size:15px;flex-shrink:0}
+    .mdag-group-info{flex:1;min-width:0}
+    .mdag-group-name{font-size:14px;font-weight:600;color:var(--text);
+      display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .mdag-group-stage{font-size:11px;color:var(--gray-dark)}
+    .mdag-group-arrow{font-size:11px;color:var(--gray-dark);flex-shrink:0;margin-left:4px}
+    .mdag-group-body{border-top:1px solid var(--gray);padding:10px 12px 6px}
+    .mdag-item{background:var(--surface);border-radius:8px;
+      padding:10px 12px;margin-bottom:6px;display:flex;gap:10px;align-items:flex-start}
+    .mdag-item:last-child{margin-bottom:4px}
+    .mdag-box{width:20px;height:20px;border-radius:5px;border:2px dashed #94a3b8;
       background:white;flex-shrink:0;cursor:pointer;margin-top:2px;display:flex;
-      align-items:center;justify-content:center;font-size:13px;transition:border-color .12s,background .12s}
+      align-items:center;justify-content:center;font-size:12px;transition:border-color .12s,background .12s}
     .mdag-box:hover{border-color:var(--navy);background:#f0f4ff}
     .mdag-box.done{background:var(--green);border:2px solid var(--green);color:white}
     .mdag-body{flex:1;min-width:0}
-    .mdag-deal{font-size:11px;color:var(--gray-dark);margin-bottom:3px}
-    .mdag-stage{font-weight:400}
-    .mdag-label{font-size:14px;font-weight:600;color:var(--text)}
-    .mdag-detail{font-size:12px;color:var(--gray-dark);margin-top:3px;line-height:1.45}
-    .mdag-link{font-size:12px;font-weight:600;color:var(--navy);white-space:nowrap;
-      text-decoration:none;padding:5px 11px;border:1.5px solid var(--gray);
-      border-radius:8px;margin-left:4px;align-self:center;flex-shrink:0;transition:border-color .12s,background .12s}
-    .mdag-link:hover{border-color:var(--navy);background:var(--blue-bg)}
+    .mdag-label{font-size:13px;font-weight:600;color:var(--text)}
+    .mdag-detail{font-size:12px;color:var(--gray-dark);margin-top:2px;line-height:1.4}
+    .mdag-open-link{font-size:12px;font-weight:600;color:var(--navy);text-decoration:none;
+      display:inline-block;margin:6px 0 4px;padding:4px 10px;border:1.5px solid var(--gray);
+      border-radius:7px;transition:border-color .12s,background .12s}
+    .mdag-open-link:hover{border-color:var(--navy);background:var(--blue-bg)}
+    .btn-load-more{display:block;width:100%;padding:11px;background:none;
+      border:1.5px dashed var(--gray);border-radius:10px;color:var(--gray-dark);
+      font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:6px;text-align:center}
+    .btn-load-more:hover{border-color:var(--navy);color:var(--navy);background:var(--surface)}
   </style>
 </head>
 <body>
@@ -353,7 +367,8 @@ const CHECKLIST = [
   { id:'a1_qualified', phase:'a', label:'A1 — Selger kvalifisert etter HoY-kriterier',
     manual:true, tag:'manual',
     detail:'Riktig segment (verdi, merke), realistisk tidslinje (< 90 dager), geografisk OK.',
-    gate:'a_stage:1', gateLabel:'Kreves fra "Interessert – i dialog"' },
+    gate:'a_stage:1', gateLabel:'Kreves fra "Interessert – i dialog"',
+    autoAlt:'b_exists', autoAltLabel:'Pipeline B opprettet — selger bekreftet kvalifisert' },
 
   { id:'a_befaring',   phase:'a', label:'Befaring gjennomført',
     auto:'a_stage:4|befaring_note', tag:'befaring',
@@ -380,19 +395,22 @@ const CHECKLIST = [
     manual:true, tag:'manual',
     detail:'Fotograf er booket for gjennomgang og fotografering. Krever signert egenerklæring (A2) og oppdragsavtale (A3).',
     prereqs:['a2_egenerklaring','a3_oppdragsavtale'],
-    gate:'b_stage:0', gateLabel:'Kreves for «Prep / Listing Ready»' },
+    gate:'b_stage:0', gateLabel:'Kreves for «Prep / Listing Ready»',
+    autoAlt:'b_stage:1', autoAltLabel:'Listing publisert — fotograf bekreftet booket' },
 
   { id:'b1_hin',      phase:'b', subphase:'early', label:'B1 — HIN / registreringsdata komplett',
     manual:true, tag:'manual',
     detail:'HIN og registreringsfelter er utfylt i HubSpot på dealen.',
     gate:'b_stage:0', gateLabel:'Kreves for «Prep / Listing Ready»',
-    shortcut:'deal_b' },
+    shortcut:'deal_b',
+    autoAlt:'b_stage:1', autoAltLabel:'Listing publisert — HIN-data bekreftet fullført' },
 
   { id:'b2_kvalitet', phase:'b', subphase:'early', label:'B2 — Båtinfo kvalitetssikret mot befaringsrapport',
     manual:true, tag:'manual',
     detail:'Avvik og merknader er dokumentert i notat («Viktige merknader») før listing.',
     gate:'b_stage:0', gateLabel:'Kreves for «Prep / Listing Ready»',
-    shortcut:'befaring' },
+    shortcut:'befaring',
+    autoAlt:'b_stage:1', autoAltLabel:'Listing publisert — kvalitetssikring bekreftet' },
 
   { id:'b_live',      phase:'b', subphase:'early', label:'Annonse publisert',
     auto:'b_stage:1', tag:'auto',
@@ -445,7 +463,9 @@ let oneflowData  = null;   // { egenerklaring, oppdragsavtale, kjøpekontrakt }
 let hubId        = null;   // HubSpot portal ID for deal deep-links
 let saveTimer    = null;
 let saveStatus   = 'idle';
-let foldState    = {};   // { phase_a: bool, phase_b_early: bool, _dealKey: str }
+let foldState      = {};     // { phase_a: bool, phase_b_early: bool, _dealKey: str }
+let minDagLimit    = 5;      // How many deal groups to show in Min dag by default
+let minDagExpanded = new Set(); // Which deal group keys are expanded in Min dag
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 function parseJWT(t) {
@@ -510,6 +530,7 @@ function addAdminTab() {
 // ── View switching ────────────────────────────────────────────────────────────
 async function switchView(view) {
   currentView=view; currentDeal=null; foldState={};
+  if (view==='min_dag') { minDagLimit=5; minDagExpanded=new Set(); }
   document.querySelectorAll('.view-tab').forEach(t=>t.classList.toggle('active',t.dataset.view===view));
   document.getElementById('emptyState').style.display= view==='min_dag' ? 'none' : 'flex';
   document.getElementById('checklistPanel').style.display='none';
@@ -1006,27 +1027,27 @@ async function saveState() {
 // ── Min dag ───────────────────────────────────────────────────────────────────
 
 // Build a flat list of all pending manual items across the user's active deals.
-// Uses saved sjekkliste_status — no live Oneflow API call per deal.
+// autoAlt items (including stage-inferred ones added to a1/b0/b1/b2) are
+// treated as done and excluded — this eliminates "fake debt" for old deals.
 function buildMinDagItems() {
   const result = [];
   for (const deal of allDeals) {
     let manual = {};
     try { manual = deal.sjekkliste_status ? JSON.parse(deal.sjekkliste_status) : {}; } catch {}
 
-    // Lightweight eval helpers (no globals like hasBefara)
     const ea = expr => expr.split('|').some(c => {
-      if (c==='a_exists')      return !!deal.pipeline_a_id;
-      if (c==='b_exists')      return !!deal.pipeline_b_id;
-      if (c==='befaring_note') return false; // not available in list view
+      if (c==='a_exists')           return !!deal.pipeline_a_id;
+      if (c==='b_exists')           return !!deal.pipeline_b_id;
+      if (c==='befaring_note')      return false;
       if (c.startsWith('a_stage:')) return deal.stage_a_idx >= +c.split(':')[1];
       if (c.startsWith('b_stage:')) return deal.stage_b_idx >= +c.split(':')[1];
       return false;
     });
     const eg = g => {
       if (!g) return false;
-      if (g==='b_exists')          return !!deal.pipeline_b_id;
-      if (g.startsWith('a_stage:'))return deal.stage_a_idx >= +g.split(':')[1];
-      if (g.startsWith('b_stage:'))return deal.stage_b_idx >= +g.split(':')[1];
+      if (g==='b_exists')           return !!deal.pipeline_b_id;
+      if (g.startsWith('a_stage:')) return deal.stage_a_idx >= +g.split(':')[1];
+      if (g.startsWith('b_stage:')) return deal.stage_b_idx >= +g.split(':')[1];
       return false;
     };
 
@@ -1034,18 +1055,17 @@ function buildMinDagItems() {
       if (!item.manual) continue;
       if (item.adminOnly && !isAdmin) continue;
 
-      // Is this item relevant at the deal's current stage?
-      const gateActive      = !!(item.gate && eg(item.gate));
-      const isTimedItem     = !!(item.timed     && deal.stage_b_idx >= 1 && deal.live_listing_date);
-      const isConditional   = !!(item.conditional && deal.stage_b_idx >= 1 && deal.stage_b_idx < 2 && deal.live_listing_date);
+      const gateActive    = !!(item.gate && eg(item.gate));
+      const isTimedItem   = !!(item.timed && deal.stage_b_idx >= 1 && deal.live_listing_date);
+      const isConditional = !!(item.conditional && deal.stage_b_idx >= 1 && deal.stage_b_idx < 2 && deal.live_listing_date);
 
       if (!gateActive && !isTimedItem && !isConditional) continue;
 
-      // Already done? (manual checked OR autoAlt satisfied)
+      // Done if: manually checked OR autoAlt satisfied (stage-inferred auto-complete)
       const isAutoAlt = !!(item.autoAlt && ea(item.autoAlt));
       if (manual[item.id] || isAutoAlt) continue;
 
-      // For timed/conditional: only show after threshold
+      // Timed/conditional items only appear after their threshold
       if (isTimedItem && !gateActive) {
         const days = daysSince(deal.live_listing_date);
         if (days === null || days < item.timed) continue;
@@ -1055,7 +1075,6 @@ function buildMinDagItems() {
         if (days === null || days < item.conditional) continue;
       }
 
-      // Urgency: overdue if past the time threshold
       let urgency = 'open';
       if (isTimedItem) {
         const days = daysSince(deal.live_listing_date);
@@ -1067,77 +1086,138 @@ function buildMinDagItems() {
       }
 
       const isCritical = !!item.gate;
-      // sortKey: 0 = overdue+critical, 1 = critical, 2 = recommended
-      const sortKey = urgency==='overdue' && isCritical ? 0 : isCritical ? 1 : 2;
+      // sortKey: 0 = overdue+critical, 1 = critical on hot stage, 2 = critical cold, 3 = recommended
+      const hotStage = deal.warmth >= 7; // Live Listing, Under Offer, In Contract
+      const sortKey  = urgency==='overdue' && isCritical ? 0
+                     : isCritical && hotStage             ? 1
+                     : isCritical                         ? 2
+                     :                                      3;
 
       result.push({ deal, item, isCritical, urgency, sortKey });
     }
   }
-  result.sort((a, b) => a.sortKey - b.sortKey || a.deal.name.localeCompare(b.deal.name));
+  result.sort((a, b) => a.sortKey - b.sortKey || b.deal.warmth - a.deal.warmth || a.deal.name.localeCompare(b.deal.name));
   return result;
+}
+
+// Group flat items by deal, sorted by worst-item urgency then deal warmth
+function buildMinDagGroups() {
+  const flatItems = buildMinDagItems();
+  const groupMap  = new Map();
+  for (const entry of flatItems) {
+    const k = dealKey(entry.deal);
+    if (!groupMap.has(k)) groupMap.set(k, { deal: entry.deal, items: [] });
+    groupMap.get(k).items.push(entry);
+  }
+  const groups = [...groupMap.values()];
+  groups.sort((a, b) => {
+    const aMin = Math.min(...a.items.map(i => i.sortKey));
+    const bMin = Math.min(...b.items.map(i => i.sortKey));
+    return aMin !== bMin ? aMin - bMin : b.deal.warmth - a.deal.warmth;
+  });
+  return groups;
 }
 
 function renderMinDag() {
   const panel = document.getElementById('minDagPanel');
   panel.style.display = 'block';
 
-  const items = buildMinDagItems();
-  const critN = items.filter(i => i.isCritical).length;
-  const recN  = items.filter(i => !i.isCritical).length;
+  const groups    = buildMinDagGroups();
+  const totalCrit = groups.reduce((n, g) => n + g.items.filter(i => i.isCritical).length, 0);
+  const visGroups = groups.slice(0, minDagLimit);
+  const hiddenGrp = groups.slice(minDagLimit);
+  const hiddenCrit= hiddenGrp.reduce((n, g) => n + g.items.filter(i => i.isCritical).length, 0);
 
-  let counterTxt, counterCls;
-  if (critN === 0 && recN === 0) {
-    counterTxt = '✓ Alt er i orden – ingen åpne punkter på dine oppdrag!';
-    counterCls = 'all-ok';
-  } else if (critN > 0) {
-    counterTxt = recN > 0
-      ? `Du har ${critN} kritiske punkt${critN===1?'':'er'} og ${recN} anbefalt${recN===1?'':'e'} igjen`
-      : `Du har ${critN} kritiske punkt${critN===1?'':'er'} igjen`;
-    counterCls = 'has-issues';
-  } else {
-    counterTxt = `Du har ${recN} anbefalt${recN===1?'':'e'} punkt${recN===1?'':'er'} igjen`;
-    counterCls = 'all-ok';
-  }
+  // Motivating banner — neutral blue, not red. Only items carry urgency colour.
+  const counterCls = totalCrit === 0 ? 'all-ok' : '';
+  const counterMain = totalCrit === 0
+    ? '✓ Ingen åpne kritiske punkter — bra jobbet!'
+    : `Du har <strong>${totalCrit}</strong> kritiske punkt${totalCrit===1?'':'er'} å løse`;
+  const backlogTxt = groups.length > visGroups.length
+    ? `Viser ${visGroups.length} av ${groups.length} oppdrag`
+    : groups.length > 0 ? `${groups.length} oppdrag med åpne punkter` : '';
 
   let html = `<div class="min-dag-view">
     <div class="min-dag-header">
       <div class="min-dag-title">Min dag</div>
-      <div class="min-dag-sub">Åpne punkter på dine aktive oppdrag</div>
     </div>
-    <div class="min-dag-counter ${counterCls}">${counterTxt}</div>`;
+    <div class="min-dag-counter ${counterCls}">
+      <span>${counterMain}</span>
+      ${backlogTxt ? `<span class="min-dag-backlog">${backlogTxt}</span>` : ''}
+    </div>`;
 
-  if (items.length === 0) {
-    html += `<div class="mdag-empty">🎉 Ingen åpne kritiske punkter. Bra jobbet!</div>`;
+  if (groups.length === 0) {
+    html += `<div class="mdag-empty">🎉 Alle kritiske punkter er i orden på dine aktive oppdrag!</div>`;
   } else {
-    const groups = [
-      { sortKey: 0, label: '⚠️ Forfalt — kritisk' },
-      { sortKey: 1, label: '🔴 Kritisk' },
-      { sortKey: 2, label: '📋 Anbefalt' },
-    ];
-    for (const grp of groups) {
-      const grpItems = items.filter(i => i.sortKey === grp.sortKey);
-      if (!grpItems.length) continue;
-      html += `<div class="mdag-section-label">${grp.label}</div>`;
-      for (const entry of grpItems) {
-        const { deal, item } = entry;
-        const dealIdx    = allDeals.indexOf(deal);
-        const stageLabel = deal.stage_b_label || deal.stage_a_label || '—';
-        html += `
-          <div class="mdag-item">
-            <div class="mdag-box" onclick="toggleMinDagItem(${dealIdx},'${item.id}')" role="checkbox" aria-checked="false"></div>
-            <div class="mdag-body">
-              <div class="mdag-deal">${escH(deal.name)}<span class="mdag-stage"> · ${escH(stageLabel)}</span></div>
-              <div class="mdag-label">${escH(item.label)}</div>
-              <div class="mdag-detail">${escH(item.detail)}</div>
+    for (let gi = 0; gi < visGroups.length; gi++) {
+      const grp = visGroups[gi];
+      const gk  = dealKey(grp.deal);
+      const isExp    = minDagExpanded.has(gk);
+      const critN    = grp.items.filter(i => i.isCritical).length;
+      const overdueN = grp.items.filter(i => i.urgency === 'overdue').length;
+      const trafCls  = critN === 0 ? 'traf-green' : overdueN > 0 ? 'traf-red' : critN === 1 ? 'traf-yellow' : 'traf-red';
+      const icon     = overdueN > 0 ? '⚠️' : critN > 1 ? '🔴' : critN === 1 ? '🟡' : '🟢';
+      const stageLbl = grp.deal.stage_b_label || grp.deal.stage_a_label || '—';
+      const gkJs     = JSON.stringify(gk);
+
+      html += `
+        <div class="mdag-group${isExp?' expanded':''}">
+          <div class="mdag-group-hdr" onclick="toggleMinDagGroup(${gkJs})">
+            <span class="mdag-group-icon">${icon}</span>
+            <div class="mdag-group-info">
+              <span class="mdag-group-name">${escH(grp.deal.name)}</span>
+              <span class="mdag-group-stage">${escH(stageLbl)}</span>
             </div>
-            <a class="mdag-link" href="#" onclick="openDealFromMinDag(${dealIdx});return false;">Åpne sjekkliste →</a>
+            <span class="traf-badge ${trafCls}">${critN} kritisk${critN===1?'':'e'}</span>
+            <span class="mdag-group-arrow">${isExp?'▼':'▶'}</span>
           </div>`;
+
+      if (isExp) {
+        const dealIdx = allDeals.indexOf(grp.deal);
+        html += `<div class="mdag-group-body">`;
+        for (const entry of grp.items) {
+          const urgBadge = entry.urgency === 'overdue'
+            ? `<span class="cl-tag gate">⏰ Forfalt</span>`
+            : entry.isCritical
+            ? `<span class="cl-tag gate">Kritisk</span>`
+            : `<span class="cl-tag optional">Anbefalt</span>`;
+          html += `
+            <div class="mdag-item">
+              <div class="mdag-box" onclick="toggleMinDagItem(${dealIdx},'${entry.item.id}')" role="checkbox"></div>
+              <div class="mdag-body">
+                <div class="mdag-label">${escH(entry.item.label)}</div>
+                <div class="mdag-detail">${escH(entry.item.detail)}</div>
+                <div class="cl-footer" style="margin-top:4px">${urgBadge}</div>
+              </div>
+            </div>`;
+        }
+        html += `<a class="mdag-open-link" href="#" onclick="openDealFromMinDag(${dealIdx});return false;">Åpne full sjekkliste →</a>`;
+        html += `</div>`;
       }
+
+      html += `</div>`;
+    }
+
+    if (hiddenGrp.length > 0) {
+      html += `<button class="btn-load-more" onclick="loadMoreMinDag()">
+        Last inn ${hiddenGrp.length} oppdrag til${hiddenCrit > 0 ? ` (${hiddenCrit} kritiske punkter)` : ''} →
+      </button>`;
     }
   }
 
   html += '</div>';
   panel.innerHTML = html;
+}
+
+function toggleMinDagGroup(key) {
+  if (minDagExpanded.has(key)) minDagExpanded.delete(key);
+  else minDagExpanded.add(key);
+  renderMinDag();
+}
+
+function loadMoreMinDag() {
+  minDagLimit += 5;
+  renderMinDag();
 }
 
 async function toggleMinDagItem(dealIdx, itemId) {
