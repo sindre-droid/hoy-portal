@@ -249,18 +249,33 @@ exports.handler = async (event) => {
             'x-oneflow-user-email': ofEmail,
             'Content-Type': 'application/json',
           };
-          // Fetch first page, then remaining pages in parallel
-          const firstRes = await fetch('https://api.oneflow.com/v1/contracts?limit=100&offset=0', { headers: ofHeaders });
+          // Fetch only contracts from the last 13 months (covers all active deals).
+          // Contracts are sorted newest-first — older historical deals are rarely needed.
+          // 13 months = safe buffer beyond 12 months for year-boundary edge cases.
+          const since = new Date();
+          since.setMonth(since.getMonth() - 13);
+          const sinceStr = since.toISOString().split('T')[0]; // YYYY-MM-DD
+
+          // Try date-filtered fetch first; fall back to newest 200 if filter unsupported
+          const filteredUrl = `https://api.oneflow.com/v1/contracts?limit=100&offset=0&published_time[gte]=${sinceStr}`;
+          const fallbackUrl = `https://api.oneflow.com/v1/contracts?limit=100&offset=0`;
+          let firstRes = await fetch(filteredUrl, { headers: ofHeaders });
+          const usingFilter = firstRes.ok;
+          if (!usingFilter) firstRes = await fetch(fallbackUrl, { headers: ofHeaders });
+
           if (firstRes.ok) {
             const firstData = await firstRes.json();
             const totalCount = firstData.count || 0;
             let contracts = firstData.data || [];
-            // Fetch remaining pages in parallel (Oneflow max limit=100)
+            // Paginate if needed — cap at 4 extra pages (500 total) as safety limit
             if (totalCount > 100) {
-              const extraPageCount = Math.ceil(totalCount / 100) - 1;
+              const extraPageCount = Math.min(Math.ceil(totalCount / 100) - 1, 4);
+              const baseUrl = usingFilter
+                ? `https://api.oneflow.com/v1/contracts?limit=100&published_time[gte]=${sinceStr}`
+                : `https://api.oneflow.com/v1/contracts?limit=100`;
               const extraPages = await Promise.all(
                 Array.from({ length: extraPageCount }, (_, i) =>
-                  fetch(`https://api.oneflow.com/v1/contracts?limit=100&offset=${(i + 1) * 100}`, { headers: ofHeaders })
+                  fetch(`${baseUrl}&offset=${(i + 1) * 100}`, { headers: ofHeaders })
                     .then(r => r.ok ? r.json() : { data: [] })
                     .then(d => d.data || [])
                     .catch(() => [])
