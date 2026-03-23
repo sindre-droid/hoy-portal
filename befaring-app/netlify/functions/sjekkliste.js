@@ -244,17 +244,30 @@ exports.handler = async (event) => {
         const boatKey  = boatName.length >= 6 ? boatName : null;
 
         if (dealNum || boatKey) {
-          const ofRes = await fetch('https://api.oneflow.com/v1/contracts?limit=100', {
-            headers: {
-              'x-oneflow-api-token': ofToken,
-              'x-oneflow-user-email': ofEmail,
-              'Content-Type': 'application/json',
-            },
-          });
-          if (ofRes.ok) {
-            const ofData    = await ofRes.json();
-            // List endpoint returns contracts under 'data' key (confirmed via debug)
-            const contracts = ofData.data || ofData._entities || ofData.contracts || [];
+          const ofHeaders = {
+            'x-oneflow-api-token': ofToken,
+            'x-oneflow-user-email': ofEmail,
+            'Content-Type': 'application/json',
+          };
+          // Fetch first page, then remaining pages in parallel
+          const firstRes = await fetch('https://api.oneflow.com/v1/contracts?limit=100&offset=0', { headers: ofHeaders });
+          if (firstRes.ok) {
+            const firstData = await firstRes.json();
+            const totalCount = firstData.count || 0;
+            let contracts = firstData.data || [];
+            // Fetch remaining pages in parallel (Oneflow max limit=100)
+            if (totalCount > 100) {
+              const extraPageCount = Math.ceil(totalCount / 100) - 1;
+              const extraPages = await Promise.all(
+                Array.from({ length: extraPageCount }, (_, i) =>
+                  fetch(`https://api.oneflow.com/v1/contracts?limit=100&offset=${(i + 1) * 100}`, { headers: ofHeaders })
+                    .then(r => r.ok ? r.json() : { data: [] })
+                    .then(d => d.data || [])
+                    .catch(() => [])
+                )
+              );
+              contracts = [...contracts, ...extraPages.flat()];
+            }
 
             // Match if contract name contains the deal number OR the boat name.
             // Boat name fallback handles contracts created before the deal number
