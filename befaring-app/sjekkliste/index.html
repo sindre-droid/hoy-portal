@@ -525,9 +525,10 @@ let saveStatus   = 'idle';
 let foldState      = {};     // { phase_a: bool, phase_b_early: bool, _dealKey: str }
 let minDagLimit    = 5;      // How many deal groups to show in Min dag by default
 let minDagExpanded = new Set(); // Which deal group keys are expanded in Min dag
-let completedToday = 0;      // Critical items checked during this session (reset on view switch)
-let currentView    = 'min_dag'; // Start on Min dag
-let toastTimer     = null;   // Timer handle for toast auto-dismiss
+let completedToday     = 0;           // Critical items completed today
+let completedTodayDate = new Date().toDateString(); // Track day for auto-reset
+let currentView        = 'min_dag';   // Start on Min dag
+let toastTimer         = null;        // Timer handle for toast auto-dismiss
 
 const BROKER_NAMES = {
   '633479117': 'Sindre',
@@ -631,7 +632,12 @@ function updateDropdownLabel(view) {
 // ── View switching ────────────────────────────────────────────────────────────
 async function switchView(view) {
   currentView=view; currentDeal=null; foldState={};
-  if (view==='min_dag') { minDagLimit=5; minDagExpanded=new Set(); completedToday=0; }
+  if (view==='min_dag') {
+    minDagLimit=5; minDagExpanded=new Set();
+    // Only reset the daily counter when the actual calendar day has changed
+    const today = new Date().toDateString();
+    if (today !== completedTodayDate) { completedToday=0; completedTodayDate=today; }
+  }
   updateDropdownLabel(view);
   const hideList = view==='min_dag' || view==='team_oversikt';
   document.getElementById('emptyState').style.display= hideList ? 'none' : 'flex';
@@ -1406,10 +1412,19 @@ function loadMoreMinDag() {
 async function toggleMinDagItem(dealIdx, itemId) {
   const deal = allDeals[dealIdx];
   if (!deal) return;
-  if (!deal.pipeline_b_id) {
-    alert('Manuelle punkter i fase B krever en Pipeline B-deal.');
+
+  const itemDef = CHECKLIST.find(c => c.id === itemId);
+  // Phase B items require a Pipeline B deal to exist
+  if (itemDef?.phase === 'b' && !deal.pipeline_b_id) {
+    alert('Manuelle punkter i fase B krever en Pipeline B-deal. Opprett salgsdeal i HubSpot.');
     return;
   }
+  // Phase A items require a Pipeline A deal
+  if (itemDef?.phase === 'a' && !deal.pipeline_a_id) {
+    alert('Denne dealen har ingen Pipeline A-deal.');
+    return;
+  }
+
   let manual = {};
   try { manual = deal.sjekkliste_status ? JSON.parse(deal.sjekkliste_status) : {}; } catch {}
   const wasChecked = !!manual[itemId];
@@ -1421,19 +1436,20 @@ async function toggleMinDagItem(dealIdx, itemId) {
     delete manual[itemId + '_ts'];
   }
   // Track session completions (only for critical items checked this session)
-  const itemDef = CHECKLIST.find(c => c.id === itemId);
   if (itemDef?.gate) {
     if (manual[itemId]) completedToday++;
     else completedToday = Math.max(0, completedToday - 1);
   }
   deal.sjekkliste_status = JSON.stringify(manual);
 
-  // Save to HubSpot
+  // Save to HubSpot — Phase A items save to pipeline_a_id, Phase B to pipeline_b_id
+  const saveId   = (itemDef?.phase === 'a') ? deal.pipeline_a_id : deal.pipeline_b_id;
+  const saveKey  = (itemDef?.phase === 'a') ? 'deal_a_id' : 'deal_b_id';
   try {
     await fetch(API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ deal_b_id: deal.pipeline_b_id, sjekkliste_status: manual }),
+      body: JSON.stringify({ [saveKey]: saveId, sjekkliste_status: manual }),
     });
   } catch {}
 
