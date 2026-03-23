@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>SOP-editor — House of Yachts</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+  <style>
+    :root{
+      --navy:#0a2140;--gold:#c9a84c;
+      --text:#12233a;--text-light:#6b7280;
+      --bg:#f5f7fa;--white:#fff;
+      --border:#dde3ec;--surface:#f5f7fa;
+      --green:#166534;--green-bg:#dcfce7;
+      --red:#991b1b;--red-bg:#fee2e2;
+      --amber:#92400e;--amber-bg:#fef3c7;
+      --blue:#1e40af;--blue-bg:#dbeafe;
+      --sidebar-w:300px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+      background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column;
+      -webkit-font-smoothing:antialiased}
+
+    /* ── Auth screens ── */
+    .screen{display:none;position:fixed;inset:0;background:var(--navy);align-items:center;justify-content:center;z-index:9000}
+    .screen.active{display:flex}
+    .login-box{background:#fff;border-radius:16px;padding:36px;width:min(380px,calc(100vw - 32px));box-shadow:0 20px 60px rgba(0,0,0,.35);text-align:center}
+    .login-logo{font-size:20px;font-weight:800;color:var(--navy)}
+    .login-sub{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:28px;margin-top:2px}
+    .login-h{font-size:17px;font-weight:700;color:var(--navy);margin-bottom:6px}
+    .login-p{font-size:13px;color:var(--text-light);margin-bottom:22px}
+    .field{margin-bottom:14px;text-align:left}
+    .field label{display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:5px}
+    .field input{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:8px;font-size:15px;font-family:inherit;background:var(--bg)}
+    .field input:focus{outline:none;border-color:var(--navy)}
+    .btn-login{width:100%;padding:13px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:4px}
+    .btn-login:disabled{opacity:.5}
+    .login-err{color:#dc2626;font-size:12px;font-weight:600;margin-top:8px;display:none}
+    .loading-text{color:rgba(255,255,255,.5);font-size:14px}
+    .admin-only{color:#fbbf24;font-size:13px;margin-top:12px;font-weight:600}
+
+    /* ── App shell ── */
+    .app{display:none;flex-direction:column;height:100vh}
+    .app.show{display:flex}
+
+    /* ── Topbar ── */
+    .topbar{height:52px;background:var(--navy);color:white;
+      display:flex;align-items:center;padding:0 20px;gap:14px;flex-shrink:0;
+      box-shadow:0 2px 16px rgba(0,0,0,.3)}
+    .topbar-brand{font-size:14px;font-weight:800;letter-spacing:.5px}
+    .topbar-brand span{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--gold);display:block;margin-top:1px;font-weight:500}
+    .topbar-sep{color:rgba(255,255,255,.25);font-size:18px}
+    .topbar-title{font-size:15px;font-weight:700;color:rgba(255,255,255,.85);flex:1}
+    .topbar-right{display:flex;align-items:center;gap:10px}
+    .user-lbl{font-size:12px;color:rgba(255,255,255,.5)}
+    .btn-top{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
+      border-radius:20px;color:rgba(255,255,255,.85);padding:6px 14px;font-size:12px;
+      font-family:inherit;cursor:pointer}
+    .btn-top:hover{background:rgba(255,255,255,.2)}
+
+    /* ── Layout ── */
+    .layout{display:flex;flex:1;overflow:hidden}
+
+    /* ── Sidebar ── */
+    .sidebar{width:var(--sidebar-w);flex-shrink:0;background:white;
+      border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+    .sidebar-head{padding:14px 14px 10px;border-bottom:1px solid var(--border);flex-shrink:0}
+    .sidebar-head h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-light);margin-bottom:10px}
+    .btn-new{width:100%;padding:9px 14px;background:var(--navy);color:white;border:none;
+      border-radius:8px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;text-align:left}
+    .btn-new:hover{background:#1a3a5c}
+    .sop-list{flex:1;overflow-y:auto;padding:6px}
+    .sop-item{display:flex;align-items:center;gap:8px;padding:10px 11px;border-radius:8px;
+      cursor:pointer;border:2px solid transparent;margin-bottom:2px;transition:background .12s}
+    .sop-item:hover{background:var(--surface)}
+    .sop-item.active{background:var(--blue-bg);border-color:#93c5fd}
+    .sop-icon{font-size:18px;flex-shrink:0}
+    .sop-label{font-size:13px;font-weight:600;color:var(--text);flex:1;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .sop-item.active .sop-label{color:var(--blue)}
+    .sop-move{display:flex;flex-direction:column;gap:1px;flex-shrink:0;opacity:0;transition:opacity .12s}
+    .sop-item:hover .sop-move{opacity:1}
+    .btn-mv{background:none;border:none;font-size:11px;cursor:pointer;color:var(--text-light);
+      padding:1px 3px;line-height:1;border-radius:3px}
+    .btn-mv:hover{background:var(--border);color:var(--text)}
+
+    /* ── Main editor panel ── */
+    .main{flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+    .empty-ed{display:flex;align-items:center;justify-content:center;flex:1;
+      flex-direction:column;gap:12px;color:var(--text-light);text-align:center;padding:40px}
+    .empty-ed .ei{font-size:48px;opacity:.3}
+    .empty-ed p{font-size:14px}
+
+    .editor-wrap{display:flex;flex-direction:column;flex:1;overflow:hidden}
+    .editor-meta{padding:16px 24px;border-bottom:1px solid var(--border);
+      background:white;display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;flex-shrink:0}
+    .meta-group{display:flex;flex-direction:column;gap:4px}
+    .meta-group label{font-size:10px;font-weight:700;text-transform:uppercase;
+      letter-spacing:.6px;color:var(--text-light)}
+    .meta-input{padding:7px 11px;border:1.5px solid var(--border);border-radius:7px;
+      font-size:13px;font-family:inherit;background:var(--surface);color:var(--text)}
+    .meta-input:focus{outline:none;border-color:var(--navy);background:white}
+    .meta-group.wide{flex:1;min-width:200px}
+    .meta-group.icon{width:70px}
+    .meta-group.id{width:160px}
+    .meta-actions{margin-left:auto;display:flex;gap:8px;align-items:flex-end;padding-bottom:1px}
+    .btn-del{padding:7px 14px;background:none;border:1.5px solid var(--border);
+      border-radius:7px;color:var(--text-light);font-size:12px;font-family:inherit;cursor:pointer}
+    .btn-del:hover{border-color:#f87171;color:var(--red);background:var(--red-bg)}
+
+    .editor-panes{display:flex;flex:1;overflow:hidden}
+    .pane{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+    .pane + .pane{border-left:1px solid var(--border)}
+    .pane-head{padding:8px 16px;background:var(--surface);border-bottom:1px solid var(--border);
+      font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-light);
+      display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+    .md-textarea{flex:1;padding:16px 20px;border:none;resize:none;font-size:13px;
+      font-family:'SF Mono','Fira Code','Consolas',monospace;line-height:1.7;
+      color:var(--text);background:white;outline:none}
+    .preview-body{flex:1;overflow-y:auto;padding:24px 28px;background:white}
+
+    /* Markdown preview styles */
+    .preview-body h1{font-size:20px;font-weight:800;color:var(--navy);margin-bottom:12px}
+    .preview-body h2{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;
+      color:var(--text-light);margin:20px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+    .preview-body h3{font-size:14px;font-weight:700;color:var(--text);margin:14px 0 6px}
+    .preview-body p{font-size:14px;line-height:1.7;margin-bottom:10px;color:var(--text)}
+    .preview-body ul,.preview-body ol{padding-left:20px;margin-bottom:10px}
+    .preview-body li{font-size:14px;line-height:1.6;margin-bottom:3px}
+    .preview-body blockquote{background:var(--amber-bg);border-left:3px solid var(--gold);
+      padding:10px 14px;border-radius:0 6px 6px 0;margin:10px 0;font-size:13px}
+    .preview-body blockquote p{margin-bottom:0}
+    .preview-body table{width:100%;border-collapse:collapse;font-size:13px;margin:12px 0}
+    .preview-body th{background:var(--surface);padding:8px 12px;text-align:left;font-weight:700;
+      border:1px solid var(--border)}
+    .preview-body td{padding:8px 12px;border:1px solid var(--border)}
+    .preview-body code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:12px;
+      font-family:monospace}
+    .preview-body strong{font-weight:700}
+    .preview-body hr{border:none;border-top:1px solid var(--border);margin:16px 0}
+
+    /* ── Export bar ── */
+    .export-bar{padding:12px 20px;background:var(--navy);display:flex;align-items:center;gap:12px;flex-shrink:0}
+    .export-bar p{font-size:12px;color:rgba(255,255,255,.6);flex:1}
+    .btn-export{padding:9px 20px;background:var(--gold);color:var(--navy);border:none;
+      border-radius:8px;font-size:13px;font-weight:800;font-family:inherit;cursor:pointer;white-space:nowrap}
+    .btn-export:hover{background:#e0b84d}
+    .export-ok{font-size:12px;color:#86efac;font-weight:600;display:none}
+
+    /* ── Toast ── */
+    .toast{position:fixed;bottom:24px;right:24px;background:var(--green);color:white;
+      padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;
+      box-shadow:0 4px 20px rgba(0,0,0,.25);opacity:0;transform:translateY(8px);
+      transition:opacity .25s,transform .25s;pointer-events:none;z-index:999}
+    .toast.show{opacity:1;transform:translateY(0)}
+  </style>
+</head>
+<body>
+
+<!-- Loading -->
+<div class="screen active" id="loadScreen">
+  <p class="loading-text">Laster inn…</p>
+</div>
+
+<!-- Login -->
+<div class="screen" id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">House of Yachts</div>
+    <div class="login-sub">Internportal</div>
+    <div class="login-h">SOP-editor</div>
+    <div class="login-p">Kun tilgjengelig for admin-brukere.</div>
+    <div class="field"><label>E-post</label><input type="email" id="lEmail" autocomplete="email" placeholder="deg@h-y.no"></div>
+    <div class="field"><label>Passord</label><input type="password" id="lPass" autocomplete="current-password" placeholder="••••••••"></div>
+    <button class="btn-login" id="lBtn" onclick="doLogin()">Logg inn</button>
+    <div class="login-err" id="lErr"></div>
+    <div class="admin-only">🔐 Krever admin-rolle</div>
+  </div>
+</div>
+
+<!-- App -->
+<div class="app" id="app">
+  <div class="topbar">
+    <div class="topbar-brand">House of Yachts<span>Internportal</span></div>
+    <span class="topbar-sep">|</span>
+    <span class="topbar-title">SOP-editor</span>
+    <div class="topbar-right">
+      <span class="user-lbl" id="userLbl"></span>
+      <a class="btn-top" href="/soper/">← Vis SOPer</a>
+      <button class="btn-top" onclick="doLogout()">Logg ut</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="sidebar">
+      <div class="sidebar-head">
+        <h3>SOPer (dra for å endre rekkefølge)</h3>
+        <button class="btn-new" onclick="addNew()">+ Ny SOP</button>
+      </div>
+      <div class="sop-list" id="sopList"></div>
+    </div>
+
+    <div class="main" id="main">
+      <div class="empty-ed" id="emptyEd">
+        <div class="ei">📋</div>
+        <p>Velg en SOP til venstre for å redigere,<br>eller klikk «+ Ny SOP» for å legge til.</p>
+      </div>
+      <div class="editor-wrap" id="editorWrap" style="display:none">
+        <div class="editor-meta">
+          <div class="meta-group icon">
+            <label>Ikon</label>
+            <input class="meta-input" id="metaIcon" type="text" maxlength="4" placeholder="📋" oninput="onMetaChange()">
+          </div>
+          <div class="meta-group id">
+            <label>ID (url-slug)</label>
+            <input class="meta-input" id="metaId" type="text" placeholder="sop-01" oninput="onMetaChange()">
+          </div>
+          <div class="meta-group wide">
+            <label>Tittel</label>
+            <input class="meta-input" id="metaLabel" type="text" placeholder="SOP 01 — Tittel…" oninput="onMetaChange()">
+          </div>
+          <div class="meta-actions">
+            <button class="btn-del" onclick="deleteCurrent()">Slett SOP</button>
+          </div>
+        </div>
+        <div class="editor-panes">
+          <div class="pane">
+            <div class="pane-head">
+              Markdown
+              <span style="font-size:10px;color:#94a3b8;font-weight:400;text-transform:none;letter-spacing:0">
+                # Overskrift &nbsp;**fet** &nbsp;*kursiv* &nbsp;- liste &nbsp;> sitat &nbsp;| tabell |
+              </span>
+            </div>
+            <textarea class="md-textarea" id="mdEditor" placeholder="Skriv SOP-innhold i markdown…" oninput="onMdChange()"></textarea>
+          </div>
+          <div class="pane">
+            <div class="pane-head">Forhåndsvisning</div>
+            <div class="preview-body" id="mdPreview"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="export-bar">
+    <p>Når du er ferdig: eksporter og erstatt <code style="background:rgba(255,255,255,.1);padding:2px 6px;border-radius:4px;color:rgba(255,255,255,.8)">/soper/index.html</code> med den oppdaterte filen.</p>
+    <span class="export-ok" id="exportOk">✓ Lastet ned!</span>
+    <button class="btn-export" onclick="exportFile()">⬇ Last ned oppdatert soper/index.html</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+const IDENTITY = location.origin + '/.netlify/identity';
+let token = null;
+let currentIdx = null;
+
+// ── Current SOP data (editable) ──────────────────────────────────────────────
+// Pre-loaded with the existing content from soper/index.html
+let sops = [
+  {
+    id: 'prospektering',
+    navId: 'prospektering',
+    icon: '📞',
+    label: 'SOP 01 — FSBO-prospektering',
+    pageId: 'sop-01',
+    content: `# SOP 01 — FSBO-prospektering og outreach\n\nUkesmål: **50 FSBO-eiere kontaktet** per megler.\n\n## Hvem, hva, hvorfor\n- **Eier:** Megler (backup: junior-megler)\n- **Frekvens:** Daglig blokk — minst 60 min kl. 09:00\n- **Primærkilde:** Finn.no (Båter → Privat, Oslofjord/Østlandet, 750k–15M NOK)\n- **Sekundærkilde:** Boat Wizard FSBO (bruk når Finn-volumet er lavt)\n\n## Ukesplanlegging (mandag, 10 min)\n- Planlegg 5 dager × 10 kontakter\n- Blokker tid i kalender\n\n## Finn relevante annonser\n- Filter: Selger = Privat, Område = Oslofjord/Østlandet, Pris = 750k–15M\n- Sorter: Nyeste først\n- Prioriter: Premium-merker, nyere årsmodeller, seriøse annonser\n- Hopp over: Prosjektbåter, ukjente merker, åpenbare feil\n\n## Registrering i HubSpot (Boat-objektet)\n- Opprett/oppdater Boat med: URL, merke/modell, selgers pris, årsmodell, område\n- Status: «Ny – ikke kontaktet»\n- **Ikke opprett Deal ennå**\n\n## Første kontakt\nHvis telefonnummer finnes — ring først:\n> «Hei, det er [Navn] fra House of Yachts. Jeg ser du har [båttype] ute på FINN — har du to minutter nå til å snakke om salget?»\n\nIngen telefon → bruk FINN/Boat Wizard kontaktskjema med standardmalen.\nLogg alltid aktiviteten på Boat-kortet.\n\n## Oppfølgingssekvens uten respons\n- Dag 1: Ytterligere 1 forsøk, annen kanal\n- Dag 3–4: 1 nytt forsøk\n- Dag 7: 1 forsøk + kort case i melding\n\n## Når opprettes Deal?\nKun når eier svarer positivt eller viser reell interesse.\n\n| Felt | Verdi |\n|---|---|\n| Navn | FSBO – [Merke/Modell] – [Sted] – [MNOK] |\n| Pipeline | Seller Acquisition (A) |\n| Stage | New Lead |\n| Kilde | FSBO FINN / FSBO Boat Wizard |\n\n## KPI-er (per megler, per uke)\n- 50 første kontaktforsøk\n- Antall nye Boats opprettet\n- Antall nye Deals fra FSBO\n- Antall bookede verdivurderinger\n- Konverteringsrate: møter / kontaktede eiere (mål ~10%)`
+  },
+  {
+    id: 'verdivurdering',
+    navId: 'verdivurdering',
+    icon: '🔍',
+    label: 'SOP 02 — Verdivurdering & befaring',
+    pageId: 'sop-02',
+    content: `# SOP 02 — Verdivurdering & befaring\n\nFra interessert selger til signert oppdragsavtale. Mål: **90%+ close rate** fra befaring.\n\n## JA / NEI til oppdrag\n\n**JA hvis:**\n- Pris 750k–15M og realistisk forventning kan kalibreres\n- Båttype og stand passer porteføljen\n- Eier virker samarbeidsvillig\n\n**NEI hvis:**\n- Urealistisk pris + nekter å lytte til markedstall\n- Dårlig magefølelse / dårlig kjemi\n- Uavklart eierskap, heftelser, juridisk rot\n\n## Første kontakt ved interesse (speed to lead)\n- Ring innen **15 min** i arbeidstid (mål: under 5 min)\n- Kjør kort kvalifisering: Hvorfor selger de? Tidslinje? Prisforventning? Eierskap/gjeld?\n- Sett neste steg umiddelbart (BAMFAM)\n\n## Book befaring\n> «Neste naturlige steg er at jeg kommer ut, ser båten, gjør en ordentlig verdivurdering og legger frem konkret salgsforslag.»\n\n- Tilby to tidspunkter innen 48 timer\n- Legg inn i kalender + sett Deal-stage: **Valuation Booked**\n\n## Forberedelse\n- Gjennomfør markedsvurdering: sammenlignbare salg + aktive konkurrenter\n- Forbered Befaringsrapport-dokument med fakta, markedsdata og prisvurdering\n- Send bekreftelses-SMS med dato, tid, sted og hva selger bør ha klart\n\n## Gjennomføring av befaring (45–60 min)\n\n**Fase 1 — Relasjon & agenda (5–10 min)**\nTydelig agenda: «Først ser vi gjennom båten, så deler jeg markedsvurderingen, og til slutt går vi gjennom neste steg.»\n\n**Fase 2 — Teknisk gjennomgang (15–25 min)**\nGå systematisk: utvendig, innvendig, motor, utstyr. Noter alt.\n\n**Fase 3 — Markedsvurdering (10–15 min)**\nVis data først, mening etterpå. Bruk sammenlignbare salg. Kalibrer urealistiske forventninger med tall.\n\n**Fase 4 — Presentasjon av tjenesten (5–10 min)**\nHva vi gjør, hvordan vi skaper høyere netto, no cure/no pay-modellen.\n\n**Fase 5 — Closing (5–10 min)**\n> «Basert på det vi har sett mener jeg det er realistisk å få til [scenario]. Vil du at vi skal ta oppdraget?»\n\n- Ved JA: avklar praktiske detaljer, send Oneflow-avtale samme dag\n- Be om aksept innen 24 timer`
+  },
+  {
+    id: 'signert-til-annonse',
+    navId: 'signert-til-annonse',
+    icon: '📸',
+    label: 'SOP 03 — Signert → Publisert annonse',
+    pageId: 'sop-03',
+    content: `# SOP 03 — Signert oppdrag → Publisert annonse\n\nMål: **Annonse live innen 7 dager** fra signering.\n\n## Samme dag som signering\n- Verifiser at signert avtale + egenerklæring ligger på dealen\n- Pipeline A: sett til **Agreement Signed**\n- Pipeline B: opprett/oppdater deal med stage **Prep/Listing Ready**\n- Fyll ut: Lead Source, Lead Grade, Next Step, Next Showing/Meeting Date/Time\n- Send takk-melding til selger\n\n## Innen 24 timer — book ressurser\n- Book fototidspunkt innen 5 dager\n- Koordiner med fotograf og selger\n- Oppdater Pipeline B: Next Showing/Meeting = fototidspunkt\n\n## Forventningsavklaring til selger\nNår fototid er bekreftet, send e-post/SMS med:\n- Dato/tid for foto\n- Hva selger må ha klart (rent, ryddig, fendere av)\n- Overordnet plan for de neste 7 dagene\n- Estimert publiseringsdato\n\n> ⚠️ Krav til fotograf: samme dag som shoot skal fotograf sende megler konkret ETA for bildene.\n\n## Forbered annonse før bilder\n- Lag kladd til annonsetekst basert på befaringsrapport (bruk SOP 08 — AI-agent)\n- Definer endelig Final List Price og fyll ut i Pipeline B\n\n## Etter foto\n- Lagre bildene strukturert\n- Ferdigstill annonsetekst og prospekt\n- Få intern godkjenning (gjerne fra kollega)\n\n## Publisering\nPubliser i rekkefølge: **Finn → YachtWorld → Nettside → SoMe**\n\nOppdater Pipeline B:\n- Stage: **Live Listing**\n- Final List Price: sett\n- Next Step: «Første uker — samle leads, planlegge visninger, ukentlig rapport til selger»\n\nSend annonselenke + kort salgsperiodeplan til selger.\n\n## KPI-er\n- Dager fra signering → fotodato satt\n- Dager fra signering → live annonse (mål ≤ 7 dager)`
+  },
+  {
+    id: 'salgsperioden',
+    navId: 'salgsperioden',
+    icon: '📊',
+    label: 'SOP 04 — Salgsperioden',
+    pageId: 'sop-04',
+    content: `# SOP 04 — Salgsperioden\n\nFra annonse publisert til bud/kontrakt. **Ingen listings skal «dø stille».**\n\n## Når annonse går live\n- Sett Next Step: «Første uke — samle interessenter, planlegge visninger»\n- Sett Next Showing/Meeting: Første planlagte visning eller ukentlig statussamtale\n- Send go-live-melding til selger med linker og plan\n\n## Speed to lead på kjøperhenvendelser\nIdeell standard: svar innen **15 minutter** i arbeidstid.\n\nFor seriøse henvendelser:\n- Send prospekt + egenerklæringsskjema\n- Inviter til visning innen 3 dager\n- Oppdater Lead Grade og Next Showing/Meeting\n\n## Visninger\n**Før:** Sørg for at interessenten har fått prospekt + egenerklæring.\n\n**Etter (samme dag):**\n> «Takk for i dag, jeg er tilgjengelig på tlf. hvis du kommer på spørsmål.»\n\n**Neste dag:** Ring for feedback og kartlegg videre interesse. Oppdater Lead Grade og Financing Status.\n\n## Ukentlig selgeroppdatering\nHver uke — selv om det ikke er nyheter. Innhold:\n- Finn-statistikk (visninger, lagrede annonser)\n- Antall henvendelser og fysiske visninger\n- Feedback fra interessenter\n- Din anbefaling for neste uke\n\n## Testperiode (avtales ved oppstart)\nStandard: **30 dager ELLER 5 kvalifiserte visninger** — det som kommer først.\n\nVed testperiodens slutt, book samtale med selger og legg frem tre alternativer:\n1. Prisjustering (anbefalt)\n2. Endring i presentasjon/tiltak\n3. Trekke annonsen midlertidig\n\n> ⚠️ Aldri bare si «vi venter litt til» — alltid en konkret plan etter testperioden.\n\n## «Stuck» listings\nHvis båt har vært ute > 60 dager uten bud, eller > 10 visninger uten kvalifisert bud:\nBook review-møte med selger + DL for å beslutte: markant prisjustering, relansering, eller off-market/pause.`
+  },
+  {
+    id: 'bud-kontrakt',
+    navId: 'bud-kontrakt',
+    icon: '🤝',
+    label: 'SOP 05 — Bud → Kontrakt → Oppgjør',
+    pageId: 'sop-05',
+    content: `# SOP 05 — Bud → Kontrakt → Oppgjør\n\nFra første kvalifiserte bud til Closed Won.\n\n## Forhåndskrav før bud mottas\nInteressenten skal ha fått:\n- Prospekt\n- Egenerklæringsskjema\n\nMegler skal ha avklart: opplevd stand, eventuelle dealbreakers, om de har sett båten.\n\n> ⚠️ Ingen «overraskelsesbud» fra folk uten info.\n\n## Mottak av første bud\nBud skal alltid ned på skrift (min. SMS/e-post, helst budskjema via Oneflow).\n\nBudet skal inneholde: pris, overtakelsesdato, eventuelle forbehold.\n\nOppdater HubSpot umiddelbart:\n- Highest Qualified Offer (NOK)\n- Financing Status\n- Inspection/Survey Status: Not started\n- Next Step: «Presenter bud til selger [dato/tid]»\n\n## Presentasjon av bud til selger\nPresenter alltid i kontekst: antall visninger, andre interessenter, seriøsitet.\n\nAvslutt samtalen med tydelig neste steg: godtar vi, gir vi motbud, eller venter vi?\n\n## Varsling av andre interessenter\nVed første kvalifiserte bud:\n> «Vi har idag mottatt et bud på [beløp], som selger nå vurderer. Gi snarlig beskjed dersom du fortsatt er interessert.»\n\n## Aksept\nBekreft skriftlig til budgiver: pris, overtakelsesdato, forbehold og frister.\n\nOppdater Pipeline B-stage: **Under Offer → In Contract**\n\nSend via Oneflow (rekkefølge):\n1. Budaksept-skjema\n2. Kjøpekontrakt (med salgsoppgave + egenerklæring vedlagt)\n3. Oppgjørsskjema til selger\n\n## Overlevering til oppgjør\nSamle komplett mappe:\n- Signert kjøpekontrakt\n- Signert salgsavtale (oppdragsavtale)\n- Egenerklæringsskjema\n- Oppgjørsskjema fra selger\n- Pantdokumentasjon\n\nSend til daglig leder/back-office.\n\n## Closed Won\nNår kjøpesum innbetalt, pant oppgjort og overleveringsprotokoll signert:\n- Sett Pipeline B-stage: **Closed Won**\n- Marker solgt på Finn/YachtWorld/nettside\n- Publiser solgt-post på SoMe\n- Send closing-gave (godkjenn med DL)`
+  },
+  {
+    id: 'closed-lost',
+    navId: 'closed-lost',
+    icon: '📁',
+    label: 'SOP 06 — Closed Lost',
+    pageId: 'sop-06',
+    content: `# SOP 06 — Closed Lost\n\nRegistrering, læring og reaktivering. **Ingen zombie-deals i aktiv pipeline.**\n\n## Pipeline A — når settes til Closed Lost?\n- Selger har valgt annen megler\n- Selger har solgt privat\n- Selger vil ikke selge nå\n- Urealistisk / dårlig fit\n- Ghost etter gjentatte forsøk\n\n## Obligatoriske felter ved Closed Lost (Pipeline A)\n\n**Lost Reason** (velg én):\nCommission too high · Valuation disagreement · Hired another broker · Not ready/timing · Sold privately · Unresponsive/no-show · Authority/partner veto · Not a fit\n\n**Outcome** (velg én):\nHired competitor · Paused selling · Sold privately · Keeping boat\n\n**Terms Snapshot:**\n- Proposed Commission %\n- Our Valuation Offered (NOK)\n- Seller Expected Price (NOK)\n- Competitor Name (kun hvis Outcome = Hired competitor)\n\n## Pipeline B — når settes til Closed Lost?\n- Selger trekker båten\n- Listing utløper uten akseptable bud\n- Handel ryker på finansiering, survey eller timing\n\n## Obligatoriske felter ved Closed Lost (Pipeline B)\n\n**Lost Reason** (velg én):\nSeller withdrew · Listing expired/no acceptable offers · Seller refused market price · Sold with another broker · Sold privately · Buyer financing failed · Survey/inspection issues · Seasonality/timing\n\n**Outcome:**\nWithdrawn · Expired · Sold elsewhere · Sold privately\n\n**Market Snapshot:**\n- Final List Price (NOK)\n- Highest Qualified Offer (NOK)\n\n## Reaktivering\n**Lost Reason = Not ready / Seasonality:**\n- Sett Recontact Date = +60–90 dager\n- Opprett task: «Follow-back selger / reaktiver listing»`
+  },
+  {
+    id: 'inbound-lead',
+    navId: 'inbound-lead',
+    icon: '📥',
+    label: 'SOP 07 — Inbound selger-lead',
+    pageId: 'sop-07',
+    content: `# SOP 07 — Inbound selger-lead\n\nFra henvendelse til booket verdivurdering. **Speed to lead er alt.**\n\n## Speed-krav\n- I arbeidstid (09–17): kontakt innen **5 min** (maks 15 min)\n- Utenom arbeidstid: svar snarest med beskjed om neste kontaktpunkt\n- Tommelregel: Få «oi, det var kjapt!» minst én gang om dagen\n\n## Registrering i HubSpot (Pipeline A)\n- Sjekk om kontakt finnes fra før\n- Opprett Deal med:\n  - Navn: Inbound – [navn] – [båttype]\n  - Lead Source: riktig kilde\n  - Lead Grade: foreløpig B\n  - Next Step: «Første kontakt – kvalifisere og ev. booke verdivurdering»\n\n## Struktur på første samtale\n\n**Åpning:**\n> «Hei [navn], det er [megler] fra House of Yachts. Så henvendelsen din om [båt/salg]. Har du et par minutter nå?»\n\n**Kvalifisering — disse punktene skal avklares:**\n- Båttype, årsmodell, ca. verdi (750k–15M?)\n- Motivasjon og tidslinje\n- Prisforventning\n- Hvem tar beslutningen?\n- Hvor ligger båten?\n\n## Routing\n- **A-leads** (premium, sterk motivasjon, kort tidslinje) → mest erfarne megler\n- **B-leads** → hvilken som helst aktiv megler\n- **C-leads** → kun ved ledig kapasitet, ellers nurture/avslag\n\n## BAMFAM — book verdivurdering\n> «Neste naturlige steg er at jeg kommer ut og gjør en skikkelig verdivurdering. Jeg kan [dato] eller [dato] — hva passer best?»\n\nMål: fysisk befaring innen 48 timer.\n\n## Tre mulige utfall\n1. **Aktuell listing nå** → viderefør til SOP 02\n2. **Interessert, ikke klar** → Recontact Date +60–90 dager + task\n3. **Ikke match** → Closed Lost med riktig årsak (SOP 06)\n\n## KPI-er\n- 100% av inbound leads: første kontakt innen 15 min i arbeidstid\n- Ingen deals i Pipeline A uten Next Step + Next Meeting`
+  },
+  {
+    id: 'ai-annonse',
+    navId: 'ai-annonse',
+    icon: '🤖',
+    label: 'SOP 08 — AI-agent for annonser',
+    pageId: 'sop-08',
+    content: `# SOP 08 — AI-agent for båtannonser\n\nHouse of Yachts Listing GPT. **Én båt = én chat. Aldri fler båter i samme tråd.**\n\n## Når bruker du agenten?\n- Ny listing skal ut (Pipeline B: Prep/Listing Ready)\n- Eksisterende annonse skal strammes inn\n- Du har befaringsrapport og vil ha første tekstutkast\n\n## Prosess — ny annonse\n\n**Steg 1:** Start ny chat i agenten\n\n**Steg 2:** Velg conversation starter\n- Ny båt uten tekst → «Start ny båtannonse»\n- Har befaringsrapport → «Lag annonse fra befaringsrapport»\n\n**Steg 3:** Fyll ut skjemaet i prompten\nInkluder: GRUNNINFO, PRIS, MOTOR, LAYOUT, NØKKELUTSTYR, TILSTAND, KONTAKT.\nHellere «ukjent» enn å gjette.\n\n**Steg 4:** Godkjenn faktalisten\nAgenten returnerer først en liste over manglende info og en FAKTALISTE.\nKorriger det som er feil, bekreft det som stemmer.\n\n**Steg 5:** Få ferdig annonsetekst\nSkriv f.eks. «Ok, skriv annonseteksten» etter godkjent faktaliste.\n\n**Steg 6:** Kvalitetssjekk\nSjekk mot befaring/prospekt: modell, år, motor, timer, pris, lokasjon.\nKorriger i chatten → be om nytt utkast.\n\n**Steg 7:** Kopier inn i Finn/YachtWorld/HubSpot\n\n## Prosess — forbedre eksisterende tekst\n1. Start ny chat\n2. Velg «Forbedre eksisterende annonsetekst» eller «Språkvask»\n3. Lim inn dagens annonse\n4. Gi klar instruks: «Stram opp språket, behold alle fakta»\n\n## Kvalitetskrav\n- Ingen fakta som ikke kan spores til chatten\n- Teksten skal følge HoY-struktur: tittel → intro → highlights → narrativ → specs → utstyr → CTA\n- Maks 1 runde manuell redigering per annonse\n\n> ⚠️ Typisk feil: flere båter i samme chat gir sammenblanding av data. Start alltid ny chat per båt.`
+  },
+  {
+    id: 'selgerrapport',
+    navId: 'selgerrapport',
+    icon: '📋',
+    label: 'MINI SOP — Ukentlig selgerrapport',
+    pageId: 'sop-mini',
+    content: `# MINI SOP — Ukentlig selgerrapport\n\nMinst **1 oppdatering per uke** per aktiv listing, hele salgsperioden.\n\n## Data du henter hver uke (tar 2–5 min)\n- Finn-statistikk siste 7 dager (visninger, lagrede annonser)\n- Antall nye henvendelser\n- Antall fysiske visninger\n- Nedlastede prospekter\n\n## Fire faser — bruk riktig mal\n\n**Fase 1 — Lansering (uke 1–2)**\n> Hei [navn], kort status på [båtmodell] etter første uke: [X] visninger på Finn, [Y] henvendelser, [Z] visninger booket. Produkt og presentasjon ser bra ut. Bruker de første ukene på å samle nok data. Følger opp interessenter fortløpende.\n\n**Fase 2 — Datainnsamling & reality check (uke 3–4)**\n> Hei [navn], her er tallene så langt: totalt [X] visninger, [Y] henvendelser, [Z] fysiske visninger. Sammenlignet med lignende båter er dette [på nivå/litt under/tydelig under]. Vi nærmer oss testperioden — forbereder konkrete forslag til neste uke.\n\n**Fase 3 — Justering & ny giv (etter testperiode)**\n> Hei [navn], vi har nådd slutten av testperioden. [X] visninger, [Y] henvendelser, [Z] bud. Produkt og presentasjon er sterk — tilbakemeldingene handler om pris. Min anbefaling: juster til [ny pris] + [konkret tiltak]. Kan vi ta en kort prat [dato/tid]?\n\n**Fase 4 — Dype tiltak (uke 7+)**\n> Hei [navn], vi har testet [prisnivå] over tid med god presentasjon og aktiv oppfølging. Markedet gir oss et tydelig signal. Tre reelle valg: 1) Aggressiv prisjustering til [beløp], 2) Ny strategi [tiltak], 3) Pause og revurder. Mitt ærlige råd er alternativ [X]. La oss snakke [dato/tid].\n\n## Etter hver oppdatering — oppdater HubSpot\n- Next Step: hva du gjør neste uke\n- Next Showing/Meeting Date/Time: neste call/visning\n\n> ⚠️ Ingen listing skal noen gang stå uten neste definerte steg i Pipeline B.`
+  }
+];
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+function screen(id){
+  ['loadScreen','loginScreen'].forEach(s=>document.getElementById(s).className='screen'+(s===id?' active':''));
+  document.getElementById('app').className='app'+(id==='app'?' show':'');
+}
+function parseJwt(t){try{return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));}catch{return{};}}
+
+addEventListener('DOMContentLoaded', async () => {
+  const saved = localStorage.getItem('hoy_access_token');
+  if (saved) {
+    try {
+      const r = await fetch(`${IDENTITY}/user`,{headers:{Authorization:`Bearer ${saved}`}});
+      if (!r.ok) throw new Error();
+      token = saved;
+      const u = await r.json();
+      const jwt = parseJwt(saved);
+      if (!jwt?.app_metadata?.roles?.includes('admin')) {
+        localStorage.removeItem('hoy_access_token');
+        alert('SOP-editoren krever admin-tilgang.');
+        screen('loginScreen'); return;
+      }
+      document.getElementById('userLbl').textContent = u.email || '';
+      screen('app'); renderList(); return;
+    } catch { localStorage.removeItem('hoy_access_token'); }
+  }
+  screen('loginScreen');
+});
+
+async function doLogin() {
+  const email = document.getElementById('lEmail').value.trim();
+  const pass  = document.getElementById('lPass').value;
+  const err   = document.getElementById('lErr');
+  const btn   = document.getElementById('lBtn');
+  err.style.display='none'; btn.disabled=true; btn.textContent='Logger inn…';
+  try {
+    const r = await fetch(`${IDENTITY}/token`,{method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:`grant_type=password&username=${encodeURIComponent(email)}&password=${encodeURIComponent(pass)}`});
+    if (!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error_description||'Feil e-post eller passord');}
+    const d = await r.json(); token = d.access_token;
+    const jwt = parseJwt(token);
+    if (!jwt?.app_metadata?.roles?.includes('admin')) throw new Error('Krever admin-rolle.');
+    localStorage.setItem('hoy_access_token', token);
+    const u = await fetch(`${IDENTITY}/user`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
+    document.getElementById('userLbl').textContent = u.email || '';
+    screen('app'); renderList();
+  } catch(e) {
+    err.textContent=e.message; err.style.display='block';
+    btn.disabled=false; btn.textContent='Logg inn';
+  }
+}
+function doLogout(){localStorage.removeItem('hoy_access_token');location.href='/';}
+
+// ── Sidebar list ──────────────────────────────────────────────────────────────
+function renderList() {
+  const el = document.getElementById('sopList');
+  el.innerHTML = sops.map((s,i) => `
+    <div class="sop-item${currentIdx===i?' active':''}" onclick="selectSop(${i})">
+      <span class="sop-icon">${s.icon||'📋'}</span>
+      <span class="sop-label">${escH(s.label)}</span>
+      <span class="sop-move">
+        <button class="btn-mv" onclick="moveSop(event,${i},-1)" title="Opp">▲</button>
+        <button class="btn-mv" onclick="moveSop(event,${i},1)" title="Ned">▼</button>
+      </span>
+    </div>`).join('');
+}
+
+function selectSop(i) {
+  currentIdx = i;
+  const s = sops[i];
+  document.getElementById('emptyEd').style.display = 'none';
+  document.getElementById('editorWrap').style.display = 'flex';
+  document.getElementById('metaIcon').value  = s.icon  || '';
+  document.getElementById('metaId').value    = s.id    || '';
+  document.getElementById('metaLabel').value = s.label || '';
+  document.getElementById('mdEditor').value  = s.content || '';
+  updatePreview();
+  renderList();
+}
+
+function moveSop(e, i, dir) {
+  e.stopPropagation();
+  const j = i + dir;
+  if (j < 0 || j >= sops.length) return;
+  [sops[i], sops[j]] = [sops[j], sops[i]];
+  currentIdx = j;
+  renderList();
+  showToast('Rekkefølge oppdatert');
+}
+
+// ── Edit handlers ─────────────────────────────────────────────────────────────
+function onMetaChange() {
+  if (currentIdx === null) return;
+  sops[currentIdx].icon  = document.getElementById('metaIcon').value.trim();
+  sops[currentIdx].id    = document.getElementById('metaId').value.trim();
+  sops[currentIdx].label = document.getElementById('metaLabel').value.trim();
+  renderList();
+}
+
+function onMdChange() {
+  if (currentIdx === null) return;
+  sops[currentIdx].content = document.getElementById('mdEditor').value;
+  updatePreview();
+}
+
+function updatePreview() {
+  const md = document.getElementById('mdEditor').value;
+  document.getElementById('mdPreview').innerHTML = marked.parse(md || '');
+}
+
+// ── Add / delete ──────────────────────────────────────────────────────────────
+function addNew() {
+  const num  = sops.length + 1;
+  const id   = `sop-${String(num).padStart(2,'0')}-ny`;
+  const page = `sop-${String(num).padStart(2,'0')}`;
+  sops.push({
+    id, navId: id, icon: '📄', pageId: page,
+    label: `SOP ${num} — Ny SOP`,
+    content: `# SOP ${num} — Ny SOP\n\nBeskriv formålet med denne SOP-en.\n\n## Steg 1\n\n- Punkt 1\n- Punkt 2\n\n## Steg 2\n\n- Punkt 1`
+  });
+  selectSop(sops.length - 1);
+  renderList();
+  showToast('Ny SOP opprettet');
+}
+
+function deleteCurrent() {
+  if (currentIdx === null) return;
+  const name = sops[currentIdx].label;
+  if (!confirm(`Slette «${name}»? Dette kan ikke angres.`)) return;
+  sops.splice(currentIdx, 1);
+  currentIdx = null;
+  document.getElementById('emptyEd').style.display = '';
+  document.getElementById('editorWrap').style.display = 'none';
+  renderList();
+  showToast('SOP slettet');
+}
+
+// ── Export: generates updated soper/index.html ────────────────────────────────
+async function exportFile() {
+  // Build the three JS constants
+  const nav    = sops.map(s => ({ id: s.id, icon: s.icon, label: s.label }));
+  const pages  = {};
+  const idMap  = {};
+  sops.forEach(s => {
+    pages[s.pageId || s.id] = s.content;
+    idMap[s.id] = s.pageId || s.id;
+  });
+
+  // Fetch the current soper/index.html to use as template
+  let template = '';
+  try {
+    const r = await fetch('/soper/index.html');
+    template = await r.text();
+  } catch {
+    showToast('Kunne ikke hente soper/index.html — bruker fallback'); return;
+  }
+
+  // Replace the three constant lines
+  const navLine   = `const NAV = ${JSON.stringify(nav)};`;
+  const pagesLine = `const PAGES = ${JSON.stringify(pages)};`;
+  const idLine    = `const ID_MAP = ${JSON.stringify(idMap)};`;
+
+  let updated = template
+    .replace(/^const NAV = .*?;$/m,   navLine)
+    .replace(/^const PAGES = .*?;$/m, pagesLine)
+    .replace(/^const ID_MAP = .*?;$/m, idLine);
+
+  // Download
+  const blob = new Blob([updated], {type:'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'index.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+
+  const ok = document.getElementById('exportOk');
+  ok.style.display = 'inline';
+  setTimeout(() => ok.style.display = 'none', 3000);
+  showToast('Lastet ned! Erstatt soper/index.html og deploy.');
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+let toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// Enter to login
+document.addEventListener('keydown', e => {
+  if (e.key==='Enter' && document.getElementById('loginScreen').classList.contains('active')) doLogin();
+});
+</script>
+</body>
+</html>
