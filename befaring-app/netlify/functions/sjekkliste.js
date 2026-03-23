@@ -110,6 +110,14 @@ exports.handler = async (event) => {
   const ownerId = KNOWN_OWNERS[email] || null;
   const h       = { ...CORS, ...JSON_H };
 
+  // ── GET ?debug_props=DEAL_ID → dump raw HubSpot properties (admin only) ────
+  if (event.httpMethod === 'GET' && event.queryStringParameters?.debug_props) {
+    if (!admin) return { statusCode: 403, headers: h, body: JSON.stringify({ error: 'Admin only' }) };
+    const dealId = event.queryStringParameters.debug_props;
+    const r = await hs(`/crm/v3/objects/deals/${dealId}?properties=hs_next_step,next_step,dealname,dealstage`);
+    return { statusCode: 200, headers: h, body: JSON.stringify({ raw: r.data?.properties || {}, ok: r.ok }) };
+  }
+
   // ── GET ?deal_a_id=X&deal_b_id=Y&deal_name=N → befaring + Oneflow status ──
   if (event.httpMethod === 'GET' && (event.queryStringParameters?.deal_a_id || event.queryStringParameters?.deal_b_id)) {
     const { deal_a_id, deal_b_id, deal_name } = event.queryStringParameters;
@@ -310,6 +318,7 @@ exports.handler = async (event) => {
     const PROPS = [
       'dealname', 'dealstage', 'hubspot_owner_id', 'pipeline',
       'sjekkliste_status', 'amount', 'hs_lastmodifieddate',
+      'hs_next_step',   // "Next step" — megler fyller ut når de flytter deal i pipeline
       ...(listingDateProp ? [listingDateProp] : []),
     ];
 
@@ -470,6 +479,7 @@ exports.handler = async (event) => {
           last_modified:     primary?.properties?.hs_lastmodifieddate || null,
           live_listing_date: listingDateProp ? (g.pb?.properties?.[listingDateProp] || null) : null,
           warmth:            warmthScore(stageBLbl, stageALbl),
+          next_step:         (g.pb?.properties?.hs_next_step || g.pa?.properties?.hs_next_step || null),
         };
       });
 
