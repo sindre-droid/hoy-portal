@@ -117,6 +117,12 @@
     .deal-hdr{margin-bottom:22px}
     .deal-hdr-name{font-size:22px;font-weight:800;color:var(--navy);margin-bottom:8px}
     .deal-hdr-pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+    /* Next step banner */
+    .next-step-box{background:var(--amber-bg);border:1.5px solid var(--amber-border);border-radius:9px;
+      padding:9px 14px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-start}
+    .next-step-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;
+      color:var(--amber);white-space:nowrap;margin-top:2px}
+    .next-step-text{font-size:13px;color:var(--text);line-height:1.5;flex:1}
     .meta-pill{font-size:12px;font-weight:600;padding:4px 11px;border-radius:20px}
     .meta-pill.a{background:#e0e7ff;color:#3730a3}
     .meta-pill.b{background:var(--green-bg);color:var(--green)}
@@ -870,7 +876,13 @@ function renderChecklist() {
         ${deal.pipeline_b_id?`<a class="hs-link" href="https://app.hubspot.com/contacts/${hubId||'me'}/deal/${deal.pipeline_b_id}" target="_blank">🔗 Pipeline B i HubSpot</a>`:''}
         ${deal.pipeline_b_id&&deal.stage_b_idx>=2?`<a class="hs-link" href="/budgivning/?deal=${deal.pipeline_b_id}">📋 Åpne budgivning →</a>`:''}
       </div>
-    </div>`;
+    </div>
+    ${deal.next_step ? `
+      <div class="next-step-box">
+        <span class="next-step-label">Next step</span>
+        <span class="next-step-text">${escH(deal.next_step)}</span>
+      </div>` : ''}
+    `;
 
   // ── B6 / Oppgjør warning banner ───────────────────────────────────────────
   if (isClosedWon(deal) && !manualState['b6_oppgjor']) {
@@ -1352,6 +1364,11 @@ function renderMinDag() {
                 <div class="cl-footer" style="margin-top:4px">${urgBadge}</div>
               </div>
             </div>`;
+        }
+        if (grp.deal.next_step) {
+          html += `<div style="font-size:12px;color:var(--amber);font-weight:600;margin:4px 0 8px;padding:6px 10px;background:var(--amber-bg);border-radius:7px">
+            <span style="font-size:10px;text-transform:uppercase;letter-spacing:.6px;opacity:.75">Next step: </span>${escH(grp.deal.next_step)}
+          </div>`;
         }
         html += `<a class="mdag-open-link" href="#" onclick="openDealFromMinDag(${dealIdx});return false;">Åpne full sjekkliste →</a>`;
         html += `</div>`;
