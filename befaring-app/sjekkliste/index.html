@@ -826,6 +826,7 @@ function renderPhaseSection({title, items, foldKey, deal, disabled, autoFoldHint
       if (ofState === 'signed')       tagHtml=`<span class="cl-tag auto">✍ Signert via Oneflow</span>`;
       else if (ofState === 'pending') tagHtml=`<span class="cl-tag pending">📤 Sendt — venter på signering</span>`;
       else if (ofState === 'draft')   tagHtml=`<span class="cl-tag optional">📝 Opprettet, ikke sendt</span>`;
+      else if (isOneflowItem && oneflowApiLive) tagHtml=`<span class="cl-tag optional">📋 Oneflow</span>`;
       else if (isAutoAlt)             tagHtml=`<span class="cl-tag auto">✓ ${escH(item.autoAltLabel||'Auto-bekreftet')}</span>`;
       else                            tagHtml='<span class="cl-tag manual">Manuell</span>';
     }
