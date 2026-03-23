@@ -182,7 +182,7 @@ exports.handler = async (event) => {
     const dealNum  = (deal_name || '').match(/^(\d+)/)?.[1];
     const boatName = (deal_name || '').replace(/^\d+\s*-\s*/, '').trim().toLowerCase();
     const boatKey  = boatName.length >= 6 ? boatName : null;
-    const r = await fetch('https://api.oneflow.com/v1/contracts?limit=200', {
+    const r = await fetch('https://api.oneflow.com/v1/contracts?limit=100', {
       headers: { 'x-oneflow-api-token': ofToken, 'x-oneflow-user-email': ofEmail, 'Content-Type': 'application/json' },
     });
     const rawText = await r.text();
@@ -244,7 +244,7 @@ exports.handler = async (event) => {
         const boatKey  = boatName.length >= 6 ? boatName : null;
 
         if (dealNum || boatKey) {
-          const ofRes = await fetch('https://api.oneflow.com/v1/contracts?limit=200', {
+          const ofRes = await fetch('https://api.oneflow.com/v1/contracts?limit=100', {
             headers: {
               'x-oneflow-api-token': ofToken,
               'x-oneflow-user-email': ofEmail,
