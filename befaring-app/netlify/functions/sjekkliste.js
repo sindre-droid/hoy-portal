@@ -503,22 +503,25 @@ exports.handler = async (event) => {
   }
 
   // ── POST: save sjekkliste_status ──────────────────────────────────────────
+  // Accepts deal_b_id (Pipeline B) or deal_a_id (Pipeline A — for Phase A items
+  // on deals that don't yet have a Pipeline B deal).
   if (event.httpMethod === 'POST') {
     let body;
     try { body = JSON.parse(event.body || '{}'); } catch { body = {}; }
-    const { deal_b_id, sjekkliste_status } = body;
+    const { deal_b_id, deal_a_id, sjekkliste_status } = body;
+    const targetId = deal_b_id || deal_a_id;
 
-    if (!deal_b_id) return { statusCode: 400, headers: h, body: JSON.stringify({ error: 'deal_b_id required' }) };
+    if (!targetId) return { statusCode: 400, headers: h, body: JSON.stringify({ error: 'deal_b_id or deal_a_id required' }) };
 
     if (!admin && ownerId) {
-      const deal = await hs(`/crm/v3/objects/deals/${deal_b_id}?properties=hubspot_owner_id,co_broker`);
+      const deal = await hs(`/crm/v3/objects/deals/${targetId}?properties=hubspot_owner_id,co_broker`);
       const p = deal.data?.properties || {};
       if (p.hubspot_owner_id !== ownerId && p.co_broker !== ownerId) {
         return { statusCode: 403, headers: h, body: JSON.stringify({ error: 'Forbidden' }) };
       }
     }
 
-    const r = await hs(`/crm/v3/objects/deals/${deal_b_id}`, 'PATCH', {
+    const r = await hs(`/crm/v3/objects/deals/${targetId}`, 'PATCH', {
       properties: {
         sjekkliste_status: typeof sjekkliste_status === 'string'
           ? sjekkliste_status
