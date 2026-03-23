@@ -803,7 +803,7 @@ function renderPhaseSection({title, items, foldKey, deal, disabled, autoFoldHint
     const boxCls = (item.auto||isAutoAlt) ? (isChk?'a-on':'a-off') : (isChk?'m-on':'m-off');
     // Oneflow-checked or stage-inferred items are not user-togglable
     const isOneflow = isOneflowChecked(item.id);
-    const isClickable = item.manual && !isDisabled && !isOneflow && !isAutoAlt;
+    const isOneflowLocked = isOneflowItem && oneflowApiLive && !isAdmin; const isClickable = item.manual && !isDisabled && !isOneflow && !isAutoAlt && !isOneflowLocked;
     // onclick goes on cl-box only (not the whole row)
     const boxOnClick = isClickable
       ? `onclick="toggleItem('${item.id}')" role="checkbox" aria-checked="${isChk}"` : '';
