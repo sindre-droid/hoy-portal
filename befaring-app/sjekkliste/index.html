@@ -576,6 +576,9 @@ async function showApp() {
   document.getElementById('userLabel').textContent = getEmail();
   await loadDeals();
   if (isAdmin) addAdminTab();
+  // Render the default view (Min dag) on first load
+  document.getElementById('emptyState').style.display = 'none';
+  renderMinDag();
 }
 
 const VIEW_LABELS = {
