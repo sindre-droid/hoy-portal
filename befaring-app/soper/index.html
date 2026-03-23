@@ -71,6 +71,8 @@
     .user-name{font-size:12px;color:var(--text-light);white-space:nowrap}
     .btn-logout{font-size:12px;padding:6px 12px;border:1.5px solid var(--border);border-radius:6px;background:none;color:var(--text-light);font-family:inherit;cursor:pointer}
     .btn-logout:hover{border-color:var(--navy);color:var(--navy)}
+    .btn-edit-sops{font-size:12px;padding:6px 12px;border:1.5px solid var(--gold);border-radius:6px;background:none;color:var(--gold);font-family:inherit;cursor:pointer;text-decoration:none;font-weight:600;transition:background 0.15s,color 0.15s}
+    .btn-edit-sops:hover{background:var(--gold);color:#fff}
     .btn-menu{display:none;background:none;border:none;padding:6px;cursor:pointer;color:var(--text);font-size:18px;line-height:1}
 
     /* Body */
@@ -157,6 +159,7 @@
     </div>
     <div class="topbar-right">
       <span class="user-name" id="userName"></span>
+      <a id="btnEditSops" href="/sop-editor" class="btn-edit-sops" style="display:none" title="Rediger SOPer (admin)">✏️ Rediger SOPer</a>
       <button class="btn-logout" onclick="logout()">Logg ut</button>
     </div>
   </div>
@@ -228,6 +231,10 @@ function logout(){
 
 function onLogin(user){
   $('userName').textContent=user.user_metadata?.full_name||user.email||'';
+  // Show admin edit button if user has 'admin' role
+  const jwt = parseJwt(token||'');
+  const isAdmin = jwt?.app_metadata?.roles?.includes('admin');
+  if(isAdmin) $('btnEditSops').style.display='';
   screen('app');
   buildNav();
   const hash=location.hash.replace('#','');
