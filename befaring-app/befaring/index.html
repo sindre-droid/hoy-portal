@@ -89,6 +89,10 @@
     .info-box.blue{background:var(--blue-bg);border:1px solid #bfdbfe;color:var(--blue-text)}
     .info-box.amber{background:var(--amber-bg);border:1px solid #fcd34d;color:var(--amber)}
     .info-box.red{background:var(--red-bg);border:1px solid #fca5a5;color:var(--red)}
+    .card-subtitle{font-size:13px;font-weight:700;color:var(--navy);margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--gray)}
+    .motor-count-selector{display:flex;gap:8px;margin-top:6px}
+    .motor-count-btn{padding:8px 20px;border:2px solid var(--gray);border-radius:8px;background:white;font-size:15px;font-weight:600;cursor:pointer;color:var(--navy);transition:all .15s}
+    .motor-count-btn.active{background:var(--navy);color:white;border-color:var(--navy)}
     .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray)}
     .toggle-row:last-child{border-bottom:none}
     .toggle-label{font-size:14px;font-weight:600;color:var(--navy)}
@@ -259,7 +263,7 @@ const SAIL_SECTIONS=[
 ];
 
 let currentUser=null,ownerRecord=null,allDeals=[],selectedDeal=null,ownersMap={};
-let boatData={},boatId=null,isSailboat=false,isOnLand=false;
+let boatData={},boatId=null,isSailboat=false,isOnLand=false,motorCount=1,hasGenerator=false;
 let sections=[],currentSec=0,condState={},dealFieldData={},saved=false;
 
 const $=id=>document.getElementById(id);
@@ -542,6 +546,8 @@ async function loadBoatData(){
     const boat=await hs('GET',`/crm/v3/objects/${BOAT_OBJECT_TYPE}/${boatId}?properties=${propsParam}`);
     boatData=boat.properties||{};
     isSailboat=(boatData.boat_type==='seilbat');
+    motorCount=parseInt(boatData.antall_motorer)||1;
+    hasGenerator=(boatData.har_generator==='true');
     const name=[boatData.batmerke,boatData.bat_modell,boatData.arsmodell].filter(Boolean).join(' ')||boatData.page_title||'';
     $('boatChip').textContent=name+(isSailboat?' ⛵':' 🚤');
     [...SHARED_SECTIONS,...SAIL_SECTIONS].forEach(sec=>{
@@ -630,7 +636,64 @@ function renderInfoSection(){
       <div class="field"><label>Motor</label><input type="text" id="f_engine" value="${escHtml(bd.motorfabrikant||'')}"></div>
       <div class="field"><label>Motorstørrelse (HK)</label><input type="number" id="f_engine_size" value="${escHtml(bd.motorstorrelse||'')}"></div>
     </div>
-    <div class="field"><label>Driftstimer motor <span class="opt">(valgfri)</span></label><input type="number" id="f_engine_hours" value="${escHtml(bd.driftstimer_motor||'')}"></div>`}
+    <div class="field">
+      <label>Antall motorer</label>
+      <div class="motor-count-selector">
+        <button type="button" class="motor-count-btn${motorCount===1?' active':''}" onclick="setMotorCount(1)">1</button>
+        <button type="button" class="motor-count-btn${motorCount===2?' active':''}" onclick="setMotorCount(2)">2</button>
+        <button type="button" class="motor-count-btn${motorCount===3?' active':''}" onclick="setMotorCount(3)">3</button>
+      </div>
+    </div>
+    <div class="card-subtitle">Motor 1</div>
+    <div class="field"><label>Driftstimer motor 1</label><input type="text" id="f_engine_hours" placeholder="F.eks. 450" value="${escHtml(bd.driftstimer_motor||'')}"></div>
+    <div class="field">
+      <label>📷 Bilde av timervisning <span class="opt">(anbefalt)</span></label>
+      <input type="file" accept="image/*" id="motortimer_photo_input" class="photo-file-input" onchange="handleMandatoryPhoto('motortimer',this)">
+      <label for="motortimer_photo_input" class="photo-upload-btn" id="mphoto_motortimer_btn">📷 Ta bilde av instrumentpanel / timervisning</label>
+      <div class="photo-preview" id="mphoto_motortimer_preview"></div>
+      <div class="photo-upload-progress" id="mphoto_motortimer_progress"></div>
+    </div>
+    <div id="motor2_section" style="${motorCount>=2?'':'display:none'}">
+      <div class="card-subtitle">Motor 2</div>
+      <div class="field"><label>Driftstimer motor 2</label><input type="text" id="f_engine_hours_2" placeholder="F.eks. 460" value="${escHtml(bd.driftstimer_motor_2||'')}"></div>
+      <div class="field">
+        <label>📷 Bilde av timervisning (motor 2) <span class="opt">(anbefalt)</span></label>
+        <input type="file" accept="image/*" id="motortimer2_photo_input" class="photo-file-input" onchange="handleMandatoryPhoto('motortimer2',this)">
+        <label for="motortimer2_photo_input" class="photo-upload-btn" id="mphoto_motortimer2_btn">📷 Ta bilde av timervisning motor 2</label>
+        <div class="photo-preview" id="mphoto_motortimer2_preview"></div>
+        <div class="photo-upload-progress" id="mphoto_motortimer2_progress"></div>
+      </div>
+    </div>
+    <div id="motor3_section" style="${motorCount>=3?'':'display:none'}">
+      <div class="card-subtitle">Motor 3</div>
+      <div class="field"><label>Driftstimer motor 3</label><input type="text" id="f_engine_hours_3" placeholder="F.eks. 470" value="${escHtml(bd.driftstimer_motor_3||'')}"></div>
+      <div class="field">
+        <label>📷 Bilde av timervisning (motor 3) <span class="opt">(anbefalt)</span></label>
+        <input type="file" accept="image/*" id="motortimer3_photo_input" class="photo-file-input" onchange="handleMandatoryPhoto('motortimer3',this)">
+        <label for="motortimer3_photo_input" class="photo-upload-btn" id="mphoto_motortimer3_btn">📷 Ta bilde av timervisning motor 3</label>
+        <div class="photo-preview" id="mphoto_motortimer3_preview"></div>
+        <div class="photo-upload-progress" id="mphoto_motortimer3_progress"></div>
+      </div>
+    </div>
+    <div class="toggle-row" style="margin-top:16px;border-top:1px solid var(--gray);padding-top:12px">
+      <div><div class="toggle-label">Generator om bord</div><div class="toggle-desc">Viser felt for generator-informasjon</div></div>
+      <label class="toggle"><input type="checkbox" id="toggle_generator" ${hasGenerator?'checked':''} onchange="generatorToggle(this.checked)"><span class="toggle-slider"></span></label>
+    </div>
+    <div id="generator_section" style="${hasGenerator?'':'display:none'}">
+      <div class="card-subtitle">Generator</div>
+      <div class="grid-2">
+        <div class="field"><label>Generator fabrikant</label><input type="text" id="f_gen_make" placeholder="F.eks. Onan" value="${escHtml(bd.generator_fabrikant||'')}"></div>
+        <div class="field"><label>Generator (kW)</label><input type="number" id="f_gen_kw" placeholder="F.eks. 12" value="${escHtml(bd.generator_kw||'')}"></div>
+      </div>
+      <div class="field"><label>Driftstimer generator</label><input type="text" id="f_gen_hours" placeholder="F.eks. 250" value="${escHtml(bd.generator_driftstimer||'')}"></div>
+      <div class="field">
+        <label>📷 Bilde av timervisning (generator) <span class="opt">(anbefalt)</span></label>
+        <input type="file" accept="image/*" id="generator_photo_input" class="photo-file-input" onchange="handleMandatoryPhoto('generator',this)">
+        <label for="generator_photo_input" class="photo-upload-btn" id="mphoto_generator_btn">📷 Ta bilde av generatorens timervisning</label>
+        <div class="photo-preview" id="mphoto_generator_preview"></div>
+        <div class="photo-upload-progress" id="mphoto_generator_progress"></div>
+      </div>
+    </div>`}
   </div>
   <div class="card">
     <div class="card-title">📸 Obligatoriske bilder</div>
@@ -697,7 +760,7 @@ function renderCondSection(sec){
         <input type="checkbox" id="${sec.key}_flag"${state.flag?' checked':''} onclick="event.stopPropagation()">
         <div class="service-flag-label">🔧 Trenger utbedring — meld til serviceavdelingen</div>
       </div>
-      <div class="photo-upload-area" id="${sec.key}_photo_area" style="${score?'':'display:none'}">
+      <div class="photo-upload-area" id="${sec.key}_photo_area">
         <input type="file" accept="image/*" multiple id="${sec.key}_photo_input" class="photo-file-input" onchange="handleCondPhoto('${sec.key}',this)">
         <label for="${sec.key}_photo_input" class="photo-upload-btn">📷 Ta bilde / velg fil</label>
         <div class="photo-preview" id="${sec.key}_photo_preview"></div>
@@ -767,6 +830,22 @@ function renderSummarySection(){
 }
 
 // ── COND LOGIC ───────────────────────────────
+function setMotorCount(n){
+  motorCount=n;
+  document.querySelectorAll('.motor-count-btn').forEach((btn,i)=>{
+    btn.classList.toggle('active',i+1===n);
+  });
+  const m2=$('motor2_section'),m3=$('motor3_section');
+  if(m2)m2.style.display=n>=2?'':'none';
+  if(m3)m3.style.display=n>=3?'':'none';
+}
+
+function generatorToggle(checked){
+  hasGenerator=checked;
+  const sec=$('generator_section');
+  if(sec)sec.style.display=checked?'':'none';
+}
+
 function onLandToggle(checked){
   isOnLand=checked;
   const warn=$('undervann_land_warning'),body=$('undervann_body');
@@ -897,6 +976,10 @@ async function handleMandatoryPhoto(key,input){
     const {url,id}=await uploadPhoto(file,`befaring_${key}_${Date.now()}`);
     if(key==='hin'){condState._hin_url=url;condState._hin_id=id;}
     if(key==='ce'){condState._ce_url=url;condState._ce_id=id;}
+    if(key==='motortimer'){condState._motortimer_url=url;condState._motortimer_id=id;}
+    if(key==='motortimer2'){condState._motortimer2_url=url;condState._motortimer2_id=id;}
+    if(key==='motortimer3'){condState._motortimer3_url=url;condState._motortimer3_id=id;}
+    if(key==='generator'){condState._generator_url=url;condState._generator_id=id;}
     if(btn)btn.innerHTML='✅ Bilde lastet opp';if(progress)progress.textContent='';
   }catch(err){if(progress)progress.textContent='⚠️ Opplasting feilet: '+err.message;console.error(err);}
 }
@@ -962,7 +1045,19 @@ async function saveBefaring(){
   set('batmerke',$('f_make')?.value);set('bat_modell',$('f_model')?.value);set('arsmodell',$('f_year')?.value);
   set('hin__cin_nr',$('f_hin')?.value);set('kjenningssignal',$('f_callsign')?.value);set('location',$('f_location')?.value);
   if(isSailboat){set('seilnummer',$('f_seilnummer')?.value);set('ce_konstruksjonskategori',$('f_ce_kat')?.value);}
-  else{set('motorfabrikant',$('f_engine')?.value);set('motorstorrelse',$('f_engine_size')?.value);set('driftstimer_motor',$('f_engine_hours')?.value);}
+  else{
+    set('motorfabrikant',$('f_engine')?.value);set('motorstorrelse',$('f_engine_size')?.value);
+    set('antall_motorer',motorCount);
+    set('driftstimer_motor',$('f_engine_hours')?.value);
+    if(motorCount>=2)set('driftstimer_motor_2',$('f_engine_hours_2')?.value);
+    if(motorCount>=3)set('driftstimer_motor_3',$('f_engine_hours_3')?.value);
+    set('har_generator',hasGenerator?'true':'false');
+    if(hasGenerator){
+      set('generator_fabrikant',$('f_gen_make')?.value);
+      set('generator_kw',$('f_gen_kw')?.value);
+      set('generator_driftstimer',$('f_gen_hours')?.value);
+    }
+  }
   set('historikk_skader',$('f_historikk')?.value);
   allSecs.forEach(sec=>{
     const state=condState[sec.key];
@@ -972,6 +1067,10 @@ async function saveBefaring(){
   });
   if(condState._hin_url)set('hin_bilde_url',condState._hin_url);
   if(condState._ce_url)set('ce_bilde_url',condState._ce_url);
+  if(condState._motortimer_url)set('motortimer_bilde_url',condState._motortimer_url);
+  if(condState._motortimer2_url)set('motortimer_bilde_url_2',condState._motortimer2_url);
+  if(condState._motortimer3_url)set('motortimer_bilde_url_3',condState._motortimer3_url);
+  if(condState._generator_url)set('generator_bilde_url',condState._generator_url);
   const dp={},setD=(k,v)=>{if(v!==null&&v!==undefined&&v!=='')dp[k]=v;};
   setD('seller_expected_price__nok_',$('f_seller_price')?.value);
   const comm=$('f_commission')?.value;if(comm)setD('proposed_commission__',String(parseFloat(comm)/100));
@@ -991,6 +1090,10 @@ async function saveBefaring(){
       }
     }
   });
+  if(condState._motortimer_url)noteLines.push(`\nMotortimer 1 (bilde): ${condState._motortimer_url}`);
+  if(condState._motortimer2_url)noteLines.push(`\nMotortimer 2 (bilde): ${condState._motortimer2_url}`);
+  if(condState._motortimer3_url)noteLines.push(`\nMotortimer 3 (bilde): ${condState._motortimer3_url}`);
+  if(condState._generator_url)noteLines.push(`\nGenerator timervisning (bilde): ${condState._generator_url}`);
   const motivation=$('f_motivation')?.value,brokerComment=$('f_broker_comment')?.value;
   if(motivation)noteLines.push(`\nSelgers motivasjon:\n${motivation}`);
   if(brokerComment)noteLines.push(`\nMeglers kommentar:\n${brokerComment}`);
