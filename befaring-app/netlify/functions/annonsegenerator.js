@@ -78,35 +78,68 @@ exports.handler = async (event) => {
   const ownerId = KNOWN_OWNERS[jwt.email] || null;
   const admin   = jwt?.app_metadata?.roles?.includes('admin') || false;
 
-  // ── GET ?fetch_deals=1 → active Pipeline A deals ──────────────────────────
+  // ── GET ?fetch_deals=1 → mine aktive + splitoppdrag via Boat-objekt ─────────
   if (event.httpMethod === 'GET' && event.queryStringParameters?.fetch_deals) {
-    const boatTypeId = await getBoatTypeId();
-    const ownerFilter = (ownerId && !admin)
-      ? [{ propertyName: 'hubspot_owner_id', operator: 'EQ', value: ownerId }]
-      : [];
+    // Always require a known ownerId — no one sees all deals here
+    if (!ownerId) {
+      return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ deals: [] }) };
+    }
 
+    const boatTypeId = await getBoatTypeId();
+    const ownerF = [{ propertyName: 'hubspot_owner_id', operator: 'EQ', value: ownerId }];
+    const PROPS  = ['dealname', 'hs_lastmodifieddate', 'pipeline'];
+
+    // Step 1: fetch my own Pipeline A deals
     const r = await hs('/crm/v3/objects/deals/search', 'POST', {
       filterGroups: [{ filters: [
         { propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_A },
-        ...ownerFilter,
+        ...ownerF,
       ]}],
-      properties: ['dealname', 'hs_lastmodifieddate'],
+      properties: PROPS,
       limit: 100,
       sorts: [{ propertyName: 'hs_lastmodifieddate', direction: 'DESCENDING' }],
     });
+    let myDeals = r.data?.results || [];
 
-    const raw = r.data?.results || [];
-    const deals = await Promise.all(raw.map(async deal => {
-      let boatId = null;
-      if (boatTypeId) {
-        try {
-          const a = await hs(`/crm/v3/objects/deals/${deal.id}/associations/${boatTypeId}`);
-          boatId = a.data?.results?.[0]?.id ? String(a.data.results[0].id) : null;
-        } catch {}
+    // Step 2: find all Boat IDs linked to my deals, then fetch partner deals on same boats
+    if (boatTypeId && myDeals.length > 0) {
+      const boatIdsSet = new Set();
+      await Promise.allSettled(myDeals.map(async deal => {
+        const a = await hs(`/crm/v3/objects/deals/${deal.id}/associations/${boatTypeId}`);
+        (a.data?.results || []).forEach(b => boatIdsSet.add(String(b.id)));
+      }));
+
+      if (boatIdsSet.size > 0) {
+        const myDealIds = new Set(myDeals.map(d => d.id));
+        const partnerDealIds = new Set();
+        await Promise.allSettled([...boatIdsSet].map(async boatId => {
+          const a = await hs(`/crm/v3/objects/${boatTypeId}/${boatId}/associations/deals`);
+          (a.data?.results || []).forEach(d => {
+            if (!myDealIds.has(d.id)) partnerDealIds.add(d.id);
+          });
+        }));
+
+        if (partnerDealIds.size > 0) {
+          const batch = await hs('/crm/v3/objects/deals/batch/read', 'POST', {
+            inputs: [...partnerDealIds].map(id => ({ id })),
+            properties: PROPS,
+          });
+          for (const deal of (batch.data?.results || [])) {
+            if (deal.properties.pipeline === PIPELINE_A) myDeals.push(deal);
+          }
+          // Deduplicate
+          const seen = new Set();
+          myDeals = myDeals.filter(d => { if (seen.has(d.id)) return false; seen.add(d.id); return true; });
+        }
       }
-      return { id: deal.id, name: deal.properties.dealname || 'Ukjent', boat_id: boatId };
-    }));
+    }
 
+    // Sort by last modified
+    myDeals.sort((a, b) =>
+      new Date(b.properties.hs_lastmodifieddate || 0) - new Date(a.properties.hs_lastmodifieddate || 0)
+    );
+
+    const deals = myDeals.map(d => ({ id: d.id, name: d.properties.dealname || 'Ukjent' }));
     return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ deals }) };
   }
 
