@@ -352,7 +352,7 @@ async function fetchDeals() {
     (deals || []).forEach(d => {
       const opt = document.createElement('option');
       opt.value = d.id;
-      opt.textContent = d.name;
+      opt.textContent = d.pipeline === 'B' ? `${d.name} (aktiv listing)` : d.name;
       sel.appendChild(opt);
     });
   } catch {
