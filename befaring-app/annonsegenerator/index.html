@@ -61,10 +61,34 @@
 
     /* ── Empty / starter state ────────────────────────────────────────────── */
     .starter-state{display:flex;flex-direction:column;align-items:center;justify-content:center;
-      height:100%;gap:28px;padding:24px}
+      height:100%;gap:24px;padding:24px}
     .starter-logo{font-size:22px;font-weight:800;color:var(--navy)}
     .starter-sub{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-top:-20px}
     .starter-desc{font-size:14px;color:var(--text-light);text-align:center;max-width:420px;line-height:1.6}
+
+    /* ── Deal picker ──────────────────────────────────────────────────────── */
+    .deal-picker{width:100%;max-width:520px;background:var(--white);border:1.5px solid var(--border);
+      border-radius:12px;padding:16px 18px}
+    .deal-picker-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;
+      color:var(--navy);margin-bottom:10px}
+    .deal-select-row{display:flex;gap:8px;align-items:center}
+    .deal-select-row select{flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;
+      font-size:14px;font-family:inherit;background:var(--bg);color:var(--text);cursor:pointer}
+    .deal-select-row select:focus{outline:none;border-color:var(--navy)}
+    .btn-load-deal{padding:9px 16px;background:var(--navy);color:#fff;border:none;border-radius:8px;
+      font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap;
+      transition:background 0.15s;flex-shrink:0}
+    .btn-load-deal:hover{background:#1a3a5c}
+    .btn-load-deal:disabled{background:var(--border);color:var(--text-light);cursor:not-allowed}
+    .deal-status{margin-top:10px;font-size:13px}
+    .deal-status.loading{color:var(--text-light)}
+    .deal-status.loaded{color:#059669;font-weight:600}
+    .deal-status.error{color:#dc2626}
+    .deal-context-chip{display:inline-flex;align-items:center;gap:6px;background:#ecfdf5;
+      border:1px solid #6ee7b7;border-radius:20px;padding:4px 12px;font-size:12px;color:#065f46;font-weight:600}
+    .deal-context-chip button{background:none;border:none;cursor:pointer;color:#065f46;font-size:14px;
+      padding:0;line-height:1;margin-left:2px}
+
     .starters-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:520px}
     .starter-btn{padding:14px 16px;border:1.5px solid var(--border);border-radius:10px;
       background:var(--white);color:var(--text);font-size:13px;font-family:inherit;cursor:pointer;
@@ -127,10 +151,13 @@
     .btn-send:disabled{background:var(--border);cursor:not-allowed}
     .btn-send svg{pointer-events:none}
     .input-hint{font-size:11px;color:var(--text-light);text-align:center;margin-top:6px;max-width:760px;margin-left:auto;margin-right:auto}
+    .context-active-hint{font-size:11px;color:#059669;text-align:center;margin-top:6px;max-width:760px;margin-left:auto;margin-right:auto;display:none}
 
     @media(max-width:600px){
       .starters-grid{grid-template-columns:1fr}
       .topbar-title{font-size:13px}
+      .deal-select-row{flex-direction:column}
+      .btn-load-deal{width:100%}
     }
   </style>
 </head>
@@ -185,9 +212,22 @@
         <div class="starter-logo">House of Yachts</div>
         <div class="starter-sub">Annonsegenerator</div>
       </div>
-      <p class="starter-desc">Skriv inn båtdata eller velg en snarvei nedenfor for å komme i gang.</p>
+
+      <!-- Deal picker -->
+      <div class="deal-picker" id="dealPicker">
+        <div class="deal-picker-label">Hent data fra HubSpot-oppdrag</div>
+        <div class="deal-select-row">
+          <select id="dealSelect" onchange="onDealSelectChange()">
+            <option value="">Laster oppdrag…</option>
+          </select>
+          <button class="btn-load-deal" id="loadDealBtn" onclick="loadDealContext()" disabled>Hent data →</button>
+        </div>
+        <div class="deal-status" id="dealStatus"></div>
+      </div>
+
+      <p class="starter-desc" id="starterDesc">Velg et oppdrag over for å hente båtdata automatisk, eller start en fri samtale nedenfor.</p>
       <div class="starters-grid">
-        <button class="starter-btn" onclick="useStarter('Start ny båtannonse')">
+        <button class="starter-btn" onclick="useStarter('Lag ny båtannonse')">
           <strong>Ny annonse</strong>
           Start en ny båtannonse fra bunnen av
         </button>
@@ -220,7 +260,8 @@
         </svg>
       </button>
     </div>
-    <p class="input-hint">Husk: Lim inn all relevant informasjon om båten. Modellen spør hvis noe mangler.</p>
+    <p class="input-hint" id="inputHint">Husk: Lim inn all relevant informasjon om båten. Modellen spør hvis noe mangler.</p>
+    <p class="context-active-hint" id="contextHint"></p>
   </div>
 
 </div>
@@ -231,9 +272,11 @@ const IDENTITY = '/.netlify/identity';
 const API      = '/.netlify/functions/annonsegenerator';
 
 // ── State ───────────────────────────────────────────────────────────────────
-let token = null;
-let conversationHistory = []; // [{role, content}]
-let isLoading = false;
+let token              = null;
+let conversationHistory = [];
+let isLoading          = false;
+let pendingContext     = null;  // context string to inject on next send
+let contextDealName    = null;  // display name for active context
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -296,7 +339,201 @@ function onLogin(user) {
   const name = user.user_metadata?.full_name || user.email || '';
   $('userName').textContent = name;
   screen('app');
+  fetchDeals();
   $('msgInput').focus();
+}
+
+// ── Deal picker ───────────────────────────────────────────────────────────────
+async function fetchDeals() {
+  try {
+    const r = await fetch(`${API}?fetch_deals=1`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!r.ok) throw new Error();
+    const { deals } = await r.json();
+    const sel = $('dealSelect');
+    sel.innerHTML = '<option value="">— Ingen (fri samtale) —</option>';
+    (deals || []).forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d.id;
+      opt.textContent = d.name;
+      sel.appendChild(opt);
+    });
+  } catch {
+    $('dealSelect').innerHTML = '<option value="">Kunne ikke laste oppdrag</option>';
+  }
+}
+
+function onDealSelectChange() {
+  const sel = $('dealSelect');
+  $('loadDealBtn').disabled = !sel.value;
+  // Clear any previously loaded context when user changes selection
+  if (pendingContext) {
+    pendingContext = null;
+    contextDealName = null;
+    $('dealStatus').innerHTML = '';
+    updateContextHint();
+  }
+}
+
+async function loadDealContext() {
+  const dealId = $('dealSelect').value;
+  if (!dealId) return;
+
+  const status = $('dealStatus');
+  const btn    = $('loadDealBtn');
+  status.className = 'deal-status loading';
+  status.textContent = 'Henter båtdata fra HubSpot…';
+  btn.disabled = true;
+
+  try {
+    const r = await fetch(`${API}?fetch_boat=${dealId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!r.ok) throw new Error('Klarte ikke hente data');
+    const data = await r.json();
+
+    const context = formatBoatContext(data.deal_name, data.boat, data.befaring_note);
+    contextDealName = data.deal_name || 'Oppdrag';
+
+    // Immediately send context to Claude and ask for a structured summary + gaps
+    await sendContextSummary(context, contextDealName);
+
+  } catch (e) {
+    status.className = 'deal-status error';
+    status.textContent = '⚠️ ' + e.message;
+    btn.disabled = false;
+  }
+}
+
+async function sendContextSummary(context, dealName) {
+  // Transition from starter state to chat
+  $('starterState').style.display = 'none';
+  $('messages').style.display = '';
+
+  const summaryRequest = context + `\n\n---\n\nGjennomgå informasjonen over og presenter:\n1. En strukturert oversikt over faktaene du har funnet om denne båten\n2. En tydelig liste over hva som mangler eller bør verifiseres før du kan lage en god annonse\n\nVær konkret og kortfattet. Ikke lag annonsen ennå — vent på bekreftelse fra meg.`;
+
+  // Show a subtle UI message indicating what triggered this
+  const triggerEl = document.createElement('div');
+  triggerEl.style.cssText = 'text-align:center;color:var(--text-light);font-size:12px;padding:8px 0 4px;';
+  triggerEl.textContent = `📊 Hentet data for: ${dealName}`;
+  $('messages').appendChild(triggerEl);
+
+  conversationHistory.push({ role: 'user', content: summaryRequest });
+
+  isLoading = true;
+  $('sendBtn').disabled = true;
+  const typingEl = appendTyping();
+
+  try {
+    const res = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ messages: conversationHistory })
+    });
+
+    typingEl.remove();
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      appendMessage('assistant', `⚠️ Feil ved henting: ${err.error || res.status}`);
+      conversationHistory.pop();
+    } else {
+      const data  = await res.json();
+      const reply = data.content || '';
+      conversationHistory.push({ role: 'assistant', content: reply });
+      appendMessage('assistant', reply, true);
+    }
+  } catch (err) {
+    typingEl.remove();
+    appendMessage('assistant', `⚠️ Tilkoblingsfeil: ${err.message}`);
+    conversationHistory.pop();
+  }
+
+  isLoading = false;
+  $('sendBtn').disabled = false;
+  $('msgInput').focus();
+}
+
+function clearContext() {
+  pendingContext  = null;
+  contextDealName = null;
+  $('dealStatus').innerHTML = '';
+  $('loadDealBtn').disabled = !$('dealSelect').value;
+  $('starterDesc').textContent = 'Velg et oppdrag over for å hente båtdata automatisk, eller start en fri samtale nedenfor.';
+  updateContextHint();
+}
+
+function updateContextHint() {
+  const hint = $('contextHint');
+  const base = $('inputHint');
+  if (contextDealName) {
+    hint.textContent   = `📊 Kontekst aktiv: ${contextDealName} — sendes automatisk med første melding`;
+    hint.style.display = 'block';
+    base.style.display = 'none';
+  } else {
+    hint.style.display = 'none';
+    base.style.display = 'block';
+  }
+}
+
+function formatBoatContext(dealName, boat, befaringNote) {
+  if (!boat) return '';
+  const isSail = boat.boat_type === 'seilbat';
+  const lines  = [];
+
+  lines.push('KONTEKST FOR ANNONSEGENERERING');
+  lines.push(`Oppdrag: ${dealName || ''}`);
+  lines.push('');
+  lines.push('BÅTFAKTA:');
+
+  const make = [boat.batmerke, boat.bat_modell].filter(Boolean).join(' ');
+  if (make)             lines.push(`- Merke og modell: ${make}`);
+  if (boat.arsmodell)   lines.push(`- Årsmodell: ${boat.arsmodell}`);
+  lines.push(`- Type: ${isSail ? 'Seilbåt' : 'Motorbåt'}`);
+  if (boat.location)    lines.push(`- Liggeplass: ${boat.location}`);
+  if (isSail && boat.seilnummer)             lines.push(`- Seilnummer: ${boat.seilnummer}`);
+  if (isSail && boat.ce_konstruksjonskategori) lines.push(`- CE-kategori: ${boat.ce_konstruksjonskategori}`);
+
+  if (!isSail) {
+    const motorLines = [];
+    const engine = [boat.motorfabrikant, boat.motorstorrelse ? boat.motorstorrelse + ' HK' : ''].filter(Boolean).join(', ');
+    if (engine) motorLines.push(`- Motor: ${engine}`);
+    const antall = parseInt(boat.antall_motorer) || 1;
+    if (antall > 1) motorLines.push(`- Antall motorer: ${antall}`);
+    if (boat.driftstimer_motor) motorLines.push(`- Driftstimer motor${antall > 1 ? ' 1' : ''}: ${boat.driftstimer_motor}`);
+    if (antall >= 2 && boat.driftstimer_motor_2) motorLines.push(`- Driftstimer motor 2: ${boat.driftstimer_motor_2}`);
+    if (antall >= 3 && boat.driftstimer_motor_3) motorLines.push(`- Driftstimer motor 3: ${boat.driftstimer_motor_3}`);
+    if (boat.har_generator === 'true') {
+      const gen = [boat.generator_fabrikant, boat.generator_kw ? boat.generator_kw + ' kW' : ''].filter(Boolean).join(', ') || 'Ja';
+      motorLines.push(`- Generator: ${gen}`);
+      if (boat.generator_driftstimer) motorLines.push(`- Driftstimer generator: ${boat.generator_driftstimer}`);
+    }
+    if (motorLines.length) { lines.push(''); lines.push('FREMDRIFT OG TIMER:'); lines.push(...motorLines); }
+  }
+
+  const COND = [
+    { key:'skrog',    label:'Skrog og dekk' },
+    { key:'styring',  label:'Styring' },
+    { key:'interior', label:'Interiør' },
+    { key:'elektrisk',label:'Elektrisk og instrumenter' },
+    { key:'vvs',      label:'VVS og vannsystemer' },
+    { key:'motor',    label:'Motor og mekanikk' },
+    ...(isSail ? [{ key:'dekk', label:'Dekk og utstyr' },{ key:'rigg', label:'Rigg og vant' }] : []),
+  ];
+  const condLines = [];
+  for (const s of COND) {
+    const score   = boat[`${s.key}_tilstand`];
+    const comment = boat[`${s.key}_kommentar`];
+    if (score) condLines.push(`- ${s.label}: ${score}${comment ? ` — "${comment}"` : ''}`);
+  }
+  if (condLines.length) { lines.push(''); lines.push('TILSTANDSVURDERINGER:'); lines.push(...condLines); }
+
+  if (boat.historikk_skader) { lines.push(''); lines.push('HISTORIKK OG BAKGRUNN:'); lines.push(boat.historikk_skader); }
+
+  if (befaringNote) { lines.push(''); lines.push('BEFARINGSNOTAT:'); lines.push(befaringNote); }
+
+  return lines.join('\n');
 }
 
 // ── Chat logic ────────────────────────────────────────────────────────────────
@@ -308,18 +545,22 @@ function useStarter(text) {
 
 function newConversation() {
   conversationHistory = [];
+  pendingContext      = null;
+  contextDealName     = null;
   $('messages').innerHTML = '';
   $('messages').style.display = 'none';
   $('starterState').style.display = '';
+  $('dealStatus').innerHTML = '';
+  $('dealSelect').value = '';
+  $('loadDealBtn').disabled = true;
+  $('starterDesc').textContent = 'Velg et oppdrag over for å hente båtdata automatisk, eller start en fri samtale nedenfor.';
+  updateContextHint();
   $('msgInput').value = '';
   $('msgInput').focus();
 }
 
 function handleKey(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
-  }
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 }
 
 function autoResize(el) {
@@ -332,17 +573,25 @@ async function sendMessage() {
   const text = $('msgInput').value.trim();
   if (!text) return;
 
+  // If we have pending context, inject it silently as the first message content
+  let apiContent = text;
+  if (pendingContext) {
+    apiContent = pendingContext + '\n\n---\n\n' + text;
+    pendingContext  = null;
+    contextDealName = null;
+    updateContextHint();
+  }
+
   // Hide starter, show messages
   $('starterState').style.display = 'none';
   $('messages').style.display = '';
 
-  // Add user message to history and UI
-  conversationHistory.push({ role: 'user', content: text });
+  // Show only user's typed text in UI, but send full content to API
+  conversationHistory.push({ role: 'user', content: apiContent });
   appendMessage('user', text);
   $('msgInput').value = '';
   autoResize($('msgInput'));
 
-  // Show typing indicator
   isLoading = true;
   $('sendBtn').disabled = true;
   const typingEl = appendTyping();
@@ -350,10 +599,7 @@ async function sendMessage() {
   try {
     const res = await fetch(API, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ messages: conversationHistory })
     });
 
@@ -362,12 +608,12 @@ async function sendMessage() {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       appendMessage('assistant', `⚠️ Feil: ${err.error || res.status}`);
-      isLoading = false;
-      $('sendBtn').disabled = false;
+      conversationHistory.pop();
+      isLoading = false; $('sendBtn').disabled = false;
       return;
     }
 
-    const data = await res.json();
+    const data  = await res.json();
     const reply = data.content || '';
     conversationHistory.push({ role: 'assistant', content: reply });
     appendMessage('assistant', reply, true);
@@ -375,6 +621,7 @@ async function sendMessage() {
   } catch (err) {
     typingEl.remove();
     appendMessage('assistant', `⚠️ Tilkoblingsfeil: ${err.message}`);
+    conversationHistory.pop();
   }
 
   isLoading = false;
@@ -384,9 +631,8 @@ async function sendMessage() {
 
 function appendMessage(role, text, withCopy = false) {
   const wrap = $('messages');
-  const el = document.createElement('div');
+  const el   = document.createElement('div');
   el.className = `msg ${role}`;
-
   const initial = role === 'user' ? '👤' : '⚓';
   el.innerHTML = `
     <div class="msg-avatar">${initial}</div>
@@ -394,7 +640,6 @@ function appendMessage(role, text, withCopy = false) {
       <div class="msg-bubble">${role === 'assistant' ? renderMarkdown(text) : escH(text)}</div>
       ${withCopy ? `<div class="msg-actions"><button class="btn-copy" onclick="copyMsg(this)" data-text="${escAttr(text)}">Kopier tekst</button></div>` : ''}
     </div>`;
-
   wrap.appendChild(el);
   scrollBottom();
   return el;
@@ -402,7 +647,7 @@ function appendMessage(role, text, withCopy = false) {
 
 function appendTyping() {
   const wrap = $('messages');
-  const el = document.createElement('div');
+  const el   = document.createElement('div');
   el.className = 'msg assistant';
   el.innerHTML = `
     <div class="msg-avatar">⚓</div>
@@ -414,14 +659,10 @@ function appendTyping() {
   return el;
 }
 
-function scrollBottom() {
-  const cw = $('chatWrap');
-  cw.scrollTop = cw.scrollHeight;
-}
+function scrollBottom() { const cw = $('chatWrap'); cw.scrollTop = cw.scrollHeight; }
 
 function copyMsg(btn) {
-  const text = btn.dataset.text;
-  navigator.clipboard.writeText(text).then(() => {
+  navigator.clipboard.writeText(btn.dataset.text).then(() => {
     btn.textContent = 'Kopiert ✓';
     setTimeout(() => btn.textContent = 'Kopier tekst', 2000);
   });
@@ -430,38 +671,26 @@ function copyMsg(btn) {
 // ── Simple markdown renderer ──────────────────────────────────────────────────
 function renderMarkdown(text) {
   return text
-    // Escape HTML first
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    // Headers
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    // Bold
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    // Italic
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    // Horizontal rule
-    .replace(/^---+$/gm, '<hr>')
-    // Bullet lists
-    .replace(/^\* (.+)$/gm, '<li>$1</li>')
-    .replace(/^• (.+)$/gm, '<li>$1</li>')
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    // Numbered lists
-    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
-    // Wrap consecutive <li> in <ul>
-    .replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
-    // Paragraphs (double newline)
-    .replace(/\n\n/g, '</p><p>')
-    // Single newlines
-    .replace(/\n/g, '<br>')
-    // Wrap in paragraph
-    .replace(/^(.+)/, '<p>$1</p>');
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+    .replace(/^# (.+)$/gm,'<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/^---+$/gm,'<hr>')
+    .replace(/^\* (.+)$/gm,'<li>$1</li>')
+    .replace(/^• (.+)$/gm,'<li>$1</li>')
+    .replace(/^- (.+)$/gm,'<li>$1</li>')
+    .replace(/^\d+\. (.+)$/gm,'<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, m=>`<ul>${m}</ul>`)
+    .replace(/\n\n/g,'</p><p>')
+    .replace(/\n/g,'<br>')
+    .replace(/^(.+)/,'<p>$1</p>');
 }
 
 function escH(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
 function escAttr(s) {
   return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
