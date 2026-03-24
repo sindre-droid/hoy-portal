@@ -7,7 +7,11 @@
 const SYSTEM_PROMPT = require('./annonsegenerator-prompt');
 
 const PIPELINE_A    = '3205247197';
+const PIPELINE_B    = '3211644128';
 const BOAT_OBJ_TYPE = '2-145214665';
+
+// Pipeline B stages to include (prep → in contract, not closed/lost)
+const PIPELINE_B_INCLUDE = ['prep','listing ready','klar','live','publisert','under offer','bud','forhandl','negotiation','in contract','kontrakt'];
 
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
@@ -87,21 +91,38 @@ exports.handler = async (event) => {
 
     const boatTypeId = await getBoatTypeId();
     const ownerF = [{ propertyName: 'hubspot_owner_id', operator: 'EQ', value: ownerId }];
-    const PROPS  = ['dealname', 'hs_lastmodifieddate', 'pipeline'];
+    const PROPS  = ['dealname', 'hs_lastmodifieddate', 'pipeline', 'dealstage'];
 
-    // Step 1: fetch my own Pipeline A deals
-    const r = await hs('/crm/v3/objects/deals/search', 'POST', {
-      filterGroups: [{ filters: [
-        { propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_A },
-        ...ownerF,
-      ]}],
-      properties: PROPS,
-      limit: 100,
-      sorts: [{ propertyName: 'hs_lastmodifieddate', direction: 'DESCENDING' }],
-    });
-    let myDeals = r.data?.results || [];
+    // Fetch Pipeline B stages to identify which to include
+    const stagesRes = await hs(`/crm/v3/pipelines/deals/${PIPELINE_B}/stages`);
+    const stagesB   = stagesRes.data?.results || [];
+    const activeBIds = stagesB
+      .filter(s => PIPELINE_B_INCLUDE.some(kw => (s.label||'').toLowerCase().includes(kw)))
+      .map(s => s.id);
 
-    // Step 2: find all Boat IDs linked to my deals, then fetch partner deals on same boats
+    // Step 1: fetch my own deals from Pipeline A (all stages) + Pipeline B (active stages)
+    const searches = [
+      hs('/crm/v3/objects/deals/search', 'POST', {
+        filterGroups: [{ filters: [{ propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_A }, ...ownerF] }],
+        properties: PROPS, limit: 100,
+        sorts: [{ propertyName: 'hs_lastmodifieddate', direction: 'DESCENDING' }],
+      }),
+    ];
+    if (activeBIds.length) {
+      searches.push(hs('/crm/v3/objects/deals/search', 'POST', {
+        filterGroups: [{ filters: [
+          { propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_B },
+          { propertyName: 'dealstage', operator: 'IN', values: activeBIds },
+          ...ownerF,
+        ]}],
+        properties: PROPS, limit: 100,
+        sorts: [{ propertyName: 'hs_lastmodifieddate', direction: 'DESCENDING' }],
+      }));
+    }
+    const [rA, rB] = await Promise.all(searches);
+    let myDeals = [...(rA.data?.results||[]), ...(rB?.data?.results||[])];
+
+    // Step 2: expand with splitoppdrag via Boat object
     if (boatTypeId && myDeals.length > 0) {
       const boatIdsSet = new Set();
       await Promise.allSettled(myDeals.map(async deal => {
@@ -125,21 +146,27 @@ exports.handler = async (event) => {
             properties: PROPS,
           });
           for (const deal of (batch.data?.results || [])) {
-            if (deal.properties.pipeline === PIPELINE_A) myDeals.push(deal);
+            const pip = deal.properties.pipeline;
+            const stg = deal.properties.dealstage;
+            if (pip === PIPELINE_A) myDeals.push(deal);
+            if (pip === PIPELINE_B && activeBIds.includes(stg)) myDeals.push(deal);
           }
-          // Deduplicate
-          const seen = new Set();
-          myDeals = myDeals.filter(d => { if (seen.has(d.id)) return false; seen.add(d.id); return true; });
         }
       }
     }
 
-    // Sort by last modified
+    // Deduplicate + sort
+    const seen = new Set();
+    myDeals = myDeals.filter(d => { if (seen.has(d.id)) return false; seen.add(d.id); return true; });
     myDeals.sort((a, b) =>
       new Date(b.properties.hs_lastmodifieddate || 0) - new Date(a.properties.hs_lastmodifieddate || 0)
     );
 
-    const deals = myDeals.map(d => ({ id: d.id, name: d.properties.dealname || 'Ukjent' }));
+    const deals = myDeals.map(d => ({
+      id: d.id,
+      name: d.properties.dealname || 'Ukjent',
+      pipeline: d.properties.pipeline === PIPELINE_B ? 'B' : 'A',
+    }));
     return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ deals }) };
   }
 
@@ -165,11 +192,13 @@ exports.handler = async (event) => {
     ];
 
     let boatProps = {};
+    let boatId    = null;
+    let boatTypeId = null;
     try {
-      const boatTypeId = await getBoatTypeId();
+      boatTypeId = await getBoatTypeId();
       if (boatTypeId) {
         const assoc = await hs(`/crm/v3/objects/deals/${dealId}/associations/${boatTypeId}`);
-        const boatId = assoc.data?.results?.[0]?.id;
+        boatId = assoc.data?.results?.[0]?.id ? String(assoc.data.results[0].id) : null;
         if (boatId) {
           const br = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}/${boatId}?properties=${BOAT_PROPS.join(',')}`);
           boatProps = br.data?.properties || {};
@@ -179,25 +208,46 @@ exports.handler = async (event) => {
 
     let dealName = '';
     try {
-      const dr = await hs(`/crm/v3/objects/deals/${dealId}?properties=dealname`);
+      const dr = await hs(`/crm/v3/objects/deals/${dealId}?properties=dealname,pipeline`);
       dealName = dr.data?.properties?.dealname || '';
-    } catch {}
-
-    let befaringNote = null;
-    try {
-      const assoc = await hs(`/crm/v3/objects/deals/${dealId}/associations/notes`);
-      const ids = (assoc.data?.results || []).map(n => n.id);
-      if (ids.length) {
-        const batch = await hs('/crm/v3/objects/notes/batch/read', 'POST', {
-          inputs: ids.slice(0, 30).map(id => ({ id })),
-          properties: ['hs_note_body','hs_timestamp'],
-        });
-        const notes = (batch.data?.results || [])
-          .filter(n => stripHtml(n.properties?.hs_note_body || '').includes('Befaringsnotat'))
-          .sort((a, b) => new Date(b.properties?.hs_timestamp||0) - new Date(a.properties?.hs_timestamp||0));
-        if (notes.length) befaringNote = stripHtml(notes[0].properties.hs_note_body);
+      // If this is a Pipeline B deal, also collect the linked Pipeline A deal ID
+      // so we can search for the befaring note there
+      if (dr.data?.properties?.pipeline === PIPELINE_B && boatId && boatTypeId) {
+        try {
+          const allAssoc = await hs(`/crm/v3/objects/${boatTypeId}/${boatId}/associations/deals`);
+          const linkedIds = (allAssoc.data?.results || []).map(d => String(d.id)).filter(id => id !== dealId);
+          if (linkedIds.length) {
+            const batch = await hs('/crm/v3/objects/deals/batch/read', 'POST', {
+              inputs: linkedIds.map(id => ({ id })),
+              properties: ['pipeline'],
+            });
+            const pipelineADeal = (batch.data?.results || []).find(d => d.properties?.pipeline === PIPELINE_A);
+            if (pipelineADeal) {
+              // Use Pipeline A deal for note lookup below
+              dealId = pipelineADeal.id; // reassign so note search uses correct deal
+            }
+          }
+        } catch {}
       }
     } catch {}
+
+    // Helper: get befaring note from a deal
+    async function getBefaringNote(dId) {
+      const assoc = await hs(`/crm/v3/objects/deals/${dId}/associations/notes`);
+      const ids = (assoc.data?.results || []).map(n => n.id);
+      if (!ids.length) return null;
+      const batch = await hs('/crm/v3/objects/notes/batch/read', 'POST', {
+        inputs: ids.slice(0, 30).map(id => ({ id })),
+        properties: ['hs_note_body','hs_timestamp'],
+      });
+      const notes = (batch.data?.results || [])
+        .filter(n => stripHtml(n.properties?.hs_note_body || '').includes('Befaringsnotat'))
+        .sort((a, b) => new Date(b.properties?.hs_timestamp||0) - new Date(a.properties?.hs_timestamp||0));
+      return notes.length ? stripHtml(notes[0].properties.hs_note_body) : null;
+    }
+
+    let befaringNote = null;
+    try { befaringNote = await getBefaringNote(dealId); } catch {}
 
     return {
       statusCode: 200, headers: { ...CORS, ...JSON_H },
