@@ -1,20 +1,57 @@
 // ── annonsegenerator.js ────────────────────────────────────────────────────────
+// GET  ?fetch_deals=1            → list active deals (deal name + ID + boat ID)
+// GET  ?fetch_boat=DEAL_ID       → boat properties + latest befaring note
 // POST { messages: [{role, content}] } → AI-generated boat listing response
-// Uses Anthropic Claude API with HoY system prompt + style archive
 // ──────────────────────────────────────────────────────────────────────────────
 
 const SYSTEM_PROMPT = require('./annonsegenerator-prompt');
 
+const PIPELINE_A    = '3205247197';
+const BOAT_OBJ_TYPE = '2-145214665';
+
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
+
+const JSON_H = { 'Content-Type': 'application/json' };
 
 function parseJwt(token) {
   try {
     const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
     return JSON.parse(Buffer.from(base64, 'base64').toString('utf8'));
+  } catch { return null; }
+}
+
+async function hs(path, method = 'GET', body = null) {
+  const res = await fetch(`https://api.hubapi.com${path}`, {
+    method,
+    headers: { Authorization: `Bearer ${process.env.HUBSPOT_TOKEN}`, 'Content-Type': 'application/json' },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  const text = await res.text();
+  try { return { ok: res.ok, data: JSON.parse(text) }; }
+  catch { return { ok: false, data: {} }; }
+}
+
+function stripHtml(s) {
+  return (s || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
+    .replace(/&nbsp;/g,' ').replace(/&#(\d+);/g,(_,c)=>String.fromCharCode(+c))
+    .replace(/\s+/g,' ').trim();
+}
+
+async function getBoatTypeId() {
+  try {
+    const r = await hs('/crm/v3/schemas');
+    const b = (r.data?.results||[]).find(s=>
+      s.name?.toLowerCase().includes('boat')||
+      s.labels?.singular?.toLowerCase().includes('boat')||
+      s.labels?.singular?.toLowerCase().includes('båt')
+    );
+    return b?.objectTypeId || null;
   } catch { return null; }
 }
 
@@ -24,19 +61,119 @@ exports.handler = async (event) => {
     return { statusCode: 200, headers: CORS, body: '' };
   }
 
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, headers: CORS, body: 'Method not allowed' };
-  }
-
   // ── Auth ──────────────────────────────────────────────────────────────────
   const authHeader = event.headers.authorization || event.headers.Authorization || '';
   if (!authHeader.startsWith('Bearer ')) {
-    return { statusCode: 401, headers: CORS, body: JSON.stringify({ error: 'Unauthorized' }) };
+    return { statusCode: 401, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'Unauthorized' }) };
   }
   const token = authHeader.slice(7);
   const jwt = parseJwt(token);
   if (!jwt || !jwt.email) {
-    return { statusCode: 401, headers: CORS, body: JSON.stringify({ error: 'Invalid token' }) };
+    return { statusCode: 401, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'Invalid token' }) };
+  }
+
+  const KNOWN_OWNERS = {
+    'sindre@h-y.no':'633479117','daniel@h-y.no':'29136352','henrik@h-y.no':'77221549',
+  };
+  const ownerId = KNOWN_OWNERS[jwt.email] || null;
+  const admin   = jwt?.app_metadata?.roles?.includes('admin') || false;
+
+  // ── GET ?fetch_deals=1 → active Pipeline A deals ──────────────────────────
+  if (event.httpMethod === 'GET' && event.queryStringParameters?.fetch_deals) {
+    const boatTypeId = await getBoatTypeId();
+    const ownerFilter = (ownerId && !admin)
+      ? [{ propertyName: 'hubspot_owner_id', operator: 'EQ', value: ownerId }]
+      : [];
+
+    const r = await hs('/crm/v3/objects/deals/search', 'POST', {
+      filterGroups: [{ filters: [
+        { propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_A },
+        ...ownerFilter,
+      ]}],
+      properties: ['dealname', 'hs_lastmodifieddate'],
+      limit: 100,
+      sorts: [{ propertyName: 'hs_lastmodifieddate', direction: 'DESCENDING' }],
+    });
+
+    const raw = r.data?.results || [];
+    const deals = await Promise.all(raw.map(async deal => {
+      let boatId = null;
+      if (boatTypeId) {
+        try {
+          const a = await hs(`/crm/v3/objects/deals/${deal.id}/associations/${boatTypeId}`);
+          boatId = a.data?.results?.[0]?.id ? String(a.data.results[0].id) : null;
+        } catch {}
+      }
+      return { id: deal.id, name: deal.properties.dealname || 'Ukjent', boat_id: boatId };
+    }));
+
+    return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ deals }) };
+  }
+
+  // ── GET ?fetch_boat=DEAL_ID → boat props + befaring note ──────────────────
+  if (event.httpMethod === 'GET' && event.queryStringParameters?.fetch_boat) {
+    const dealId = event.queryStringParameters.fetch_boat;
+
+    const BOAT_PROPS = [
+      'batmerke','bat_modell','arsmodell','boat_type','location',
+      'motorfabrikant','motorstorrelse','antall_motorer',
+      'driftstimer_motor','driftstimer_motor_2','driftstimer_motor_3',
+      'har_generator','generator_fabrikant','generator_kw','generator_driftstimer',
+      'historikk_skader','seilnummer','ce_konstruksjonskategori',
+      'skrog_tilstand','skrog_kommentar',
+      'undervann_tilstand','undervann_kommentar',
+      'styring_tilstand','styring_kommentar',
+      'interior_tilstand','interior_kommentar',
+      'elektrisk_tilstand','elektrisk_kommentar',
+      'vvs_tilstand','vvs_kommentar',
+      'motor_tilstand','motor_kommentar',
+      'dekk_tilstand','dekk_kommentar',
+      'rigg_tilstand','rigg_kommentar',
+    ];
+
+    let boatProps = {};
+    try {
+      const boatTypeId = await getBoatTypeId();
+      if (boatTypeId) {
+        const assoc = await hs(`/crm/v3/objects/deals/${dealId}/associations/${boatTypeId}`);
+        const boatId = assoc.data?.results?.[0]?.id;
+        if (boatId) {
+          const br = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}/${boatId}?properties=${BOAT_PROPS.join(',')}`);
+          boatProps = br.data?.properties || {};
+        }
+      }
+    } catch {}
+
+    let dealName = '';
+    try {
+      const dr = await hs(`/crm/v3/objects/deals/${dealId}?properties=dealname`);
+      dealName = dr.data?.properties?.dealname || '';
+    } catch {}
+
+    let befaringNote = null;
+    try {
+      const assoc = await hs(`/crm/v3/objects/deals/${dealId}/associations/notes`);
+      const ids = (assoc.data?.results || []).map(n => n.id);
+      if (ids.length) {
+        const batch = await hs('/crm/v3/objects/notes/batch/read', 'POST', {
+          inputs: ids.slice(0, 30).map(id => ({ id })),
+          properties: ['hs_note_body','hs_timestamp'],
+        });
+        const notes = (batch.data?.results || [])
+          .filter(n => stripHtml(n.properties?.hs_note_body || '').includes('Befaringsnotat'))
+          .sort((a, b) => new Date(b.properties?.hs_timestamp||0) - new Date(a.properties?.hs_timestamp||0));
+        if (notes.length) befaringNote = stripHtml(notes[0].properties.hs_note_body);
+      }
+    } catch {}
+
+    return {
+      statusCode: 200, headers: { ...CORS, ...JSON_H },
+      body: JSON.stringify({ deal_name: dealName, boat: boatProps, befaring_note: befaringNote }),
+    };
+  }
+
+  if (event.httpMethod !== 'POST') {
+    return { statusCode: 405, headers: CORS, body: 'Method not allowed' };
   }
 
   // ── Parse body ────────────────────────────────────────────────────────────
