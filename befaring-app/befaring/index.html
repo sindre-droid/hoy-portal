@@ -715,23 +715,11 @@ function renderInfoSection(){
   <div class="card">
     <div class="card-title">🛏️ Innredning og prising</div>
     <div class="card-desc">Layout, kahytter og prisantydning</div>
-    <div class="card-subtitle">Innredning</div>
     <div class="grid-2">
       <div class="field"><label>Antall kahytter <span class="opt">(valgfri)</span></label><input type="number" id="f_kahytter" placeholder="F.eks. 2" value="${escHtml(boatData.antall_kahytter||'')}"></div>
       <div class="field"><label>Antall soveplasser <span class="opt">(valgfri)</span></label><input type="number" id="f_soveplasser" placeholder="F.eks. 4" value="${escHtml(boatData.antall_soveplasser||'')}"></div>
     </div>
     <div class="field"><label>Antall bad <span class="opt">(valgfri)</span></label><input type="number" id="f_bad" placeholder="F.eks. 1" value="${escHtml(boatData.antall_bad||'')}"></div>
-    <div class="card-subtitle">Prising</div>
-    <div class="grid-2">
-      <div class="field"><label>Prisantydning (NOK) <span class="opt">(valgfri)</span></label><input type="number" id="f_pris" placeholder="F.eks. 3500000" value="${escHtml(boatData.pris||'')}"></div>
-      <div class="field"><label>MVA-status <span class="opt">(valgfri)</span></label>
-        <select id="f_mva_status">
-          <option value="">— Velg —</option>
-          <option value="vat_paid"${boatData.mva_status==='vat_paid'?' selected':''}>Vat paid</option>
-          <option value="vat_not_paid"${boatData.mva_status==='vat_not_paid'?' selected':''}>Vat not paid</option>
-        </select>
-      </div>
-    </div>
   </div>
   <div class="card">
     <div class="card-title">📸 Obligatoriske bilder</div>
@@ -826,6 +814,12 @@ function renderDealSection(){
         <option value="2 - 4 000 000"${dp.price_band==='2 - 4 000 000'?' selected':''}>2 – 4 000 000</option>
         <option value="4 -10 000 000"${dp.price_band==='4 -10 000 000'?' selected':''}>4 – 10 000 000</option>
         <option value="Over 10 000 000"${dp.price_band==='Over 10 000 000'?' selected':''}>Over 10 000 000</option>
+      </select></div>
+    <div class="field"><label>MVA-status <span class="opt">(valgfri)</span></label>
+      <select id="f_mva_status">
+        <option value="">— Velg —</option>
+        <option value="vat_paid"${boatData.mva_status==='vat_paid'?' selected':''}>MVA betalt</option>
+        <option value="vat_not_paid"${boatData.mva_status==='vat_not_paid'?' selected':''}>MVA ikke betalt</option>
       </select></div>
   </div>
   <div class="card">
@@ -1104,7 +1098,6 @@ async function saveBefaring(){
   set('antall_kahytter',$('f_kahytter')?.value);
   set('antall_soveplasser',$('f_soveplasser')?.value);
   set('antall_bad',$('f_bad')?.value);
-  set('pris',$('f_pris')?.value);
   set('mva_status',$('f_mva_status')?.value);
   allSecs.forEach(sec=>{
     const state=condState[sec.key];
