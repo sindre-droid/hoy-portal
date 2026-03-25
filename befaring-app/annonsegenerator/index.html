@@ -389,7 +389,7 @@ async function loadDealContext() {
     if (!r.ok) throw new Error('Klarte ikke hente data');
     const data = await r.json();
 
-    const context = formatBoatContext(data.deal_name, data.boat, data.befaring_note);
+    const context = formatBoatContext(data.deal_name, data.boat, data.befaring_note, data.owner);
     contextDealName = data.deal_name || 'Oppdrag';
 
     // Immediately send context to Claude and ask for a structured summary + gaps
@@ -473,7 +473,7 @@ function updateContextHint() {
   }
 }
 
-function formatBoatContext(dealName, boat, befaringNote) {
+function formatBoatContext(dealName, boat, befaringNote, owner) {
   if (!boat) return '';
   const isSail = boat.boat_type === 'seilbat';
   const lines  = [];
@@ -547,6 +547,14 @@ function formatBoatContext(dealName, boat, befaringNote) {
   if (boat.historikk_skader) { lines.push(''); lines.push('HISTORIKK OG BAKGRUNN:'); lines.push(boat.historikk_skader); }
 
   if (befaringNote) { lines.push(''); lines.push('BEFARINGSNOTAT:'); lines.push(befaringNote); }
+
+  if (owner) {
+    const ownerLines = [];
+    if (owner.name)  ownerLines.push(`- Megler: ${owner.name}`);
+    if (owner.email) ownerLines.push(`- E-post: ${owner.email}`);
+    if (owner.phone) ownerLines.push(`- Telefon: ${owner.phone}`);
+    if (ownerLines.length) { lines.push(''); lines.push('ANSVARLIG MEGLER:'); lines.push(...ownerLines); }
+  }
 
   return lines.join('\n');
 }

@@ -211,9 +211,24 @@ exports.handler = async (event) => {
     } catch {}
 
     let dealName = '';
+    let ownerInfo = null;
     try {
-      const dr = await hs(`/crm/v3/objects/deals/${dealId}?properties=dealname,pipeline`);
+      const dr = await hs(`/crm/v3/objects/deals/${dealId}?properties=dealname,pipeline,hubspot_owner_id`);
       dealName = dr.data?.properties?.dealname || '';
+      const ownerId = dr.data?.properties?.hubspot_owner_id;
+      if (ownerId) {
+        try {
+          const or = await hs(`/crm/v3/owners/${ownerId}`);
+          if (or.ok && or.data) {
+            const o = or.data;
+            ownerInfo = {
+              name:  [(o.firstName||''), (o.lastName||'')].filter(Boolean).join(' ') || null,
+              email: o.email || null,
+              phone: o.phone || null,
+            };
+          }
+        } catch {}
+      }
       // If this is a Pipeline B deal, also collect the linked Pipeline A deal ID
       // so we can search for the befaring note there
       if (dr.data?.properties?.pipeline === PIPELINE_B && boatId && boatTypeId) {
@@ -255,7 +270,7 @@ exports.handler = async (event) => {
 
     return {
       statusCode: 200, headers: { ...CORS, ...JSON_H },
-      body: JSON.stringify({ deal_name: dealName, boat: boatProps, befaring_note: befaringNote }),
+      body: JSON.stringify({ deal_name: dealName, boat: boatProps, befaring_note: befaringNote, owner: ownerInfo }),
     };
   }
 
