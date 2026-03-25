@@ -79,6 +79,11 @@ exports.handler = async (event) => {
   const KNOWN_OWNERS = {
     'sindre@h-y.no':'633479117','daniel@h-y.no':'29136352','henrik@h-y.no':'77221549',
   };
+  const KNOWN_MEGLERS_BY_ID = {
+    '633479117': { name: 'Sindre Jacobsen', email: 'sindre@h-y.no', phone: '+47 938 40 189' },
+    '29136352':  { name: 'Daniel Ruud',     email: 'daniel@h-y.no', phone: '+47 479 61 918' },
+    '77221549':  { name: 'Henrik Bratz',    email: 'henrik@h-y.no', phone: '+47 478 75 838' },
+  };
   const ownerId = KNOWN_OWNERS[jwt.email] || null;
   const admin   = jwt?.app_metadata?.roles?.includes('admin') || false;
 
@@ -172,7 +177,7 @@ exports.handler = async (event) => {
 
   // ── GET ?fetch_boat=DEAL_ID → boat props + befaring note ──────────────────
   if (event.httpMethod === 'GET' && event.queryStringParameters?.fetch_boat) {
-    const dealId = event.queryStringParameters.fetch_boat;
+    let dealId = event.queryStringParameters.fetch_boat;
 
     const BOAT_PROPS = [
       'batmerke','bat_modell','arsmodell','boat_type','location',
@@ -215,10 +220,10 @@ exports.handler = async (event) => {
     try {
       const dr = await hs(`/crm/v3/objects/deals/${dealId}?properties=dealname,pipeline,hubspot_owner_id`);
       dealName = dr.data?.properties?.dealname || '';
-      const ownerId = dr.data?.properties?.hubspot_owner_id;
-      if (ownerId) {
+      const dealOwnerId = dr.data?.properties?.hubspot_owner_id;
+      if (dealOwnerId) {
         try {
-          const or = await hs(`/crm/v3/owners/${ownerId}`);
+          const or = await hs(`/crm/v3/owners/${dealOwnerId}`);
           if (or.ok && or.data) {
             const o = or.data;
             ownerInfo = {
@@ -228,6 +233,14 @@ exports.handler = async (event) => {
             };
           }
         } catch {}
+        // Fallback: fill missing fields (or entire object) from hardcoded megler map
+        const known = KNOWN_MEGLERS_BY_ID[String(dealOwnerId)];
+        if (known) {
+          if (!ownerInfo) ownerInfo = {};
+          if (!ownerInfo.name)  ownerInfo.name  = known.name;
+          if (!ownerInfo.email) ownerInfo.email = known.email;
+          if (!ownerInfo.phone) ownerInfo.phone = known.phone;
+        }
       }
       // If this is a Pipeline B deal, also collect the linked Pipeline A deal ID
       // so we can search for the befaring note there
