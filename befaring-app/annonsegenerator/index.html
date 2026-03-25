@@ -488,6 +488,13 @@ function formatBoatContext(dealName, boat, befaringNote) {
   if (boat.arsmodell)   lines.push(`- Årsmodell: ${boat.arsmodell}`);
   lines.push(`- Type: ${isSail ? 'Seilbåt' : 'Motorbåt'}`);
   if (boat.location)    lines.push(`- Liggeplass: ${boat.location}`);
+  if (boat.lengde_i_cm || boat.lengde_i_fot) {
+    const l = [boat.lengde_i_cm ? boat.lengde_i_cm + ' cm' : '', boat.lengde_i_fot ? boat.lengde_i_fot + ' fot' : ''].filter(Boolean).join(' / ');
+    lines.push(`- Lengde: ${l}`);
+  }
+  if (boat.bredde)     lines.push(`- Bredde: ${boat.bredde} cm`);
+  if (boat.pris)       lines.push(`- Prisantydning: ${parseInt(boat.pris).toLocaleString('no-NO')} NOK`);
+  if (boat.mva_status) lines.push(`- MVA-status: ${boat.mva_status === 'vat_paid' ? 'MVA betalt' : 'MVA ikke betalt'}`);
   if (isSail && boat.seilnummer)             lines.push(`- Seilnummer: ${boat.seilnummer}`);
   if (isSail && boat.ce_konstruksjonskategori) lines.push(`- CE-kategori: ${boat.ce_konstruksjonskategori}`);
 
@@ -495,6 +502,10 @@ function formatBoatContext(dealName, boat, befaringNote) {
     const motorLines = [];
     const engine = [boat.motorfabrikant, boat.motorstorrelse ? boat.motorstorrelse + ' HK' : ''].filter(Boolean).join(', ');
     if (engine) motorLines.push(`- Motor: ${engine}`);
+    if (boat.type_motor) {
+      const motorTypeLabels = {'1':'Innenbords','2':'Utenbords','3':'Drev','Strak aksling':'Strak aksling','IPS (volvo)':'IPS (volvo)','Zeus pod (cummins/mercruiser)':'Zeus pod (cummins/mercruiser)'};
+      motorLines.push(`- Motortype: ${motorTypeLabels[boat.type_motor] || boat.type_motor}`);
+    }
     const antall = parseInt(boat.antall_motorer) || 1;
     if (antall > 1) motorLines.push(`- Antall motorer: ${antall}`);
     if (boat.driftstimer_motor) motorLines.push(`- Driftstimer motor${antall > 1 ? ' 1' : ''}: ${boat.driftstimer_motor}`);
@@ -524,6 +535,14 @@ function formatBoatContext(dealName, boat, befaringNote) {
     if (score) condLines.push(`- ${s.label}: ${score}${comment ? ` — "${comment}"` : ''}`);
   }
   if (condLines.length) { lines.push(''); lines.push('TILSTANDSVURDERINGER:'); lines.push(...condLines); }
+
+  const layoutLines = [];
+  if (boat.antall_kahytter)    layoutLines.push(`- Kahytter: ${boat.antall_kahytter}`);
+  if (boat.antall_soveplasser) layoutLines.push(`- Soveplasser: ${boat.antall_soveplasser}`);
+  if (boat.antall_bad)         layoutLines.push(`- Bad: ${boat.antall_bad}`);
+  if (layoutLines.length) { lines.push(''); lines.push('LAYOUT OG INNREDNING:'); lines.push(...layoutLines); }
+
+  if (boat.utstyrsliste) { lines.push(''); lines.push('UTSTYRSLISTE:'); lines.push(boat.utstyrsliste); }
 
   if (boat.historikk_skader) { lines.push(''); lines.push('HISTORIKK OG BAKGRUNN:'); lines.push(boat.historikk_skader); }
 

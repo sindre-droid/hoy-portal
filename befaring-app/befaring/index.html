@@ -629,12 +629,29 @@ function renderInfoSection(){
       <div class="field"><label>Kallesignal / Regnr.</label><input type="text" id="f_callsign" value="${escHtml(bd.kjenningssignal||bd.skipsreg||'')}"></div>
       <div class="field"><label>Liggeplasskommunen <span class="opt">(valgfri)</span></label><input type="text" id="f_location" value="${escHtml(bd.location||'')}"></div>
     </div>
+    <div class="grid-2">
+      <div class="field"><label>Lengde (cm) <span class="opt">(valgfri)</span></label><input type="number" id="f_lengde_cm" placeholder="F.eks. 950" value="${escHtml(bd.lengde_i_cm||'')}"></div>
+      <div class="field"><label>Bredde (cm) <span class="opt">(valgfri)</span></label><input type="number" id="f_bredde" placeholder="F.eks. 310" value="${escHtml(bd.bredde||'')}"></div>
+    </div>
+    <div class="field"><label>Lengde (fot) <span class="opt">(valgfri)</span></label><input type="number" step="0.1" id="f_lengde_fot" placeholder="F.eks. 31.2" value="${escHtml(bd.lengde_i_fot||'')}"></div>
     ${isSailboat?`<div class="grid-2">
       <div class="field"><label>Seilnummer</label><input type="text" id="f_seilnummer" value="${escHtml(bd.seilnummer||'')}"></div>
       <div class="field"><label>CE konstruksjonskategori</label><input type="text" id="f_ce_kat" value="${escHtml(bd.ce_konstruksjonskategori||'')}"></div>
     </div>`:`<div class="grid-2">
       <div class="field"><label>Motor</label><input type="text" id="f_engine" value="${escHtml(bd.motorfabrikant||'')}"></div>
       <div class="field"><label>Motorstørrelse (HK)</label><input type="number" id="f_engine_size" value="${escHtml(bd.motorstorrelse||'')}"></div>
+    </div>
+    <div class="field">
+      <label>Type motor</label>
+      <select id="f_type_motor">
+        <option value="">— Velg motortype —</option>
+        <option value="1"${bd.type_motor==='1'?' selected':''}>Innenbords</option>
+        <option value="2"${bd.type_motor==='2'?' selected':''}>Utenbords</option>
+        <option value="3"${bd.type_motor==='3'?' selected':''}>Drev</option>
+        <option value="Strak aksling"${bd.type_motor==='Strak aksling'?' selected':''}>Strak aksling</option>
+        <option value="IPS (volvo)"${bd.type_motor==='IPS (volvo)'?' selected':''}>IPS (volvo)</option>
+        <option value="Zeus pod (cummins/mercruiser)"${bd.type_motor==='Zeus pod (cummins/mercruiser)'?' selected':''}>Zeus pod (cummins/mercruiser)</option>
+      </select>
     </div>
     <div class="field">
       <label>Antall motorer</label>
@@ -694,6 +711,27 @@ function renderInfoSection(){
         <div class="photo-upload-progress" id="mphoto_generator_progress"></div>
       </div>
     </div>`}
+  </div>
+  <div class="card">
+    <div class="card-title">🛏️ Innredning og prising</div>
+    <div class="card-desc">Layout, kahytter og prisantydning</div>
+    <div class="card-subtitle">Innredning</div>
+    <div class="grid-2">
+      <div class="field"><label>Antall kahytter <span class="opt">(valgfri)</span></label><input type="number" id="f_kahytter" placeholder="F.eks. 2" value="${escHtml(boatData.antall_kahytter||'')}"></div>
+      <div class="field"><label>Antall soveplasser <span class="opt">(valgfri)</span></label><input type="number" id="f_soveplasser" placeholder="F.eks. 4" value="${escHtml(boatData.antall_soveplasser||'')}"></div>
+    </div>
+    <div class="field"><label>Antall bad <span class="opt">(valgfri)</span></label><input type="number" id="f_bad" placeholder="F.eks. 1" value="${escHtml(boatData.antall_bad||'')}"></div>
+    <div class="card-subtitle">Prising</div>
+    <div class="grid-2">
+      <div class="field"><label>Prisantydning (NOK) <span class="opt">(valgfri)</span></label><input type="number" id="f_pris" placeholder="F.eks. 3500000" value="${escHtml(boatData.pris||'')}"></div>
+      <div class="field"><label>MVA-status <span class="opt">(valgfri)</span></label>
+        <select id="f_mva_status">
+          <option value="">— Velg —</option>
+          <option value="vat_paid"${boatData.mva_status==='vat_paid'?' selected':''}>Vat paid</option>
+          <option value="vat_not_paid"${boatData.mva_status==='vat_not_paid'?' selected':''}>Vat not paid</option>
+        </select>
+      </div>
+    </div>
   </div>
   <div class="card">
     <div class="card-title">📸 Obligatoriske bilder</div>
@@ -1059,6 +1097,15 @@ async function saveBefaring(){
     }
   }
   set('historikk_skader',$('f_historikk')?.value);
+  set('lengde_i_cm',$('f_lengde_cm')?.value);
+  set('lengde_i_fot',$('f_lengde_fot')?.value);
+  set('bredde',$('f_bredde')?.value);
+  if(!isSailboat)set('type_motor',$('f_type_motor')?.value);
+  set('antall_kahytter',$('f_kahytter')?.value);
+  set('antall_soveplasser',$('f_soveplasser')?.value);
+  set('antall_bad',$('f_bad')?.value);
+  set('pris',$('f_pris')?.value);
+  set('mva_status',$('f_mva_status')?.value);
   allSecs.forEach(sec=>{
     const state=condState[sec.key];
     if(state?.score)set(`${sec.key}_tilstand`,TILSTAND_MAP[state.score]||state.score);

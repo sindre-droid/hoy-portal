@@ -189,6 +189,10 @@ exports.handler = async (event) => {
       'motor_tilstand','motor_kommentar',
       'dekk_tilstand','dekk_kommentar',
       'rigg_tilstand','rigg_kommentar',
+      'lengde_i_cm','lengde_i_fot','bredde',
+      'type_motor','pris','mva_status',
+      'antall_kahytter','antall_soveplasser','antall_bad',
+      'utstyrsliste',
     ];
 
     let boatProps = {};
