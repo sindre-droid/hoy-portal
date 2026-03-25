@@ -96,6 +96,7 @@ exports.handler = async (event) => {
 
     const boatTypeId = await getBoatTypeId();
     const ownerF = [{ propertyName: 'hubspot_owner_id', operator: 'EQ', value: ownerId }];
+    const splitF  = [{ propertyName: 'hs_all_deal_split_owner_ids', operator: 'CONTAINS_TOKEN', value: ownerId }];
     const PROPS  = ['dealname', 'hs_lastmodifieddate', 'pipeline', 'dealstage'];
 
     // Fetch Pipeline B stages to identify which to include
@@ -105,27 +106,47 @@ exports.handler = async (event) => {
       .filter(s => PIPELINE_B_INCLUDE.some(kw => (s.label||'').toLowerCase().includes(kw)))
       .map(s => s.id);
 
-    // Step 1: fetch my own deals from Pipeline A (all stages) + Pipeline B (active stages)
+    // Step 1: fetch my own deals + split deals from Pipeline A + Pipeline B (active stages)
     const searches = [
+      // Own deals – Pipeline A
       hs('/crm/v3/objects/deals/search', 'POST', {
         filterGroups: [{ filters: [{ propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_A }, ...ownerF] }],
         properties: PROPS, limit: 100,
         sorts: [{ propertyName: 'hs_lastmodifieddate', direction: 'DESCENDING' }],
       }),
-    ];
-    if (activeBIds.length) {
-      searches.push(hs('/crm/v3/objects/deals/search', 'POST', {
-        filterGroups: [{ filters: [
-          { propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_B },
-          { propertyName: 'dealstage', operator: 'IN', values: activeBIds },
-          ...ownerF,
-        ]}],
+      // Split deals – Pipeline A
+      hs('/crm/v3/objects/deals/search', 'POST', {
+        filterGroups: [{ filters: [{ propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_A }, ...splitF] }],
         properties: PROPS, limit: 100,
         sorts: [{ propertyName: 'hs_lastmodifieddate', direction: 'DESCENDING' }],
-      }));
+      }),
+    ];
+    if (activeBIds.length) {
+      searches.push(
+        // Own deals – Pipeline B active stages
+        hs('/crm/v3/objects/deals/search', 'POST', {
+          filterGroups: [{ filters: [
+            { propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_B },
+            { propertyName: 'dealstage', operator: 'IN', values: activeBIds },
+            ...ownerF,
+          ]}],
+          properties: PROPS, limit: 100,
+          sorts: [{ propertyName: 'hs_lastmodifieddate', direction: 'DESCENDING' }],
+        }),
+        // Split deals – Pipeline B active stages
+        hs('/crm/v3/objects/deals/search', 'POST', {
+          filterGroups: [{ filters: [
+            { propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_B },
+            { propertyName: 'dealstage', operator: 'IN', values: activeBIds },
+            ...splitF,
+          ]}],
+          properties: PROPS, limit: 100,
+          sorts: [{ propertyName: 'hs_lastmodifieddate', direction: 'DESCENDING' }],
+        })
+      );
     }
-    const [rA, rB] = await Promise.all(searches);
-    let myDeals = [...(rA.data?.results||[]), ...(rB?.data?.results||[])];
+    const results = await Promise.all(searches);
+    let myDeals = results.flatMap(r => r.data?.results || []);
 
     // Step 2: expand with splitoppdrag via Boat object
     if (boatTypeId && myDeals.length > 0) {
