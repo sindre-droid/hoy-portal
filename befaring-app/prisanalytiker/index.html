@@ -17,6 +17,8 @@
       --text: #1a2a3a;
       --text-muted: #6b7a8d;
       --danger: #c0392b;
+      --intern-bg: #e8f5e9; --intern-fg: #2e7d32; --intern-border: #2e7d32;
+      --ekstern-bg: #e8f4fd; --ekstern-fg: #1565c0; --ekstern-border: #1565c0;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--surface); color: var(--text); min-height: 100vh; }
@@ -32,8 +34,8 @@
     .sidebar h3 { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
     .filter-group { margin-bottom: 18px; }
     .filter-label { display: block; font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 5px; }
-    select, input[type=number] { width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; color: var(--text); background: var(--white); outline: none; transition: border-color 0.15s; }
-    select:focus, input[type=number]:focus { border-color: var(--gold); }
+    select, input[type=number], input[type=text] { width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; color: var(--text); background: var(--white); outline: none; transition: border-color 0.15s; }
+    select:focus, input[type=number]:focus, input[type=text]:focus { border-color: var(--gold); }
     .range-row { display: flex; gap: 6px; align-items: center; }
     .range-row span { font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
     .range-row input { width: 100%; }
@@ -42,8 +44,52 @@
     .kilde-toggle { display: flex; gap: 6px; flex-wrap: wrap; }
     .kilde-btn { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1.5px solid var(--border); cursor: pointer; transition: all 0.15s; background: var(--white); color: var(--text-muted); }
     .kilde-btn.active-all { border-color: var(--navy); background: var(--navy); color: white; }
-    .kilde-btn.active-ekstern { border-color: #1565c0; background: #e8f4fd; color: #1565c0; }
-    .kilde-btn.active-intern { border-color: #2e7d32; background: #e8f5e9; color: #2e7d32; }
+    .kilde-btn.active-ekstern { border-color: var(--ekstern-border); background: var(--ekstern-bg); color: var(--ekstern-fg); }
+    .kilde-btn.active-intern { border-color: var(--intern-border); background: var(--intern-bg); color: var(--intern-fg); }
+
+    /* ── Merke søk ────────────────────────────────────────────── */
+    .merke-search-wrap { position: relative; }
+    .merke-input-row { display: flex; gap: 0; }
+    .merke-input-row input { border-radius: 6px 0 0 6px; border-right: none; }
+    .merke-clear-btn { padding: 7px 10px; border: 1px solid var(--border); border-radius: 0 6px 6px 0; background: var(--surface2); cursor: pointer; font-size: 14px; color: var(--text-muted); display: none; line-height: 1; transition: all 0.15s; }
+    .merke-clear-btn:hover { background: #fde8e8; color: var(--danger); border-color: var(--danger); }
+    .merke-selected { display: none; margin-top: 5px; }
+    .merke-selected-tag { display: inline-flex; align-items: center; gap: 5px; background: var(--navy); color: white; font-size: 12px; font-weight: 600; padding: 3px 10px 3px 10px; border-radius: 20px; }
+    .merke-selected-tag button { background: none; border: none; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 14px; padding: 0; line-height: 1; }
+    .merke-selected-tag button:hover { color: white; }
+    .merke-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: white; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,0.12); z-index: 200; max-height: 260px; overflow-y: auto; display: none; }
+    .merke-dropdown.open { display: block; }
+    .merke-dd-item { padding: 8px 12px; font-size: 13px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+    .merke-dd-item:hover, .merke-dd-item.focused { background: var(--surface2); }
+    .merke-dd-item .cnt { font-size: 11px; color: var(--text-muted); }
+    .merke-dd-section { padding: 5px 12px 3px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; color: var(--text-muted); background: var(--surface); border-top: 1px solid var(--surface2); }
+    .merke-dd-section:first-child { border-top: none; }
+    .merke-no-results { padding: 14px 12px; font-size: 13px; color: var(--text-muted); text-align: center; }
+
+    /* ── Sammenligningspanel ──────────────────────────────────── */
+    .compare-panel { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; display: none; }
+    .compare-panel h4 { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .compare-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .compare-card { border-radius: 8px; padding: 12px 14px; }
+    .compare-card.ekstern { background: var(--ekstern-bg); border: 1px solid #90caf9; }
+    .compare-card.intern  { background: var(--intern-bg);  border: 1px solid #a5d6a7; }
+    .compare-card.diff    { background: #fdf8ee; border: 1px solid var(--gold); }
+    .compare-card .cc-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 4px; }
+    .compare-card.ekstern .cc-label { color: var(--ekstern-fg); }
+    .compare-card.intern  .cc-label { color: var(--intern-fg); }
+    .compare-card.diff    .cc-label { color: #8a6820; }
+    .compare-card .cc-val { font-size: 18px; font-weight: 700; color: var(--navy); }
+    .compare-card .cc-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .compare-card .cc-diff-val { font-size: 22px; font-weight: 800; }
+    .cc-diff-val.positive { color: #2e7d32; }
+    .cc-diff-val.negative { color: #c0392b; }
+    .cc-diff-val.neutral  { color: var(--text-muted); }
+    .compare-bar { margin-top: 10px; display: flex; gap: 6px; align-items: center; font-size: 11px; color: var(--text-muted); }
+    .compare-bar-inner { flex: 1; height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+    .compare-bar-fill-e { height: 100%; background: #1565c0; border-radius: 3px; transition: width 0.4s; }
+    .compare-bar-fill-i { height: 100%; background: #2e7d32; border-radius: 3px; transition: width 0.4s; }
+
+    /* ── Resten ───────────────────────────────────────────────── */
     .main { flex: 1; padding: 24px; min-width: 0; }
     .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
     .stat-card { background: var(--white); border-radius: 10px; padding: 14px 16px; border: 1px solid var(--border); }
@@ -73,8 +119,8 @@
     .tittel-link:hover { color: var(--gold); text-decoration: underline; }
     .no-link { font-weight: 500; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .badge-kilde { display: inline-block; padding: 2px 6px; border-radius: 10px; font-size: 10px; font-weight: 600; }
-    .badge-ekstern2 { background: #e8f4fd; color: #1565c0; }
-    .badge-intern2 { background: #e8f5e9; color: #2e7d32; }
+    .badge-ekstern2 { background: var(--ekstern-bg); color: var(--ekstern-fg); }
+    .badge-intern2  { background: var(--intern-bg);  color: var(--intern-fg); }
     .pris-cell { font-weight: 700; color: var(--navy); white-space: nowrap; }
     .td-center { text-align: center; }
     .empty-state { padding: 60px 24px; text-align: center; color: var(--text-muted); }
@@ -87,7 +133,7 @@
     .loading { display: flex; align-items: center; justify-content: center; height: 200px; color: var(--text-muted); font-size: 15px; gap: 12px; }
     .spinner { width: 24px; height: 24px; border: 3px solid var(--border); border-top-color: var(--navy); border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    @media (max-width: 900px) { .page { flex-direction: column; } .sidebar { width: 100%; max-height: none; position: static; } .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 900px) { .page { flex-direction: column; } .sidebar { width: 100%; max-height: none; position: static; } .stats-grid { grid-template-columns: repeat(2, 1fr); } .compare-grid { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
@@ -107,6 +153,7 @@
 <div class="page">
   <aside class="sidebar">
     <h3>Filtrer</h3>
+
     <div class="filter-group">
       <span class="filter-label">Datakilde</span>
       <div class="kilde-toggle">
@@ -115,10 +162,26 @@
         <button class="kilde-btn" id="kilde-intern" onclick="setKilde('intern')">Intern</button>
       </div>
     </div>
+
+    <!-- Merke søk -->
     <div class="filter-group">
-      <label class="filter-label" for="f-merke">Merke</label>
-      <select id="f-merke" onchange="updateModellDropdown();applyFilters()"><option value="">Alle merker</option></select>
+      <label class="filter-label">Merke</label>
+      <div class="merke-search-wrap" id="merke-wrap">
+        <div class="merke-input-row">
+          <input type="text" id="f-merke-search" placeholder="Søk merke..." autocomplete="off"
+                 oninput="onMerkeInput()" onfocus="openMerkeDd()" onkeydown="onMerkeKey(event)">
+          <button class="merke-clear-btn" id="merke-clear" onclick="clearMerke()" title="Fjern merkefilter">✕</button>
+        </div>
+        <div class="merke-selected" id="merke-selected">
+          <span class="merke-selected-tag" id="merke-tag">
+            <span id="merke-tag-text"></span>
+            <button onclick="clearMerke()">✕</button>
+          </span>
+        </div>
+        <div class="merke-dropdown" id="merke-dd"></div>
+      </div>
     </div>
+
     <div class="filter-group">
       <label class="filter-label" for="f-modell">Modell</label>
       <select id="f-modell" onchange="applyFilters()"><option value="">Alle modeller</option></select>
@@ -190,6 +253,8 @@
       <div class="spinner"></div> Laster data...
     </div>
     <div id="app-content" style="display:none">
+
+      <!-- Statistikk -->
       <div class="stats-grid">
         <div class="stat-card"><div class="label">Treff</div><div class="value" id="stat-treff">-</div><div class="sub" id="stat-treff-sub"></div></div>
         <div class="stat-card highlight"><div class="label">Snittpris</div><div class="value" id="stat-snitt">-</div></div>
@@ -198,10 +263,45 @@
         <div class="stat-card"><div class="label">Snitt arsmodell</div><div class="value" id="stat-ar">-</div></div>
         <div class="stat-card"><div class="label">Snitt HK</div><div class="value" id="stat-hk">-</div></div>
       </div>
+
+      <!-- Intern vs Ekstern sammenligning -->
+      <div class="compare-panel" id="compare-panel">
+        <h4>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          HoY-salg vs. Finn.no — prissammenligning
+        </h4>
+        <div class="compare-grid">
+          <div class="compare-card ekstern">
+            <div class="cc-label">Finn.no (ekstern)</div>
+            <div class="cc-val" id="cmp-e-snitt">-</div>
+            <div class="cc-sub" id="cmp-e-sub">-</div>
+            <div class="compare-bar">
+              <div class="compare-bar-inner"><div class="compare-bar-fill-e" id="cmp-e-bar" style="width:100%"></div></div>
+            </div>
+          </div>
+          <div class="compare-card intern">
+            <div class="cc-label">HoY-salg (intern)</div>
+            <div class="cc-val" id="cmp-i-snitt">-</div>
+            <div class="cc-sub" id="cmp-i-sub">-</div>
+            <div class="compare-bar">
+              <div class="compare-bar-inner"><div class="compare-bar-fill-i" id="cmp-i-bar" style="width:100%"></div></div>
+            </div>
+          </div>
+          <div class="compare-card diff">
+            <div class="cc-label">Prisforskjell</div>
+            <div class="cc-diff-val" id="cmp-diff-pct">-</div>
+            <div class="cc-sub" id="cmp-diff-sub">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Graf -->
       <div class="chart-wrap" id="chart-wrap">
         <h4>Gjennomsnittspris per annonsert ar</h4>
         <canvas id="priceChart"></canvas>
       </div>
+
+      <!-- Tabell -->
       <div class="result-header">
         <div class="result-count">Viser <span id="rc-vis">0</span> av <span id="rc-total">0</span> annonser</div>
         <div class="sort-row">
@@ -249,6 +349,13 @@ const PER_PAGE = 50;
 let activeKilde = "all";
 let priceChart = null;
 
+// Merke-søk state
+let selectedMerke = "";
+let allMerker = [];     // [{name, count}] sortert etter count desc
+let popularMerker = []; // topp 20
+let ddFocusIdx = -1;
+let ddItems = [];       // nåværende synlige items i dropdown
+
 fetch("data.json")
   .then(function(r) { return r.json(); })
   .then(function(data) {
@@ -264,171 +371,400 @@ fetch("data.json")
   });
 
 function initFilters() {
-  var merker = [...new Set(BOAT_DATA.map(function(b){return b.m;}))].filter(function(m){return m !== "-";}).sort();
-  var typer  = [...new Set(BOAT_DATA.map(function(b){return b.ty;}))].filter(function(t){return t !== "-";}).sort();
-  var ms = document.getElementById("f-merke");
-  merker.forEach(function(m){ var o=document.createElement("option"); o.value=m; o.textContent=m; ms.appendChild(o); });
+  // Bygg merke-liste med antall
+  var counts = {};
+  BOAT_DATA.forEach(function(b) { if (b.m && b.m !== "-") counts[b.m] = (counts[b.m] || 0) + 1; });
+  allMerker = Object.keys(counts).map(function(m) { return {name: m, count: counts[m]}; });
+  allMerker.sort(function(a, b) { return b.count - a.count; });
+  popularMerker = allMerker.slice(0, 20);
+
+  var typer = [...new Set(BOAT_DATA.map(function(b) { return b.ty; }))].filter(function(t) { return t !== "-"; }).sort();
   var ts = document.getElementById("f-type");
-  typer.forEach(function(t){ var o=document.createElement("option"); o.value=t; o.textContent=t; ts.appendChild(o); });
+  typer.forEach(function(t) { var o = document.createElement("option"); o.value = t; o.textContent = t; ts.appendChild(o); });
   updateModellDropdown();
+
+  // Lukk dropdown ved klikk utenfor
+  document.addEventListener("click", function(e) {
+    if (!document.getElementById("merke-wrap").contains(e.target)) closeMerkeDd();
+  });
 }
 
+// ── Merke søk ────────────────────────────────────────────────────────────────
+function openMerkeDd() {
+  if (selectedMerke) return;
+  renderMerkeDd(document.getElementById("f-merke-search").value.trim());
+  document.getElementById("merke-dd").classList.add("open");
+}
+
+function closeMerkeDd() {
+  document.getElementById("merke-dd").classList.remove("open");
+  ddFocusIdx = -1;
+}
+
+function onMerkeInput() {
+  var q = document.getElementById("f-merke-search").value.trim();
+  renderMerkeDd(q);
+  document.getElementById("merke-dd").classList.add("open");
+}
+
+function renderMerkeDd(query) {
+  var dd = document.getElementById("merke-dd");
+  ddItems = [];
+  var html = "";
+
+  if (!query) {
+    // Vis populære merker
+    html += '<div class="merke-dd-section">Populære merker</div>';
+    popularMerker.forEach(function(m) {
+      ddItems.push(m.name);
+      html += '<div class="merke-dd-item" onmousedown="selectMerke(\'' + esc(m.name) + '\')">' +
+              '<span>' + esc(m.name) + '</span>' +
+              '<span class="cnt">' + m.count.toLocaleString("no-NO") + '</span></div>';
+    });
+    html += '<div class="merke-dd-section">Alle merker (' + allMerker.length + ')</div>';
+    var rest = allMerker.slice(20);
+    rest.forEach(function(m) {
+      ddItems.push(m.name);
+      html += '<div class="merke-dd-item" onmousedown="selectMerke(\'' + esc(m.name) + '\')">' +
+              '<span>' + esc(m.name) + '</span>' +
+              '<span class="cnt">' + m.count.toLocaleString("no-NO") + '</span></div>';
+    });
+  } else {
+    var q = query.toLowerCase();
+    var matches = allMerker.filter(function(m) { return m.name.toLowerCase().indexOf(q) !== -1; });
+    if (!matches.length) {
+      html = '<div class="merke-no-results">Ingen merker funnet for "' + esc(query) + '"</div>';
+    } else {
+      matches.forEach(function(m) {
+        ddItems.push(m.name);
+        var hi = m.name.replace(new RegExp("(" + query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "gi"), "<strong>$1</strong>");
+        html += '<div class="merke-dd-item" onmousedown="selectMerke(\'' + esc(m.name) + '\')">' +
+                '<span>' + hi + '</span>' +
+                '<span class="cnt">' + m.count.toLocaleString("no-NO") + '</span></div>';
+      });
+    }
+  }
+  dd.innerHTML = html;
+  ddFocusIdx = -1;
+}
+
+function selectMerke(name) {
+  selectedMerke = name;
+  document.getElementById("f-merke-search").value = "";
+  document.getElementById("f-merke-search").placeholder = name;
+  document.getElementById("merke-clear").style.display = "block";
+  document.getElementById("merke-selected").style.display = "";
+  document.getElementById("merke-tag-text").textContent = name;
+  closeMerkeDd();
+  updateModellDropdown();
+  applyFilters();
+}
+
+function clearMerke() {
+  selectedMerke = "";
+  document.getElementById("f-merke-search").value = "";
+  document.getElementById("f-merke-search").placeholder = "Søk merke...";
+  document.getElementById("merke-clear").style.display = "none";
+  document.getElementById("merke-selected").style.display = "none";
+  closeMerkeDd();
+  updateModellDropdown();
+  applyFilters();
+}
+
+function onMerkeKey(e) {
+  var dd = document.getElementById("merke-dd");
+  var items = dd.querySelectorAll(".merke-dd-item");
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    ddFocusIdx = Math.min(ddFocusIdx + 1, items.length - 1);
+    updateDdFocus(items);
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    ddFocusIdx = Math.max(ddFocusIdx - 1, 0);
+    updateDdFocus(items);
+  } else if (e.key === "Enter" && ddFocusIdx >= 0 && ddItems[ddFocusIdx]) {
+    e.preventDefault();
+    selectMerke(ddItems[ddFocusIdx]);
+  } else if (e.key === "Escape") {
+    closeMerkeDd();
+  }
+}
+
+function updateDdFocus(items) {
+  items.forEach(function(el, i) {
+    el.classList.toggle("focused", i === ddFocusIdx);
+    if (i === ddFocusIdx) el.scrollIntoView({block: "nearest"});
+  });
+}
+
+// ── Modell dropdown ───────────────────────────────────────────────────────────
 function updateModellDropdown() {
-  var valgtMerke = getVal("f-merke");
-  var valgtModell = getVal("f-modell");
-  var subset = valgtMerke ? BOAT_DATA.filter(function(b){ return b.m === valgtMerke; }) : BOAT_DATA;
-  var modeller = [...new Set(subset.map(function(b){return b.mo;}))].filter(function(m){ return m && m !== "-"; }).sort();
+  var valgtModell = document.getElementById("f-modell").value;
+  var subset = selectedMerke ? BOAT_DATA.filter(function(b) { return b.m === selectedMerke; }) : BOAT_DATA;
+  var modeller = [...new Set(subset.map(function(b) { return b.mo; }))].filter(function(m) { return m && m !== "-"; }).sort();
   var md = document.getElementById("f-modell");
-  md.innerHTML = "<option value=\"\">Alle modeller</option>";
-  modeller.forEach(function(m){ var o=document.createElement("option"); o.value=m; o.textContent=m; if(m===valgtModell) o.selected=true; md.appendChild(o); });
+  md.innerHTML = '<option value="">Alle modeller</option>';
+  modeller.forEach(function(m) { var o = document.createElement("option"); o.value = m; o.textContent = m; if (m === valgtModell) o.selected = true; md.appendChild(o); });
 }
 
+// ── Kilde toggle ──────────────────────────────────────────────────────────────
 function setKilde(k) {
   activeKilde = k;
-  ["all","ekstern","intern"].forEach(function(id){
-    var btn = document.getElementById("kilde-"+id);
-    btn.className = "kilde-btn" + (id===k ? " active-"+id : "");
+  ["all", "ekstern", "intern"].forEach(function(id) {
+    var btn = document.getElementById("kilde-" + id);
+    btn.className = "kilde-btn" + (id === k ? " active-" + id : "");
   });
   applyFilters();
 }
 
-function getVal(id){ return document.getElementById(id).value; }
-function getNum(id){ var v=parseFloat(document.getElementById(id).value); return isNaN(v)?null:v; }
+function getVal(id) { return document.getElementById(id).value; }
+function getNum(id) { var v = parseFloat(document.getElementById(id).value); return isNaN(v) ? null : v; }
 
+// ── Filtrering ────────────────────────────────────────────────────────────────
 function applyFilters() {
-  var merke=getVal("f-merke"), modell=getVal("f-modell"), type=getVal("f-type"), motor=getVal("f-motor"), drivstoff=getVal("f-drivstoff");
-  var kunSR=document.getElementById("f-sr").checked;
-  var arFra=getNum("f-ar-fra"), arTil=getNum("f-ar-til");
-  var fotFra=getNum("f-fot-fra"), fotTil=getNum("f-fot-til");
-  var hkFra=getNum("f-hk-fra"), hkTil=getNum("f-hk-til");
-  var prisFra=getNum("f-pris-fra"), prisTil=getNum("f-pris-til");
+  var modell = getVal("f-modell"), type = getVal("f-type"), motor = getVal("f-motor"), drivstoff = getVal("f-drivstoff");
+  var kunSR = document.getElementById("f-sr").checked;
+  var arFra = getNum("f-ar-fra"), arTil = getNum("f-ar-til");
+  var fotFra = getNum("f-fot-fra"), fotTil = getNum("f-fot-til");
+  var hkFra = getNum("f-hk-fra"), hkTil = getNum("f-hk-til");
+  var prisFra = getNum("f-pris-fra"), prisTil = getNum("f-pris-til");
 
-  filtered = BOAT_DATA.filter(function(b){
-    if (activeKilde==="ekstern" && b.ki!=="Ekstern") return false;
-    if (activeKilde==="intern"  && b.ki!=="Intern")  return false;
-    if (merke     && b.m  !==merke)     return false;
-    if (modell    && b.mo !==modell)    return false;
-    if (type      && b.ty !==type)      return false;
-    if (motor     && b.mot!==motor)     return false;
-    if (drivstoff && b.dr !==drivstoff) return false;
+  filtered = BOAT_DATA.filter(function(b) {
+    if (activeKilde === "ekstern" && b.ki !== "Ekstern") return false;
+    if (activeKilde === "intern"  && b.ki !== "Intern")  return false;
+    if (selectedMerke && b.m !== selectedMerke) return false;
+    if (modell    && b.mo !== modell)    return false;
+    if (type      && b.ty !== type)      return false;
+    if (motor     && b.mot !== motor)    return false;
+    if (drivstoff && b.dr !== drivstoff) return false;
     if (kunSR && !b.sr) return false;
-    if (arFra  !==null && (b.ar===0||b.ar<arFra))   return false;
-    if (arTil  !==null && (b.ar===0||b.ar>arTil))   return false;
-    if (fotFra !==null && (b.fo===0||b.fo<fotFra))  return false;
-    if (fotTil !==null && (b.fo===0||b.fo>fotTil))  return false;
-    if (hkFra  !==null && (b.hk===0||b.hk<hkFra))  return false;
-    if (hkTil  !==null && (b.hk===0||b.hk>hkTil))  return false;
-    if (prisFra!==null && b.p<prisFra) return false;
-    if (prisTil!==null && b.p>prisTil) return false;
+    if (arFra  !== null && (b.ar === 0 || b.ar < arFra))   return false;
+    if (arTil  !== null && (b.ar === 0 || b.ar > arTil))   return false;
+    if (fotFra !== null && (b.fo === 0 || b.fo < fotFra))  return false;
+    if (fotTil !== null && (b.fo === 0 || b.fo > fotTil))  return false;
+    if (hkFra  !== null && (b.hk === 0 || b.hk < hkFra))  return false;
+    if (hkTil  !== null && (b.hk === 0 || b.hk > hkTil))  return false;
+    if (prisFra !== null && b.p < prisFra) return false;
+    if (prisTil !== null && b.p > prisTil) return false;
     return true;
   });
-  page=1;
+  page = 1;
   applySort();
   updateStats();
+  updateCompare();
   updateChart();
 }
 
 function applySort() {
-  var sv=document.getElementById("sort-by").value;
-  var parts=sv.split("-");
-  var k=parts[0], d=parts[1];
-  sortKey = k==="pris"?"p": k==="ar"?"ar": k==="fot"?"fo":"p";
+  var sv = document.getElementById("sort-by").value;
+  var parts = sv.split("-");
+  var k = parts[0], d = parts[1];
+  sortKey = k === "pris" ? "p" : k === "ar" ? "ar" : k === "fot" ? "fo" : "p";
   sortDir = d;
-  filtered.sort(function(a,b){ var av=a[sortKey]||0, bv=b[sortKey]||0; return sortDir==="asc"?av-bv:bv-av; });
+  filtered.sort(function(a, b) { var av = a[sortKey] || 0, bv = b[sortKey] || 0; return sortDir === "asc" ? av - bv : bv - av; });
   renderTable();
 }
 
 function toggleSort(key) {
-  var map={pris:"p",ar:"ar",fot:"fo",merke:"m"};
-  var k=map[key];
-  if(sortKey===k) sortDir=sortDir==="asc"?"desc":"asc";
-  else { sortKey=k; sortDir="desc"; }
-  filtered.sort(function(a,b){
-    if(typeof a[sortKey]==="string") return sortDir==="asc"?a[sortKey].localeCompare(b[sortKey]):b[sortKey].localeCompare(a[sortKey]);
-    var av=a[sortKey]||0, bv=b[sortKey]||0; return sortDir==="asc"?av-bv:bv-av;
+  var map = {pris: "p", ar: "ar", fot: "fo", merke: "m"};
+  var k = map[key];
+  if (sortKey === k) sortDir = sortDir === "asc" ? "desc" : "asc";
+  else { sortKey = k; sortDir = "desc"; }
+  filtered.sort(function(a, b) {
+    if (typeof a[sortKey] === "string") return sortDir === "asc" ? a[sortKey].localeCompare(b[sortKey]) : b[sortKey].localeCompare(a[sortKey]);
+    var av = a[sortKey] || 0, bv = b[sortKey] || 0; return sortDir === "asc" ? av - bv : bv - av;
   });
   renderTable();
 }
 
 function fmtPris(p) {
-  if(!p) return "-";
-  return new Intl.NumberFormat("no-NO",{style:"currency",currency:"NOK",maximumFractionDigits:0}).format(p);
+  if (!p) return "-";
+  return new Intl.NumberFormat("no-NO", {style: "currency", currency: "NOK", maximumFractionDigits: 0}).format(p);
 }
 
+function avgPrices(arr) {
+  var prices = arr.map(function(b) { return b.p; }).filter(Boolean);
+  if (!prices.length) return 0;
+  return Math.round(prices.reduce(function(s, v) { return s + v; }, 0) / prices.length);
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
 function updateStats() {
-  var n=filtered.length;
-  var prices=filtered.map(function(b){return b.p;}).filter(Boolean).sort(function(a,b){return a-b;});
-  var avg=prices.length?Math.round(prices.reduce(function(s,v){return s+v;},0)/prices.length):0;
-  var median=prices.length?prices[Math.floor(prices.length/2)]:0;
-  var min=prices[0], max=prices[prices.length-1];
-  var ars=filtered.map(function(b){return b.ar;}).filter(function(a){return a>1900;});
-  var avgAr=ars.length?Math.round(ars.reduce(function(s,v){return s+v;},0)/ars.length):0;
-  var hks=filtered.map(function(b){return b.hk;}).filter(function(h){return h>0;});
-  var avgHk=hks.length?Math.round(hks.reduce(function(s,v){return s+v;},0)/hks.length):0;
-  document.getElementById("stat-treff").textContent=n.toLocaleString("no-NO");
-  document.getElementById("stat-treff-sub").textContent=n===BOAT_DATA.length?"Totalt i databasen":"matcher filteret";
-  document.getElementById("stat-snitt").textContent=avg?fmtPris(avg):"-";
-  document.getElementById("stat-median").textContent=median?fmtPris(median):"-";
-  document.getElementById("stat-min").textContent=min?fmtPris(min):"-";
-  document.getElementById("stat-max").textContent=max?"Maks: "+fmtPris(max):"";
-  document.getElementById("stat-ar").textContent=avgAr||"-";
-  document.getElementById("stat-hk").textContent=avgHk?avgHk+" hk":"-";
+  var n = filtered.length;
+  var prices = filtered.map(function(b) { return b.p; }).filter(Boolean).sort(function(a, b) { return a - b; });
+  var avg = prices.length ? Math.round(prices.reduce(function(s, v) { return s + v; }, 0) / prices.length) : 0;
+  var median = prices.length ? prices[Math.floor(prices.length / 2)] : 0;
+  var min = prices[0], max = prices[prices.length - 1];
+  var ars = filtered.map(function(b) { return b.ar; }).filter(function(a) { return a > 1900; });
+  var avgAr = ars.length ? Math.round(ars.reduce(function(s, v) { return s + v; }, 0) / ars.length) : 0;
+  var hks = filtered.map(function(b) { return b.hk; }).filter(function(h) { return h > 0; });
+  var avgHk = hks.length ? Math.round(hks.reduce(function(s, v) { return s + v; }, 0) / hks.length) : 0;
+  document.getElementById("stat-treff").textContent = n.toLocaleString("no-NO");
+  document.getElementById("stat-treff-sub").textContent = n === BOAT_DATA.length ? "Totalt i databasen" : "matcher filteret";
+  document.getElementById("stat-snitt").textContent = avg ? fmtPris(avg) : "-";
+  document.getElementById("stat-median").textContent = median ? fmtPris(median) : "-";
+  document.getElementById("stat-min").textContent = min ? fmtPris(min) : "-";
+  document.getElementById("stat-max").textContent = max ? "Maks: " + fmtPris(max) : "";
+  document.getElementById("stat-ar").textContent = avgAr || "-";
+  document.getElementById("stat-hk").textContent = avgHk ? avgHk + " hk" : "-";
 }
 
+// ── Intern vs Ekstern sammenligning ──────────────────────────────────────────
+function updateCompare() {
+  var panel = document.getElementById("compare-panel");
+
+  // Vis kun når begge kilder er tilgjengelig (ikke filtrert på én kilde)
+  if (activeKilde !== "all") { panel.style.display = "none"; return; }
+
+  var eks = filtered.filter(function(b) { return b.ki === "Ekstern"; });
+  var intern = filtered.filter(function(b) { return b.ki === "Intern"; });
+
+  if (!eks.length || !intern.length) { panel.style.display = "none"; return; }
+
+  var eSnitt = avgPrices(eks);
+  var iSnitt = avgPrices(intern);
+
+  if (!eSnitt || !iSnitt) { panel.style.display = "none"; return; }
+
+  // Prosentvis forskjell: intern relativt til ekstern
+  var diff = ((iSnitt - eSnitt) / eSnitt) * 100;
+  var diffTxt = (diff >= 0 ? "+" : "") + diff.toFixed(1) + "%";
+  var diffClass = diff > 1 ? "positive" : diff < -1 ? "negative" : "neutral";
+
+  var maxSnitt = Math.max(eSnitt, iSnitt);
+  var eBarPct = Math.round((eSnitt / maxSnitt) * 100);
+  var iBarPct = Math.round((iSnitt / maxSnitt) * 100);
+
+  document.getElementById("cmp-e-snitt").textContent = fmtPris(eSnitt);
+  document.getElementById("cmp-e-sub").textContent = eks.length.toLocaleString("no-NO") + " annonser";
+  document.getElementById("cmp-e-bar").style.width = eBarPct + "%";
+
+  document.getElementById("cmp-i-snitt").textContent = fmtPris(iSnitt);
+  document.getElementById("cmp-i-sub").textContent = intern.length.toLocaleString("no-NO") + " salg";
+  document.getElementById("cmp-i-bar").style.width = iBarPct + "%";
+
+  var diffEl = document.getElementById("cmp-diff-pct");
+  diffEl.textContent = diffTxt;
+  diffEl.className = "cc-diff-val " + diffClass;
+
+  var subTxt = diff > 1
+    ? "HoY selger " + Math.abs(diff).toFixed(1) + "% dyrere enn Finn.no snitt"
+    : diff < -1
+    ? "HoY selger " + Math.abs(diff).toFixed(1) + "% billigere enn Finn.no snitt"
+    : "HoY-priser er på nivå med Finn.no";
+  document.getElementById("cmp-diff-sub").textContent = subTxt;
+
+  panel.style.display = "";
+}
+
+// ── Graf ──────────────────────────────────────────────────────────────────────
 function updateChart() {
-  var byYear={};
-  filtered.forEach(function(b){
-    var y=b.aay; if(!y||y<2017) return;
-    if(!byYear[y]) byYear[y]=[];
-    byYear[y].push(b.p);
+  var byYear = {};
+  filtered.forEach(function(b) {
+    var y = b.aay; if (!y || y < 2017) return;
+    if (!byYear[y]) byYear[y] = {all: [], e: [], i: []};
+    byYear[y].all.push(b.p);
+    if (b.ki === "Ekstern") byYear[y].e.push(b.p);
+    else byYear[y].i.push(b.p);
   });
-  var years=Object.keys(byYear).sort();
-  var avgs=years.map(function(y){ var arr=byYear[y]; return Math.round(arr.reduce(function(s,v){return s+v;},0)/arr.length); });
-  var counts=years.map(function(y){return byYear[y].length;});
-  var ctx=document.getElementById("priceChart").getContext("2d");
-  if(priceChart) priceChart.destroy();
-  if(years.length<2){ document.getElementById("chart-wrap").style.display="none"; return; }
-  document.getElementById("chart-wrap").style.display="";
-  priceChart=new Chart(ctx,{
-    type:"bar",
-    data:{ labels:years, datasets:[{ label:"Snittpris", data:avgs, backgroundColor:"rgba(10,33,64,0.75)", borderColor:"#c9a84c", borderWidth:1.5, borderRadius:4 }] },
-    options:{
-      responsive:true,
-      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:function(c){ var cnt=counts[c.dataIndex]; return["Snitt: "+new Intl.NumberFormat("no-NO").format(c.parsed.y)+" kr","Annonser: "+cnt]; }}} },
-      scales:{ y:{ticks:{callback:function(v){return new Intl.NumberFormat("no-NO",{notation:"compact",maximumFractionDigits:1}).format(v)+" kr";}},grid:{color:"rgba(0,0,0,0.05)"}}, x:{grid:{display:false}} }
+  var years = Object.keys(byYear).sort();
+  var avgAll  = years.map(function(y) { var a = byYear[y].all; return a.length ? Math.round(a.reduce(function(s,v){return s+v;},0)/a.length) : 0; });
+  var avgEks  = years.map(function(y) { var a = byYear[y].e;   return a.length ? Math.round(a.reduce(function(s,v){return s+v;},0)/a.length) : null; });
+  var avgInt  = years.map(function(y) { var a = byYear[y].i;   return a.length ? Math.round(a.reduce(function(s,v){return s+v;},0)/a.length) : null; });
+  var counts  = years.map(function(y) { return byYear[y].all.length; });
+
+  var ctx = document.getElementById("priceChart").getContext("2d");
+  if (priceChart) priceChart.destroy();
+  if (years.length < 2) { document.getElementById("chart-wrap").style.display = "none"; return; }
+  document.getElementById("chart-wrap").style.display = "";
+
+  var hasIntern = avgInt.some(function(v) { return v !== null; });
+
+  var datasets = [{
+    label: "Alle", data: avgAll,
+    backgroundColor: "rgba(10,33,64,0.7)", borderColor: "#c9a84c", borderWidth: 1.5, borderRadius: 3
+  }];
+  if (activeKilde === "all" && hasIntern) {
+    datasets = [
+      { label: "Finn.no", data: avgEks, backgroundColor: "rgba(21,101,192,0.75)", borderColor: "#90caf9", borderWidth: 1.5, borderRadius: 3 },
+      { label: "HoY-salg", data: avgInt, backgroundColor: "rgba(46,125,50,0.75)", borderColor: "#a5d6a7", borderWidth: 1.5, borderRadius: 3 }
+    ];
+  }
+
+  priceChart = new Chart(ctx, {
+    type: "bar",
+    data: { labels: years, datasets: datasets },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: datasets.length > 1, labels: { font: { size: 11 } } },
+        tooltip: { callbacks: { label: function(c) {
+          var cnt = counts[c.dataIndex];
+          return [c.dataset.label + ": " + new Intl.NumberFormat("no-NO").format(c.parsed.y) + " kr", "Annonser: " + cnt];
+        }}}
+      },
+      scales: {
+        y: { ticks: { callback: function(v) { return new Intl.NumberFormat("no-NO", {notation: "compact", maximumFractionDigits: 1}).format(v) + " kr"; } }, grid: { color: "rgba(0,0,0,0.05)" } },
+        x: { grid: { display: false } }
+      }
     }
   });
 }
 
+// ── Tabell ────────────────────────────────────────────────────────────────────
 function renderTable() {
-  var tbody=document.getElementById("result-tbody");
-  var total=filtered.length;
-  var totalPages=Math.ceil(total/PER_PAGE);
-  var start=(page-1)*PER_PAGE;
-  var slice=filtered.slice(start,start+PER_PAGE);
-  document.getElementById("rc-total").textContent=total.toLocaleString("no-NO");
-  document.getElementById("rc-vis").textContent=Math.min(page*PER_PAGE,total).toLocaleString("no-NO");
-  if(!slice.length){ tbody.innerHTML="<tr><td colspan=8><div class=empty-state>Ingen bater matcher gjeldende filter.</div></td></tr>"; document.getElementById("pager-info").textContent=""; document.getElementById("pager-btns").innerHTML=""; return; }
-  tbody.innerHTML=slice.map(function(b){
-    var title=b.t||(b.m+" "+b.mo);
-    var link=b.li&&b.li.indexOf("http")===0?"<a class=tittel-link href=\""+b.li+"\" target=_blank rel=noopener>"+esc(title)+"</a>":"<span class=no-link>"+esc(title)+"</span>";
-    var kilde=b.ki==="Intern"?"<span class=\"badge-kilde badge-intern2\">Intern</span>":"<span class=\"badge-kilde badge-ekstern2\">Ekstern</span>";
-    var motorStr=[b.mm&&b.mm!=="-"?b.mm:null,b.mot&&b.mot!=="-"?b.mot:null,b.hk?b.hk+" hk":null].filter(Boolean).join(" / ")||"-";
-    return "<tr><td class=td-tittel>"+link+"</td><td>"+esc(b.m)+"</td><td class=td-center>"+(b.ar||"-")+"</td><td class=td-center>"+(b.fo?b.fo+"'":"-")+"</td><td>"+motorStr+"</td><td>"+(b.dr&&b.dr!=="-"?esc(b.dr):"-")+"</td><td class=pris-cell>"+fmtPris(b.p)+"</td><td>"+kilde+"</td></tr>";
+  var tbody = document.getElementById("result-tbody");
+  var total = filtered.length;
+  var totalPages = Math.ceil(total / PER_PAGE);
+  var start = (page - 1) * PER_PAGE;
+  var slice = filtered.slice(start, start + PER_PAGE);
+  document.getElementById("rc-total").textContent = total.toLocaleString("no-NO");
+  document.getElementById("rc-vis").textContent = Math.min(page * PER_PAGE, total).toLocaleString("no-NO");
+  if (!slice.length) {
+    tbody.innerHTML = "<tr><td colspan=8><div class=empty-state>Ingen bater matcher gjeldende filter.</div></td></tr>";
+    document.getElementById("pager-info").textContent = "";
+    document.getElementById("pager-btns").innerHTML = "";
+    return;
+  }
+  tbody.innerHTML = slice.map(function(b) {
+    var title = b.t || (b.m + " " + b.mo);
+    var link = b.li && b.li.indexOf("http") === 0
+      ? '<a class=tittel-link href="' + b.li + '" target=_blank rel=noopener>' + esc(title) + '</a>'
+      : '<span class=no-link>' + esc(title) + '</span>';
+    var kilde = b.ki === "Intern"
+      ? '<span class="badge-kilde badge-intern2">Intern</span>'
+      : '<span class="badge-kilde badge-ekstern2">Ekstern</span>';
+    var motorStr = [b.mm && b.mm !== "-" ? b.mm : null, b.mot && b.mot !== "-" ? b.mot : null, b.hk ? b.hk + " hk" : null].filter(Boolean).join(" / ") || "-";
+    return "<tr><td class=td-tittel>" + link + "</td><td>" + esc(b.m) + "</td><td class=td-center>" + (b.ar || "-") + "</td><td class=td-center>" + (b.fo ? b.fo + "'" : "-") + "</td><td>" + motorStr + "</td><td>" + (b.dr && b.dr !== "-" ? esc(b.dr) : "-") + "</td><td class=pris-cell>" + fmtPris(b.p) + "</td><td>" + kilde + "</td></tr>";
   }).join("");
-  var btns=[];
-  btns.push("<button class=pager-btn onclick=\"goPage("+(page-1)+")\""+(page===1?" disabled":"")+">Forrige</button>");
-  var maxP=Math.min(totalPages,5);
-  var startP=Math.max(1,Math.min(page-2,totalPages-maxP+1));
-  for(var i=0;i<maxP;i++){ var p2=startP+i; btns.push("<button class=\"pager-btn"+(p2===page?" active":"")+"\" onclick=\"goPage("+p2+")\">"+p2+"</button>"); }
-  btns.push("<button class=pager-btn onclick=\"goPage("+(page+1)+")\""+(page>=totalPages?" disabled":"")+">Neste</button>");
-  document.getElementById("pager-info").textContent="Side "+page+" av "+totalPages;
-  document.getElementById("pager-btns").innerHTML=btns.join("");
+
+  var btns = [];
+  btns.push('<button class=pager-btn onclick="goPage(' + (page - 1) + ')"' + (page === 1 ? " disabled" : "") + '>Forrige</button>');
+  var maxP = Math.min(totalPages, 5);
+  var startP = Math.max(1, Math.min(page - 2, totalPages - maxP + 1));
+  for (var i = 0; i < maxP; i++) { var p2 = startP + i; btns.push('<button class="pager-btn' + (p2 === page ? " active" : "") + '" onclick="goPage(' + p2 + ')">' + p2 + '</button>'); }
+  btns.push('<button class=pager-btn onclick="goPage(' + (page + 1) + ')"' + (page >= totalPages ? " disabled" : "") + '>Neste</button>');
+  document.getElementById("pager-info").textContent = "Side " + page + " av " + totalPages;
+  document.getElementById("pager-btns").innerHTML = btns.join("");
 }
 
-function goPage(p){ var max=Math.ceil(filtered.length/PER_PAGE); if(p<1||p>max) return; page=p; renderTable(); document.querySelector(".table-wrap").scrollIntoView({behavior:"smooth",block:"start"}); }
-function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
-function resetFilters(){ ["f-merke","f-modell","f-type","f-motor","f-drivstoff"].forEach(function(id){document.getElementById(id).value="";}); ["f-ar-fra","f-ar-til","f-fot-fra","f-fot-til","f-hk-fra","f-hk-til","f-pris-fra","f-pris-til"].forEach(function(id){document.getElementById(id).value="";}); document.getElementById("f-sr").checked=false; updateModellDropdown(); setKilde("all"); }
+function goPage(p) {
+  var max = Math.ceil(filtered.length / PER_PAGE);
+  if (p < 1 || p > max) return;
+  page = p;
+  renderTable();
+  document.querySelector(".table-wrap").scrollIntoView({behavior: "smooth", block: "start"});
+}
+
+function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+function resetFilters() {
+  clearMerke();
+  ["f-modell","f-type","f-motor","f-drivstoff"].forEach(function(id) { document.getElementById(id).value = ""; });
+  ["f-ar-fra","f-ar-til","f-fot-fra","f-fot-til","f-hk-fra","f-hk-til","f-pris-fra","f-pris-til"].forEach(function(id) { document.getElementById(id).value = ""; });
+  document.getElementById("f-sr").checked = false;
+  setKilde("all");
+}
 </script>
 </body>
 </html>
