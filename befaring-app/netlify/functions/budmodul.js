@@ -1,7 +1,9 @@
 // ── budmodul.js ────────────────────────────────────────────────────────────────
 // GET  ?budboard=DEAL_ID         → offers + events + deal info for one deal
 // GET  ?oversikt=1               → alle deals med aktive bud (admin)
+// GET  ?interessenter=DEAL_ID    → HubSpot-kontakter på dealen (ex. Seller/Co-owner) + bud/budskjema-status
 // POST action=create_offer       → registrer nytt bud
+// POST action=log_contact_action → logg budskjema-sending eller annen kontakthandling
 // POST action=set_status         → accept / reject / withdraw
 // POST action=create_counter     → motbud (nytt bud lenket til originalbud)
 // POST action=update_expiry      → oppdater frist
@@ -231,6 +233,87 @@ exports.handler = async (event) => {
     });
 
     return { statusCode: 200, headers: h, body: JSON.stringify({ deals }) };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // GET ?interessenter=DEAL_ID
+  // Returns contacts on the deal (excluding Seller / Co-owner) enriched with
+  // offer status from Supabase and budskjema-tracking from contact_actions.
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (event.httpMethod === 'GET' && q.interessenter) {
+    const dealId = q.interessenter;
+
+    // 1. HubSpot v4: associations with labels
+    const assocRes = await hs(`/crm/v4/objects/deals/${dealId}/associations/contacts?limit=500`);
+    const assocItems = assocRes.data?.results || [];
+
+    const EXCLUDE = ['Seller', 'Co-owner'];
+    const contactLabels = {};
+    for (const item of assocItems) {
+      const labels = (item.associationTypes || []).map(t => t.label).filter(Boolean);
+      contactLabels[String(item.toObjectId)] = labels;
+    }
+    const includedIds = Object.entries(contactLabels)
+      .filter(([, labels]) => !labels.length || labels.some(l => !EXCLUDE.includes(l)))
+      .map(([id]) => id);
+
+    if (!includedIds.length) {
+      return { statusCode: 200, headers: h, body: JSON.stringify({ interessenter: [] }) };
+    }
+
+    // 2. Batch-read contact details
+    const batchRes = await hs('/crm/v3/objects/contacts/batch/read', 'POST', {
+      properties: ['firstname', 'lastname', 'email', 'phone', 'mobilephone'],
+      inputs: includedIds.map(id => ({ id })),
+    });
+    const contacts = batchRes.data?.results || [];
+
+    // 3. Cross-reference with Supabase offers + contact_actions
+    const [offersRes, actionsRes] = await Promise.all([
+      supabase.from('offers').select('buyer_contact_id,buyer_email,amount_nok,status').eq('deal_id', dealId),
+      supabase.from('contact_actions').select('contact_hs_id,action_type,performed_at').eq('deal_id', dealId),
+    ]);
+
+    const offerByContactId = {};
+    const offerByEmail     = {};
+    for (const o of (offersRes.data || [])) {
+      if (o.buyer_contact_id) offerByContactId[String(o.buyer_contact_id)] = o;
+      if (o.buyer_email)      offerByEmail[o.buyer_email.toLowerCase()]     = o;
+    }
+    const actionsByContact = {};
+    for (const a of (actionsRes.data || [])) {
+      (actionsByContact[a.contact_hs_id] = actionsByContact[a.contact_hs_id] || []).push(a);
+    }
+
+    // 4. Enrich
+    const interessenter = contacts.map(c => {
+      const id    = String(c.id);
+      const props = c.properties || {};
+      const name  = [props.firstname, props.lastname].filter(Boolean).join(' ') || 'Ukjent';
+      const email = props.email || '';
+      const phone = props.mobilephone || props.phone || '';
+      const labels = contactLabels[id] || [];
+      const offer  = offerByContactId[id] || (email ? offerByEmail[email.toLowerCase()] : null);
+      const sent   = (actionsByContact[id] || []).find(a => a.action_type === 'BudskjemaSent');
+      return {
+        hs_id:             id,
+        name,
+        email,
+        phone,
+        labels,
+        has_offer:         !!offer,
+        offer_amount:      offer?.amount_nok || null,
+        offer_status:      offer?.status     || null,
+        budskjema_sent_at: sent?.performed_at || null,
+      };
+    });
+
+    interessenter.sort((a, b) => {
+      if (a.has_offer !== b.has_offer) return a.has_offer ? -1 : 1;
+      return a.name.localeCompare(b.name, 'no');
+    });
+
+    return { statusCode: 200, headers: h, body: JSON.stringify({ interessenter }) };
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -487,6 +570,24 @@ exports.handler = async (event) => {
     }
 
     return { statusCode: 200, headers: h, body: JSON.stringify({ ok: true, message }) };
+  }
+
+  // ── log_contact_action ───────────────────────────────────────────────────────
+  // Records budskjema-sending or other megler actions on a contact/deal pair.
+  if (action === 'log_contact_action') {
+    const { dealId, contactHsId, contactEmail, actionType, payload: ap = {} } = body;
+    if (!dealId || !contactHsId || !actionType) {
+      return { statusCode: 400, headers: h, body: JSON.stringify({ error: 'dealId, contactHsId og actionType påkrevd' }) };
+    }
+    await supabase.from('contact_actions').insert({
+      deal_id:       dealId,
+      contact_hs_id: contactHsId,
+      contact_email: contactEmail || null,
+      action_type:   actionType,
+      performed_by:  userId,
+      payload:       ap,
+    });
+    return { statusCode: 200, headers: h, body: JSON.stringify({ ok: true }) };
   }
 
   return { statusCode: 400, headers: h, body: JSON.stringify({ error: 'Ukjent action' }) };

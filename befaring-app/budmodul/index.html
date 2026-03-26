@@ -102,6 +102,15 @@
     .contingency-icons{display:flex;gap:4px;flex-wrap:wrap}
     .c-icon{font-size:13px;padding:2px 6px;background:var(--surface);border-radius:6px}
 
+    /* Interessenter table */
+    .interessenter-table{width:100%;border-collapse:collapse}
+    .interessenter-table th{font-size:11px;font-weight:600;letter-spacing:.04em;color:var(--text-muted);padding:8px 14px;text-align:left;border-bottom:1px solid var(--border)}
+    .interessenter-table td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:14px}
+    .interessenter-table tr:last-child td{border-bottom:none}
+    .interessenter-table tr:hover td{background:rgba(255,255,255,.03)}
+    .role-badge{font-size:11px;padding:2px 7px;border-radius:4px;background:rgba(255,255,255,.08);color:var(--text-muted);white-space:nowrap}
+    .btn-sm{font-size:12px !important;padding:4px 10px !important;line-height:1.4}
+
     /* Detail panel */
     .detail-panel{background:white;border-radius:14px;box-shadow:var(--shadow);padding:24px;margin-bottom:20px}
     .detail-panel-title{font-size:16px;font-weight:700;color:var(--navy);margin:0 0 16px}
@@ -240,6 +249,17 @@
         <button class="btn-cancel" style="margin-left:8px" onclick="hideNotifyPanel()">Lukk</button>
       </div>
 
+      <!-- Interessenter section -->
+      <div class="offers-card" id="interessenterCard" style="display:none">
+        <div class="offers-card-header" style="display:flex;justify-content:space-between;align-items:center">
+          <span class="offers-card-title">Interessenter</span>
+          <button class="btn-outline btn-sm" onclick="loadInteressenter()">↻ Oppdater</button>
+        </div>
+        <div id="interessenterTable" style="padding:0">
+          <div class="empty-state" style="padding:16px">Henter interessenter…</div>
+        </div>
+      </div>
+
       <!-- Offers table -->
       <div class="offers-card">
         <div class="offers-card-header">
@@ -274,6 +294,12 @@
 <div class="modal-overlay" id="newOfferModal" style="display:none" onclick="if(event.target===this)closeNewOfferModal()">
   <div class="modal">
     <h3>Registrer nytt bud</h3>
+    <div class="field" id="interessentPickerField" style="display:none">
+      <label>Forhåndsutfyll fra interessentliste</label>
+      <select id="mInteressent" onchange="prefillFromInteressent()">
+        <option value="">— Fyll inn manuelt —</option>
+      </select>
+    </div>
     <div class="field-row">
       <div class="field">
         <label>Budgivernavn *</label>
@@ -333,6 +359,9 @@
         <label style="font-weight:400;display:flex;align-items:center;gap:6px">
           <input type="checkbox" id="cSurvey" value="Survey"> Undersøkelsesforbehold
         </label>
+      </div>
+      <div style="margin-top:8px">
+        <textarea id="mContingencyText" rows="2" placeholder="Fritekst forbehold — f.eks. selges uten motor, forbehold om sjøsettingstillatelse…" style="margin-top:4px"></textarea>
       </div>
     </div>
     <div class="field">
@@ -394,6 +423,7 @@ let events  = [];
 let selectedOfferId = null;
 let pendingAcceptId = null;
 let pendingRejectId = null;
+let interessenter   = [];
 
 const $ = id => document.getElementById(id);
 
@@ -513,13 +543,111 @@ async function openBudboard() {
   $('pickerView').style.display = 'none';
   $('budboardView').style.display = 'block';
   await refreshBudboard();
+  loadInteressenter(); // async — don't block board render
 }
 
 function backToPicker() {
   $('pickerView').style.display = 'block';
   $('budboardView').style.display = 'none';
   currentDealId = null;
-  offers = []; events = [];
+  offers = []; events = []; interessenter = [];
+  $('interessenterCard').style.display = 'none';
+}
+
+// ── Interessenter ─────────────────────────────────────────────────────────────
+async function loadInteressenter() {
+  if (!currentDealId) return;
+  $('interessenterCard').style.display = 'block';
+  $('interessenterTable').innerHTML = '<div class="empty-state" style="padding:16px">Henter interessenter…</div>';
+  try {
+    const r = await fetch(`${API}?interessenter=${encodeURIComponent(currentDealId)}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const data = await r.json();
+    interessenter = data.interessenter || [];
+    renderInteressenter();
+    populateInteressentPicker();
+  } catch {
+    $('interessenterTable').innerHTML = '<div class="empty-state" style="padding:16px">Kunne ikke hente interessenter.</div>';
+  }
+}
+
+function renderInteressenter() {
+  const el = $('interessenterTable');
+  if (!interessenter.length) {
+    el.innerHTML = '<div class="empty-state" style="padding:16px">Ingen interessenter registrert på dette oppdraget ennå.</div>';
+    return;
+  }
+  const LABEL_NO = {
+    'Interessent':'Interessent','Budgiver':'Budgiver',
+    'Final buyer':'Kjøper','Offeror':'Budgiver','Co-owner':'Medeier',
+  };
+  const rows = interessenter.map(i => {
+    const roleHtml = i.labels.length
+      ? i.labels.map(l => `<span class="role-badge">${escHtml(LABEL_NO[l] || l)}</span>`).join(' ')
+      : '<span class="role-badge">—</span>';
+    const budCell = i.has_offer
+      ? `<span style="color:#4caf50">✓ ${fmtNok(i.offer_amount)}</span>`
+      : '<span style="color:var(--text-muted)">—</span>';
+    const hsIdSafe   = escHtml(i.hs_id);
+    const nameSafe   = escHtml(i.name).replace(/'/g, '&#39;');
+    const emailSafe  = escHtml(i.email || '').replace(/'/g, '&#39;');
+    const skjemaCell = i.budskjema_sent_at
+      ? `<span style="color:var(--text-muted);font-size:13px">Sendt ${fmtDateShort(i.budskjema_sent_at)}</span>`
+      : `<button class="btn-outline btn-sm" onclick="markBudskjemaSent('${hsIdSafe}','${nameSafe}','${emailSafe}')">Merk sendt</button>`;
+    return `<tr>
+      <td>
+        <div style="font-weight:500">${escHtml(i.name)}</div>
+        <div style="font-size:12px;color:var(--text-muted)">${escHtml(i.email || '—')}</div>
+        ${i.phone ? `<div style="font-size:12px;color:var(--text-muted)">${escHtml(i.phone)}</div>` : ''}
+      </td>
+      <td>${roleHtml}</td>
+      <td>${budCell}</td>
+      <td>${skjemaCell}</td>
+    </tr>`;
+  }).join('');
+  el.innerHTML = `<table class="interessenter-table">
+    <thead><tr>
+      <th>NAVN / KONTAKT</th><th>ROLLE</th><th>BUD GITT</th><th>BUDSKJEMA</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function populateInteressentPicker() {
+  const sel = $('mInteressent');
+  sel.innerHTML = '<option value="">— Fyll inn manuelt —</option>';
+  for (const i of interessenter) {
+    const opt = document.createElement('option');
+    opt.value         = i.hs_id;
+    opt.textContent   = i.name + (i.email ? ` (${i.email})` : '');
+    opt.dataset.name  = i.name;
+    opt.dataset.email = i.email  || '';
+    opt.dataset.phone = i.phone  || '';
+    sel.appendChild(opt);
+  }
+  $('interessentPickerField').style.display = interessenter.length ? 'block' : 'none';
+}
+
+function prefillFromInteressent() {
+  const sel = $('mInteressent');
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt?.value) return;
+  $('mBuyerName').value  = opt.dataset.name  || '';
+  $('mBuyerPhone').value = opt.dataset.phone || '';
+  $('mBuyerEmail').value = opt.dataset.email || '';
+}
+
+async function markBudskjemaSent(hsId, name, email) {
+  if (!confirm(`Merk budskjema som sendt til ${name}?`)) return;
+  await api({}, 'POST', {
+    action:        'log_contact_action',
+    dealId:        currentDealId,
+    contactHsId:   hsId,
+    contactEmail:  email || null,
+    actionType:    'BudskjemaSent',
+  });
+  await loadInteressenter();
 }
 
 // ── Budboard ──────────────────────────────────────────────────────────────────
@@ -664,7 +792,8 @@ function renderEventLog() {
 function showNewOfferModal() {
   $('mBuyerName').value=''; $('mBuyerPhone').value=''; $('mBuyerEmail').value='';
   $('mAmount').value=''; $('mExpiry').value=''; $('mReceivedVia').value='';
-  $('mFinancing').value='Unknown'; $('mNotes').value='';
+  $('mFinancing').value='Unknown'; $('mNotes').value=''; $('mContingencyText').value='';
+  $('mInteressent').value='';
   $('cFinancing').checked=false; $('cOwnBoat').checked=false; $('cSurvey').checked=false;
   $('newOfferError').style.display='none';
   $('newOfferModal').style.display='flex';
@@ -680,18 +809,22 @@ async function saveNewOffer() {
   if (!buyerName)   { errEl.textContent='Navn på budgiver er påkrevd'; errEl.style.display='block'; return; }
   if (!amountNOK)   { errEl.textContent='Budbeløp er påkrevd'; errEl.style.display='block'; return; }
   if (!receivedVia) { errEl.textContent='Velg hvordan budet ble mottatt'; errEl.style.display='block'; return; }
-  const contingencies = ['cFinancing','cOwnBoat','cSurvey']
+  const contingencies     = ['cFinancing','cOwnBoat','cSurvey']
     .filter(id => $(id).checked).map(id => $(id).value);
+  const contingenciesText = $('mContingencyText').value.trim() || null;
+  const buyerContactId    = $('mInteressent').value || null;
   const btn = $('saveOfferBtn'); btn.disabled=true; btn.textContent='Lagrer…';
   try {
     await api({}, 'POST', {
       action: 'create_offer', dealId: currentDealId,
+      buyerContactId,
       buyerName, buyerEmail: $('mBuyerEmail').value.trim()||null,
       buyerPhone: $('mBuyerPhone').value.trim()||null,
       amountNOK, receivedVia,
       expiryAt: $('mExpiry').value ? new Date($('mExpiry').value).toISOString() : null,
       financingStatus: $('mFinancing').value,
-      contingencies, notesInternal: $('mNotes').value.trim()||null,
+      contingencies, contingenciesText,
+      notesInternal: $('mNotes').value.trim()||null,
     });
     closeNewOfferModal();
     await refreshBudboard();
@@ -744,8 +877,12 @@ function showCounterModal(offerId) {
 
 // ── Notify panel ──────────────────────────────────────────────────────────────
 async function showNotifyPanel() {
-  const pending = offers.filter(o => o.status === 'Pending');
-  const highest = pending.reduce((m, o) => Math.max(m, o.amount_nok), 0);
+  const pending  = offers.filter(o => o.status === 'Pending');
+  const accepted = offers.filter(o => o.status === 'Accepted');
+  // Etter aksept: bruk akseptert bud som høyeste; ellers høyeste ventende bud
+  const relevantOffers = accepted.length > 0 ? accepted : pending;
+  const highest = relevantOffers.reduce((m, o) => Math.max(m, o.amount_nok), 0);
+  // Frist er kun relevant så lenge det er aktive bud
   const soonest = pending.map(o => o.expiry_at).filter(Boolean).sort()[0];
   const boatName = currentDealName.replace(/^\d+\s*-\s*/, '');
   const r = await api({}, 'POST', {
