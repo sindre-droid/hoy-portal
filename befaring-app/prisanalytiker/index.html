@@ -117,7 +117,11 @@
     </div>
     <div class="filter-group">
       <label class="filter-label" for="f-merke">Merke</label>
-      <select id="f-merke" onchange="applyFilters()"><option value="">Alle merker</option></select>
+      <select id="f-merke" onchange="updateModellDropdown();applyFilters()"><option value="">Alle merker</option></select>
+    </div>
+    <div class="filter-group">
+      <label class="filter-label" for="f-modell">Modell</label>
+      <select id="f-modell" onchange="applyFilters()"><option value="">Alle modeller</option></select>
     </div>
     <div class="filter-group">
       <label class="filter-label" for="f-type">Battype</label>
@@ -170,6 +174,13 @@
         <span>-</span>
         <input type="number" id="f-pris-til" placeholder="Til" onchange="applyFilters()">
       </div>
+    </div>
+    <div class="filter-group">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;">
+        <input type="checkbox" id="f-sr" onchange="applyFilters()" style="width:16px;height:16px;accent-color:#0a2140;cursor:pointer;">
+        Kun skipsregistrert
+      </label>
+      <div style="font-size:11px;color:#6b7a8d;margin-top:3px;">Basert på annonsetekst</div>
     </div>
     <button class="btn-reset" onclick="resetFilters()">Nullstill filter</button>
   </aside>
@@ -259,6 +270,17 @@ function initFilters() {
   merker.forEach(function(m){ var o=document.createElement("option"); o.value=m; o.textContent=m; ms.appendChild(o); });
   var ts = document.getElementById("f-type");
   typer.forEach(function(t){ var o=document.createElement("option"); o.value=t; o.textContent=t; ts.appendChild(o); });
+  updateModellDropdown();
+}
+
+function updateModellDropdown() {
+  var valgtMerke = getVal("f-merke");
+  var valgtModell = getVal("f-modell");
+  var subset = valgtMerke ? BOAT_DATA.filter(function(b){ return b.m === valgtMerke; }) : BOAT_DATA;
+  var modeller = [...new Set(subset.map(function(b){return b.mo;}))].filter(function(m){ return m && m !== "-"; }).sort();
+  var md = document.getElementById("f-modell");
+  md.innerHTML = "<option value=\"\">Alle modeller</option>";
+  modeller.forEach(function(m){ var o=document.createElement("option"); o.value=m; o.textContent=m; if(m===valgtModell) o.selected=true; md.appendChild(o); });
 }
 
 function setKilde(k) {
@@ -274,7 +296,8 @@ function getVal(id){ return document.getElementById(id).value; }
 function getNum(id){ var v=parseFloat(document.getElementById(id).value); return isNaN(v)?null:v; }
 
 function applyFilters() {
-  var merke=getVal("f-merke"), type=getVal("f-type"), motor=getVal("f-motor"), drivstoff=getVal("f-drivstoff");
+  var merke=getVal("f-merke"), modell=getVal("f-modell"), type=getVal("f-type"), motor=getVal("f-motor"), drivstoff=getVal("f-drivstoff");
+  var kunSR=document.getElementById("f-sr").checked;
   var arFra=getNum("f-ar-fra"), arTil=getNum("f-ar-til");
   var fotFra=getNum("f-fot-fra"), fotTil=getNum("f-fot-til");
   var hkFra=getNum("f-hk-fra"), hkTil=getNum("f-hk-til");
@@ -284,9 +307,11 @@ function applyFilters() {
     if (activeKilde==="ekstern" && b.ki!=="Ekstern") return false;
     if (activeKilde==="intern"  && b.ki!=="Intern")  return false;
     if (merke     && b.m  !==merke)     return false;
+    if (modell    && b.mo !==modell)    return false;
     if (type      && b.ty !==type)      return false;
     if (motor     && b.mot!==motor)     return false;
     if (drivstoff && b.dr !==drivstoff) return false;
+    if (kunSR && !b.sr) return false;
     if (arFra  !==null && (b.ar===0||b.ar<arFra))   return false;
     if (arTil  !==null && (b.ar===0||b.ar>arTil))   return false;
     if (fotFra !==null && (b.fo===0||b.fo<fotFra))  return false;
@@ -388,7 +413,7 @@ function renderTable() {
     var title=b.t||(b.m+" "+b.mo);
     var link=b.li&&b.li.indexOf("http")===0?"<a class=tittel-link href=\""+b.li+"\" target=_blank rel=noopener>"+esc(title)+"</a>":"<span class=no-link>"+esc(title)+"</span>";
     var kilde=b.ki==="Intern"?"<span class=\"badge-kilde badge-intern2\">Intern</span>":"<span class=\"badge-kilde badge-ekstern2\">Ekstern</span>";
-    var motorStr=[b.mot&&b.mot!=="-"?b.mot:null,b.hk?b.hk+" hk":null].filter(Boolean).join(" / ")||"-";
+    var motorStr=[b.mm&&b.mm!=="-"?b.mm:null,b.mot&&b.mot!=="-"?b.mot:null,b.hk?b.hk+" hk":null].filter(Boolean).join(" / ")||"-";
     return "<tr><td class=td-tittel>"+link+"</td><td>"+esc(b.m)+"</td><td class=td-center>"+(b.ar||"-")+"</td><td class=td-center>"+(b.fo?b.fo+"'":"-")+"</td><td>"+motorStr+"</td><td>"+(b.dr&&b.dr!=="-"?esc(b.dr):"-")+"</td><td class=pris-cell>"+fmtPris(b.p)+"</td><td>"+kilde+"</td></tr>";
   }).join("");
   var btns=[];
@@ -403,7 +428,7 @@ function renderTable() {
 
 function goPage(p){ var max=Math.ceil(filtered.length/PER_PAGE); if(p<1||p>max) return; page=p; renderTable(); document.querySelector(".table-wrap").scrollIntoView({behavior:"smooth",block:"start"}); }
 function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
-function resetFilters(){ ["f-merke","f-type","f-motor","f-drivstoff"].forEach(function(id){document.getElementById(id).value="";}); ["f-ar-fra","f-ar-til","f-fot-fra","f-fot-til","f-hk-fra","f-hk-til","f-pris-fra","f-pris-til"].forEach(function(id){document.getElementById(id).value="";}); setKilde("all"); }
+function resetFilters(){ ["f-merke","f-modell","f-type","f-motor","f-drivstoff"].forEach(function(id){document.getElementById(id).value="";}); ["f-ar-fra","f-ar-til","f-fot-fra","f-fot-til","f-hk-fra","f-hk-til","f-pris-fra","f-pris-til"].forEach(function(id){document.getElementById(id).value="";}); document.getElementById("f-sr").checked=false; updateModellDropdown(); setKilde("all"); }
 </script>
 </body>
 </html>
