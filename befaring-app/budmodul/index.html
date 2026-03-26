@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Budmodul — House of Yachts</title>
+  <style>
+    :root {
+      --navy:#0a2140;--gold:#c9a84c;--white:#fff;--surface:#f5f7fa;
+      --gray:#dde3ec;--gray-dark:#6b7a8d;--text:#12233a;
+      --green:#166534;--green-bg:#dcfce7;
+      --red:#991b1b;--red-bg:#fee2e2;--red-mid:#f87171;
+      --yellow:#92400e;--yellow-bg:#fef3c7;
+      --blue:#1e40af;--blue-bg:#dbeafe;
+      --radius:12px;--shadow:0 2px 16px rgba(10,33,64,0.10);
+    }
+    *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--surface);color:var(--text);margin:0;padding:0;min-height:100vh}
+
+    /* ── Loading / Login (same as rest of portal) ── */
+    .loading-screen,.login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy)}
+    .loading-text{color:rgba(255,255,255,0.5);font-size:15px}
+    .login-box{background:white;border-radius:20px;padding:40px 36px;max-width:400px;width:calc(100% - 32px);text-align:center;box-shadow:0 8px 40px rgba(0,0,0,0.3)}
+    .login-logo{font-size:22px;font-weight:800;color:var(--navy);margin-bottom:4px}
+    .login-sub{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:28px}
+    .login-form{display:flex;flex-direction:column;gap:12px;text-align:left;margin-bottom:20px}
+    .login-form label{font-size:13px;font-weight:600;color:var(--navy);display:block;margin-bottom:4px}
+    .login-form input{width:100%;padding:13px 15px;border:2px solid var(--gray);border-radius:10px;font-size:16px;font-family:inherit}
+    .login-form input:focus{outline:none;border-color:var(--navy)}
+    .btn-login{width:100%;padding:15px;background:var(--navy);color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer}
+    .login-error{color:#991b1b;font-size:13px;font-weight:600;margin-top:10px;display:none}
+
+    /* ── Header ── */
+    .header{background:var(--navy);color:white;padding:14px 20px;position:sticky;top:0;z-index:200;box-shadow:0 2px 16px rgba(0,0,0,0.35)}
+    .header-inner{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .brand{display:flex;flex-direction:column}
+    .brand-name{font-size:14px;font-weight:800;letter-spacing:0.8px}
+    .brand-sub{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--gold)}
+    .header-title{font-size:16px;font-weight:700;color:rgba(255,255,255,0.9)}
+    .header-right{display:flex;align-items:center;gap:12px}
+    .user-label{font-size:12px;color:rgba(255,255,255,0.55)}
+    .btn-nav{background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.18);border-radius:20px;color:rgba(255,255,255,0.85);padding:6px 14px;font-size:12px;font-family:inherit;cursor:pointer;text-decoration:none}
+    .btn-nav:hover{background:rgba(255,255,255,0.2)}
+
+    /* ── Deal picker ── */
+    .picker-wrap{max-width:700px;margin:60px auto;padding:0 16px;text-align:center}
+    .picker-title{font-size:22px;font-weight:700;color:var(--navy);margin-bottom:8px}
+    .picker-sub{font-size:14px;color:var(--gray-dark);margin-bottom:24px}
+    .deal-select{width:100%;padding:14px 16px;border:2px solid var(--gray);border-radius:12px;font-size:16px;font-family:inherit;color:var(--text);background:white;cursor:pointer}
+    .deal-select:focus{outline:none;border-color:var(--navy)}
+    .btn-primary{background:var(--navy);color:white;border:none;border-radius:10px;padding:14px 28px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity 0.2s}
+    .btn-primary:hover{opacity:0.88}
+    .btn-primary:disabled{opacity:0.4;cursor:not-allowed}
+
+    /* ── Budboard layout ── */
+    .budboard{max-width:1200px;margin:0 auto;padding:24px 16px 80px}
+
+    /* Deal header */
+    .deal-header{background:var(--navy);color:white;border-radius:14px;padding:20px 24px;margin-bottom:20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+    .deal-header-name{font-size:20px;font-weight:800;flex:1;min-width:200px}
+    .deal-header-stat{text-align:center;min-width:100px}
+    .deal-header-stat-val{font-size:20px;font-weight:800;color:var(--gold)}
+    .deal-header-stat-lbl{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.55);margin-top:2px}
+    .status-badge{padding:6px 16px;border-radius:20px;font-size:13px;font-weight:700}
+    .badge-ingen{background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.6)}
+    .badge-aktive{background:#fef3c7;color:#92400e}
+    .badge-akseptert{background:#dcfce7;color:#166534}
+
+    /* Action bar */
+    .action-bar{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+    .btn-gold{background:var(--gold);color:var(--navy);border:none;border-radius:10px;padding:12px 22px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+    .btn-gold:hover{opacity:0.88}
+    .btn-outline{background:white;color:var(--navy);border:2px solid var(--gray);border-radius:10px;padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+    .btn-outline:hover{border-color:var(--navy)}
+
+    /* Offers table */
+    .offers-card{background:white;border-radius:14px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:20px}
+    .offers-card-header{padding:16px 20px;border-bottom:1px solid var(--gray);display:flex;align-items:center;justify-content:space-between}
+    .offers-card-title{font-size:15px;font-weight:700;color:var(--navy)}
+    table{width:100%;border-collapse:collapse}
+    th{font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--gray-dark);padding:12px 16px;text-align:left;border-bottom:2px solid var(--gray)}
+    td{padding:14px 16px;border-bottom:1px solid var(--gray);font-size:14px;vertical-align:middle}
+    tr:last-child td{border-bottom:none}
+    tr.clickable{cursor:pointer;transition:background 0.15s}
+    tr.clickable:hover{background:#f8fafd}
+    tr.selected{background:#eff6ff}
+
+    /* Status pills */
+    .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600}
+    .pill-pending{background:#fef3c7;color:#92400e}
+    .pill-accepted{background:#dcfce7;color:#166534}
+    .pill-rejected{background:#f1f5f9;color:#64748b}
+    .pill-withdrawn{background:#f1f5f9;color:#64748b}
+    .pill-expired{background:var(--red-bg);color:var(--red)}
+
+    /* Expiry urgency */
+    .expiry-red{color:var(--red);font-weight:700}
+    .expiry-yellow{color:#d97706;font-weight:600}
+    .expiry-normal{color:var(--gray-dark)}
+
+    /* Contingency icons */
+    .contingency-icons{display:flex;gap:4px;flex-wrap:wrap}
+    .c-icon{font-size:13px;padding:2px 6px;background:var(--surface);border-radius:6px}
+
+    /* Detail panel */
+    .detail-panel{background:white;border-radius:14px;box-shadow:var(--shadow);padding:24px;margin-bottom:20px}
+    .detail-panel-title{font-size:16px;font-weight:700;color:var(--navy);margin:0 0 16px}
+    .detail-row{display:flex;gap:8px;margin-bottom:10px;font-size:14px}
+    .detail-label{color:var(--gray-dark);min-width:130px;font-weight:600;flex-shrink:0}
+    .detail-actions{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap}
+    .btn-accept{background:#166534;color:white;border:none;border-radius:10px;padding:11px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+    .btn-accept:hover{opacity:0.88}
+    .btn-reject{background:white;color:var(--red);border:2px solid var(--red);border-radius:10px;padding:9px 18px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+    .btn-reject:hover{background:var(--red-bg)}
+    .btn-counter{background:var(--blue-bg);color:var(--blue);border:none;border-radius:10px;padding:11px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+    .btn-counter:hover{opacity:0.85}
+
+    /* Notify panel */
+    .notify-panel{background:#fffbeb;border:2px solid #fde68a;border-radius:14px;padding:20px;margin-bottom:20px}
+    .notify-title{font-size:14px;font-weight:700;color:#92400e;margin:0 0 10px}
+    .notify-text{font-size:14px;color:var(--text);white-space:pre-wrap;background:white;border:1px solid var(--gray);border-radius:8px;padding:14px;line-height:1.6;margin-bottom:12px}
+    .btn-copy{background:#92400e;color:white;border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+
+    /* Modal */
+    .modal-overlay{position:fixed;inset:0;background:rgba(10,33,64,0.55);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px}
+    .modal{background:white;border-radius:16px;max-width:520px;width:100%;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,0.35)}
+    .modal h3{font-size:18px;font-weight:800;color:var(--navy);margin:0 0 18px}
+    .field{margin-bottom:14px}
+    .field label{display:block;font-size:13px;font-weight:600;color:var(--navy);margin-bottom:5px}
+    .field input,.field select,.field textarea{width:100%;padding:11px 13px;border:2px solid var(--gray);border-radius:8px;font-size:15px;font-family:inherit;color:var(--text)}
+    .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--navy)}
+    .field textarea{resize:vertical;min-height:80px}
+    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+    .btn-cancel{background:white;color:var(--gray-dark);border:2px solid var(--gray);border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+    .modal-error{color:var(--red);font-size:13px;margin-top:10px;display:none}
+
+    /* Event log */
+    .events-list{font-size:13px;color:var(--gray-dark)}
+    .event-row{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--gray)}
+    .event-row:last-child{border-bottom:none}
+    .event-time{color:var(--gray-dark);white-space:nowrap;min-width:110px}
+    .event-type{font-weight:600;color:var(--text)}
+    .event-by{color:var(--gray-dark)}
+
+    .empty-state{text-align:center;padding:48px 20px;color:var(--gray-dark);font-size:15px}
+  </style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loadingScreen" class="loading-screen" style="display:none">
+  <div class="loading-text" id="loadingText">Starter…</div>
+</div>
+
+<!-- Login -->
+<div id="loginScreen" class="login-screen" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">HOUSE OF YACHTS</div>
+    <div class="login-sub">Budmodul</div>
+    <div class="login-form">
+      <div><label for="loginEmail">E-post</label>
+        <input type="email" id="loginEmail" placeholder="navn@h-y.no" autocomplete="email"></div>
+      <div><label for="loginPassword">Passord</label>
+        <input type="password" id="loginPassword" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter')doLogin()"></div>
+    </div>
+    <div class="login-error" id="loginError"></div>
+    <button class="btn-login" id="loginBtn" onclick="doLogin()">🔐 Logg inn</button>
+  </div>
+</div>
+
+<!-- App -->
+<div id="appScreen" style="display:none">
+
+  <div class="header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-name">HOUSE OF YACHTS</div>
+        <div class="brand-sub">Internportal</div>
+      </div>
+      <div class="header-title">Budmodul</div>
+      <div class="header-right">
+        <span class="user-label" id="userLabel"></span>
+        <a href="/" class="btn-nav">← Portal</a>
+        <button class="btn-nav" onclick="doLogout()">Logg ut</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Deal picker -->
+  <div id="pickerView">
+    <div class="picker-wrap">
+      <div class="picker-title">Velg oppdrag</div>
+      <div class="picker-sub">Hent aktive bud og budhistorikk for et oppdrag</div>
+      <select id="dealSelect" class="deal-select" onchange="onDealSelect()">
+        <option value="">— Laster oppdrag… —</option>
+      </select>
+      <br><br>
+      <button class="btn-primary" id="openBudboardBtn" onclick="openBudboard()" disabled>Åpne budboard →</button>
+    </div>
+  </div>
+
+  <!-- Budboard -->
+  <div id="budboardView" style="display:none">
+    <div class="budboard">
+
+      <!-- Deal header -->
+      <div class="deal-header">
+        <div class="deal-header-name" id="bbDealName">—</div>
+        <div class="deal-header-stat">
+          <div class="deal-header-stat-val" id="bbHighest">—</div>
+          <div class="deal-header-stat-lbl">Høyeste bud</div>
+        </div>
+        <div class="deal-header-stat">
+          <div class="deal-header-stat-val" id="bbActiveCount">0</div>
+          <div class="deal-header-stat-lbl">Aktive bud</div>
+        </div>
+        <div class="deal-header-stat">
+          <div class="deal-header-stat-val" id="bbExpiry">—</div>
+          <div class="deal-header-stat-lbl">Nærmeste frist</div>
+        </div>
+        <div><span class="status-badge badge-ingen" id="bbStatusBadge">Ingen bud</span></div>
+        <button class="btn-nav" onclick="backToPicker()">← Bytt oppdrag</button>
+      </div>
+
+      <!-- Action bar -->
+      <div class="action-bar">
+        <button class="btn-gold" onclick="showNewOfferModal()">+ Nytt bud</button>
+        <button class="btn-outline" id="notifyBtn" onclick="showNotifyPanel()" style="display:none">
+          📢 Varsle budgivere
+        </button>
+      </div>
+
+      <!-- Notify panel (hidden by default) -->
+      <div class="notify-panel" id="notifyPanel" style="display:none">
+        <div class="notify-title">📢 Varslingstekst til budgivere</div>
+        <div class="notify-text" id="notifyText"></div>
+        <button class="btn-copy" onclick="copyNotify()">📋 Kopier tekst</button>
+        <button class="btn-cancel" style="margin-left:8px" onclick="hideNotifyPanel()">Lukk</button>
+      </div>
+
+      <!-- Offers table -->
+      <div class="offers-card">
+        <div class="offers-card-header">
+          <span class="offers-card-title">Budoversikt</span>
+        </div>
+        <div id="offersTable">
+          <div class="empty-state">Ingen bud registrert på dette oppdraget ennå.</div>
+        </div>
+      </div>
+
+      <!-- Offer detail panel -->
+      <div class="detail-panel" id="detailPanel" style="display:none">
+        <div class="detail-panel-title">Buddetaljer</div>
+        <div id="detailContent"></div>
+      </div>
+
+      <!-- Event log -->
+      <div class="offers-card">
+        <div class="offers-card-header">
+          <span class="offers-card-title">Hendelseslogg</span>
+        </div>
+        <div id="eventLog" style="padding:16px">
+          <div class="empty-state">Ingen hendelser ennå.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Nytt bud -->
+<div class="modal-overlay" id="newOfferModal" style="display:none" onclick="if(event.target===this)closeNewOfferModal()">
+  <div class="modal">
+    <h3>Registrer nytt bud</h3>
+    <div class="field-row">
+      <div class="field">
+        <label>Budgivernavn *</label>
+        <input type="text" id="mBuyerName" placeholder="Ola Nordmann">
+      </div>
+      <div class="field">
+        <label>Telefon</label>
+        <input type="tel" id="mBuyerPhone" placeholder="+47 900 00 000">
+      </div>
+    </div>
+    <div class="field">
+      <label>E-post</label>
+      <input type="email" id="mBuyerEmail" placeholder="ola@eksempel.no">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Budbeløp (NOK) *</label>
+        <input type="number" id="mAmount" placeholder="3500000">
+      </div>
+      <div class="field">
+        <label>Frist</label>
+        <input type="datetime-local" id="mExpiry">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Mottatt via *</label>
+        <select id="mReceivedVia">
+          <option value="">— Velg —</option>
+          <option value="Phone">Telefon</option>
+          <option value="SMS">SMS</option>
+          <option value="Email">E-post</option>
+          <option value="Oneflow_budskjema">Oneflow budskjema</option>
+          <option value="Other">Annet</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Finansiering</label>
+        <select id="mFinancing">
+          <option value="Unknown">Ukjent</option>
+          <option value="NeedsLoan">Trenger lån</option>
+          <option value="PreQualified">Forhåndsgodkjent</option>
+          <option value="Approved">Godkjent</option>
+          <option value="Cash">Egenkapital</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Forbehold</label>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px">
+        <label style="font-weight:400;display:flex;align-items:center;gap:6px">
+          <input type="checkbox" id="cFinancing" value="Financing"> Finansieringsforbehold
+        </label>
+        <label style="font-weight:400;display:flex;align-items:center;gap:6px">
+          <input type="checkbox" id="cOwnBoat" value="OwnBoatSale"> Salg av egen båt
+        </label>
+        <label style="font-weight:400;display:flex;align-items:center;gap:6px">
+          <input type="checkbox" id="cSurvey" value="Survey"> Undersøkelsesforbehold
+        </label>
+      </div>
+    </div>
+    <div class="field">
+      <label>Internt notat</label>
+      <textarea id="mNotes" rows="2" placeholder="Notater kun synlig internt…"></textarea>
+    </div>
+    <div class="modal-error" id="newOfferError"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeNewOfferModal()">Avbryt</button>
+      <button class="btn-primary" id="saveOfferBtn" onclick="saveNewOffer()">Lagre bud</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Bekreft aksept -->
+<div class="modal-overlay" id="acceptModal" style="display:none" onclick="if(event.target===this)closeAcceptModal()">
+  <div class="modal">
+    <h3>✅ Aksepter bud</h3>
+    <p style="font-size:14px;color:var(--gray-dark)">
+      Alle andre aktive bud på dette oppdraget vil automatisk avvises.
+    </p>
+    <div class="field">
+      <label>Respons til selger (valgfri)</label>
+      <textarea id="acceptNote" rows="2" placeholder="F.eks. 'Akseptert muntlig kl 14:30'"></textarea>
+    </div>
+    <div class="modal-error" id="acceptError"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeAcceptModal()">Avbryt</button>
+      <button class="btn-accept" id="confirmAcceptBtn" onclick="confirmAccept()">Aksepter bud</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Avvis bud -->
+<div class="modal-overlay" id="rejectModal" style="display:none" onclick="if(event.target===this)closeRejectModal()">
+  <div class="modal">
+    <h3>❌ Avvis bud</h3>
+    <div class="field">
+      <label>Begrunnelse (valgfri)</label>
+      <textarea id="rejectNote" rows="2" placeholder="F.eks. 'For lavt, selger ønsker ikke å forhandle'"></textarea>
+    </div>
+    <div class="modal-error" id="rejectError"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeRejectModal()">Avbryt</button>
+      <button class="btn-reject" id="confirmRejectBtn" onclick="confirmReject()">Avvis bud</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const IDENTITY = `${window.location.origin}/.netlify/identity`;
+const API      = `${window.location.origin}/.netlify/functions/budmodul`;
+let accessToken = null;
+let currentDealId = null;
+let currentDealName = '';
+let offers  = [];
+let events  = [];
+let selectedOfferId = null;
+let pendingAcceptId = null;
+let pendingRejectId = null;
+
+const $ = id => document.getElementById(id);
+
+function showScreen(name) {
+  ['loadingScreen','loginScreen','appScreen'].forEach(id => {
+    const el = $(id);
+    if (!el) return;
+    el.style.display = (id === name)
+      ? (name === 'appScreen' ? 'block' : 'flex')
+      : 'none';
+  });
+}
+
+function parseJwt(t) {
+  try { return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))); }
+  catch { return {}; }
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  showScreen('loadingScreen');
+  const tok = localStorage.getItem('hoy_access_token');
+  if (tok) {
+    try {
+      const u = await fetchUser(tok);
+      accessToken = tok;
+      onLogin(u);
+      return;
+    } catch { localStorage.removeItem('hoy_access_token'); }
+  }
+  showScreen('loginScreen');
+});
+
+async function fetchUser(tok) {
+  const r = await fetch(`${IDENTITY}/user`, { headers: { Authorization: `Bearer ${tok}` } });
+  if (!r.ok) throw new Error('Session utløpt');
+  return r.json();
+}
+
+async function doLogin() {
+  const email = $('loginEmail').value.trim();
+  const pass  = $('loginPassword').value;
+  const err   = $('loginError');
+  err.style.display = 'none';
+  const btn = $('loginBtn'); btn.disabled = true; btn.textContent = 'Logger inn…';
+  try {
+    const r = await fetch(`${IDENTITY}/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `grant_type=password&username=${encodeURIComponent(email)}&password=${encodeURIComponent(pass)}`,
+    });
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error_description || 'Feil passord eller e-post'); }
+    const data = await r.json();
+    accessToken = data.access_token;
+    localStorage.setItem('hoy_access_token', accessToken);
+    const u = await fetchUser(accessToken);
+    onLogin(u);
+  } catch (e) {
+    err.textContent = e.message; err.style.display = 'block';
+    btn.disabled = false; btn.textContent = '🔐 Logg inn';
+  }
+}
+
+function doLogout() {
+  localStorage.removeItem('hoy_access_token');
+  accessToken = null;
+  location.reload();
+}
+
+async function onLogin(user) {
+  $('userLabel').textContent = user.email || '';
+  showScreen('appScreen');
+  await loadDeals();
+}
+
+// ── API helper ────────────────────────────────────────────────────────────────
+async function api(params, method = 'GET', body = null) {
+  const url = method === 'GET'
+    ? `${API}?${new URLSearchParams(params)}`
+    : API;
+  const r = await fetch(url, {
+    method,
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  return r.json();
+}
+
+// ── Deal picker ───────────────────────────────────────────────────────────────
+async function loadDeals() {
+  // Reuse the annonsegenerator deals endpoint which already handles auth + splits
+  const r = await fetch(
+    `${window.location.origin}/.netlify/functions/annonsegenerator?fetch_deals=1`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  const data = await r.json();
+  const sel = $('dealSelect');
+  sel.innerHTML = '<option value="">— Velg oppdrag —</option>';
+  for (const d of (data.deals || [])) {
+    if (d.pipeline !== 'B') continue; // Budmodul only for active listings (Pipeline B)
+    const opt = document.createElement('option');
+    opt.value = d.id;
+    opt.textContent = d.name;
+    sel.appendChild(opt);
+  }
+}
+
+function onDealSelect() {
+  $('openBudboardBtn').disabled = !$('dealSelect').value;
+}
+
+async function openBudboard() {
+  const dealId = $('dealSelect').value;
+  if (!dealId) return;
+  currentDealId = dealId;
+  currentDealName = $('dealSelect').options[$('dealSelect').selectedIndex].text;
+  $('pickerView').style.display = 'none';
+  $('budboardView').style.display = 'block';
+  await refreshBudboard();
+}
+
+function backToPicker() {
+  $('pickerView').style.display = 'block';
+  $('budboardView').style.display = 'none';
+  currentDealId = null;
+  offers = []; events = [];
+}
+
+// ── Budboard ──────────────────────────────────────────────────────────────────
+async function refreshBudboard() {
+  const data = await api({ budboard: currentDealId });
+  offers = data.offers || [];
+  events = data.events || [];
+  renderDealHeader(data);
+  renderOffersTable();
+  renderEventLog();
+  if (selectedOfferId) {
+    const still = offers.find(o => o.id === selectedOfferId);
+    if (still) renderDetailPanel(still); else hideDetailPanel();
+  }
+}
+
+function renderDealHeader(data) {
+  $('bbDealName').textContent = data.deal_name || currentDealName;
+
+  const pending  = offers.filter(o => o.status === 'Pending');
+  const accepted = offers.filter(o => o.status === 'Accepted');
+
+  const highest = [...pending, ...accepted].reduce((m, o) => Math.max(m, o.amount_nok), 0);
+  $('bbHighest').textContent = highest > 0 ? fmtNok(highest) : '—';
+  $('bbActiveCount').textContent = pending.length;
+
+  const soonest = pending.map(o => o.expiry_at).filter(Boolean).sort()[0];
+  $('bbExpiry').textContent = soonest ? fmtDateShort(soonest) : '—';
+
+  const badge = $('bbStatusBadge');
+  if (accepted.length > 0) {
+    badge.textContent = 'Akseptert bud'; badge.className = 'status-badge badge-akseptert';
+  } else if (pending.length > 0) {
+    badge.textContent = 'Aktive bud'; badge.className = 'status-badge badge-aktive';
+  } else {
+    badge.textContent = 'Ingen bud'; badge.className = 'status-badge badge-ingen';
+  }
+
+  $('notifyBtn').style.display = pending.length >= 2 ? '' : 'none';
+}
+
+function renderOffersTable() {
+  const el = $('offersTable');
+  if (!offers.length) {
+    el.innerHTML = '<div class="empty-state">Ingen bud registrert på dette oppdraget ennå.</div>';
+    return;
+  }
+
+  const rows = offers.map(o => {
+    const expiryHtml = o.expiry_at ? expiryBadge(o.expiry_at) : '<span class="expiry-normal">—</span>';
+    const contingIcons = (o.contingencies || []).map(c => {
+      const map = { Financing:'💰', OwnBoatSale:'⚓', Survey:'🔍', Other:'📋' };
+      return `<span class="c-icon" title="${c}">${map[c]||'📋'}</span>`;
+    }).join('');
+    const financingMap = { Unknown:'—', NeedsLoan:'🏦 Lån', PreQualified:'🏦✓', Approved:'🏦✅', Cash:'💵' };
+    return `
+      <tr class="clickable ${selectedOfferId === o.id ? 'selected' : ''}" onclick="selectOffer('${o.id}')">
+        <td><strong>${escHtml(o.buyer_name)}</strong><br>
+          <span style="font-size:12px;color:var(--gray-dark)">${escHtml(o.buyer_email||o.buyer_phone||'')}</span></td>
+        <td style="font-weight:700;font-size:15px">${fmtNok(o.amount_nok)}</td>
+        <td>${expiryHtml}</td>
+        <td>${financingMap[o.financing_status]||'—'}</td>
+        <td><div class="contingency-icons">${contingIcons}</div></td>
+        <td><span class="pill pill-${o.status.toLowerCase()}">${statusLabel(o.status)}</span></td>
+      </tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Budgiver</th><th>Beløp</th><th>Frist</th>
+        <th>Finansiering</th><th>Forbehold</th><th>Status</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function selectOffer(id) {
+  selectedOfferId = id;
+  const o = offers.find(o => o.id === id);
+  if (o) renderDetailPanel(o);
+  renderOffersTable(); // re-render to update selected highlight
+}
+
+function renderDetailPanel(o) {
+  $('detailPanel').style.display = 'block';
+  const contingLabels = { Financing:'Finansieringsforbehold', OwnBoatSale:'Salg av egen båt', Survey:'Undersøkelsesforbehold', Other:'Annet' };
+  const receivedLabels = { Phone:'Telefon', SMS:'SMS', Email:'E-post', Oneflow_budskjema:'Oneflow budskjema', Other:'Annet' };
+  const financingLabels = { Unknown:'Ukjent', NeedsLoan:'Trenger lån', PreQualified:'Forhåndsgodkjent', Approved:'Godkjent', Cash:'Egenkapital' };
+
+  const actions = o.status === 'Pending' ? `
+    <button class="btn-accept" onclick="showAcceptModal('${o.id}')">✅ Aksepter</button>
+    <button class="btn-counter" onclick="showCounterModal('${o.id}')">↩️ Motbud</button>
+    <button class="btn-reject"  onclick="showRejectModal('${o.id}')">❌ Avvis</button>
+  ` : '';
+
+  $('detailContent').innerHTML = `
+    <div class="detail-row"><span class="detail-label">Budgiver</span><span>${escHtml(o.buyer_name)}</span></div>
+    ${o.buyer_email ? `<div class="detail-row"><span class="detail-label">E-post</span><span>${escHtml(o.buyer_email)}</span></div>` : ''}
+    ${o.buyer_phone ? `<div class="detail-row"><span class="detail-label">Telefon</span><span>${escHtml(o.buyer_phone)}</span></div>` : ''}
+    <div class="detail-row"><span class="detail-label">Budbeløp</span><strong>${fmtNok(o.amount_nok)}</strong></div>
+    <div class="detail-row"><span class="detail-label">Frist</span><span>${o.expiry_at ? fmtDateFull(o.expiry_at) : '—'}</span></div>
+    <div class="detail-row"><span class="detail-label">Mottatt via</span><span>${receivedLabels[o.received_via]||o.received_via}</span></div>
+    <div class="detail-row"><span class="detail-label">Finansiering</span><span>${financingLabels[o.financing_status]||o.financing_status}</span></div>
+    ${o.contingencies?.length ? `<div class="detail-row"><span class="detail-label">Forbehold</span><span>${o.contingencies.map(c=>contingLabels[c]||c).join(', ')}</span></div>` : ''}
+    ${o.contingencies_text ? `<div class="detail-row"><span class="detail-label">Forbehold (tekst)</span><span>${escHtml(o.contingencies_text)}</span></div>` : ''}
+    ${o.notes_internal ? `<div class="detail-row"><span class="detail-label">Internt notat</span><span>${escHtml(o.notes_internal)}</span></div>` : ''}
+    ${o.seller_response_note ? `<div class="detail-row"><span class="detail-label">Svar til selger</span><span>${escHtml(o.seller_response_note)}</span></div>` : ''}
+    ${o.parent_offer_id ? `<div class="detail-row"><span class="detail-label">Motbud på</span><span>${o.parent_offer_id}</span></div>` : ''}
+    <div class="detail-row"><span class="detail-label">Registrert</span><span>${fmtDateFull(o.created_at)} av ${escHtml(o.created_by)}</span></div>
+    <div class="detail-row"><span class="detail-label">Status</span><span class="pill pill-${o.status.toLowerCase()}">${statusLabel(o.status)}</span></div>
+    ${actions ? `<div class="detail-actions">${actions}</div>` : ''}
+  `;
+}
+
+function hideDetailPanel() {
+  $('detailPanel').style.display = 'none';
+  selectedOfferId = null;
+}
+
+function renderEventLog() {
+  const el = $('eventLog');
+  if (!events.length) {
+    el.innerHTML = '<div class="empty-state">Ingen hendelser ennå.</div>';
+    return;
+  }
+  const typeLabels = {
+    OfferCreated:'Bud registrert', StatusChanged:'Status endret', ExpiryUpdated:'Frist oppdatert',
+    NoteAdded:'Notat lagt til', SellerInformed:'Selger informert', BuyersNotified:'Budgivere varslet',
+    CounterOfferCreated:'Motbud opprettet', OneflowDocCreated:'Oneflow-dokument opprettet',
+    HubSpotSynced:'HubSpot synkronisert',
+  };
+  el.innerHTML = `<div class="events-list">${events.map(e => `
+    <div class="event-row">
+      <span class="event-time">${fmtDateShort(e.timestamp)}</span>
+      <span class="event-type">${typeLabels[e.type]||e.type}</span>
+      <span class="event-by">— ${escHtml(e.user_id)}</span>
+    </div>`).join('')}</div>`;
+}
+
+// ── New offer modal ───────────────────────────────────────────────────────────
+function showNewOfferModal() {
+  $('mBuyerName').value=''; $('mBuyerPhone').value=''; $('mBuyerEmail').value='';
+  $('mAmount').value=''; $('mExpiry').value=''; $('mReceivedVia').value='';
+  $('mFinancing').value='Unknown'; $('mNotes').value='';
+  $('cFinancing').checked=false; $('cOwnBoat').checked=false; $('cSurvey').checked=false;
+  $('newOfferError').style.display='none';
+  $('newOfferModal').style.display='flex';
+}
+function closeNewOfferModal() { $('newOfferModal').style.display='none'; }
+
+async function saveNewOffer() {
+  const errEl = $('newOfferError');
+  errEl.style.display='none';
+  const buyerName  = $('mBuyerName').value.trim();
+  const amountNOK  = parseInt($('mAmount').value);
+  const receivedVia= $('mReceivedVia').value;
+  if (!buyerName)   { errEl.textContent='Navn på budgiver er påkrevd'; errEl.style.display='block'; return; }
+  if (!amountNOK)   { errEl.textContent='Budbeløp er påkrevd'; errEl.style.display='block'; return; }
+  if (!receivedVia) { errEl.textContent='Velg hvordan budet ble mottatt'; errEl.style.display='block'; return; }
+  const contingencies = ['cFinancing','cOwnBoat','cSurvey']
+    .filter(id => $(id).checked).map(id => $(id).value);
+  const btn = $('saveOfferBtn'); btn.disabled=true; btn.textContent='Lagrer…';
+  try {
+    await api({}, 'POST', {
+      action: 'create_offer', dealId: currentDealId,
+      buyerName, buyerEmail: $('mBuyerEmail').value.trim()||null,
+      buyerPhone: $('mBuyerPhone').value.trim()||null,
+      amountNOK, receivedVia,
+      expiryAt: $('mExpiry').value ? new Date($('mExpiry').value).toISOString() : null,
+      financingStatus: $('mFinancing').value,
+      contingencies, notesInternal: $('mNotes').value.trim()||null,
+    });
+    closeNewOfferModal();
+    await refreshBudboard();
+  } catch (e) {
+    errEl.textContent = e.message||'Noe gikk galt'; errEl.style.display='block';
+  } finally { btn.disabled=false; btn.textContent='Lagre bud'; }
+}
+
+// ── Accept / Reject modals ────────────────────────────────────────────────────
+function showAcceptModal(offerId) { pendingAcceptId=offerId; $('acceptNote').value=''; $('acceptError').style.display='none'; $('acceptModal').style.display='flex'; }
+function closeAcceptModal() { $('acceptModal').style.display='none'; pendingAcceptId=null; }
+
+async function confirmAccept() {
+  const btn=$('confirmAcceptBtn'); btn.disabled=true; btn.textContent='Aksepterer…';
+  const errEl=$('acceptError'); errEl.style.display='none';
+  try {
+    const r = await api({}, 'POST', {
+      action:'set_status', offerId: pendingAcceptId,
+      status:'Accepted', sellerResponseNote: $('acceptNote').value.trim()||null,
+    });
+    if (r.error) throw new Error(r.error);
+    closeAcceptModal();
+    await refreshBudboard();
+  } catch(e) { errEl.textContent=e.message; errEl.style.display='block'; }
+  finally { btn.disabled=false; btn.textContent='Aksepter bud'; }
+}
+
+function showRejectModal(offerId) { pendingRejectId=offerId; $('rejectNote').value=''; $('rejectError').style.display='none'; $('rejectModal').style.display='flex'; }
+function closeRejectModal() { $('rejectModal').style.display='none'; pendingRejectId=null; }
+
+async function confirmReject() {
+  const btn=$('confirmRejectBtn'); btn.disabled=true; btn.textContent='Avviser…';
+  const errEl=$('rejectError'); errEl.style.display='none';
+  try {
+    const r = await api({}, 'POST', {
+      action:'set_status', offerId: pendingRejectId,
+      status:'Rejected', sellerResponseNote: $('rejectNote').value.trim()||null,
+    });
+    if (r.error) throw new Error(r.error);
+    closeRejectModal();
+    await refreshBudboard();
+  } catch(e) { errEl.textContent=e.message; errEl.style.display='block'; }
+  finally { btn.disabled=false; btn.textContent='Avvis bud'; }
+}
+
+function showCounterModal(offerId) {
+  // TODO: Counter-offer modal (Phase 2)
+  alert('Motbud-funksjon kommer snart.');
+}
+
+// ── Notify panel ──────────────────────────────────────────────────────────────
+async function showNotifyPanel() {
+  const pending = offers.filter(o => o.status === 'Pending');
+  const highest = pending.reduce((m, o) => Math.max(m, o.amount_nok), 0);
+  const soonest = pending.map(o => o.expiry_at).filter(Boolean).sort()[0];
+  const boatName = currentDealName.replace(/^\d+\s*-\s*/, '');
+  const r = await api({}, 'POST', {
+    action: 'notify_buyers', dealId: currentDealId,
+    dealName: currentDealName, boatName,
+    highestAmountNOK: highest, expiryAt: soonest || null,
+    offerIds: pending.map(o => o.id),
+  });
+  $('notifyText').textContent = r.message || '';
+  $('notifyPanel').style.display = 'block';
+  await refreshBudboard();
+}
+
+function hideNotifyPanel() { $('notifyPanel').style.display='none'; }
+
+function copyNotify() {
+  const txt = $('notifyText').textContent;
+  navigator.clipboard.writeText(txt).then(() => {
+    const btn = document.querySelector('.btn-copy');
+    const orig = btn.textContent;
+    btn.textContent = '✅ Kopiert!';
+    setTimeout(() => { btn.textContent = orig; }, 2000);
+  });
+}
+
+// ── Formatting helpers ────────────────────────────────────────────────────────
+function fmtNok(n) {
+  return Number(n).toLocaleString('no-NO') + ' kr';
+}
+function fmtDateShort(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleString('no-NO', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+}
+function fmtDateFull(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleString('no-NO', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+
+function expiryBadge(iso) {
+  if (!iso) return '<span class="expiry-normal">—</span>';
+  const diff = new Date(iso) - new Date();
+  const txt  = fmtDateShort(iso);
+  if (diff < 0)          return `<span class="expiry-red">⏰ ${txt} (utløpt)</span>`;
+  if (diff < 2*3600*1000) return `<span class="expiry-red">⏰ ${txt}</span>`;
+  if (diff < 6*3600*1000) return `<span class="expiry-yellow">⏳ ${txt}</span>`;
+  return `<span class="expiry-normal">${txt}</span>`;
+}
+
+function statusLabel(s) {
+  return { Pending:'Aktiv', Accepted:'Akseptert', Rejected:'Avvist',
+           WithdrawnByBuyer:'Trukket', Expired:'Utløpt' }[s] || s;
+}
+
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>

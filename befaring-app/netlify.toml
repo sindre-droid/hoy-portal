@@ -25,3 +25,8 @@
   to = "/sjekkliste/"
   status = 301
 
+[[redirects]]
+  from = "/budmodul"
+  to = "/budmodul/"
+  status = 301
+
