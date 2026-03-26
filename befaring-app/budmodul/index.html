@@ -249,13 +249,16 @@
         <button class="btn-cancel" style="margin-left:8px" onclick="hideNotifyPanel()">Lukk</button>
       </div>
 
-      <!-- Interessenter section -->
+      <!-- Interessenter section (collapsed by default) -->
       <div class="offers-card" id="interessenterCard" style="display:none">
-        <div class="offers-card-header" style="display:flex;justify-content:space-between;align-items:center">
-          <span class="offers-card-title">Interessenter</span>
-          <button class="btn-outline btn-sm" onclick="loadInteressenter()">↻ Oppdater</button>
+        <div class="offers-card-header" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleInteressenter()">
+          <span class="offers-card-title">Interessenter <span id="interessenterCount" style="font-weight:400;color:var(--text-muted);font-size:13px"></span></span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn-outline btn-sm" onclick="event.stopPropagation();loadInteressenter()" style="pointer-events:auto">↻</button>
+            <span id="interessenterChevron" style="color:var(--text-muted);font-size:16px;transition:transform .2s">▾</span>
+          </div>
         </div>
-        <div id="interessenterTable" style="padding:0">
+        <div id="interessenterTable" style="padding:0;display:none">
           <div class="empty-state" style="padding:16px">Henter interessenter…</div>
         </div>
       </div>
@@ -349,20 +352,15 @@
     </div>
     <div class="field">
       <label>Forbehold</label>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px">
-        <label style="font-weight:400;display:flex;align-items:center;gap:6px">
-          <input type="checkbox" id="cFinancing" value="Financing"> Finansieringsforbehold
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
+        <label style="font-weight:400;display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="cFinancing" value="Financing"> Ønsker tilbud på finansiering
         </label>
-        <label style="font-weight:400;display:flex;align-items:center;gap:6px">
-          <input type="checkbox" id="cOwnBoat" value="OwnBoatSale"> Salg av egen båt
-        </label>
-        <label style="font-weight:400;display:flex;align-items:center;gap:6px">
-          <input type="checkbox" id="cSurvey" value="Survey"> Undersøkelsesforbehold
+        <label style="font-weight:400;display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="cOwnBoat" value="OwnBoatSale"> Ønsker verdivurdering av egen båt
         </label>
       </div>
-      <div style="margin-top:8px">
-        <textarea id="mContingencyText" rows="2" placeholder="Fritekst forbehold — f.eks. selges uten motor, forbehold om sjøsettingstillatelse…" style="margin-top:4px"></textarea>
-      </div>
+      <textarea id="mContingencyText" rows="2" placeholder="Andre forbehold i fritekst — f.eks. selges uten motor, forbehold om sjøsettingstillatelse…" style="margin-top:10px"></textarea>
     </div>
     <div class="field">
       <label>Internt notat</label>
@@ -555,6 +553,14 @@ function backToPicker() {
 }
 
 // ── Interessenter ─────────────────────────────────────────────────────────────
+function toggleInteressenter() {
+  const table   = $('interessenterTable');
+  const chevron = $('interessenterChevron');
+  const open    = table.style.display !== 'none';
+  table.style.display   = open ? 'none' : 'block';
+  chevron.style.transform = open ? 'rotate(-90deg)' : '';
+}
+
 async function loadInteressenter() {
   if (!currentDealId) return;
   $('interessenterCard').style.display = 'block';
@@ -573,6 +579,7 @@ async function loadInteressenter() {
 }
 
 function renderInteressenter() {
+  $('interessenterCount').textContent = interessenter.length ? `(${interessenter.length})` : '';
   const el = $('interessenterTable');
   if (!interessenter.length) {
     el.innerHTML = '<div class="empty-state" style="padding:16px">Ingen interessenter registrert på dette oppdraget ennå.</div>';
@@ -794,7 +801,7 @@ function showNewOfferModal() {
   $('mAmount').value=''; $('mExpiry').value=''; $('mReceivedVia').value='';
   $('mFinancing').value='Unknown'; $('mNotes').value=''; $('mContingencyText').value='';
   $('mInteressent').value='';
-  $('cFinancing').checked=false; $('cOwnBoat').checked=false; $('cSurvey').checked=false;
+  $('cFinancing').checked=false; $('cOwnBoat').checked=false;
   $('newOfferError').style.display='none';
   $('newOfferModal').style.display='flex';
 }
@@ -809,7 +816,7 @@ async function saveNewOffer() {
   if (!buyerName)   { errEl.textContent='Navn på budgiver er påkrevd'; errEl.style.display='block'; return; }
   if (!amountNOK)   { errEl.textContent='Budbeløp er påkrevd'; errEl.style.display='block'; return; }
   if (!receivedVia) { errEl.textContent='Velg hvordan budet ble mottatt'; errEl.style.display='block'; return; }
-  const contingencies     = ['cFinancing','cOwnBoat','cSurvey']
+  const contingencies     = ['cFinancing','cOwnBoat']
     .filter(id => $(id).checked).map(id => $(id).value);
   const contingenciesText = $('mContingencyText').value.trim() || null;
   const buyerContactId    = $('mInteressent').value || null;

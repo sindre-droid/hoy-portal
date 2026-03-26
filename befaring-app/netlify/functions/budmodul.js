@@ -247,14 +247,16 @@ exports.handler = async (event) => {
     const assocRes = await hs(`/crm/v4/objects/deals/${dealId}/associations/contacts?limit=500`);
     const assocItems = assocRes.data?.results || [];
 
-    const EXCLUDE = ['Seller', 'Co-owner'];
+    // Whitelist: only contacts explicitly labeled as buyer-side roles.
+    // Contacts without a label are excluded — meglere must label all contacts.
+    const BUYER_LABELS = new Set(['Interessent', 'Budgiver', 'Offeror', 'Final buyer', 'Kjøper']);
     const contactLabels = {};
     for (const item of assocItems) {
       const labels = (item.associationTypes || []).map(t => t.label).filter(Boolean);
       contactLabels[String(item.toObjectId)] = labels;
     }
     const includedIds = Object.entries(contactLabels)
-      .filter(([, labels]) => !labels.length || labels.some(l => !EXCLUDE.includes(l)))
+      .filter(([, labels]) => labels.some(l => BUYER_LABELS.has(l)))
       .map(([id]) => id);
 
     if (!includedIds.length) {
