@@ -558,7 +558,7 @@ function renderDealHeader(data) {
     badge.textContent = 'Ingen bud'; badge.className = 'status-badge badge-ingen';
   }
 
-  $('notifyBtn').style.display = pending.length >= 2 ? '' : 'none';
+  $('notifyBtn').style.display = offers.length > 0 ? '' : 'none';
 }
 
 function renderOffersTable() {
