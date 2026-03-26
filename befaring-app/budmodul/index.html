@@ -571,17 +571,18 @@ async function loadInteressenter() {
     });
     const data = await r.json();
     interessenter = data.interessenter || [];
-    renderInteressenter();
+    renderInteressenter(data.unlabeled || []);
     populateInteressentPicker();
   } catch {
     $('interessenterTable').innerHTML = '<div class="empty-state" style="padding:16px">Kunne ikke hente interessenter.</div>';
   }
 }
 
-function renderInteressenter() {
-  $('interessenterCount').textContent = interessenter.length ? `(${interessenter.length})` : '';
+function renderInteressenter(unlabeled = []) {
+  const total = interessenter.length + unlabeled.length;
+  $('interessenterCount').textContent = total ? `(${total})` : '';
   const el = $('interessenterTable');
-  if (!interessenter.length) {
+  if (!interessenter.length && !unlabeled.length) {
     el.innerHTML = '<div class="empty-state" style="padding:16px">Ingen interessenter registrert på dette oppdraget ennå.</div>';
     return;
   }
@@ -613,12 +614,54 @@ function renderInteressenter() {
       <td>${skjemaCell}</td>
     </tr>`;
   }).join('');
-  el.innerHTML = `<table class="interessenter-table">
+  // Build unlabeled section HTML
+  let unlabeledHtml = '';
+  if (unlabeled.length) {
+    const uRows = unlabeled.map(i => {
+      const hsIdSafe  = escHtml(i.hs_id);
+      const nameSafe  = escHtml(i.name).replace(/'/g, '&#39;');
+      return `<tr>
+        <td>
+          <div style="font-weight:500">${escHtml(i.name)}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${escHtml(i.email || '—')}</div>
+          ${i.phone ? `<div style="font-size:12px;color:var(--text-muted)">${escHtml(i.phone)}</div>` : ''}
+        </td>
+        <td><span style="font-size:12px;color:#f0b429">Ikke satt</span></td>
+        <td>
+          <button class="btn-outline btn-sm" style="margin-right:4px" onclick="setContactLabel('${hsIdSafe}','${nameSafe}','Interessent')">Interessent</button>
+          <button class="btn-outline btn-sm" onclick="setContactLabel('${hsIdSafe}','${nameSafe}','Seller')">Selger</button>
+        </td>
+      </tr>`;
+    }).join('');
+    unlabeledHtml = `
+      <div style="padding:8px 14px 6px;background:rgba(240,180,41,.07);border-top:1px solid var(--border)">
+        <span style="font-size:12px;color:#f0b429">⚠️ ${unlabeled.length} kontakt${unlabeled.length > 1 ? 'er' : ''} mangler rolle-label — sett riktig kategori:</span>
+      </div>
+      <table class="interessenter-table">
+        <thead><tr><th>NAVN / KONTAKT</th><th>ROLLE</th><th>SETT LABEL</th></tr></thead>
+        <tbody>${uRows}</tbody>
+      </table>`;
+  }
+
+  el.innerHTML = (interessenter.length ? `<table class="interessenter-table">
     <thead><tr>
       <th>NAVN / KONTAKT</th><th>ROLLE</th><th>BUD GITT</th><th>BUDSKJEMA</th>
     </tr></thead>
     <tbody>${rows}</tbody>
-  </table>`;
+  </table>` : '') + unlabeledHtml;
+}
+
+async function setContactLabel(hsId, name, label) {
+  const labelNo = label === 'Interessent' ? 'interessent' : 'selger';
+  if (!confirm(`Sett ${name} som ${labelNo} i HubSpot?`)) return;
+  const r = await api({}, 'POST', {
+    action: 'set_contact_label',
+    dealId: currentDealId,
+    contactHsId: hsId,
+    label,
+  });
+  if (!r.ok) { alert('Kunne ikke oppdatere label. Prøv igjen.'); return; }
+  await loadInteressenter();
 }
 
 function populateInteressentPicker() {

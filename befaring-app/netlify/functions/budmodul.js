@@ -1,8 +1,9 @@
 // ── budmodul.js ────────────────────────────────────────────────────────────────
 // GET  ?budboard=DEAL_ID         → offers + events + deal info for one deal
 // GET  ?oversikt=1               → alle deals med aktive bud (admin)
-// GET  ?interessenter=DEAL_ID    → HubSpot-kontakter på dealen (ex. Seller/Co-owner) + bud/budskjema-status
-// POST action=create_offer       → registrer nytt bud
+// GET  ?interessenter=DEAL_ID    → HubSpot-kontakter på dealen + unlabeled contacts + bud/budskjema-status
+// POST action=create_offer       → registrer nytt bud (auto-setter Budgiver-label på kontakt)
+// POST action=set_contact_label  → sett/legg til HubSpot association label på kontakt
 // POST action=log_contact_action → logg budskjema-sending eller annen kontakthandling
 // POST action=set_status         → accept / reject / withdraw
 // POST action=create_counter     → motbud (nytt bud lenket til originalbud)
@@ -121,6 +122,45 @@ async function syncDealToHubSpot(supabase, dealId) {
 
     const r = await hs(`/crm/v3/objects/deals/${dealId}`, 'PATCH', { properties: props });
     return { ok: r.ok };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+// ── HubSpot association label helpers ─────────────────────────────────────────
+
+// Fetches all USER_DEFINED label typeIds for deal→contact associations.
+// Returns map: { 'Interessent': 14, 'Budgiver': 12, ... }
+async function fetchLabelTypeIds() {
+  const r = await hs('/crm/v4/associations/deals/contacts/labels');
+  const map = {};
+  for (const item of (r.data?.results || [])) {
+    if (item.label && item.typeId) map[item.label] = item.typeId;
+  }
+  return map;
+}
+
+// Adds `addLabel` to a contact's existing labels on a deal, preserving others.
+// Best-effort: never throws. Returns { ok, error? }
+async function applyAssocLabel(dealId, contactId, addLabel) {
+  try {
+    const [labelMap, assocRes] = await Promise.all([
+      fetchLabelTypeIds(),
+      hs(`/crm/v4/objects/deals/${dealId}/associations/contacts?limit=500`),
+    ]);
+    const newTypeId = labelMap[addLabel];
+    if (!newTypeId) return { ok: false, error: `Ukjent label: ${addLabel}` };
+
+    const assocItems = assocRes.data?.results || [];
+    const existing   = assocItems.find(a => String(a.toObjectId) === String(contactId));
+    const existingIds = (existing?.associationTypes || [])
+      .filter(t => t.category === 'USER_DEFINED')
+      .map(t => t.typeId);
+
+    const merged = [...new Set([...existingIds, newTypeId])];
+    const putBody = merged.map(typeId => ({ associationCategory: 'USER_DEFINED', associationTypeId: typeId }));
+    const putRes  = await hs(`/crm/v4/objects/deals/${dealId}/associations/contacts/${contactId}`, 'PUT', putBody);
+    return { ok: putRes.ok };
   } catch (e) {
     return { ok: false, error: e.message };
   }
@@ -247,28 +287,37 @@ exports.handler = async (event) => {
     const assocRes = await hs(`/crm/v4/objects/deals/${dealId}/associations/contacts?limit=500`);
     const assocItems = assocRes.data?.results || [];
 
-    // Whitelist: only contacts explicitly labeled as buyer-side roles.
-    // Contacts without a label are excluded — meglere must label all contacts.
-    const BUYER_LABELS = new Set(['Interessent', 'Budgiver', 'Offeror', 'Final buyer', 'Kjøper']);
+    // Separate contacts into: buyer-labeled, unlabeled, and seller (excluded)
+    const BUYER_LABELS  = new Set(['Interessent', 'Budgiver', 'Offeror', 'Final buyer', 'Kjøper']);
+    const SELLER_LABELS = new Set(['Seller', 'Co-owner']);
     const contactLabels = {};
     for (const item of assocItems) {
       const labels = (item.associationTypes || []).map(t => t.label).filter(Boolean);
       contactLabels[String(item.toObjectId)] = labels;
     }
-    const includedIds = Object.entries(contactLabels)
-      .filter(([, labels]) => labels.some(l => BUYER_LABELS.has(l)))
-      .map(([id]) => id);
 
-    if (!includedIds.length) {
-      return { statusCode: 200, headers: h, body: JSON.stringify({ interessenter: [] }) };
+    const includedIds  = [];
+    const unlabeledIds = [];
+    for (const [id, labels] of Object.entries(contactLabels)) {
+      const hasBuyer  = labels.some(l => BUYER_LABELS.has(l));
+      const hasSeller = labels.some(l => SELLER_LABELS.has(l));
+      if (hasBuyer)              includedIds.push(id);
+      else if (!hasSeller)       unlabeledIds.push(id); // no buyer AND no seller label
+      // hasSeller && !hasBuyer → exclude silently
     }
 
-    // 2. Batch-read contact details
+    const allFetchIds = [...includedIds, ...unlabeledIds];
+    if (!allFetchIds.length) {
+      return { statusCode: 200, headers: h, body: JSON.stringify({ interessenter: [], unlabeled: [] }) };
+    }
+
+    // 2. Batch-read all needed contacts in one call
     const batchRes = await hs('/crm/v3/objects/contacts/batch/read', 'POST', {
       properties: ['firstname', 'lastname', 'email', 'phone', 'mobilephone'],
-      inputs: includedIds.map(id => ({ id })),
+      inputs: allFetchIds.map(id => ({ id })),
     });
-    const contacts = batchRes.data?.results || [];
+    const allContacts  = batchRes.data?.results || [];
+    const contactById  = Object.fromEntries(allContacts.map(c => [String(c.id), c]));
 
     // 3. Cross-reference with Supabase offers + contact_actions
     const [offersRes, actionsRes] = await Promise.all([
@@ -287,9 +336,10 @@ exports.handler = async (event) => {
       (actionsByContact[a.contact_hs_id] = actionsByContact[a.contact_hs_id] || []).push(a);
     }
 
-    // 4. Enrich
-    const interessenter = contacts.map(c => {
-      const id    = String(c.id);
+    // 4. Enrich helper
+    const enrich = (id) => {
+      const c     = contactById[id];
+      if (!c) return null;
       const props = c.properties || {};
       const name  = [props.firstname, props.lastname].filter(Boolean).join(' ') || 'Ukjent';
       const email = props.email || '';
@@ -298,24 +348,22 @@ exports.handler = async (event) => {
       const offer  = offerByContactId[id] || (email ? offerByEmail[email.toLowerCase()] : null);
       const sent   = (actionsByContact[id] || []).find(a => a.action_type === 'BudskjemaSent');
       return {
-        hs_id:             id,
-        name,
-        email,
-        phone,
-        labels,
-        has_offer:         !!offer,
-        offer_amount:      offer?.amount_nok || null,
-        offer_status:      offer?.status     || null,
+        hs_id: id, name, email, phone, labels,
+        has_offer: !!offer, offer_amount: offer?.amount_nok || null, offer_status: offer?.status || null,
         budskjema_sent_at: sent?.performed_at || null,
       };
-    });
+    };
 
+    const interessenter = includedIds.map(enrich).filter(Boolean);
     interessenter.sort((a, b) => {
       if (a.has_offer !== b.has_offer) return a.has_offer ? -1 : 1;
       return a.name.localeCompare(b.name, 'no');
     });
 
-    return { statusCode: 200, headers: h, body: JSON.stringify({ interessenter }) };
+    const unlabeled = unlabeledIds.map(enrich).filter(Boolean);
+    unlabeled.sort((a, b) => a.name.localeCompare(b.name, 'no'));
+
+    return { statusCode: 200, headers: h, body: JSON.stringify({ interessenter, unlabeled }) };
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -373,6 +421,11 @@ exports.handler = async (event) => {
     });
 
     const hsSync = await syncDealToHubSpot(supabase, dealId);
+
+    // Auto-label: set Budgiver label on contact when bid is registered
+    if (buyerContactId) {
+      applyAssocLabel(dealId, buyerContactId, 'Budgiver'); // best-effort, don't await
+    }
 
     return { statusCode: 200, headers: h, body: JSON.stringify({ offer, hubspot_sync: hsSync }) };
   }
@@ -572,6 +625,22 @@ exports.handler = async (event) => {
     }
 
     return { statusCode: 200, headers: h, body: JSON.stringify({ ok: true, message }) };
+  }
+
+  // ── set_contact_label ────────────────────────────────────────────────────────
+  // Sets (or adds) a HubSpot association label on a deal→contact pair.
+  // Merges with existing USER_DEFINED labels — never removes existing labels.
+  if (action === 'set_contact_label') {
+    const { dealId, contactHsId, label } = body;
+    if (!dealId || !contactHsId || !label) {
+      return { statusCode: 400, headers: h, body: JSON.stringify({ error: 'dealId, contactHsId og label påkrevd' }) };
+    }
+    const result = await applyAssocLabel(dealId, contactHsId, label);
+    return {
+      statusCode: result.ok ? 200 : 500,
+      headers: h,
+      body: JSON.stringify(result),
+    };
   }
 
   // ── log_contact_action ───────────────────────────────────────────────────────
