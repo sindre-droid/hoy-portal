@@ -746,12 +746,15 @@ exports.handler = async (event) => {
       `${fmtNok(highestAmountNOK)} ${expiryStr}.\n\n` +
       `Ta kontakt med din megler i House of Yachts dersom du ønsker å by.`;
 
-    // Log én samlet hendelse per varsling (ikke én per bud)
-    await logEvent(supabase, {
-      dealId, userId,
-      type: 'BuyersNotified',
-      payload: { message, highest_amount_nok: highestAmountNOK, expiry_at: expiryAt, offer_ids: offerIds },
-    });
+    // Log én samlet hendelse per varsling — bruk første offerId som referanse (offer_id er NOT NULL i schema)
+    // TODO: gjør offer_id nullable i offer_events så deal-nivå-hendelser kan logges uten bud-referanse
+    if (offerIds.length > 0) {
+      await logEvent(supabase, {
+        offerId: offerIds[0], dealId, userId,
+        type: 'BuyersNotified',
+        payload: { message, highest_amount_nok: highestAmountNOK, expiry_at: expiryAt, offer_ids: offerIds },
+      });
+    }
 
     return { statusCode: 200, headers: h, body: JSON.stringify({ ok: true, message }) };
   }
