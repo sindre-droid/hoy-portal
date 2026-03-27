@@ -593,18 +593,21 @@ async function loadInteressenter() {
     });
     const data = await r.json();
     interessenter = data.interessenter || [];
-    renderInteressenter(data.unlabeled || []);
+    renderInteressenter(data.unlabeled || [], data.selgere || []);
     populateInteressentPicker();
   } catch {
     $('interessenterTable').innerHTML = '<div class="empty-state" style="padding:16px">Kunne ikke hente interessenter.</div>';
   }
 }
 
-function renderInteressenter(unlabeled = []) {
-  const total = interessenter.length + unlabeled.length;
-  $('interessenterCount').textContent = total ? `(${total})` : '';
+function renderInteressenter(unlabeled = [], selgere = []) {
+  const buyerCount  = interessenter.length + unlabeled.length;
+  const selgerCount = selgere.length;
+  let countText = buyerCount ? `(${buyerCount})` : '';
+  if (selgerCount) countText += `${countText ? ' · ' : ''}${selgerCount} selger${selgerCount > 1 ? 'e' : ''}`;
+  $('interessenterCount').textContent = countText;
   const el = $('interessenterTable');
-  if (!interessenter.length && !unlabeled.length) {
+  if (!interessenter.length && !unlabeled.length && !selgere.length) {
     el.innerHTML = '<div class="empty-state" style="padding:16px">Ingen interessenter registrert på dette oppdraget ennå.</div>';
     return;
   }
@@ -665,12 +668,39 @@ function renderInteressenter(unlabeled = []) {
       </table>`;
   }
 
+  // Build selger section HTML
+  let selgerHtml = '';
+  if (selgere.length) {
+    const sRows = selgere.map(i => {
+      const roleHtml = i.labels.map(l => {
+        const no = { 'Seller': 'Selger', 'Co-owner': 'Medeier' };
+        return `<span class="role-badge" style="background:rgba(255,255,255,.04);color:var(--text-muted)">${escHtml(no[l] || l)}</span>`;
+      }).join(' ');
+      return `<tr style="opacity:0.55">
+        <td>
+          <div style="font-weight:500">${escHtml(i.name)}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${escHtml(i.email || '—')}</div>
+          ${i.phone ? `<div style="font-size:12px;color:var(--text-muted)">${escHtml(i.phone)}</div>` : ''}
+        </td>
+        <td>${roleHtml}</td>
+        <td colspan="2" style="color:var(--text-muted);font-size:12px;font-style:italic">Ikke budparter</td>
+      </tr>`;
+    }).join('');
+    selgerHtml = `
+      <div style="padding:8px 14px 6px;background:rgba(255,255,255,.02);border-top:1px solid var(--border)">
+        <span style="font-size:11px;letter-spacing:.05em;color:var(--text-muted);text-transform:uppercase">Eiere / selgere</span>
+      </div>
+      <table class="interessenter-table">
+        <tbody>${sRows}</tbody>
+      </table>`;
+  }
+
   el.innerHTML = (interessenter.length ? `<table class="interessenter-table">
     <thead><tr>
       <th>NAVN / KONTAKT</th><th>ROLLE</th><th>BUD GITT</th><th>BUDSKJEMA</th>
     </tr></thead>
     <tbody>${rows}</tbody>
-  </table>` : '') + unlabeledHtml;
+  </table>` : '') + unlabeledHtml + selgerHtml;
 }
 
 async function setContactLabel(hsId, name, label) {

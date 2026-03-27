@@ -350,17 +350,18 @@ exports.handler = async (event) => {
 
     const includedIds  = [];
     const unlabeledIds = [];
+    const selgerIds    = [];
     for (const [id, labels] of Object.entries(contactLabels)) {
       const hasBuyer  = labels.some(l => BUYER_LABELS.has(l));
       const hasSeller = labels.some(l => SELLER_LABELS.has(l));
-      if (hasBuyer)              includedIds.push(id);
-      else if (!hasSeller)       unlabeledIds.push(id); // no buyer AND no seller label
-      // hasSeller && !hasBuyer → exclude silently
+      if (hasBuyer)        includedIds.push(id);
+      else if (hasSeller)  selgerIds.push(id);   // Seller / Co-owner → separate section
+      else                 unlabeledIds.push(id); // no label at all
     }
 
-    const allFetchIds = [...includedIds, ...unlabeledIds];
+    const allFetchIds = [...includedIds, ...unlabeledIds, ...selgerIds];
     if (!allFetchIds.length) {
-      return { statusCode: 200, headers: h, body: JSON.stringify({ interessenter: [], unlabeled: [] }) };
+      return { statusCode: 200, headers: h, body: JSON.stringify({ interessenter: [], unlabeled: [], selgere: [] }) };
     }
 
     // 2. Batch-read all needed contacts in one call
@@ -415,7 +416,10 @@ exports.handler = async (event) => {
     const unlabeled = unlabeledIds.map(enrich).filter(Boolean);
     unlabeled.sort((a, b) => a.name.localeCompare(b.name, 'no'));
 
-    return { statusCode: 200, headers: h, body: JSON.stringify({ interessenter, unlabeled }) };
+    const selgere = selgerIds.map(enrich).filter(Boolean);
+    selgere.sort((a, b) => a.name.localeCompare(b.name, 'no'));
+
+    return { statusCode: 200, headers: h, body: JSON.stringify({ interessenter, unlabeled, selgere }) };
   }
 
   // ── GET ?eierskiftepreview=DEAL_ID ────────────────────────────────────────
