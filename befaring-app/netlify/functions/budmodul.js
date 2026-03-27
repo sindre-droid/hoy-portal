@@ -12,6 +12,7 @@
 // POST action=update_expiry       → oppdater frist
 // POST action=add_note            → legg til internt notat
 // POST action=notify_buyers       → komponer varslingstekst + logg event
+// POST action=website_inquiry     → HubSpot-workflow webhook: finn deal på båt, legg kontakt til som Interessent
 // ──────────────────────────────────────────────────────────────────────────────
 
 const { createClient } = require('@supabase/supabase-js');
@@ -868,6 +869,48 @@ exports.handler = async (event) => {
       statusCode: allOk ? 200 : 207,
       headers: h,
       body: JSON.stringify({ ok: allOk, results }),
+    };
+  }
+
+  // ── website_inquiry ──────────────────────────────────────────────────────────
+  // Called from HubSpot workflow (webhook) when a contact submits a form on a boat listing page.
+  // Finds the active deal for the boat and adds the contact as Interessent on that deal.
+  // Body (from HubSpot webhook): { contactId, boatId }
+  // boatId comes from the contact property "Submitted Boat ID" mapped in the workflow.
+  if (action === 'website_inquiry') {
+    const { contactId, boatId } = body;
+    if (!contactId || !boatId) {
+      return { statusCode: 400, headers: h, body: JSON.stringify({ error: 'contactId og boatId er påkrevd' }) };
+    }
+
+    // Find deals associated with this boat
+    const dealAssocRes = await hs(`/crm/v4/objects/${BOAT_OBJ_TYPE}/${boatId}/associations/deals?limit=50`);
+    const dealIds = (dealAssocRes.data?.results || []).map(r => r.toObjectId);
+
+    if (!dealIds.length) {
+      return { statusCode: 200, headers: h, body: JSON.stringify({ ok: false, reason: 'Ingen deal funnet for denne båten' }) };
+    }
+
+    // Fetch deal details to find the active one in Pipeline B
+    const dealsRes = await hs('/crm/v3/objects/deals/batch/read', 'POST', {
+      properties: ['pipeline', 'dealstage', 'closedate'],
+      inputs: dealIds.map(id => ({ id })),
+    });
+    const deals = dealsRes.data?.results || [];
+
+    // Prefer active Pipeline B deal; fall back to the first deal found
+    const activeDeal = deals.find(d => d.properties.pipeline === PIPELINE_B) || deals[0];
+    if (!activeDeal) {
+      return { statusCode: 200, headers: h, body: JSON.stringify({ ok: false, reason: 'Ingen passende deal funnet' }) };
+    }
+
+    const dealId = activeDeal.id;
+    const result = await applyAssocLabel(dealId, contactId, 'Interessent');
+
+    return {
+      statusCode: result.ok ? 200 : 500,
+      headers: h,
+      body: JSON.stringify({ ok: result.ok, dealId, contactId, error: result.error }),
     };
   }
 
