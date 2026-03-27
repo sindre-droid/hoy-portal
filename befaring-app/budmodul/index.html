@@ -136,7 +136,8 @@
     .modal h3{font-size:18px;font-weight:800;color:var(--navy);margin:0 0 18px}
     .field{margin-bottom:14px}
     .field label{display:block;font-size:13px;font-weight:600;color:var(--navy);margin-bottom:5px}
-    .field input,.field select,.field textarea{width:100%;padding:11px 13px;border:2px solid var(--gray);border-radius:8px;font-size:15px;font-family:inherit;color:var(--text)}
+    .field input:not([type=checkbox]),.field select,.field textarea{width:100%;padding:11px 13px;border:2px solid var(--gray);border-radius:8px;font-size:15px;font-family:inherit;color:var(--text)}
+    .field input[type=checkbox]{width:auto;accent-color:var(--navy)}
     .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--navy)}
     .field textarea{resize:vertical;min-height:80px}
     .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}

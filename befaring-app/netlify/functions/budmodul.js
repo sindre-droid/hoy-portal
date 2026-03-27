@@ -19,9 +19,9 @@ const { createClient } = require('@supabase/supabase-js');
 const PIPELINE_B    = '3211644128';
 const BOAT_OBJ_TYPE = '2-145214665';
 
-// Boats-to-Contacts association label typeIds (USER_DEFINED, verified in HubSpot):
-const BOAT_LBL_CURRENT_OWNER  = 34;
-const BOAT_LBL_TIDLIGERE_EIER = 11;
+// Boats-to-Contacts association label typeIds (USER_DEFINED, confirmed via API 2025-03-27):
+const BOAT_LBL_CURRENT_OWNER  = 89;
+const BOAT_LBL_TIDLIGERE_EIER = 91;
 
 // Oneflow template IDs (same as sjekkliste.js)
 const OF_BUDSKJEMA_TEMPLATE  = 5214566;
@@ -175,44 +175,67 @@ async function applyAssocLabel(dealId, contactId, addLabel) {
 
 // ── Boat–contact association helpers ──────────────────────────────────────────
 
-// Returns all boat-to-contact associations for a boat as { contactId → [typeIds] }
+// Returns all boat-to-contact associations for a boat as { contactId → { userDefined:[typeIds], hubspotDefined:[typeIds] } }
 async function getBoatContactAssocs(boatId) {
   const r = await hs(`/crm/v4/objects/${BOAT_OBJ_TYPE}/${boatId}/associations/contacts?limit=500`);
   const map = {};
   for (const item of (r.data?.results || [])) {
     const cid = String(item.toObjectId);
-    map[cid] = (item.associationTypes || [])
-      .filter(t => t.category === 'USER_DEFINED')
-      .map(t => t.typeId);
+    const types = item.associationTypes || [];
+    map[cid] = {
+      userDefined:    types.filter(t => t.category === 'USER_DEFINED').map(t => t.typeId),
+      hubspotDefined: types.filter(t => t.category === 'HUBSPOT_DEFINED').map(t => t.typeId),
+    };
   }
   return map;
 }
 
+// Returns the default HUBSPOT_DEFINED typeId for Boat→Contact associations.
+// Boat is a custom object — HubSpot has no HUBSPOT_DEFINED base type for it, so this returns null.
+// buildAssocPutBody handles null gracefully (only sends USER_DEFINED types in that case).
+async function getBoatContactDefaultTypeId() {
+  const r = await hs(`/crm/v4/associations/${BOAT_OBJ_TYPE}/contacts/labels`);
+  const hubspotDefined = (r.data?.results || []).find(t => t.category === 'HUBSPOT_DEFINED');
+  return hubspotDefined?.typeId || null;
+}
+
+// Builds a PUT body for HubSpot v4 associations.
+// Includes existing HUBSPOT_DEFINED base types if present (required for standard objects).
+// For custom objects (like Boat), defaultHubspotTypeId is null and only USER_DEFINED types are sent.
+function buildAssocPutBody(userDefinedTypeIds, existingHubspotTypeIds, defaultHubspotTypeId) {
+  const putBody = [];
+  // Include existing or default HUBSPOT_DEFINED type so new associations are accepted
+  const hsTypes = existingHubspotTypeIds.length ? existingHubspotTypeIds : (defaultHubspotTypeId ? [defaultHubspotTypeId] : []);
+  for (const id of hsTypes) putBody.push({ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: id });
+  for (const id of userDefinedTypeIds) putBody.push({ associationCategory: 'USER_DEFINED', associationTypeId: id });
+  return putBody;
+}
+
 // Replaces fromTypeId with toTypeId on a boat→contact association.
-// Preserves all other existing USER_DEFINED labels.
 async function replaceBoatContactLabel(boatId, contactId, fromTypeId, toTypeId) {
   try {
-    const assocs   = await getBoatContactAssocs(boatId);
-    const existing = assocs[String(contactId)] || [];
-    const updated  = existing.filter(id => id !== fromTypeId);
+    const [assocs, defaultHsTypeId] = await Promise.all([getBoatContactAssocs(boatId), getBoatContactDefaultTypeId()]);
+    const c        = assocs[String(contactId)] || { userDefined: [], hubspotDefined: [] };
+    const updated  = c.userDefined.filter(id => id !== fromTypeId);
     if (!updated.includes(toTypeId)) updated.push(toTypeId);
-    const putBody  = updated.map(typeId => ({ associationCategory: 'USER_DEFINED', associationTypeId: typeId }));
+    const putBody  = buildAssocPutBody(updated, c.hubspotDefined, defaultHsTypeId);
     const putRes   = await hs(`/crm/v4/objects/${BOAT_OBJ_TYPE}/${boatId}/associations/contacts/${contactId}`, 'PUT', putBody);
-    return { ok: putRes.ok, status: putRes.status };
+    return { ok: putRes.ok, status: putRes.status, hs_error: putRes.ok ? undefined : putRes.data };
   } catch (e) {
     return { ok: false, error: e.message };
   }
 }
 
-// Adds toTypeId to a boat→contact association, preserving existing labels.
+// Adds addTypeId to a boat→contact association, preserving existing labels.
+// For Boat (custom object) there is no HUBSPOT_DEFINED base type — only USER_DEFINED types are sent.
 async function addBoatContactLabel(boatId, contactId, addTypeId) {
   try {
-    const assocs   = await getBoatContactAssocs(boatId);
-    const existing = assocs[String(contactId)] || [];
-    const merged   = [...new Set([...existing, addTypeId])];
-    const putBody  = merged.map(typeId => ({ associationCategory: 'USER_DEFINED', associationTypeId: typeId }));
-    const putRes   = await hs(`/crm/v4/objects/${BOAT_OBJ_TYPE}/${boatId}/associations/contacts/${contactId}`, 'PUT', putBody);
-    return { ok: putRes.ok, status: putRes.status };
+    const [assocs, defaultHsTypeId] = await Promise.all([getBoatContactAssocs(boatId), getBoatContactDefaultTypeId()]);
+    const c      = assocs[String(contactId)] || { userDefined: [], hubspotDefined: [] };
+    const merged = [...new Set([...c.userDefined, addTypeId])];
+    const putBody = buildAssocPutBody(merged, c.hubspotDefined, defaultHsTypeId);
+    const putRes  = await hs(`/crm/v4/objects/${BOAT_OBJ_TYPE}/${boatId}/associations/contacts/${contactId}`, 'PUT', putBody);
+    return { ok: putRes.ok, status: putRes.status, hs_error: putRes.ok ? undefined : putRes.data };
   } catch (e) {
     return { ok: false, error: e.message };
   }
@@ -455,9 +478,9 @@ exports.handler = async (event) => {
       getBoatContactAssocs(boatId),
     ]);
 
-    // Find Current Owner on the boat (typeId 34)
+    // Find Current Owner on the boat (typeId 89)
     const currentOwnerEntry = Object.entries(boatAssocsMap)
-      .find(([, typeIds]) => typeIds.includes(BOAT_LBL_CURRENT_OWNER));
+      .find(([, assoc]) => assoc.userDefined.includes(BOAT_LBL_CURRENT_OWNER));
     const currentOwnerId = currentOwnerEntry ? currentOwnerEntry[0] : null;
 
     // Batch-fetch contact names
@@ -800,8 +823,8 @@ exports.handler = async (event) => {
 
   // ── gjennomfor_eierskifte ────────────────────────────────────────────────────
   // Transfers boat ownership in HubSpot:
-  //   1. Old Current Owner (typeId 34) → relabeled to "tidligere eier" (typeId 11)
-  //   2. Final buyer → added as new Current Owner (typeId 34) on the boat
+  //   1. Old Current Owner (typeId 89) → relabeled to "tidligere eier" (typeId 91)
+  //   2. Final buyer → added as new Current Owner (typeId 89) on the boat
   // Expects: { dealId, boatId, currentOwnerId (nullable), finalBuyerId (nullable) }
   if (action === 'gjennomfor_eierskifte') {
     const { dealId, boatId, currentOwnerId, finalBuyerId } = body;
