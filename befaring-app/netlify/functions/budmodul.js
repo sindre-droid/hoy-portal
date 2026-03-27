@@ -631,6 +631,11 @@ exports.handler = async (event) => {
       }
     }
 
+    // Auto-sett «Final buyer»-label i HubSpot når bud aksepteres
+    if (status === 'Accepted' && offer.buyer_contact_id) {
+      applyAssocLabel(offer.deal_id, offer.buyer_contact_id, 'Final buyer'); // best-effort, ikke await
+    }
+
     const hsSync = await syncDealToHubSpot(supabase, offer.deal_id);
 
     return {
