@@ -1,20 +1,27 @@
 // ── budmodul.js ────────────────────────────────────────────────────────────────
-// GET  ?budboard=DEAL_ID         → offers + events + deal info for one deal
-// GET  ?oversikt=1               → alle deals med aktive bud (admin)
-// GET  ?interessenter=DEAL_ID    → HubSpot-kontakter på dealen + unlabeled contacts + bud/budskjema-status
-// POST action=create_offer       → registrer nytt bud (auto-setter Budgiver-label på kontakt)
-// POST action=set_contact_label  → sett/legg til HubSpot association label på kontakt
-// POST action=log_contact_action → logg budskjema-sending eller annen kontakthandling
-// POST action=set_status         → accept / reject / withdraw
-// POST action=create_counter     → motbud (nytt bud lenket til originalbud)
-// POST action=update_expiry      → oppdater frist
-// POST action=add_note           → legg til internt notat
-// POST action=notify_buyers      → komponer varslingstekst + logg event
+// GET  ?budboard=DEAL_ID          → offers + events + deal info for one deal
+// GET  ?oversikt=1                → alle deals med aktive bud (admin)
+// GET  ?interessenter=DEAL_ID     → HubSpot-kontakter på dealen + unlabeled contacts + bud/budskjema-status
+// GET  ?eierskiftepreview=DEAL_ID → henter båt, nåværende eier og final buyer for eierskifte-bekreftelse
+// POST action=create_offer        → registrer nytt bud (auto-setter Budgiver-label på kontakt)
+// POST action=set_contact_label   → sett/legg til HubSpot association label på kontakt
+// POST action=log_contact_action  → logg budskjema-sending eller annen kontakthandling
+// POST action=gjennomfor_eierskifte → overfør eierskap: nåværende eier → tidligere eier, kjøper → Current Owner
+// POST action=set_status          → accept / reject / withdraw
+// POST action=create_counter      → motbud (nytt bud lenket til originalbud)
+// POST action=update_expiry       → oppdater frist
+// POST action=add_note            → legg til internt notat
+// POST action=notify_buyers       → komponer varslingstekst + logg event
 // ──────────────────────────────────────────────────────────────────────────────
 
 const { createClient } = require('@supabase/supabase-js');
 
-const PIPELINE_B = '3211644128';
+const PIPELINE_B    = '3211644128';
+const BOAT_OBJ_TYPE = '2-145214665';
+
+// Boats-to-Contacts association label typeIds (USER_DEFINED, verified in HubSpot):
+const BOAT_LBL_CURRENT_OWNER  = 34;
+const BOAT_LBL_TIDLIGERE_EIER = 11;
 
 // Oneflow template IDs (same as sjekkliste.js)
 const OF_BUDSKJEMA_TEMPLATE  = 5214566;
@@ -161,6 +168,51 @@ async function applyAssocLabel(dealId, contactId, addLabel) {
     const putBody = merged.map(typeId => ({ associationCategory: 'USER_DEFINED', associationTypeId: typeId }));
     const putRes  = await hs(`/crm/v4/objects/deals/${dealId}/associations/contacts/${contactId}`, 'PUT', putBody);
     return { ok: putRes.ok };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+// ── Boat–contact association helpers ──────────────────────────────────────────
+
+// Returns all boat-to-contact associations for a boat as { contactId → [typeIds] }
+async function getBoatContactAssocs(boatId) {
+  const r = await hs(`/crm/v4/objects/${BOAT_OBJ_TYPE}/${boatId}/associations/contacts?limit=500`);
+  const map = {};
+  for (const item of (r.data?.results || [])) {
+    const cid = String(item.toObjectId);
+    map[cid] = (item.associationTypes || [])
+      .filter(t => t.category === 'USER_DEFINED')
+      .map(t => t.typeId);
+  }
+  return map;
+}
+
+// Replaces fromTypeId with toTypeId on a boat→contact association.
+// Preserves all other existing USER_DEFINED labels.
+async function replaceBoatContactLabel(boatId, contactId, fromTypeId, toTypeId) {
+  try {
+    const assocs   = await getBoatContactAssocs(boatId);
+    const existing = assocs[String(contactId)] || [];
+    const updated  = existing.filter(id => id !== fromTypeId);
+    if (!updated.includes(toTypeId)) updated.push(toTypeId);
+    const putBody  = updated.map(typeId => ({ associationCategory: 'USER_DEFINED', associationTypeId: typeId }));
+    const putRes   = await hs(`/crm/v4/objects/${BOAT_OBJ_TYPE}/${boatId}/associations/contacts/${contactId}`, 'PUT', putBody);
+    return { ok: putRes.ok, status: putRes.status };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+// Adds toTypeId to a boat→contact association, preserving existing labels.
+async function addBoatContactLabel(boatId, contactId, addTypeId) {
+  try {
+    const assocs   = await getBoatContactAssocs(boatId);
+    const existing = assocs[String(contactId)] || [];
+    const merged   = [...new Set([...existing, addTypeId])];
+    const putBody  = merged.map(typeId => ({ associationCategory: 'USER_DEFINED', associationTypeId: typeId }));
+    const putRes   = await hs(`/crm/v4/objects/${BOAT_OBJ_TYPE}/${boatId}/associations/contacts/${contactId}`, 'PUT', putBody);
+    return { ok: putRes.ok, status: putRes.status };
   } catch (e) {
     return { ok: false, error: e.message };
   }
@@ -364,6 +416,81 @@ exports.handler = async (event) => {
     unlabeled.sort((a, b) => a.name.localeCompare(b.name, 'no'));
 
     return { statusCode: 200, headers: h, body: JSON.stringify({ interessenter, unlabeled }) };
+  }
+
+  // ── GET ?eierskiftepreview=DEAL_ID ────────────────────────────────────────
+  // Returns: { boatId, boatName, currentOwner: {id,name}|null, finalBuyer: {id,name}|null }
+  // Used to show a confirmation modal before executing ownership transfer.
+  if (event.httpMethod === 'GET' && q.eierskiftepreview) {
+    const dealId = q.eierskiftepreview;
+
+    // Fetch deal-to-contact labels map, deal-to-boat assocs, and deal-to-contact assocs in parallel
+    const [labelMap, boatAssocRes, dealContactsRes] = await Promise.all([
+      fetchLabelTypeIds(),
+      hs(`/crm/v4/objects/deals/${dealId}/associations/${BOAT_OBJ_TYPE}?limit=10`),
+      hs(`/crm/v4/objects/deals/${dealId}/associations/contacts?limit=500`),
+    ]);
+
+    // Find first associated boat
+    const boatItems = boatAssocRes.data?.results || [];
+    const boatId    = boatItems[0]?.toObjectId;
+    if (!boatId) {
+      return { statusCode: 404, headers: h, body: JSON.stringify({ error: 'Ingen båt assosiert med denne dealen' }) };
+    }
+
+    // Find Final buyer contact on the deal
+    const finalBuyerTypeId    = labelMap['Final buyer'];
+    const dealContactItems    = dealContactsRes.data?.results || [];
+    const finalBuyerAssoc     = dealContactItems.find(a =>
+      (a.associationTypes || []).some(t => t.typeId === finalBuyerTypeId)
+    );
+
+    // Fetch boat properties + boat-to-contact assocs in parallel
+    const [boatPropsRes, boatAssocsMap] = await Promise.all([
+      hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}/${boatId}?properties=batmerke,bat_modell,arsmodell`),
+      getBoatContactAssocs(boatId),
+    ]);
+
+    // Find Current Owner on the boat (typeId 34)
+    const currentOwnerEntry = Object.entries(boatAssocsMap)
+      .find(([, typeIds]) => typeIds.includes(BOAT_LBL_CURRENT_OWNER));
+    const currentOwnerId = currentOwnerEntry ? currentOwnerEntry[0] : null;
+
+    // Batch-fetch contact names
+    const contactIdsToFetch = [finalBuyerAssoc?.toObjectId, currentOwnerId]
+      .filter(Boolean).map(String);
+
+    let contactsMap = {};
+    if (contactIdsToFetch.length) {
+      const batchRes = await hs('/crm/v3/objects/contacts/batch/read', 'POST', {
+        properties: ['firstname', 'lastname', 'email'],
+        inputs: contactIdsToFetch.map(id => ({ id })),
+      });
+      for (const c of (batchRes.data?.results || [])) {
+        const name = `${c.properties.firstname || ''} ${c.properties.lastname || ''}`.trim();
+        contactsMap[c.id] = name || c.properties.email || `#${c.id}`;
+      }
+    }
+
+    // Build boat name from properties
+    const bp       = boatPropsRes.data?.properties || {};
+    const boatName = [bp.batmerke, bp.bat_modell, bp.arsmodell].filter(Boolean).join(' ')
+                   || `Båt #${boatId}`;
+
+    return {
+      statusCode: 200,
+      headers: h,
+      body: JSON.stringify({
+        boatId,
+        boatName,
+        currentOwner: currentOwnerId
+          ? { id: currentOwnerId, name: contactsMap[currentOwnerId] || `#${currentOwnerId}` }
+          : null,
+        finalBuyer: finalBuyerAssoc
+          ? { id: String(finalBuyerAssoc.toObjectId), name: contactsMap[String(finalBuyerAssoc.toObjectId)] || `#${finalBuyerAssoc.toObjectId}` }
+          : null,
+      }),
+    };
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -659,6 +786,56 @@ exports.handler = async (event) => {
       payload:       ap,
     });
     return { statusCode: 200, headers: h, body: JSON.stringify({ ok: true }) };
+  }
+
+  // ── gjennomfor_eierskifte ────────────────────────────────────────────────────
+  // Transfers boat ownership in HubSpot:
+  //   1. Old Current Owner (typeId 34) → relabeled to "tidligere eier" (typeId 11)
+  //   2. Final buyer → added as new Current Owner (typeId 34) on the boat
+  // Expects: { dealId, boatId, currentOwnerId (nullable), finalBuyerId (nullable) }
+  if (action === 'gjennomfor_eierskifte') {
+    const { dealId, boatId, currentOwnerId, finalBuyerId } = body;
+    if (!dealId || !boatId) {
+      return { statusCode: 400, headers: h, body: JSON.stringify({ error: 'dealId og boatId er påkrevd' }) };
+    }
+
+    const results = {};
+
+    // Step 1: Change old owner Current Owner → tidligere eier
+    if (currentOwnerId) {
+      results.oldOwner = await replaceBoatContactLabel(
+        boatId, currentOwnerId, BOAT_LBL_CURRENT_OWNER, BOAT_LBL_TIDLIGERE_EIER
+      );
+    } else {
+      results.oldOwner = { ok: true, skipped: 'ingen nåværende eier' };
+    }
+
+    // Step 2: Add new buyer as Current Owner on the boat
+    if (finalBuyerId) {
+      results.newOwner = await addBoatContactLabel(boatId, finalBuyerId, BOAT_LBL_CURRENT_OWNER);
+    } else {
+      results.newOwner = { ok: true, skipped: 'ingen final buyer' };
+    }
+
+    // Log to Supabase offer_events so there's an audit trail
+    await logEvent(supabase, {
+      dealId,
+      userId,
+      type: 'eierskifte',
+      payload: {
+        boatId,
+        previousOwnerId: currentOwnerId || null,
+        newOwnerId:      finalBuyerId   || null,
+        results,
+      },
+    });
+
+    const allOk = results.oldOwner.ok && results.newOwner.ok;
+    return {
+      statusCode: allOk ? 200 : 207,
+      headers: h,
+      body: JSON.stringify({ ok: allOk, results }),
+    };
   }
 
   return { statusCode: 400, headers: h, body: JSON.stringify({ error: 'Ukjent action' }) };

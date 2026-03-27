@@ -239,6 +239,9 @@
         <button class="btn-outline" id="notifyBtn" onclick="showNotifyPanel()" style="display:none">
           📢 Varsle budgivere
         </button>
+        <button class="btn-outline" id="eierskifteBtn" onclick="showEierskifteModal()" style="display:none;border-color:var(--gold);color:var(--gold)">
+          🔑 Gjennomfør eierskifte
+        </button>
       </div>
 
       <!-- Notify panel (hidden by default) -->
@@ -409,6 +412,23 @@
   </div>
 </div>
 
+<!-- Modal: Gjennomfør eierskifte -->
+<div class="modal-overlay" id="eierskifteModal" style="display:none" onclick="if(event.target===this)closeEierskifteModal()">
+  <div class="modal">
+    <h3>🔑 Gjennomfør eierskifte</h3>
+    <div id="eierskifteContent">
+      <div class="empty-state" style="padding:20px 0">Henter informasjon…</div>
+    </div>
+    <div class="modal-error" id="eierskifteError"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeEierskifteModal()">Avbryt</button>
+      <button class="btn-accept" id="confirmEierskifteBtn" onclick="confirmEierskifte()" style="display:none">
+        ✅ Bekreft eierskifte
+      </button>
+    </div>
+  </div>
+</div>
+
 <script>
 'use strict';
 const IDENTITY = `${window.location.origin}/.netlify/identity`;
@@ -422,6 +442,7 @@ let selectedOfferId = null;
 let pendingAcceptId = null;
 let pendingRejectId = null;
 let interessenter   = [];
+let eierskifteData  = null; // { boatId, boatName, currentOwner, finalBuyer }
 
 const $ = id => document.getElementById(id);
 
@@ -548,8 +569,9 @@ function backToPicker() {
   $('pickerView').style.display = 'block';
   $('budboardView').style.display = 'none';
   currentDealId = null;
-  offers = []; events = []; interessenter = [];
-  $('interessenterCard').style.display = 'none';
+  offers = []; events = []; interessenter = []; eierskifteData = null;
+  $('interessenterCard').style.display  = 'none';
+  $('eierskifteBtn').style.display      = 'none';
 }
 
 // ── Interessenter ─────────────────────────────────────────────────────────────
@@ -736,7 +758,8 @@ function renderDealHeader(data) {
     badge.textContent = 'Ingen bud'; badge.className = 'status-badge badge-ingen';
   }
 
-  $('notifyBtn').style.display = offers.length > 0 ? '' : 'none';
+  $('notifyBtn').style.display      = offers.length > 0 ? '' : 'none';
+  $('eierskifteBtn').style.display  = accepted.length > 0 ? '' : 'none';
 }
 
 function renderOffersTable() {
@@ -947,6 +970,100 @@ async function showNotifyPanel() {
 }
 
 function hideNotifyPanel() { $('notifyPanel').style.display='none'; }
+
+// ── Eierskifte ────────────────────────────────────────────────────────────────
+
+async function showEierskifteModal() {
+  eierskifteData = null;
+  $('eierskifteError').style.display   = 'none';
+  $('confirmEierskifteBtn').style.display = 'none';
+  $('eierskifteContent').innerHTML = '<div class="empty-state" style="padding:20px 0">Henter informasjon…</div>';
+  $('eierskifteModal').style.display = 'flex';
+
+  try {
+    const data = await api({ eierskiftepreview: currentDealId });
+    if (data.error) throw new Error(data.error);
+    eierskifteData = data;
+
+    const oldOwner  = data.currentOwner ? data.currentOwner.name : '—';
+    const newOwner  = data.finalBuyer   ? data.finalBuyer.name   : '—';
+    const boatName  = data.boatName || '—';
+
+    $('eierskifteContent').innerHTML = `
+      <p style="font-size:14px;color:var(--gray-dark);margin-bottom:16px">
+        Dette vil oppdatere tilknytningen til båten i HubSpot:
+      </p>
+      <table style="width:100%;font-size:14px;border-collapse:collapse">
+        <tr>
+          <td style="padding:8px 4px;color:var(--text-muted);width:130px">Båt</td>
+          <td style="padding:8px 4px;font-weight:600">${escHtml(boatName)}</td>
+        </tr>
+        <tr style="background:rgba(255,200,100,0.08)">
+          <td style="padding:8px 4px;color:var(--text-muted)">Nåværende eier</td>
+          <td style="padding:8px 4px">
+            ${data.currentOwner
+              ? `<span style="color:var(--gray-dark)">${escHtml(oldOwner)}</span> → <span style="color:var(--text-muted);font-size:12px">tidligere eier</span>`
+              : '<span style="color:var(--text-muted);font-style:italic">Ingen registrert eier</span>'}
+          </td>
+        </tr>
+        <tr style="background:rgba(80,180,120,0.08)">
+          <td style="padding:8px 4px;color:var(--text-muted)">Ny eier</td>
+          <td style="padding:8px 4px">
+            ${data.finalBuyer
+              ? `<span style="font-weight:600;color:#50b478">${escHtml(newOwner)}</span> <span style="font-size:12px;color:var(--text-muted)">→ Current Owner</span>`
+              : '<span style="color:var(--red,#e55);font-style:italic">Ingen «Final buyer» satt på dealen</span>'}
+          </td>
+        </tr>
+      </table>
+      ${!data.finalBuyer ? '<p style="margin-top:12px;font-size:13px;color:var(--red,#e55)">⚠️ Sett en kontakt som «Final buyer» på HubSpot-dealen for å gjennomføre eierskifte.</p>' : ''}
+    `;
+    if (data.finalBuyer || data.currentOwner) {
+      $('confirmEierskifteBtn').style.display = '';
+    }
+  } catch (e) {
+    $('eierskifteContent').innerHTML = '';
+    $('eierskifteError').textContent  = e.message || 'Kunne ikke hente eierskifteinfo';
+    $('eierskifteError').style.display = 'block';
+  }
+}
+
+function closeEierskifteModal() {
+  $('eierskifteModal').style.display = 'none';
+  eierskifteData = null;
+}
+
+async function confirmEierskifte() {
+  if (!eierskifteData) return;
+  const btn    = $('confirmEierskifteBtn');
+  const errEl  = $('eierskifteError');
+  btn.disabled = true;
+  btn.textContent = 'Gjennomfører…';
+  errEl.style.display = 'none';
+
+  try {
+    const r = await api({}, 'POST', {
+      action:         'gjennomfor_eierskifte',
+      dealId:         currentDealId,
+      boatId:         eierskifteData.boatId,
+      currentOwnerId: eierskifteData.currentOwner?.id || null,
+      finalBuyerId:   eierskifteData.finalBuyer?.id   || null,
+    });
+    if (!r.ok) throw new Error(JSON.stringify(r.results || r.error || 'Ukjent feil'));
+    closeEierskifteModal();
+    // Brief success banner
+    const banner = document.createElement('div');
+    banner.textContent = '✅ Eierskifte gjennomført i HubSpot!';
+    banner.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1c3a2a;color:#50b478;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.4)';
+    document.body.appendChild(banner);
+    setTimeout(() => banner.remove(), 4000);
+  } catch (e) {
+    errEl.textContent   = e.message || 'Noe gikk galt';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = '✅ Bekreft eierskifte';
+  }
+}
 
 function copyNotify() {
   const txt = $('notifyText').textContent;
