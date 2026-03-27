@@ -297,7 +297,7 @@
 </div>
 
 <!-- Modal: Nytt bud -->
-<div class="modal-overlay" id="newOfferModal" style="display:none" onclick="if(event.target===this)closeNewOfferModal()">
+<div class="modal-overlay" id="newOfferModal" style="display:none">
   <div class="modal">
     <h3>Registrer nytt bud</h3>
     <div class="field" id="interessentPickerField" style="display:none">
@@ -327,7 +327,10 @@
       </div>
       <div class="field">
         <label>Frist</label>
-        <input type="datetime-local" id="mExpiry">
+        <div style="display:flex;gap:6px">
+          <input type="date" id="mExpiryDate" style="flex:1.4">
+          <input type="time" id="mExpiryTime" style="flex:1" value="12:00">
+        </div>
       </div>
     </div>
     <div class="field-row">
@@ -894,7 +897,7 @@ function renderEventLog() {
 // ── New offer modal ───────────────────────────────────────────────────────────
 function showNewOfferModal() {
   $('mBuyerName').value=''; $('mBuyerPhone').value=''; $('mBuyerEmail').value='';
-  $('mAmount').value=''; $('mExpiry').value=''; $('mReceivedVia').value='';
+  $('mAmount').value=''; $('mExpiryDate').value=''; $('mExpiryTime').value='12:00'; $('mReceivedVia').value='';
   $('mFinancing').value='Unknown'; $('mNotes').value=''; $('mContingencyText').value='';
   $('mInteressent').value='';
   $('cFinancing').checked=false; $('cOwnBoat').checked=false;
@@ -924,7 +927,10 @@ async function saveNewOffer() {
       buyerName, buyerEmail: $('mBuyerEmail').value.trim()||null,
       buyerPhone: $('mBuyerPhone').value.trim()||null,
       amountNOK, receivedVia,
-      expiryAt: $('mExpiry').value ? new Date($('mExpiry').value).toISOString() : null,
+      expiryAt: (() => {
+        const d = $('mExpiryDate').value, t = $('mExpiryTime').value || '12:00';
+        return d ? new Date(`${d}T${t}`).toISOString() : null;
+      })(),
       financingStatus: $('mFinancing').value,
       contingencies, contingenciesText,
       notesInternal: $('mNotes').value.trim()||null,
