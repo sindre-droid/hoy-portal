@@ -931,6 +931,7 @@ async function saveNewOffer() {
     });
     closeNewOfferModal();
     await refreshBudboard();
+    loadInteressenter(); // refresh labels (f.eks. auto-Budgiver)
   } catch (e) {
     errEl.textContent = e.message||'Noe gikk galt'; errEl.style.display='block';
   } finally { btn.disabled=false; btn.textContent='Lagre bud'; }
