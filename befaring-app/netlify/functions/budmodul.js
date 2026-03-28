@@ -942,26 +942,24 @@ exports.handler = async (event) => {
     }
 
     // 2. Opprett kontrakt fra budskjema-malen
+    const participant = {
+      email:     contactEmail,
+      name:      contactName,
+      signatory: true,
+      delivery_channel: 'email',
+    };
+    if (contactPhone) participant.phone_number = contactPhone;
+
     const createRes = await ofApi('/contracts', 'POST', {
       name:      `Budskjema – ${boatName || dealId}`,
       template:  { id: OF_BUDSKJEMA_TEMPLATE },
       workspace: { id: workspaceId },
-      data_fields: [
-        { external_key: 'fatoy', value: boatName || '' },
-      ],
       parties: [
         {
           name:  contactName,
           type:  'individual',
           _permissions: { contract: ['sign'] },
-          participants: [
-            {
-              email:        contactEmail,
-              phone_number: contactPhone || '',
-              name:         contactName,
-              signatory:    true,
-            }
-          ],
+          participants: [ participant ],
         }
       ],
     });
@@ -974,6 +972,13 @@ exports.handler = async (event) => {
     const contractId = createRes.data?.id;
     if (!contractId) {
       return { statusCode: 500, headers: h, body: JSON.stringify({ error: 'Mangler kontrakt-ID i Oneflow-respons' }) };
+    }
+
+    // 2b. Sett fatoy-datafelt på kontrakten
+    if (boatName) {
+      await ofApi(`/contracts/${contractId}/data_fields`, 'PATCH', [
+        { external_key: 'fatoy', value: boatName },
+      ]);
     }
 
     // 3. Send kontrakten til kjøper

@@ -773,7 +773,8 @@ async function sendBudskjema(hsId, name, email, phone) {
       boatName:       boatName,
     });
     if (res?.ok === false || res?.error) {
-      alert('Feil ved sending: ' + (res.error || JSON.stringify(res)));
+      const detail = res.details ? '\n\nOneflow: ' + JSON.stringify(res.details) : '';
+      alert('Feil ved sending: ' + (res.error || JSON.stringify(res)) + detail);
       if (btn) { btn.disabled = false; btn.textContent = '📄 Send budskjema'; }
     } else {
       await loadInteressenter();
