@@ -23,6 +23,7 @@ const BOAT_OBJ_TYPE = '2-145214665';
 // Boats-to-Contacts association label typeIds (USER_DEFINED, confirmed via API 2025-03-27):
 const BOAT_LBL_CURRENT_OWNER  = 89;
 const BOAT_LBL_TIDLIGERE_EIER = 91;
+const BOAT_LBL_SELGER         = 115; // Selger → tidligere eier ved gjennomfor_eierskifte
 
 // Oneflow template IDs (same as sjekkliste.js)
 const OF_BUDSKJEMA_TEMPLATE  = 5214566;
@@ -825,7 +826,8 @@ exports.handler = async (event) => {
   // ── gjennomfor_eierskifte ────────────────────────────────────────────────────
   // Transfers boat ownership in HubSpot:
   //   1. Old Current Owner (typeId 89) → relabeled to "tidligere eier" (typeId 91)
-  //   2. Final buyer → added as new Current Owner (typeId 89) on the boat
+  //   2. Any contact with Selger (typeId 115) on the boat → relabeled to "tidligere eier"
+  //   3. Final buyer → added as new Current Owner (typeId 89) on the boat
   // Expects: { dealId, boatId, currentOwnerId (nullable), finalBuyerId (nullable) }
   if (action === 'gjennomfor_eierskifte') {
     const { dealId, boatId, currentOwnerId, finalBuyerId } = body;
@@ -844,7 +846,17 @@ exports.handler = async (event) => {
       results.oldOwner = { ok: true, skipped: 'ingen nåværende eier' };
     }
 
-    // Step 2: Add new buyer as Current Owner on the boat
+    // Step 2: Change any Selger contacts → tidligere eier
+    // Fetch all boat-contact assocs and find everyone with Selger label
+    const boatAssocs = await getBoatContactAssocs(boatId);
+    const selgerIds = Object.entries(boatAssocs)
+      .filter(([, assoc]) => assoc.userDefined.includes(BOAT_LBL_SELGER))
+      .map(([cid]) => cid);
+    results.selgere = await Promise.all(
+      selgerIds.map(cid => replaceBoatContactLabel(boatId, cid, BOAT_LBL_SELGER, BOAT_LBL_TIDLIGERE_EIER))
+    );
+
+    // Step 3: Add new buyer as Current Owner on the boat
     if (finalBuyerId) {
       results.newOwner = await addBoatContactLabel(boatId, finalBuyerId, BOAT_LBL_CURRENT_OWNER);
     } else {
@@ -858,13 +870,15 @@ exports.handler = async (event) => {
       type: 'eierskifte',
       payload: {
         boatId,
-        previousOwnerId: currentOwnerId || null,
-        newOwnerId:      finalBuyerId   || null,
+        previousOwnerId:  currentOwnerId || null,
+        newOwnerId:       finalBuyerId   || null,
+        selgersMigrated:  selgerIds,
         results,
       },
     });
 
-    const allOk = results.oldOwner.ok && results.newOwner.ok;
+    const allOk = results.oldOwner.ok && results.newOwner.ok
+      && results.selgere.every(r => r.ok);
     return {
       statusCode: allOk ? 200 : 207,
       headers: h,
