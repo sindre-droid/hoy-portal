@@ -964,9 +964,7 @@ exports.handler = async (event) => {
         }
       ],
     };
-    if (boatName) {
-      createBody.data_fields = [{ external_key: 'fatoy', value: boatName }];
-    }
+    // NB: data_fields settes separat etter opprettelse (Oneflow create-API bruker ikke external_key)
 
     const createRes = await ofApi('/contracts/create', 'POST', createBody);
 
@@ -978,6 +976,19 @@ exports.handler = async (event) => {
     const contractId = createRes.data?.id;
     if (!contractId) {
       return { statusCode: 500, headers: h, body: JSON.stringify({ error: 'Mangler kontrakt-ID i Oneflow-respons' }) };
+    }
+
+    // 2b. Sett fatoy-datafelt via debug_oneflow for å finne riktig feltstruktur
+    // Hent data_fields fra kontrakten for å finne riktig ID/key
+    if (boatName) {
+      const dfRes = await ofApi(`/contracts/${contractId}/data_fields`);
+      console.log('data_fields på ny kontrakt:', JSON.stringify(dfRes.data));
+      const fatoyField = dfRes.data?._embedded?.['oneflow:data_fields']?.find(
+        f => f.external_key === 'fatoy' || f.name?.toLowerCase().includes('fartøy')
+      );
+      if (fatoyField?.id) {
+        await ofApi(`/contracts/${contractId}/data_fields/${fatoyField.id}`, 'PATCH', { value: boatName });
+      }
     }
 
     // 3. Send kontrakten til kjøper
