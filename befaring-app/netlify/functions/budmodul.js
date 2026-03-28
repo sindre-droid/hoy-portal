@@ -926,11 +926,19 @@ exports.handler = async (event) => {
       return { statusCode: 400, headers: h, body: JSON.stringify({ error: 'dealId, contactHsId, contactEmail og contactName er påkrevd' }) };
     }
 
-    // 1. Hent workspace ID fra Oneflow (bruker første workspace)
-    const wsRes = await ofApi('/workspaces?limit=1');
-    const workspaceId = wsRes.data?._embedded?.['oneflow:workspaces']?.[0]?.id;
+    // 1. Hent workspace ID fra Oneflow (bruker env-var eller slår opp via API)
+    let workspaceId = process.env.OF_WORKSPACE_ID ? Number(process.env.OF_WORKSPACE_ID) : null;
     if (!workspaceId) {
-      return { statusCode: 500, headers: h, body: JSON.stringify({ error: 'Fant ikke Oneflow workspace' }) };
+      const wsRes = await ofApi('/workspaces?limit=1');
+      console.log('Oneflow /workspaces svar:', JSON.stringify(wsRes.data));
+      // Prøv ulike responsstrukturer fra Oneflow HAL-API
+      workspaceId = wsRes.data?._embedded?.['oneflow:workspaces']?.[0]?.id
+                 || wsRes.data?.data?.[0]?.id
+                 || wsRes.data?.id
+                 || null;
+      if (!workspaceId) {
+        return { statusCode: 500, headers: h, body: JSON.stringify({ error: 'Fant ikke Oneflow workspace', raw: wsRes.data }) };
+      }
     }
 
     // 2. Opprett kontrakt fra budskjema-malen
