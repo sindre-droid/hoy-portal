@@ -942,18 +942,19 @@ exports.handler = async (event) => {
     }
 
     // 2. Opprett kontrakt fra budskjema-malen
+    // Oneflow v1: korrekt endepunkt er /contracts/create med flate feltnavn
     const participant = {
-      email:     contactEmail,
-      name:      contactName,
-      signatory: true,
+      email:            contactEmail,
+      name:             contactName,
+      signatory:        true,
       delivery_channel: 'email',
     };
     if (contactPhone) participant.phone_number = contactPhone;
 
-    const createRes = await ofApi('/contracts', 'POST', {
-      name:      `Budskjema – ${boatName || dealId}`,
-      template:  { id: OF_BUDSKJEMA_TEMPLATE },
-      workspace: { id: workspaceId },
+    const createBody = {
+      name:         `Budskjema – ${boatName || dealId}`,
+      template_id:  OF_BUDSKJEMA_TEMPLATE,
+      workspace_id: workspaceId,
       parties: [
         {
           name:  contactName,
@@ -962,7 +963,12 @@ exports.handler = async (event) => {
           participants: [ participant ],
         }
       ],
-    });
+    };
+    if (boatName) {
+      createBody.data_fields = [{ external_key: 'fatoy', value: boatName }];
+    }
+
+    const createRes = await ofApi('/contracts/create', 'POST', createBody);
 
     if (!createRes.ok) {
       console.error('Oneflow create contract feil:', JSON.stringify(createRes.data));
@@ -972,13 +978,6 @@ exports.handler = async (event) => {
     const contractId = createRes.data?.id;
     if (!contractId) {
       return { statusCode: 500, headers: h, body: JSON.stringify({ error: 'Mangler kontrakt-ID i Oneflow-respons' }) };
-    }
-
-    // 2b. Sett fatoy-datafelt på kontrakten
-    if (boatName) {
-      await ofApi(`/contracts/${contractId}/data_fields`, 'PATCH', [
-        { external_key: 'fatoy', value: boatName },
-      ]);
     }
 
     // 3. Send kontrakten til kjøper
