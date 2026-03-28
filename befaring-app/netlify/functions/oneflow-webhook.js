@@ -62,12 +62,12 @@ async function hs(path, method = 'GET', body = null) {
 async function getContractDataFields(contractId) {
   const res = await ofApi(`/contracts/${contractId}/data_fields`);
   if (!res.ok) return {};
-  const items = res.data?._embedded?.['oneflow:data_fields'] || res.data?.data || [];
+  const items = res.data?.data || res.data?._embedded?.['oneflow:data_fields'] || [];
   return items.reduce((acc, f) => {
-    if (f._private?.tag || f.name) {
-      const key = f._private?.tag || f.name;
-      acc[key] = f.value || '';
-    }
+    // Map by custom_id (e.g. 'budbelop'), name (e.g. 'Budbeløp'), and _private.tag
+    const customId = f._private_ownerside?.custom_id || f._private?.tag;
+    if (customId) acc[customId] = f.value || '';
+    if (f.name)   acc[f.name]   = f.value || '';
     return acc;
   }, {});
 }
@@ -179,7 +179,7 @@ exports.handler = async (event) => {
   const forbehold       = fields['forbehold']       || fields['Forbehold']       || null;
   const overtagelsesdato= parseFrist(fields['overtagelsesdato'] || fields['Overtagelsesdato'])   || null;
   const verdivurdering  = fields['verdivurdering']  || fields['Verdivurdering']  || null;
-  const fatoy           = fields['fatoy']            || fields['Fartøy']          || null;
+  const fatoy           = fields['fartoy']           || fields['Fartøy']          || null;
 
   if (!amountNOK) {
     console.warn('Budbeløp mangler eller kan ikke parses:', fields['budbelop']);
