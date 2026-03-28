@@ -951,20 +951,22 @@ exports.handler = async (event) => {
     };
     if (contactPhone) participant.phone_number = contactPhone;
 
+    // Oneflow individual-party: bruker "participant" (entall), _permissions INNE i participant
     const createBody = {
       name:         `Budskjema – ${boatName || dealId}`,
       template_id:  OF_BUDSKJEMA_TEMPLATE,
       workspace_id: workspaceId,
       parties: [
         {
-          name:  contactName,
-          type:  'individual',
-          _permissions: { contract: ['sign'] },
-          participants: [ participant ],
+          type: 'individual',
+          participant: {
+            ...participant,
+            _permissions: { 'contract:update': true },
+          },
         }
       ],
     };
-    // NB: data_fields settes separat etter opprettelse (Oneflow create-API bruker ikke external_key)
+    // NB: data_fields settes separat etter opprettelse
 
     const createRes = await ofApi('/contracts/create', 'POST', createBody);
 
