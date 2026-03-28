@@ -21,9 +21,9 @@ const PIPELINE_B    = '3211644128';
 const BOAT_OBJ_TYPE = '2-145214665';
 
 // Boats-to-Contacts association label typeIds (USER_DEFINED, confirmed via API 2025-03-27):
-const BOAT_LBL_CURRENT_OWNER  = 89;
+// Current Owner (89) er kanonisk eier-label — endret til many-to-many i HubSpot for å støtte co-eierskap
+const BOAT_LBL_CURRENT_OWNER  = 89;  // Current Owner
 const BOAT_LBL_TIDLIGERE_EIER = 91;
-const BOAT_LBL_SELGER         = 115; // Selger → tidligere eier ved gjennomfor_eierskifte
 
 // Oneflow template IDs (same as sjekkliste.js)
 const OF_BUDSKJEMA_TEMPLATE  = 5214566;
@@ -480,13 +480,13 @@ exports.handler = async (event) => {
       getBoatContactAssocs(boatId),
     ]);
 
-    // Find Current Owner on the boat (typeId 89)
-    const currentOwnerEntry = Object.entries(boatAssocsMap)
-      .find(([, assoc]) => assoc.userDefined.includes(BOAT_LBL_CURRENT_OWNER));
-    const currentOwnerId = currentOwnerEntry ? currentOwnerEntry[0] : null;
+    // Find all current owners on the boat (Primary Boat label, 1-to-many → supports co-owners)
+    const currentOwnerIds = Object.entries(boatAssocsMap)
+      .filter(([, assoc]) => assoc.userDefined.includes(BOAT_LBL_CURRENT_OWNER))
+      .map(([cid]) => cid);
 
     // Batch-fetch contact names
-    const contactIdsToFetch = [finalBuyerAssoc?.toObjectId, currentOwnerId]
+    const contactIdsToFetch = [...currentOwnerIds, finalBuyerAssoc?.toObjectId]
       .filter(Boolean).map(String);
 
     let contactsMap = {};
@@ -512,9 +512,7 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         boatId,
         boatName,
-        currentOwner: currentOwnerId
-          ? { id: currentOwnerId, name: contactsMap[currentOwnerId] || `#${currentOwnerId}` }
-          : null,
+        currentOwners: currentOwnerIds.map(id => ({ id, name: contactsMap[id] || `#${id}` })),
         finalBuyer: finalBuyerAssoc
           ? { id: String(finalBuyerAssoc.toObjectId), name: contactsMap[String(finalBuyerAssoc.toObjectId)] || `#${finalBuyerAssoc.toObjectId}` }
           : null,
@@ -825,38 +823,31 @@ exports.handler = async (event) => {
 
   // ── gjennomfor_eierskifte ────────────────────────────────────────────────────
   // Transfers boat ownership in HubSpot:
-  //   1. Old Current Owner (typeId 89) → relabeled to "tidligere eier" (typeId 91)
-  //   2. Any contact with Selger (typeId 115) on the boat → relabeled to "tidligere eier"
-  //   3. Final buyer → added as new Current Owner (typeId 89) on the boat
-  // Expects: { dealId, boatId, currentOwnerId (nullable), finalBuyerId (nullable) }
+  //   1. ALL contacts with Primary Boat (typeId 121) on the boat → "tidligere eier" (typeId 91)
+  //      Handles co-owners automatically (e.g. ektefeller, kamerater)
+  //   2. Final buyer → added as Primary Boat (typeId 121) on the boat
+  // Expects: { dealId, boatId, finalBuyerId (nullable) }
   if (action === 'gjennomfor_eierskifte') {
-    const { dealId, boatId, currentOwnerId, finalBuyerId } = body;
+    const { dealId, boatId, finalBuyerId } = body;
     if (!dealId || !boatId) {
       return { statusCode: 400, headers: h, body: JSON.stringify({ error: 'dealId og boatId er påkrevd' }) };
     }
 
     const results = {};
 
-    // Step 1: Change old owner Current Owner → tidligere eier
-    if (currentOwnerId) {
-      results.oldOwner = await replaceBoatContactLabel(
-        boatId, currentOwnerId, BOAT_LBL_CURRENT_OWNER, BOAT_LBL_TIDLIGERE_EIER
-      );
-    } else {
-      results.oldOwner = { ok: true, skipped: 'ingen nåværende eier' };
-    }
-
-    // Step 2: Change any Selger contacts → tidligere eier
-    // Fetch all boat-contact assocs and find everyone with Selger label
+    // Step 1: Move ALL current owners (Primary Boat) → tidligere eier
     const boatAssocs = await getBoatContactAssocs(boatId);
-    const selgerIds = Object.entries(boatAssocs)
-      .filter(([, assoc]) => assoc.userDefined.includes(BOAT_LBL_SELGER))
+    const currentOwnerIds = Object.entries(boatAssocs)
+      .filter(([, assoc]) => assoc.userDefined.includes(BOAT_LBL_CURRENT_OWNER))
       .map(([cid]) => cid);
-    results.selgere = await Promise.all(
-      selgerIds.map(cid => replaceBoatContactLabel(boatId, cid, BOAT_LBL_SELGER, BOAT_LBL_TIDLIGERE_EIER))
+
+    results.oldOwners = await Promise.all(
+      currentOwnerIds.map(cid =>
+        replaceBoatContactLabel(boatId, cid, BOAT_LBL_CURRENT_OWNER, BOAT_LBL_TIDLIGERE_EIER)
+      )
     );
 
-    // Step 3: Add new buyer as Current Owner on the boat
+    // Step 2: Add new buyer as Primary Boat on the boat
     if (finalBuyerId) {
       results.newOwner = await addBoatContactLabel(boatId, finalBuyerId, BOAT_LBL_CURRENT_OWNER);
     } else {
@@ -870,15 +861,13 @@ exports.handler = async (event) => {
       type: 'eierskifte',
       payload: {
         boatId,
-        previousOwnerId:  currentOwnerId || null,
-        newOwnerId:       finalBuyerId   || null,
-        selgersMigrated:  selgerIds,
+        previousOwnerIds: currentOwnerIds,
+        newOwnerId:       finalBuyerId || null,
         results,
       },
     });
 
-    const allOk = results.oldOwner.ok && results.newOwner.ok
-      && results.selgere.every(r => r.ok);
+    const allOk = results.oldOwners.every(r => r.ok) && results.newOwner.ok;
     return {
       statusCode: allOk ? 200 : 207,
       headers: h,

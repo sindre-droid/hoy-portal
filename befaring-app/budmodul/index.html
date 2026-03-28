@@ -1030,9 +1030,13 @@ async function showEierskifteModal() {
     if (data.error) throw new Error(data.error);
     eierskifteData = data;
 
-    const oldOwner  = data.currentOwner ? data.currentOwner.name : '—';
-    const newOwner  = data.finalBuyer   ? data.finalBuyer.name   : '—';
+    const owners    = data.currentOwners || [];
+    const newOwner  = data.finalBuyer ? data.finalBuyer.name : '—';
     const boatName  = data.boatName || '—';
+    const oldOwnerHtml = owners.length
+      ? owners.map(o => `<span style="color:var(--gray-dark)">${escHtml(o.name)}</span>`).join(', ')
+        + ' → <span style="color:var(--text-muted);font-size:12px">tidligere eier</span>'
+      : '<span style="color:var(--text-muted);font-style:italic">Ingen registrert eier</span>';
 
     $('eierskifteContent').innerHTML = `
       <p style="font-size:14px;color:var(--gray-dark);margin-bottom:16px">
@@ -1044,25 +1048,21 @@ async function showEierskifteModal() {
           <td style="padding:8px 4px;font-weight:600">${escHtml(boatName)}</td>
         </tr>
         <tr style="background:rgba(255,200,100,0.08)">
-          <td style="padding:8px 4px;color:var(--text-muted)">Nåværende eier</td>
-          <td style="padding:8px 4px">
-            ${data.currentOwner
-              ? `<span style="color:var(--gray-dark)">${escHtml(oldOwner)}</span> → <span style="color:var(--text-muted);font-size:12px">tidligere eier</span>`
-              : '<span style="color:var(--text-muted);font-style:italic">Ingen registrert eier</span>'}
-          </td>
+          <td style="padding:8px 4px;color:var(--text-muted)">Nåværende eier(e)</td>
+          <td style="padding:8px 4px">${oldOwnerHtml}</td>
         </tr>
         <tr style="background:rgba(80,180,120,0.08)">
           <td style="padding:8px 4px;color:var(--text-muted)">Ny eier</td>
           <td style="padding:8px 4px">
             ${data.finalBuyer
-              ? `<span style="font-weight:600;color:#50b478">${escHtml(newOwner)}</span> <span style="font-size:12px;color:var(--text-muted)">→ Current Owner</span>`
+              ? `<span style="font-weight:600;color:#50b478">${escHtml(newOwner)}</span> <span style="font-size:12px;color:var(--text-muted)">→ Primary Boat</span>`
               : '<span style="color:var(--red,#e55);font-style:italic">Ingen «Final buyer» satt på dealen</span>'}
           </td>
         </tr>
       </table>
       ${!data.finalBuyer ? '<p style="margin-top:12px;font-size:13px;color:var(--red,#e55)">⚠️ Sett en kontakt som «Final buyer» på HubSpot-dealen for å gjennomføre eierskifte.</p>' : ''}
     `;
-    if (data.finalBuyer || data.currentOwner) {
+    if (data.finalBuyer || owners.length) {
       $('confirmEierskifteBtn').style.display = '';
     }
   } catch (e) {
@@ -1087,11 +1087,10 @@ async function confirmEierskifte() {
 
   try {
     const r = await api({}, 'POST', {
-      action:         'gjennomfor_eierskifte',
-      dealId:         currentDealId,
-      boatId:         eierskifteData.boatId,
-      currentOwnerId: eierskifteData.currentOwner?.id || null,
-      finalBuyerId:   eierskifteData.finalBuyer?.id   || null,
+      action:       'gjennomfor_eierskifte',
+      dealId:       currentDealId,
+      boatId:       eierskifteData.boatId,
+      finalBuyerId: eierskifteData.finalBuyer?.id || null,
     });
     if (!r.ok) throw new Error(JSON.stringify(r.results || r.error || 'Ukjent feil'));
     closeEierskifteModal();
