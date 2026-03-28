@@ -125,15 +125,20 @@ exports.handler = async (event) => {
     const ofToken = process.env.ONEFLOW_API_TOKEN;
     const ofEmail = process.env.ONEFLOW_USER_EMAIL;
     if (!ofToken || !ofEmail) return { statusCode: 500, headers: h, body: JSON.stringify({ error: 'Oneflow env vars mangler' }) };
-    const ofRes = await fetch(`https://api.oneflow.com/v1/contracts/${contractId}`, {
-      headers: {
-        'x-oneflow-api-token': ofToken,
-        'x-oneflow-user-email': ofEmail,
-        'Content-Type': 'application/json',
-      },
-    });
-    const ofData = await ofRes.json();
-    return { statusCode: 200, headers: h, body: JSON.stringify({ contract: ofData, status: ofRes.status }) };
+    const ofHeaders = {
+      'x-oneflow-api-token': ofToken,
+      'x-oneflow-user-email': ofEmail,
+      'Content-Type': 'application/json',
+    };
+    const [contractRes, dataFieldsRes, partiesRes] = await Promise.all([
+      fetch(`https://api.oneflow.com/v1/contracts/${contractId}`, { headers: ofHeaders }),
+      fetch(`https://api.oneflow.com/v1/contracts/${contractId}/data_fields`, { headers: ofHeaders }),
+      fetch(`https://api.oneflow.com/v1/contracts/${contractId}/parties`, { headers: ofHeaders }),
+    ]);
+    const [contract, dataFields, parties] = await Promise.all([
+      contractRes.json(), dataFieldsRes.json(), partiesRes.json(),
+    ]);
+    return { statusCode: 200, headers: h, body: JSON.stringify({ contract, dataFields, parties }) };
   }
 
   // ── GET ?deal_a_id=X&deal_b_id=Y&deal_name=N → befaring + Oneflow status ──
