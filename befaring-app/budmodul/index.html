@@ -629,9 +629,10 @@ function renderInteressenter(unlabeled = [], selgere = []) {
     const hsIdSafe   = escHtml(i.hs_id);
     const nameSafe   = escHtml(i.name).replace(/'/g, '&#39;');
     const emailSafe  = escHtml(i.email || '').replace(/'/g, '&#39;');
+    const phoneSafe  = escHtml(i.phone || '').replace(/'/g, '&#39;');
     const skjemaCell = i.budskjema_sent_at
       ? `<span style="color:var(--text-muted);font-size:13px">Sendt ${fmtDateShort(i.budskjema_sent_at)}</span>`
-      : `<button class="btn-outline btn-sm" onclick="markBudskjemaSent('${hsIdSafe}','${nameSafe}','${emailSafe}')">Merk sendt</button>`;
+      : `<button class="btn-outline btn-sm" onclick="sendBudskjema('${hsIdSafe}','${nameSafe}','${emailSafe}','${phoneSafe}')">📄 Send budskjema</button>`;
     return `<tr>
       <td>
         <div style="font-weight:500">${escHtml(i.name)}</div>
@@ -754,6 +755,33 @@ async function markBudskjemaSent(hsId, name, email) {
     actionType:    'BudskjemaSent',
   });
   await loadInteressenter();
+}
+
+async function sendBudskjema(hsId, name, email, phone) {
+  if (!confirm(`Send budskjema til ${name} (${email})?`)) return;
+  const boatName = (currentDealName || '').replace(/^\d+\s*[-–]\s*/, '').trim();
+  const btn = document.querySelector(`button[onclick*="sendBudskjema('${hsId}'"]`);
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Sender…'; }
+  try {
+    const res = await api({}, 'POST', {
+      action:         'send_budskjema',
+      dealId:         currentDealId,
+      contactHsId:    hsId,
+      contactName:    name,
+      contactEmail:   email || null,
+      contactPhone:   phone || null,
+      boatName:       boatName,
+    });
+    if (res?.ok === false || res?.error) {
+      alert('Feil ved sending: ' + (res.error || JSON.stringify(res)));
+      if (btn) { btn.disabled = false; btn.textContent = '📄 Send budskjema'; }
+    } else {
+      await loadInteressenter();
+    }
+  } catch (e) {
+    alert('Nettverksfeil: ' + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = '📄 Send budskjema'; }
+  }
 }
 
 // ── Budboard ──────────────────────────────────────────────────────────────────

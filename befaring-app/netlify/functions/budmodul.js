@@ -917,5 +917,100 @@ exports.handler = async (event) => {
     };
   }
 
+  // ── send_budskjema ───────────────────────────────────────────────────────────
+  // Oppretter Oneflow-kontrakt fra budskjema-malen, sender til kjøper,
+  // og lagrer mapping (contract_id → deal_id + contact_id) i Supabase.
+  if (action === 'send_budskjema') {
+    const { dealId, contactHsId, contactName, contactEmail, contactPhone, boatName } = body;
+    if (!dealId || !contactHsId || !contactEmail || !contactName) {
+      return { statusCode: 400, headers: h, body: JSON.stringify({ error: 'dealId, contactHsId, contactEmail og contactName er påkrevd' }) };
+    }
+
+    // 1. Hent workspace ID fra Oneflow (bruker første workspace)
+    const wsRes = await ofApi('/workspaces?limit=1');
+    const workspaceId = wsRes.data?._embedded?.['oneflow:workspaces']?.[0]?.id;
+    if (!workspaceId) {
+      return { statusCode: 500, headers: h, body: JSON.stringify({ error: 'Fant ikke Oneflow workspace' }) };
+    }
+
+    // 2. Opprett kontrakt fra budskjema-malen
+    const createRes = await ofApi('/contracts', 'POST', {
+      name:      `Budskjema – ${boatName || dealId}`,
+      template:  { id: OF_BUDSKJEMA_TEMPLATE },
+      workspace: { id: workspaceId },
+      data_fields: [
+        { external_key: 'fatoy', value: boatName || '' },
+      ],
+      parties: [
+        {
+          name:  contactName,
+          type:  'individual',
+          _permissions: { contract: ['sign'] },
+          participants: [
+            {
+              email:        contactEmail,
+              phone_number: contactPhone || '',
+              name:         contactName,
+              signatory:    true,
+            }
+          ],
+        }
+      ],
+    });
+
+    if (!createRes.ok) {
+      console.error('Oneflow create contract feil:', JSON.stringify(createRes.data));
+      return { statusCode: 500, headers: h, body: JSON.stringify({ error: 'Kunne ikke opprette Oneflow-kontrakt', details: createRes.data }) };
+    }
+
+    const contractId = createRes.data?.id;
+    if (!contractId) {
+      return { statusCode: 500, headers: h, body: JSON.stringify({ error: 'Mangler kontrakt-ID i Oneflow-respons' }) };
+    }
+
+    // 3. Send kontrakten til kjøper
+    const publishRes = await ofApi(`/contracts/${contractId}/publish`, 'POST', {
+      subject: `Budskjema – ${boatName || 'fartøy'}`,
+      message: `Hei ${contactName.split(' ')[0]},\n\nVi sender deg herved budskjema for ${boatName || 'fartøyet'}. Fyll inn budbeløp, frist og eventuelle forbehold, og signer dokumentet.\n\nMed vennlig hilsen\nHouse of Yachts`,
+    });
+
+    if (!publishRes.ok) {
+      console.error('Oneflow publish feil:', JSON.stringify(publishRes.data));
+      return { statusCode: 500, headers: h, body: JSON.stringify({ error: 'Kontrakt opprettet men sending feilet', contractId, details: publishRes.data }) };
+    }
+
+    // 4. Lagre mapping i Supabase
+    const { error: insertErr } = await supabase
+      .from('budskjema_contracts')
+      .insert({
+        oneflow_contract_id: String(contractId),
+        deal_id:             dealId,
+        buyer_contact_id:    contactHsId,
+        buyer_name:          contactName,
+        buyer_email:         contactEmail,
+        buyer_phone:         contactPhone || null,
+      });
+
+    if (insertErr) {
+      console.error('Supabase insert budskjema_contracts feil:', insertErr.message);
+      // Ikke fatal — kontrakten er sendt, men mapping mangler
+    }
+
+    // 5. Logg i contact_actions
+    await supabase.from('contact_actions').insert({
+      deal_id:       dealId,
+      contact_hs_id: contactHsId,
+      contact_email: contactEmail,
+      action_type:   'BudskjemaSent',
+      payload:       { oneflow_contract_id: contractId, boat_name: boatName },
+    });
+
+    return {
+      statusCode: 200,
+      headers: h,
+      body: JSON.stringify({ ok: true, contractId, sent_to: contactEmail }),
+    };
+  }
+
   return { statusCode: 400, headers: h, body: JSON.stringify({ error: 'Ukjent action' }) };
 };
