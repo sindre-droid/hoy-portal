@@ -1028,6 +1028,7 @@ exports.handler = async (event) => {
       contact_hs_id: contactHsId,
       contact_email: contactEmail,
       action_type:   'BudskjemaSent',
+      performed_by:  'system',
       payload:       { oneflow_contract_id: contractId, boat_name: boatName },
     });
 
