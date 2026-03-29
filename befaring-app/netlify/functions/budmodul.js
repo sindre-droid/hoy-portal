@@ -400,7 +400,7 @@ exports.handler = async (event) => {
     // 3. Cross-reference with Supabase offers + contact_actions
     const [offersRes, actionsRes] = await Promise.all([
       supabase.from('offers').select('buyer_contact_id,buyer_email,amount_nok,status').eq('deal_id', dealId),
-      supabase.from('contact_actions').select('contact_hs_id,action_type,performed_at').eq('deal_id', dealId),
+      supabase.from('contact_actions').select('contact_hs_id,action_type,performed_at,created_at').eq('deal_id', dealId),
     ]);
 
     const offerByContactId = {};
@@ -428,7 +428,7 @@ exports.handler = async (event) => {
       return {
         hs_id: id, name, email, phone, labels,
         has_offer: !!offer, offer_amount: offer?.amount_nok || null, offer_status: offer?.status || null,
-        budskjema_sent_at: sent?.performed_at || null,
+        budskjema_sent_at: sent?.performed_at || sent?.created_at || null,
       };
     };
 
@@ -1028,6 +1028,7 @@ exports.handler = async (event) => {
       contact_hs_id: contactHsId,
       contact_email: contactEmail,
       action_type:   'BudskjemaSent',
+      performed_at:  new Date().toISOString(),
       payload:       { oneflow_contract_id: contractId, boat_name: boatName },
     });
 
