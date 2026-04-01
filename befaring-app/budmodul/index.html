@@ -631,7 +631,7 @@ function renderInteressenter(unlabeled = [], selgere = []) {
     const emailSafe  = escHtml(i.email || '').replace(/'/g, '&#39;');
     const phoneSafe  = escHtml(i.phone || '').replace(/'/g, '&#39;');
     const skjemaCell = i.budskjema_signed_at
-      ? `<span style="color:var(--success,#1a7a4a);font-size:13px">✅ Signert ${fmtDateShort(i.budskjema_signed_at)}</span>`
+      ? `<span style="color:var(--success,#1a7a4a);font-size:13px">✅ Signert ${fmtDateShort(i.budskjema_signed_at)}</span><br><a href="#" style="font-size:11px;color:var(--text-muted)" onclick="sendBudskjema('${hsIdSafe}','${nameSafe}','${emailSafe}','${phoneSafe}');return false;">🔄 Send nytt budskjema</a>`
       : i.budskjema_sent_at
         ? `<span style="color:var(--text-muted);font-size:13px">⏳ Venter på signering<br><span style="font-size:11px">Sendt ${fmtDateShort(i.budskjema_sent_at)}</span></span>`
         : `<button class="btn-outline btn-sm" onclick="sendBudskjema('${hsIdSafe}','${nameSafe}','${emailSafe}','${phoneSafe}')">📄 Send budskjema</button>`;

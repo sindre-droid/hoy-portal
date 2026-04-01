@@ -401,7 +401,7 @@ exports.handler = async (event) => {
     const [offersRes, actionsRes, contractsRes] = await Promise.all([
       supabase.from('offers').select('buyer_contact_id,buyer_email,amount_nok,status').eq('deal_id', dealId),
       supabase.from('contact_actions').select('contact_hs_id,action_type,performed_at').eq('deal_id', dealId),
-      supabase.from('budskjema_contracts').select('buyer_contact_id,signed_at').eq('deal_id', dealId),
+      supabase.from('budskjema_contracts').select('buyer_contact_id,signed_at').eq('deal_id', dealId).order('created_at', { ascending: false }),
     ]);
 
     const offerByContactId = {};
@@ -414,10 +414,12 @@ exports.handler = async (event) => {
     for (const a of (actionsRes.data || [])) {
       (actionsByContact[a.contact_hs_id] = actionsByContact[a.contact_hs_id] || []).push(a);
     }
-    // Map buyer_contact_id → signed_at (bruker siste signering om det er flere)
+    // Map buyer_contact_id → nyeste kontrakt (ORDER BY created_at DESC, så første treff per kontakt er nyest)
     const contractByContactId = {};
     for (const c of (contractsRes.data || [])) {
-      if (c.buyer_contact_id) contractByContactId[String(c.buyer_contact_id)] = c;
+      if (c.buyer_contact_id && !contractByContactId[String(c.buyer_contact_id)]) {
+        contractByContactId[String(c.buyer_contact_id)] = c;
+      }
     }
 
     // 4. Enrich helper
