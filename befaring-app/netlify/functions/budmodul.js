@@ -397,10 +397,11 @@ exports.handler = async (event) => {
     const allContacts  = batchRes.data?.results || [];
     const contactById  = Object.fromEntries(allContacts.map(c => [String(c.id), c]));
 
-    // 3. Cross-reference with Supabase offers + contact_actions
-    const [offersRes, actionsRes] = await Promise.all([
+    // 3. Cross-reference with Supabase offers + contact_actions + budskjema_contracts
+    const [offersRes, actionsRes, contractsRes] = await Promise.all([
       supabase.from('offers').select('buyer_contact_id,buyer_email,amount_nok,status').eq('deal_id', dealId),
       supabase.from('contact_actions').select('contact_hs_id,action_type,performed_at').eq('deal_id', dealId),
+      supabase.from('budskjema_contracts').select('buyer_contact_id,signed_at').eq('deal_id', dealId),
     ]);
 
     const offerByContactId = {};
@@ -412,6 +413,11 @@ exports.handler = async (event) => {
     const actionsByContact = {};
     for (const a of (actionsRes.data || [])) {
       (actionsByContact[a.contact_hs_id] = actionsByContact[a.contact_hs_id] || []).push(a);
+    }
+    // Map buyer_contact_id → signed_at (bruker siste signering om det er flere)
+    const contractByContactId = {};
+    for (const c of (contractsRes.data || [])) {
+      if (c.buyer_contact_id) contractByContactId[String(c.buyer_contact_id)] = c;
     }
 
     // 4. Enrich helper
@@ -425,10 +431,12 @@ exports.handler = async (event) => {
       const labels = contactLabels[id] || [];
       const offer  = offerByContactId[id] || (email ? offerByEmail[email.toLowerCase()] : null);
       const sent   = (actionsByContact[id] || []).find(a => a.action_type === 'BudskjemaSent');
+      const contract = contractByContactId[id];
       return {
         hs_id: id, name, email, phone, labels,
         has_offer: !!offer, offer_amount: offer?.amount_nok || null, offer_status: offer?.status || null,
-        budskjema_sent_at: sent?.performed_at || null,
+        budskjema_sent_at:   sent?.performed_at || null,
+        budskjema_signed_at: contract?.signed_at || null,
       };
     };
 
@@ -953,7 +961,7 @@ exports.handler = async (event) => {
 
     // Oneflow individual-party: bruker "participant" (entall), _permissions INNE i participant
     const createBody = {
-      name:         `Budskjema – ${boatName || dealId}`,
+      name:         `${dealId} - Budskjema - ${boatName || dealId}`,
       template_id:  OF_BUDSKJEMA_TEMPLATE,
       workspace_id: workspaceId,
       parties: [
@@ -1031,6 +1039,24 @@ exports.handler = async (event) => {
       performed_by:  'system',
       payload:       { oneflow_contract_id: contractId, boat_name: boatName },
     });
+
+    // 6. Logg aktivitetsnotat i HubSpot på dealen (best-effort)
+    try {
+      const noteBody = `📄 Budskjema sendt til ${contactName} (${contactEmail})${boatName ? ` for ${boatName}` : ''}.\nOneflow kontrakt-ID: ${contractId}`;
+      const noteRes = await hs('/crm/v3/objects/notes', 'POST', {
+        properties: {
+          hs_note_body:  noteBody,
+          hs_timestamp:  new Date().toISOString(),
+        },
+        associations: [{
+          to:    { id: dealId },
+          types: [{ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: 214 }],
+        }],
+      });
+      if (!noteRes.ok) console.error('HubSpot note (sent) feil:', JSON.stringify(noteRes.data));
+    } catch (e) {
+      console.error('HubSpot note (sent) exception:', e.message);
+    }
 
     return {
       statusCode: 200,

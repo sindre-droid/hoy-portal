@@ -235,6 +235,33 @@ exports.handler = async (event) => {
     .update({ signed_at: new Date().toISOString(), offer_id: offer.id })
     .eq('oneflow_contract_id', String(contractId));
 
+  // Logg aktivitetsnotat i HubSpot på dealen (best-effort)
+  try {
+    const belopFmt = amountNOK ? new Intl.NumberFormat('no-NO').format(amountNOK) + ' NOK' : '(beløp mangler)';
+    const lines = [
+      `✅ Budskjema signert av ${buyerName} (${buyerEmail || 'ukjent e-post'}).`,
+      `Budbeløp: ${belopFmt}`,
+    ];
+    if (expiryAt)         lines.push(`Budfrist: ${new Date(expiryAt).toLocaleDateString('no-NO')}`);
+    if (forbehold)        lines.push(`Forbehold: ${forbehold}`);
+    if (overtagelsesdato) lines.push(`Ønsket overtagelse: ${new Date(overtagelsesdato).toLocaleDateString('no-NO')}`);
+    lines.push(`Oneflow kontrakt-ID: ${contractId}`);
+
+    const noteRes = await hs('/crm/v3/objects/notes', 'POST', {
+      properties: {
+        hs_note_body: lines.join('\n'),
+        hs_timestamp: new Date().toISOString(),
+      },
+      associations: [{
+        to:    { id: dealId },
+        types: [{ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: 214 }],
+      }],
+    });
+    if (!noteRes.ok) console.error('HubSpot note (signert) feil:', JSON.stringify(noteRes.data));
+  } catch (e) {
+    console.error('HubSpot note (signert) exception:', e.message);
+  }
+
   console.log(`✅ Bud opprettet: ${offer.id} for deal ${dealId}, beløp ${amountNOK}`);
 
   return {
