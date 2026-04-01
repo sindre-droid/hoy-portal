@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oslo Båtpleie — HoY Portal</title>
+  <style>
+    :root {
+      --navy:#0a2140; --navy-light:#0d2b54; --gold:#c9a84c;
+      --white:#fff; --surface:#f7f8fa; --surface2:#eef0f4;
+      --border:#d0d5dd; --text:#1a2a3a; --muted:#6b7a8d;
+      --green:#2e7d32; --green-bg:#e8f5e9;
+      --blue:#1565c0; --blue-bg:#e8f4fd;
+      --red:#c0392b; --red-bg:#fdecea;
+      --orange:#e65100; --orange-bg:#fff3e0;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--surface);color:var(--text);min-height:100vh;}
+    /* NAV */
+    nav{background:var(--navy);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.3);}
+    .nav-left{display:flex;align-items:center;gap:16px;}
+    .nav-logo{color:var(--gold);font-weight:700;font-size:18px;text-decoration:none;}
+    .nav-sep{color:rgba(255,255,255,.2);font-size:20px;}
+    .nav-title{color:rgba(255,255,255,.85);font-size:15px;font-weight:500;}
+    .nav-sub{color:var(--gold);font-size:12px;font-weight:600;}
+    .nav-back{color:rgba(255,255,255,.6);text-decoration:none;font-size:13px;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:6px;transition:background .15s;}
+    .nav-back:hover{background:rgba(255,255,255,.1);color:#fff;}
+    /* TABS */
+    .tabs{background:var(--white);border-bottom:1px solid var(--border);display:flex;padding:0 24px;gap:0;}
+    .tab{padding:14px 20px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;transition:all .15s;user-select:none;}
+    .tab:hover{color:var(--text);}
+    .tab.active{color:var(--navy);border-bottom-color:var(--gold);font-weight:600;}
+    /* CONTENT */
+    .content{padding:24px;max-width:1100px;}
+    /* CARDS */
+    .card{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:20px 24px;margin-bottom:20px;}
+    .card-title{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+    /* GRID */
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+    /* FORM */
+    label{display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px;}
+    input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;color:var(--text);background:var(--white);outline:none;transition:border-color .15s;font-family:inherit;}
+    input:focus,select:focus,textarea:focus{border-color:var(--gold);}
+    textarea{resize:vertical;min-height:70px;}
+    .form-group{margin-bottom:14px;}
+    /* BUTTONS */
+    .btn{padding:9px 16px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s;display:inline-flex;align-items:center;gap:6px;}
+    .btn-primary{background:var(--navy);color:#fff;}
+    .btn-primary:hover{background:var(--navy-light);}
+    .btn-gold{background:var(--gold);color:var(--navy);}
+    .btn-gold:hover{background:#b8972e;}
+    .btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted);}
+    .btn-outline:hover{border-color:var(--navy);color:var(--navy);}
+    .btn-danger{background:transparent;border:1px solid var(--border);color:var(--red);}
+    .btn-danger:hover{background:var(--red-bg);border-color:var(--red);}
+    .btn-sm{padding:5px 10px;font-size:12px;}
+    .btn-green{background:var(--green);color:#fff;}
+    .btn-green:hover{background:#1b5e20;}
+    /* TJENESTER CHIPS */
+    .tjeneste-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+    .chip{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:var(--white);color:var(--muted);transition:all .15s;}
+    .chip:hover{border-color:var(--navy);color:var(--navy);}
+    .chip.active{border-color:var(--navy);background:var(--navy);color:#fff;}
+    /* LINJER TABELL */
+    .linje-table{width:100%;border-collapse:collapse;margin-bottom:10px;}
+    .linje-table th{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;}
+    .linje-table td{padding:5px 6px;vertical-align:middle;}
+    .linje-table td input{padding:6px 8px;font-size:13px;}
+    .linje-table .col-desc{width:35%;}
+    .linje-table .col-qty{width:10%;}
+    .linje-table .col-enhet{width:12%;}
+    .linje-table .col-pris{width:15%;}
+    .linje-table .col-total{width:15%;font-weight:700;color:var(--navy);text-align:right;padding-right:8px;}
+    .linje-table .col-del{width:8%;text-align:center;}
+    .del-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:2px 6px;border-radius:4px;}
+    .del-btn:hover{color:var(--red);background:var(--red-bg);}
+    /* TOTALBOKS */
+    .total-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin-top:10px;}
+    .total-row{display:flex;justify-content:space-between;align-items:center;font-size:14px;padding:3px 0;}
+    .total-row.main{font-size:17px;font-weight:800;color:var(--navy);padding-top:8px;border-top:1px solid var(--border);margin-top:6px;}
+    .total-row .label{color:var(--muted);}
+    /* STATUS BADGES */
+    .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;}
+    .badge-utkast{background:#f5f5f5;color:var(--muted);}
+    .badge-sendt{background:var(--blue-bg);color:var(--blue);}
+    .badge-akseptert{background:var(--green-bg);color:var(--green);}
+    .badge-avvist{background:var(--red-bg);color:var(--red);}
+    .badge-ny{background:var(--orange-bg);color:var(--orange);}
+    .badge-behandlet{background:var(--blue-bg);color:var(--blue);}
+    .badge-tilbud_sendt{background:var(--green-bg);color:var(--green);}
+    /* OVERSIKT TABELL */
+    .ov-table{width:100%;border-collapse:collapse;font-size:13px;}
+    .ov-table th{padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);}
+    .ov-table td{padding:11px 12px;border-bottom:1px solid var(--surface2);vertical-align:middle;}
+    .ov-table tr:last-child td{border-bottom:none;}
+    .ov-table tr:hover td{background:var(--surface);}
+    .td-actions{display:flex;gap:6px;}
+    .empty-msg{text-align:center;padding:48px 24px;color:var(--muted);font-size:14px;}
+    /* STATS ROW */
+    .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+    .stat{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+    .stat .s-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+    .stat .s-val{font-size:22px;font-weight:800;color:var(--navy);}
+    .stat.gold{border-color:var(--gold);background:#fdf8ee;}
+    .stat.gold .s-val{color:#8a6820;}
+    /* MODAL */
+    .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;align-items:center;justify-content:center;}
+    .modal-bg.open{display:flex;}
+    .modal{background:#fff;border-radius:12px;padding:24px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+    .modal-title{font-size:16px;font-weight:700;margin-bottom:16px;color:var(--navy);}
+    .modal-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);}
+    /* DIVIDER */
+    .section-divider{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:20px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--surface2);}
+    @media(max-width:800px){.grid2,.grid3,.stats-row{grid-template-columns:1fr;}.linje-table .col-enhet{display:none;}}
+
+    /* ── PRINT / PDF ─────────────────────────────────────────── */
+    #pdf-view { display:none; }
+    @media print {
+      body > *:not(#pdf-view) { display:none !important; }
+      #pdf-view {
+        display:block !important;
+        font-family: 'Segoe UI', Arial, sans-serif;
+        color: #1a2a3a;
+        padding: 0;
+        margin: 0;
+      }
+      .pdf-page { max-width:100%; padding: 36px 44px; }
+      .pdf-header { display:flex; align-items:center; justify-content:space-between; padding-bottom:20px; border-bottom:3px solid #0a2140; margin-bottom:24px; }
+      .pdf-logo-area { display:flex; align-items:center; gap:16px; }
+      .pdf-logo-text h1 { font-size:16px; font-weight:800; color:#0a2140; letter-spacing:0.5px; line-height:1.2; }
+      .pdf-logo-text p  { font-size:10px; color:#6b7a8d; font-weight:500; letter-spacing:0.5px; margin-top:2px; }
+      .pdf-meta { text-align:right; }
+      .pdf-meta .pdf-id { font-size:20px; font-weight:800; color:#0a2140; }
+      .pdf-meta .pdf-dato { font-size:11px; color:#6b7a8d; margin-top:2px; }
+      .pdf-meta .pdf-gyldig { font-size:11px; color:#c0392b; margin-top:1px; }
+      .pdf-section { display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:24px; }
+      .pdf-box { background:#f7f8fa; border-radius:8px; padding:14px 16px; }
+      .pdf-box h3 { font-size:10px; font-weight:700; color:#6b7a8d; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px; }
+      .pdf-box p { font-size:13px; color:#1a2a3a; margin-bottom:2px; line-height:1.5; }
+      .pdf-box .name { font-weight:700; font-size:14px; }
+      table.pdf-table { width:100%; border-collapse:collapse; margin-bottom:16px; }
+      table.pdf-table thead tr { background:#0a2140; color:#fff; }
+      table.pdf-table th { padding:9px 12px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; text-align:left; }
+      table.pdf-table th:last-child { text-align:right; }
+      table.pdf-table td { padding:9px 12px; font-size:13px; border-bottom:1px solid #eef0f4; }
+      table.pdf-table td:last-child { text-align:right; font-weight:700; }
+      table.pdf-table tr:last-child td { border-bottom:none; }
+      .pdf-totaler { background:#f7f8fa; border-radius:8px; padding:14px 16px; max-width:320px; margin-left:auto; margin-bottom:20px; }
+      .pdf-tot-row { display:flex; justify-content:space-between; font-size:13px; padding:3px 0; }
+      .pdf-tot-row.main { font-size:16px; font-weight:800; color:#0a2140; padding-top:8px; border-top:2px solid #0a2140; margin-top:6px; }
+      .pdf-tot-row .lbl { color:#6b7a8d; }
+      .pdf-notat { background:#fdf8ee; border:1px solid #c9a84c; border-radius:8px; padding:12px 16px; margin-bottom:20px; font-size:12px; color:#5a4010; }
+      .pdf-notat strong { display:block; margin-bottom:4px; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#8a6820; }
+      .pdf-footer { border-top:1px solid #d0d5dd; padding-top:14px; display:flex; justify-content:space-between; font-size:10px; color:#6b7a8d; }
+      .pdf-footer strong { color:#0a2140; }
+      @page { margin: 15mm 12mm; size: A4; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-left">
+    <a class="nav-logo" href="/">HoY</a>
+    <span class="nav-sep">|</span>
+    <!-- OBK logo (hvit versjon i nav) -->
+    <svg width="30" height="34" viewBox="0 0 300 330" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M150,10 C205,10 268,38 272,50 L272,175 C272,240 150,315 150,315 C150,315 28,240 28,175 L28,50 C32,38 95,10 150,10Z" stroke="white" stroke-width="12" stroke-linejoin="round"/>
+      <ellipse cx="150" cy="168" rx="88" ry="105" stroke="white" stroke-width="10"/>
+      <path d="M 65,145 C 95,55 180,260 235,155" stroke="white" stroke-width="10" stroke-linecap="round" fill="none"/>
+      <path d="M 85,215 C 108,265 192,265 215,215" stroke="white" stroke-width="10" stroke-linecap="round" fill="none"/>
+    </svg>
+    <div>
+      <div class="nav-title">Oslo Båtpleie og Krympeplast</div>
+      <div class="nav-sub" style="font-size:10px;color:rgba(201,168,76,0.8);">En del av House of Yachts Oslo</div>
+    </div>
+  </div>
+  <a class="nav-back" href="/">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    Tilbake
+  </a>
+</nav>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('kalkulator')">🧮 Ny kalkulator</div>
+  <div class="tab" onclick="showTab('tilbud')">📄 Tilbud</div>
+  <div class="tab" onclick="showTab('foresporsler')">📥 Forespørsler</div>
+  <div class="tab" onclick="showTab('tjenester')">⚙️ Tjenester</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ KALKULATOR ═══ -->
+<div id="tab-kalkulator" class="content">
+
+  <div class="card">
+    <div class="card-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+      Kundeinformasjon
+    </div>
+    <div class="grid2">
+      <div class="form-group"><label>Kundenavn *</label><input id="k-navn" type="text" placeholder="Fullt navn"></div>
+      <div class="form-group"><label>Telefon</label><input id="k-tlf" type="tel" placeholder="+47 xxx xx xxx"></div>
+      <div class="form-group"><label>E-post</label><input id="k-epost" type="email" placeholder="epost@eksempel.no"></div>
+      <div class="form-group"><label>Megler (om aktuelt)</label><input id="k-megler" type="text" placeholder="Navn på megler"></div>
+    </div>
+    <div class="section-divider">Båtinformasjon</div>
+    <div class="grid3">
+      <div class="form-group"><label>Merke / Modell</label><input id="k-bat" type="text" placeholder="f.eks. Yamarin 63 BR"></div>
+      <div class="form-group"><label>Lengde (fot)</label><input id="k-fot" type="number" placeholder="f.eks. 21" oninput="oppdaterLinjeFot()"></div>
+      <div class="form-group"><label>Årsmodell</label><input id="k-ar" type="number" placeholder="f.eks. 2019"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-6"/></svg>
+      Tjenester — legg til hurtig
+    </div>
+    <div class="tjeneste-chips" id="tjeneste-chips">
+      <div class="chip" onclick="leggTilTjeneste('krympeplast')">+ Krympeplast</div>
+      <div class="chip" onclick="leggTilTjeneste('vask')">+ Vask utvendig</div>
+      <div class="chip" onclick="leggTilTjeneste('polering_over')">+ Polering over fenderlist</div>
+      <div class="chip" onclick="leggTilTjeneste('polering_under')">+ Polering under fenderlist</div>
+      <div class="chip" onclick="leggTilTjeneste('bunnstoff')">+ Bunnstoff</div>
+      <div class="chip" onclick="leggTilTjeneste('innvendig')">+ Innvendig rengjøring</div>
+      <div class="chip" onclick="leggTilTjeneste('skraping')">+ Skraping og vask av skrog</div>
+    </div>
+
+    <table class="linje-table">
+      <thead>
+        <tr>
+          <th class="col-desc">Beskrivelse</th>
+          <th class="col-qty">Ant.</th>
+          <th class="col-enhet">Enhet</th>
+          <th class="col-pris">Enhetspris</th>
+          <th class="col-total">Total</th>
+          <th class="col-del"></th>
+        </tr>
+      </thead>
+      <tbody id="linje-tbody"></tbody>
+    </table>
+    <button class="btn btn-outline btn-sm" onclick="leggTilLinje()">+ Legg til linje</button>
+
+    <div class="total-box" id="total-box">
+      <div class="total-row"><span class="label">Sum ekskl. MVA</span><span id="tot-eks">kr 0</span></div>
+      <div class="total-row"><span class="label">MVA 25%</span><span id="tot-mva">kr 0</span></div>
+      <div class="total-row main"><span>Totalt inkl. MVA</span><span id="tot-ink">kr 0</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Tilbudsdetaljer
+    </div>
+    <div class="grid2">
+      <div class="form-group"><label>Tilbudsdato</label><input id="k-dato" type="date"></div>
+      <div class="form-group"><label>Gyldig til</label><input id="k-gyldig" type="date"></div>
+    </div>
+    <div class="form-group"><label>Notat / kommentar til kunde</label><textarea id="k-notat" placeholder="Eventuelle forbehold, tilleggsinfo til kunden..."></textarea></div>
+  </div>
+
+  <div style="display:flex;gap:12px;flex-wrap:wrap;">
+    <button class="btn btn-primary" onclick="lagreTilbud('utkast')">💾 Lagre som utkast</button>
+    <button class="btn btn-gold" onclick="lagreTilbud('sendt')">✉️ Merk som sendt og lagre</button>
+    <button class="btn btn-green" onclick="genererPDF()">📄 Generer PDF</button>
+    <button class="btn btn-outline" onclick="nullstillKalkulator()">✕ Nullstill</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ TILBUD ═══════ -->
+<div id="tab-tilbud" class="content" style="display:none">
+  <div class="stats-row" id="tilbud-stats"></div>
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
+      <div style="font-size:15px;font-weight:700;color:var(--navy);">Alle tilbud</div>
+      <input type="text" id="tilbud-sok" placeholder="Søk kunde / båt..." style="width:220px;" oninput="renderTilbud()">
+    </div>
+    <div id="tilbud-container"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ FORESPØRSLER ═ -->
+<div id="tab-foresporsler" class="content" style="display:none">
+  <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+    <button class="btn btn-primary" onclick="apneForespørselModal()">+ Ny forespørsel</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
+      <div style="font-size:15px;font-weight:700;color:var(--navy);">Innkommende forespørsler</div>
+    </div>
+    <div id="forp-container"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ TJENESTER ═══ -->
+<div id="tab-tjenester" class="content" style="display:none">
+  <div class="card">
+    <div class="card-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Administrer tjenester
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Endre navn, pris og enhet på tjenestene som vises i kalkulatoren. Endringer lagres automatisk.</p>
+
+    <table class="linje-table" id="tjenester-table">
+      <thead>
+        <tr>
+          <th style="width:35%">Tjenestenavn</th>
+          <th style="width:12%">Std. ant.</th>
+          <th style="width:13%">Enhet</th>
+          <th style="width:18%">Enhetspris (kr)</th>
+          <th style="width:14%">MVA</th>
+          <th style="width:8%"></th>
+        </tr>
+      </thead>
+      <tbody id="tjenester-tbody"></tbody>
+    </table>
+
+    <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="leggTilNyTjeneste()">+ Ny tjeneste</button>
+      <button class="btn btn-outline" onclick="tilbakestillTjenester()">↩ Tilbakestill til standard</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════ PDF VIEW ════════════ -->
+<div id="pdf-view">
+  <div class="pdf-page" id="pdf-page-content"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════ MODALER ══════════════ -->
+<!-- Tilbud detalj-modal -->
+<div class="modal-bg" id="modal-tilbud">
+  <div class="modal">
+    <div class="modal-title" id="mt-tittel">Tilbud</div>
+    <div id="mt-body"></div>
+    <div class="modal-footer">
+      <select id="mt-status" style="width:auto;padding:7px 10px;font-size:13px;"></select>
+      <button class="btn btn-primary" onclick="oppdaterTilbudStatus()">Oppdater status</button>
+      <button class="btn btn-danger btn-sm" onclick="slettTilbud()">Slett</button>
+      <button class="btn btn-outline" onclick="lukkModal('modal-tilbud')">Lukk</button>
+    </div>
+  </div>
+</div>
+
+<!-- Forespørsel-modal -->
+<div class="modal-bg" id="modal-forp">
+  <div class="modal">
+    <div class="modal-title">Registrer forespørsel</div>
+    <div class="form-group"><label>Megler / Kontakt *</label><input id="fp-megler" type="text" placeholder="Navn på megler"></div>
+    <div class="form-group"><label>Telefon</label><input id="fp-tlf" type="tel" placeholder="+47"></div>
+    <div class="form-group"><label>Båt</label><input id="fp-bat" type="text" placeholder="Merke og modell"></div>
+    <div class="form-group"><label>Ønskede tjenester</label>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;" id="fp-tjenester">
+        <label style="display:flex;align-items:center;gap:5px;font-weight:400;cursor:pointer;"><input type="checkbox" value="Krympeplast"> Krympeplast</label>
+        <label style="display:flex;align-items:center;gap:5px;font-weight:400;cursor:pointer;"><input type="checkbox" value="Vask & polering"> Vask & polering</label>
+        <label style="display:flex;align-items:center;gap:5px;font-weight:400;cursor:pointer;"><input type="checkbox" value="Bunnstoff"> Bunnstoff</label>
+        <label style="display:flex;align-items:center;gap:5px;font-weight:400;cursor:pointer;"><input type="checkbox" value="Innvendig rengjøring"> Innvendig rengjøring</label>
+        <label style="display:flex;align-items:center;gap:5px;font-weight:400;cursor:pointer;"><input type="checkbox" value="Motorkontroll"> Motorkontroll</label>
+      </div>
+    </div>
+    <div class="form-group"><label>Dato mottatt</label><input id="fp-dato" type="date"></div>
+    <div class="form-group"><label>Notat</label><textarea id="fp-notat" placeholder="Detaljer om forespørselen..."></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="lagreForespørsel()">Lagre</button>
+      <button class="btn btn-outline" onclick="lukkModal('modal-forp')">Avbryt</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────────────────
+const STORAGE_TILBUD    = "obpk_tilbud";
+const STORAGE_FORP      = "obpk_foresporsler";
+const STORAGE_TJENESTER = "obpk_tjenester";
+
+function loadTilbud()  { try { return JSON.parse(localStorage.getItem(STORAGE_TILBUD)  || "[]"); } catch(e){ return []; } }
+function loadForp()    { try { return JSON.parse(localStorage.getItem(STORAGE_FORP)    || "[]"); } catch(e){ return []; } }
+function saveTilbud(d) { localStorage.setItem(STORAGE_TILBUD, JSON.stringify(d)); }
+function saveForp(d)   { localStorage.setItem(STORAGE_FORP,   JSON.stringify(d)); }
+
+var DEFAULT_TJENESTER = [
+  { id:"krympeplast",    navn:"Krympeplast inkl. rammeverk og montering", qty:1, enhet:"fot",  pris:195,  mva:25 },
+  { id:"vask",           navn:"Utvendig vask",                             qty:1, enhet:"stk",  pris:2500, mva:25 },
+  { id:"polering_over",  navn:"Maskinpolering over fenderlist",            qty:1, enhet:"stk",  pris:3500, mva:25 },
+  { id:"polering_under", navn:"Maskinpolering under fenderlist",           qty:1, enhet:"stk",  pris:2500, mva:25 },
+  { id:"bunnstoff",      navn:"Bunnstoff inkl. maling og påføring",        qty:1, enhet:"fot",  pris:450,  mva:25 },
+  { id:"innvendig",      navn:"Innvendig rengjøring",                      qty:1, enhet:"stk",  pris:3000, mva:25 },
+  { id:"skraping",       navn:"Skraping og vask av skrog",                 qty:1, enhet:"fot",  pris:120,  mva:25 },
+];
+
+function loadTjenester() {
+  try {
+    var t = JSON.parse(localStorage.getItem(STORAGE_TJENESTER));
+    return (t && t.length) ? t : DEFAULT_TJENESTER.map(function(x){ return Object.assign({},x); });
+  } catch(e) { return DEFAULT_TJENESTER.map(function(x){ return Object.assign({},x); }); }
+}
+function saveTjenester(d) { localStorage.setItem(STORAGE_TJENESTER, JSON.stringify(d)); }
+
+// ── TABS ─────────────────────────────────────────────────────────────────────
+function showTab(t) {
+  ["kalkulator","tilbud","foresporsler","tjenester"].forEach(function(id) {
+    document.getElementById("tab-"+id).style.display = id===t ? "" : "none";
+  });
+  document.querySelectorAll(".tab").forEach(function(el, i) {
+    el.classList.toggle("active", ["kalkulator","tilbud","foresporsler","tjenester"][i]===t);
+  });
+  if (t==="tilbud")       renderTilbud();
+  if (t==="foresporsler") renderForp();
+  if (t==="tjenester")    renderTjenester();
+}
+
+// ── KALKULATOR ───────────────────────────────────────────────────────────────
+var linjer = [];
+
+// TJENESTER lastes dynamisk fra localStorage — se loadTjenester()
+
+// Set default dates
+(function(){
+  var today = new Date();
+  var pad = function(n){ return n<10?"0"+n:n; };
+  var d = today.getFullYear()+"-"+pad(today.getMonth()+1)+"-"+pad(today.getDate());
+  document.getElementById("k-dato").value = d;
+  var gyldig = new Date(today); gyldig.setDate(gyldig.getDate()+30);
+  document.getElementById("k-gyldig").value = gyldig.getFullYear()+"-"+pad(gyldig.getMonth()+1)+"-"+pad(gyldig.getDate());
+})();
+
+function leggTilTjeneste(id) {
+  var tjenester = loadTjenester();
+  var t = tjenester.find(function(x){ return x.id===id; });
+  if (!t) return;
+  var fot = parseFloat(document.getElementById("k-fot").value)||0;
+  var qty = (t.enhet==="fot" && fot) ? fot : t.qty;
+  linjer.push({ desc:t.navn, qty:qty, enhet:t.enhet, pris:t.pris });
+  renderLinjer();
+}
+
+function leggTilLinje() {
+  linjer.push({ desc:"", qty:1, enhet:"stk", pris:0 });
+  renderLinjer();
+}
+
+function slettLinje(i) {
+  linjer.splice(i,1);
+  renderLinjer();
+}
+
+function oppdaterLinje(i, felt, val) {
+  linjer[i][felt] = felt==="qty"||felt==="pris" ? parseFloat(val)||0 : val;
+  oppdaterTotaler();
+}
+
+function oppdaterLinjeFot() {
+  var fot = parseFloat(document.getElementById("k-fot").value)||0;
+  if (!fot) return;
+  linjer.forEach(function(l) {
+    if (l.enhet==="fot" && fot) l.qty = fot;
+  });
+  renderLinjer();
+}
+
+function renderLinjer() {
+  var tbody = document.getElementById("linje-tbody");
+  tbody.innerHTML = linjer.map(function(l, i) {
+    var tot = fmtKr(l.qty * l.pris);
+    return '<tr>' +
+      '<td class="col-desc"><input value="'+esc(l.desc)+'" placeholder="Beskrivelse" onchange="oppdaterLinje('+i+',\'desc\',this.value)"></td>' +
+      '<td class="col-qty"><input type="number" value="'+l.qty+'" min="0" style="text-align:center" onchange="oppdaterLinje('+i+',\'qty\',this.value)"></td>' +
+      '<td class="col-enhet"><select onchange="oppdaterLinje('+i+',\'enhet\',this.value)">' +
+        ['stk','fot','time','m2'].map(function(u){ return '<option'+(l.enhet===u?' selected':'')+'>'+u+'</option>'; }).join('') +
+      '</select></td>' +
+      '<td class="col-pris"><input type="number" value="'+l.pris+'" min="0" placeholder="0" onchange="oppdaterLinje('+i+',\'pris\',this.value)"></td>' +
+      '<td class="col-total">'+tot+'</td>' +
+      '<td class="col-del"><button class="del-btn" onclick="slettLinje('+i+')" title="Fjern">✕</button></td>' +
+      '</tr>';
+  }).join('');
+  oppdaterTotaler();
+}
+
+function oppdaterTotaler() {
+  var eks = linjer.reduce(function(s,l){ return s + (l.qty*l.pris); },0);
+  var mva = eks * 0.25;
+  var ink = eks + mva;
+  document.getElementById("tot-eks").textContent = fmtKr(eks);
+  document.getElementById("tot-mva").textContent = fmtKr(mva);
+  document.getElementById("tot-ink").textContent = fmtKr(ink);
+}
+
+function lagreTilbud(status) {
+  var navn = document.getElementById("k-navn").value.trim();
+  if (!navn) { alert("Fyll inn kundenavn."); return; }
+  if (!linjer.length) { alert("Legg til minst én tjeneste."); return; }
+  var eks = linjer.reduce(function(s,l){ return s + (l.qty*l.pris); },0);
+  var data = loadTilbud();
+  var id = "TIL-" + String(data.length+1).padStart(3,"0");
+  data.push({
+    id:id, status:status,
+    navn: navn,
+    tlf:  document.getElementById("k-tlf").value,
+    epost:document.getElementById("k-epost").value,
+    megler:document.getElementById("k-megler").value,
+    bat:  document.getElementById("k-bat").value,
+    fot:  document.getElementById("k-fot").value,
+    ar:   document.getElementById("k-ar").value,
+    dato: document.getElementById("k-dato").value,
+    gyldig: document.getElementById("k-gyldig").value,
+    notat:document.getElementById("k-notat").value,
+    linjer: JSON.parse(JSON.stringify(linjer)),
+    totalEks: Math.round(eks),
+    totalInk: Math.round(eks*1.25),
+  });
+  saveTilbud(data);
+  nullstillKalkulator();
+  alert("Tilbud " + id + " er lagret!");
+  showTab("tilbud");
+}
+
+function nullstillKalkulator() {
+  ["k-navn","k-tlf","k-epost","k-megler","k-bat","k-fot","k-ar","k-notat"].forEach(function(id){ document.getElementById(id).value=""; });
+  linjer = [];
+  renderLinjer();
+}
+
+// ── TILBUDSOVERSIKT ───────────────────────────────────────────────────────────
+var aktivTilbudId = null;
+
+function renderTilbud() {
+  var data = loadTilbud();
+  var sok = (document.getElementById("tilbud-sok").value||"").toLowerCase();
+  if (sok) data = data.filter(function(t){ return (t.navn+t.bat).toLowerCase().includes(sok); });
+
+  // Stats
+  var alle = loadTilbud();
+  var statEl = document.getElementById("tilbud-stats");
+  var totAkseptert = alle.filter(function(t){return t.status==="akseptert";}).reduce(function(s,t){return s+t.totalInk;},0);
+  statEl.innerHTML = [
+    {label:"Totalt", val: alle.length, cls:""},
+    {label:"Sendt", val: alle.filter(function(t){return t.status==="sendt";}).length, cls:""},
+    {label:"Akseptert", val: alle.filter(function(t){return t.status==="akseptert";}).length, cls:"gold"},
+    {label:"Verdi akseptert", val: fmtKr(totAkseptert), cls:"gold"},
+  ].map(function(s){
+    return '<div class="stat '+s.cls+'"><div class="s-label">'+s.label+'</div><div class="s-val">'+s.val+'</div></div>';
+  }).join("");
+
+  var cont = document.getElementById("tilbud-container");
+  if (!data.length) { cont.innerHTML='<div class="empty-msg">Ingen tilbud ennå. Bruk kalkulatoren for å lage ditt første tilbud.</div>'; return; }
+
+  var STATUS_LABELS = {utkast:"Utkast",sendt:"Sendt",akseptert:"Akseptert",avvist:"Avvist"};
+  cont.innerHTML = '<table class="ov-table"><thead><tr><th>Nr.</th><th>Dato</th><th>Kunde</th><th>Båt</th><th>Total inkl. MVA</th><th>Status</th><th></th></tr></thead><tbody>' +
+    data.slice().reverse().map(function(t){
+      return '<tr>' +
+        '<td style="font-weight:700;color:var(--navy);">'+t.id+'</td>' +
+        '<td>'+t.dato+'</td>' +
+        '<td>'+esc(t.navn)+'</td>' +
+        '<td>'+esc(t.bat||(t.fot?t.fot+"\'":""))+'</td>' +
+        '<td style="font-weight:700;">'+fmtKr(t.totalInk)+'</td>' +
+        '<td><span class="badge badge-'+t.status+'">'+STATUS_LABELS[t.status]+'</span></td>' +
+        '<td class="td-actions">' +
+          '<button class="btn btn-outline btn-sm" onclick="apneTilbud(\''+t.id+'\')">Se</button>' +
+          '<button class="btn btn-outline btn-sm" onclick="kopierTilKalkulator(\''+t.id+'\')">Kopier</button>' +
+        '</td>' +
+      '</tr>';
+    }).join("") +
+  '</tbody></table>';
+}
+
+function apneTilbud(id) {
+  var data = loadTilbud();
+  var t = data.find(function(x){return x.id===id;});
+  if (!t) return;
+  aktivTilbudId = id;
+  document.getElementById("mt-tittel").textContent = t.id + " — " + t.navn;
+  var STATUS_LABELS = {utkast:"Utkast",sendt:"Sendt",akseptert:"Akseptert",avvist:"Avvist"};
+  document.getElementById("mt-body").innerHTML =
+    '<div class="grid2" style="margin-bottom:12px;">' +
+      '<div><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;">Kunde</div><div style="font-size:14px;font-weight:600;">'+esc(t.navn)+'</div><div style="font-size:13px;color:var(--muted);">'+esc(t.tlf||"")+'</div><div style="font-size:13px;color:var(--muted);">'+esc(t.epost||"")+'</div></div>' +
+      '<div><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;">Båt</div><div style="font-size:14px;font-weight:600;">'+esc(t.bat||"-")+'</div><div style="font-size:13px;color:var(--muted);">'+(t.fot?t.fot+"\' ":"")+''+(t.ar||"")+'</div></div>' +
+    '</div>' +
+    '<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px;">' +
+      '<thead><tr style="background:var(--surface);"><th style="padding:7px 10px;text-align:left;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;">Tjeneste</th><th style="padding:7px 10px;text-align:right;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;">Ant.</th><th style="padding:7px 10px;text-align:right;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;">Enhetspris</th><th style="padding:7px 10px;text-align:right;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;">Total</th></tr></thead>' +
+      '<tbody>' + t.linjer.map(function(l){
+        return '<tr><td style="padding:7px 10px;border-bottom:1px solid var(--surface2);">'+esc(l.desc)+'</td><td style="padding:7px 10px;border-bottom:1px solid var(--surface2);text-align:right;">'+l.qty+' '+l.enhet+'</td><td style="padding:7px 10px;border-bottom:1px solid var(--surface2);text-align:right;">'+fmtKr(l.pris)+'</td><td style="padding:7px 10px;border-bottom:1px solid var(--surface2);text-align:right;font-weight:700;">'+fmtKr(l.qty*l.pris)+'</td></tr>';
+      }).join("") + '</tbody>' +
+    '</table>' +
+    '<div style="background:var(--surface);border-radius:8px;padding:12px 14px;">' +
+      '<div style="display:flex;justify-content:space-between;font-size:13px;padding:2px 0;"><span style="color:var(--muted);">Eks. MVA</span><span>'+fmtKr(t.totalEks)+'</span></div>' +
+      '<div style="display:flex;justify-content:space-between;font-size:13px;padding:2px 0;"><span style="color:var(--muted);">MVA 25%</span><span>'+fmtKr(t.totalInk-t.totalEks)+'</span></div>' +
+      '<div style="display:flex;justify-content:space-between;font-size:16px;font-weight:800;color:var(--navy);padding-top:8px;border-top:1px solid var(--border);margin-top:6px;"><span>Totalt inkl. MVA</span><span>'+fmtKr(t.totalInk)+'</span></div>' +
+    '</div>' +
+    (t.notat?'<div style="margin-top:12px;font-size:13px;color:var(--muted);">📝 '+esc(t.notat)+'</div>':"");
+
+  var sel = document.getElementById("mt-status");
+  sel.innerHTML = ["utkast","sendt","akseptert","avvist"].map(function(s){
+    return '<option value="'+s+'"'+(t.status===s?" selected":"")+'>'+{utkast:"Utkast",sendt:"Sendt",akseptert:"Akseptert",avvist:"Avvist"}[s]+'</option>';
+  }).join("");
+  document.getElementById("modal-tilbud").classList.add("open");
+}
+
+function oppdaterTilbudStatus() {
+  var data = loadTilbud();
+  var t = data.find(function(x){return x.id===aktivTilbudId;});
+  if (!t) return;
+  t.status = document.getElementById("mt-status").value;
+  saveTilbud(data);
+  lukkModal("modal-tilbud");
+  renderTilbud();
+}
+
+function slettTilbud() {
+  if (!confirm("Slette tilbud " + aktivTilbudId + "?")) return;
+  var data = loadTilbud().filter(function(t){return t.id!==aktivTilbudId;});
+  saveTilbud(data);
+  lukkModal("modal-tilbud");
+  renderTilbud();
+}
+
+function kopierTilKalkulator(id) {
+  var t = loadTilbud().find(function(x){return x.id===id;});
+  if (!t) return;
+  document.getElementById("k-navn").value  = t.navn||"";
+  document.getElementById("k-tlf").value   = t.tlf||"";
+  document.getElementById("k-epost").value = t.epost||"";
+  document.getElementById("k-megler").value= t.megler||"";
+  document.getElementById("k-bat").value   = t.bat||"";
+  document.getElementById("k-fot").value   = t.fot||"";
+  document.getElementById("k-ar").value    = t.ar||"";
+  document.getElementById("k-notat").value = t.notat||"";
+  linjer = JSON.parse(JSON.stringify(t.linjer||[]));
+  renderLinjer();
+  showTab("kalkulator");
+}
+
+// ── FORESPØRSLER ──────────────────────────────────────────────────────────────
+function apneForespørselModal() {
+  var today = new Date(); var pad=function(n){return n<10?"0"+n:n;};
+  document.getElementById("fp-dato").value = today.getFullYear()+"-"+pad(today.getMonth()+1)+"-"+pad(today.getDate());
+  ["fp-megler","fp-tlf","fp-bat","fp-notat"].forEach(function(id){document.getElementById(id).value="";});
+  document.querySelectorAll("#fp-tjenester input").forEach(function(cb){cb.checked=false;});
+  document.getElementById("modal-forp").classList.add("open");
+}
+
+function lagreForespørsel() {
+  var megler = document.getElementById("fp-megler").value.trim();
+  if (!megler) { alert("Fyll inn megler/kontaktnavn."); return; }
+  var tjenester = [];
+  document.querySelectorAll("#fp-tjenester input:checked").forEach(function(cb){tjenester.push(cb.value);});
+  var data = loadForp();
+  data.push({
+    id:"FOR-"+String(data.length+1).padStart(3,"0"),
+    megler:megler, tlf:document.getElementById("fp-tlf").value,
+    bat:document.getElementById("fp-bat").value,
+    tjenester:tjenester, dato:document.getElementById("fp-dato").value,
+    notat:document.getElementById("fp-notat").value,
+    status:"ny"
+  });
+  saveForp(data);
+  lukkModal("modal-forp");
+  renderForp();
+}
+
+function renderForp() {
+  var data = loadForp();
+  var cont = document.getElementById("forp-container");
+  if (!data.length) { cont.innerHTML='<div class="empty-msg">Ingen forespørsler registrert ennå.<br><br><button class="btn btn-primary" onclick="apneForespørselModal()">+ Registrer første forespørsel</button></div>'; return; }
+  var ST = {ny:"ny",behandlet:"behandlet",tilbud_sendt:"tilbud_sendt"};
+  var ST_LABEL = {ny:"Ny",behandlet:"Behandlet",tilbud_sendt:"Tilbud sendt"};
+  cont.innerHTML = '<table class="ov-table"><thead><tr><th>Nr.</th><th>Dato</th><th>Megler</th><th>Båt</th><th>Tjenester</th><th>Status</th><th></th></tr></thead><tbody>' +
+    data.slice().reverse().map(function(f){
+      var tj = (f.tjenester||[]).map(function(t){return '<span class="badge badge-utkast" style="margin-right:3px;">'+esc(t)+'</span>';}).join("");
+      return '<tr>' +
+        '<td style="font-weight:700;color:var(--navy);">'+f.id+'</td>' +
+        '<td>'+f.dato+'</td>' +
+        '<td>'+esc(f.megler)+(f.tlf?'<br><span style="font-size:11px;color:var(--muted);">'+esc(f.tlf)+'</span>':'')+'</td>' +
+        '<td>'+esc(f.bat||"-")+'</td>' +
+        '<td>'+(tj||"<span style='color:var(--muted)'>-</span>")+'</td>' +
+        '<td><span class="badge badge-'+f.status+'">'+ST_LABEL[f.status]+'</span></td>' +
+        '<td class="td-actions">' +
+          '<select style="width:auto;padding:4px 6px;font-size:12px;" onchange="oppdaterForpStatus(\''+f.id+'\',this.value)">' +
+            Object.keys(ST).map(function(s){return '<option value="'+s+'"'+(f.status===s?" selected":"")+'>'+ST_LABEL[s]+'</option>';}).join("") +
+          '</select>' +
+          '<button class="btn btn-danger btn-sm" onclick="slettForp(\''+f.id+'\')">Slett</button>' +
+        '</td>' +
+      '</tr>';
+    }).join("") +
+  '</tbody></table>';
+}
+
+function oppdaterForpStatus(id, status) {
+  var data = loadForp();
+  var f = data.find(function(x){return x.id===id;});
+  if (f) { f.status = status; saveForp(data); renderForp(); }
+}
+
+function slettForp(id) {
+  if (!confirm("Slette forespørsel "+id+"?")) return;
+  saveForp(loadForp().filter(function(f){return f.id!==id;}));
+  renderForp();
+}
+
+// ── PDF GENERERING ────────────────────────────────────────────────────────────
+function genererPDF() {
+  var navn   = document.getElementById("k-navn").value.trim();
+  if (!navn) { alert("Fyll inn kundenavn før du genererer PDF."); return; }
+  if (!linjer.length) { alert("Legg til minst én tjeneste."); return; }
+
+  var tlf    = document.getElementById("k-tlf").value;
+  var epost  = document.getElementById("k-epost").value;
+  var megler = document.getElementById("k-megler").value;
+  var bat    = document.getElementById("k-bat").value;
+  var fot    = document.getElementById("k-fot").value;
+  var ar     = document.getElementById("k-ar").value;
+  var dato   = document.getElementById("k-dato").value;
+  var gyldig = document.getElementById("k-gyldig").value;
+  var notat  = document.getElementById("k-notat").value;
+  var data   = loadTilbud();
+  var tilbudNr = "TIL-" + String(data.length + 1).padStart(3, "0");
+
+  var eks = linjer.reduce(function(s,l){ return s + (l.qty*l.pris); }, 0);
+  var mva = eks * 0.25;
+  var ink = eks + mva;
+
+  // SVG logo (sort versjon for PDF)
+  var logoSVG = '<svg width="52" height="60" viewBox="0 0 300 330" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<path d="M150,10 C205,10 268,38 272,50 L272,175 C272,240 150,315 150,315 C150,315 28,240 28,175 L28,50 C32,38 95,10 150,10Z" stroke="#0a2140" stroke-width="12" stroke-linejoin="round"/>' +
+    '<ellipse cx="150" cy="168" rx="88" ry="105" stroke="#0a2140" stroke-width="10"/>' +
+    '<path d="M 65,145 C 95,55 180,260 235,155" stroke="#0a2140" stroke-width="10" stroke-linecap="round" fill="none"/>' +
+    '<path d="M 85,215 C 108,265 192,265 215,215" stroke="#0a2140" stroke-width="10" stroke-linecap="round" fill="none"/>' +
+    '</svg>';
+
+  var fmtD = function(d){ if(!d) return "-"; var p=d.split("-"); return p[2]+"."+p[1]+"."+p[0]; };
+
+  var linjeRader = linjer.map(function(l){
+    return '<tr><td>'+esc(l.desc)+'</td><td style="text-align:center">'+l.qty+' '+l.enhet+'</td><td style="text-align:right">'+fmtKr(l.pris)+'</td><td>'+fmtKr(l.qty*l.pris)+'</td></tr>';
+  }).join("");
+
+  document.getElementById("pdf-page-content").innerHTML =
+    '<div class="pdf-header">' +
+      '<div class="pdf-logo-area">' +
+        logoSVG +
+        '<div class="pdf-logo-text">' +
+          '<h1>OSLO BÅTPLEIE &<br>KRYPMEPLAST AS</h1>' +
+          '<p>EN DEL AV HOUSE OF YACHTS OSLO</p>' +
+        '</div>' +
+      '</div>' +
+      '<div class="pdf-meta">' +
+        '<div class="pdf-id">Tilbud '+esc(tilbudNr)+'</div>' +
+        '<div class="pdf-dato">Dato: '+fmtD(dato)+'</div>' +
+        (gyldig ? '<div class="pdf-gyldig">Gyldig til: '+fmtD(gyldig)+'</div>' : '') +
+      '</div>' +
+    '</div>' +
+
+    '<div class="pdf-section">' +
+      '<div class="pdf-box">' +
+        '<h3>Kunde</h3>' +
+        '<p class="name">'+esc(navn)+'</p>' +
+        (tlf   ? '<p>📞 '+esc(tlf)+'</p>'   : '') +
+        (epost ? '<p>✉️ '+esc(epost)+'</p>' : '') +
+        (megler? '<p style="margin-top:6px;font-size:11px;color:#6b7a8d;">Via megler: '+esc(megler)+'</p>' : '') +
+      '</div>' +
+      '<div class="pdf-box">' +
+        '<h3>Båt</h3>' +
+        '<p class="name">'+(bat||"—")+'</p>' +
+        ((fot||ar) ? '<p>'+(fot?fot+' fot':'')+(fot&&ar?' · ':'')+(ar||'')+'</p>' : '') +
+      '</div>' +
+    '</div>' +
+
+    '<table class="pdf-table">' +
+      '<thead><tr><th style="width:45%">Tjeneste</th><th style="width:15%;text-align:center">Antall</th><th style="width:20%;text-align:right">Enhetspris</th><th style="width:20%;text-align:right">Total</th></tr></thead>' +
+      '<tbody>'+linjeRader+'</tbody>' +
+    '</table>' +
+
+    '<div class="pdf-totaler">' +
+      '<div class="pdf-tot-row"><span class="lbl">Sum ekskl. MVA</span><span>'+fmtKr(eks)+'</span></div>' +
+      '<div class="pdf-tot-row"><span class="lbl">MVA 25%</span><span>'+fmtKr(mva)+'</span></div>' +
+      '<div class="pdf-tot-row main"><span>Totalt inkl. MVA</span><span>'+fmtKr(ink)+'</span></div>' +
+    '</div>' +
+
+    (notat ? '<div class="pdf-notat"><strong>Merknad</strong>'+esc(notat)+'</div>' : '') +
+
+    '<div class="pdf-footer">' +
+      '<div><strong>Oslo Båtpleie og Krympeplast AS</strong><br>En del av House of Yachts Oslo</div>' +
+      '<div style="text-align:right">Tilbudet er gyldig i 30 dager fra utstedelsesdato.<br>Priser er inkl. MVA 25%.</div>' +
+    '</div>';
+
+  window.print();
+}
+
+// ── TJENESTER ADMIN ───────────────────────────────────────────────────────────
+function renderTjenester() {
+  var tjenester = loadTjenester();
+  var tbody = document.getElementById("tjenester-tbody");
+  tbody.innerHTML = tjenester.map(function(t, i) {
+    return '<tr>' +
+      '<td><input value="'+esc(t.navn)+'" placeholder="Tjenestenavn" onchange="oppdaterTjeneste('+i+',\'navn\',this.value)"></td>' +
+      '<td><input type="number" value="'+t.qty+'" min="0" style="text-align:center" onchange="oppdaterTjeneste('+i+',\'qty\',this.value)"></td>' +
+      '<td><select onchange="oppdaterTjeneste('+i+',\'enhet\',this.value)">' +
+        ['stk','fot','time','m2'].map(function(u){ return '<option'+(t.enhet===u?' selected':'')+'>'+u+'</option>'; }).join('') +
+      '</select></td>' +
+      '<td><input type="number" value="'+t.pris+'" min="0" placeholder="0" onchange="oppdaterTjeneste('+i+',\'pris\',this.value)"></td>' +
+      '<td><select onchange="oppdaterTjeneste('+i+',\'mva\',this.value)">' +
+        [25,15,12,0].map(function(m){ return '<option value="'+m+'"'+(t.mva===m?' selected':'')+'>'+m+'%</option>'; }).join('') +
+      '</select></td>' +
+      '<td style="text-align:center"><button class="del-btn" onclick="slettTjeneste('+i+')" title="Fjern">✕</button></td>' +
+    '</tr>';
+  }).join('');
+
+  // Oppdater chips i kalkulator
+  var chips = document.getElementById("tjeneste-chips");
+  chips.innerHTML = tjenester.map(function(t) {
+    return '<div class="chip" onclick="leggTilTjeneste(\''+esc(t.id)+'\')">+ '+esc(t.navn)+'</div>';
+  }).join('');
+}
+
+function oppdaterTjeneste(i, felt, val) {
+  var tjenester = loadTjenester();
+  tjenester[i][felt] = (felt==='qty'||felt==='pris'||felt==='mva') ? parseFloat(val)||0 : val;
+  saveTjenester(tjenester);
+  renderTjenester();
+}
+
+function slettTjeneste(i) {
+  if (!confirm("Slette denne tjenesten?")) return;
+  var tjenester = loadTjenester();
+  tjenester.splice(i,1);
+  saveTjenester(tjenester);
+  renderTjenester();
+}
+
+function leggTilNyTjeneste() {
+  var tjenester = loadTjenester();
+  tjenester.push({ id:"tjeneste_"+Date.now(), navn:"Ny tjeneste", qty:1, enhet:"stk", pris:0, mva:25 });
+  saveTjenester(tjenester);
+  renderTjenester();
+  // Scroll til bunnen av tabellen
+  document.getElementById("tjenester-tbody").lastElementChild.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+
+function tilbakestillTjenester() {
+  if (!confirm("Tilbakestille til standard tjenester? Egne endringer vil gå tapt.")) return;
+  localStorage.removeItem(STORAGE_TJENESTER);
+  renderTjenester();
+}
+
+// ── UTILITIES ─────────────────────────────────────────────────────────────────
+function fmtKr(n) {
+  return "kr " + Math.round(n||0).toLocaleString("no-NO");
+}
+function esc(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function lukkModal(id){ document.getElementById(id).classList.remove("open"); }
+
+// Lukk modal ved klikk utenfor
+document.querySelectorAll(".modal-bg").forEach(function(mb){
+  mb.addEventListener("click", function(e){ if(e.target===mb) mb.classList.remove("open"); });
+});
+
+// Init
+renderLinjer();
+renderTjenester();
+</script>
+</body>
+</html>
