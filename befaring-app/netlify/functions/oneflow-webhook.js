@@ -4,12 +4,13 @@
 // leser budbelop/budfrist/forbehold fra Oneflow data-felter,
 // og oppretter bud automatisk i offers-tabellen.
 //
-// Oneflow webhook-payload (forenklet):
+// Oneflow webhook-payload (faktisk format):
 // {
-//   "event_type": "contract_signed",
-//   "data": {
-//     "contract": { "id": 12345678, "template": { "id": 5214566 }, "state": "signed" }
-//   }
+//   "contract_id": 12345678,
+//   "callback_id": "uuid",
+//   "events": [
+//     { "type": "contract:sign", "event_id": "abc", "created_time": "2026-04-08T14:00:00Z" }
+//   ]
 // }
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -133,26 +134,34 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Ugyldig JSON' }) };
   }
 
-  console.log('Oneflow webhook mottatt:', JSON.stringify(payload).substring(0, 500));
+  console.log('Oneflow webhook mottatt:', JSON.stringify(payload).substring(0, 1000));
 
-  const eventType   = payload.event_type || payload.type;
-  const contract    = payload.data?.contract || payload.contract || {};
-  const contractId  = contract.id;
-  const templateId  = contract.template?.id || contract.template_id;
-  const state       = contract.state;
+  // ── Parse contract_id og event-type ───────────────────────────────────────
+  // Format A (Oneflow API): { contract_id, callback_id, events: [{ type: "contract:sign" }] }
+  // Format B (antatt/legacy): { event_type: "contract_signed", data: { contract: { id, state } } }
+  const contractId = payload.contract_id
+                  || payload.data?.contract?.id
+                  || payload.contract?.id
+                  || null;
 
-  // Vi er kun interessert i signerte budskjemaer
+  const events = payload.events || [];
+  const hasSignEvent = events.some(e => e.type === 'contract:sign' || e.type === 'contract.signed');
+  const legacyState  = payload.data?.contract?.state || payload.contract?.state;
+  const legacyType   = payload.event_type || payload.type;
+  const isSigned     = hasSignEvent || legacyState === 'signed' || legacyType === 'contract_signed';
+
   if (!contractId) {
+    console.log('Webhook: ingen contract_id funnet i payload');
     return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, skipped: 'no contract id' }) };
   }
 
-  if (String(templateId) !== String(OF_BUDSKJEMA_TEMPLATE)) {
-    return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, skipped: `ikke budskjema (template ${templateId})` }) };
+  if (!isSigned) {
+    console.log(`Webhook: event er ikke signering (events: ${JSON.stringify(events.map(e => e.type))})`);
+    return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, skipped: 'ikke et signerings-event' }) };
   }
 
-  if (state !== 'signed') {
-    return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, skipped: `state=${state}, ikke signed ennå` }) };
-  }
+  // Sjekk om dette er et budskjema ved å slå opp i Supabase-mapping
+  // (mer pålitelig enn å parse template_id fra payload)
 
   const supabase = supabaseClient();
 
