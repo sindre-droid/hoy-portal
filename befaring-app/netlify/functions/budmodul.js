@@ -74,6 +74,170 @@ async function ofApi(path, method = 'GET', body = null) {
   catch { return { ok: false, status: res.status, data: { raw: text } }; }
 }
 
+// ── Parse helpers (budskjema data-felter) ───────────────────────────────────
+function parseBelop(str) {
+  if (!str) return null;
+  const cleaned = String(str).replace(/[^\d]/g, '');
+  const n = parseInt(cleaned, 10);
+  return isNaN(n) ? null : n;
+}
+
+function parseFrist(str) {
+  if (!str) return null;
+  const iso = new Date(str);
+  if (!isNaN(iso.getTime())) return iso.toISOString();
+  const match = str.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+  if (match) {
+    const [, d, m, y, hr = '23', min = '59'] = match;
+    return new Date(`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}T${hr.padStart(2,'0')}:${min}:00`).toISOString();
+  }
+  return null;
+}
+
+// Hent data-felter fra Oneflow-kontrakt som key→value map
+async function getContractDataFields(contractId) {
+  const res = await ofApi(`/contracts/${contractId}/data_fields`);
+  if (!res.ok) return {};
+  const items = res.data?.data || res.data?._embedded?.['oneflow:data_fields'] || [];
+  return items.reduce((acc, f) => {
+    const customId = f._private_ownerside?.custom_id || f._private?.tag;
+    if (customId) acc[customId] = f.value || '';
+    if (f.name)   acc[f.name]   = f.value || '';
+    return acc;
+  }, {});
+}
+
+// ── Sync usignerte budskjemaer mot Oneflow API ─────────────────────────────
+// Sjekker kontrakt-status i Oneflow for budskjemaer der signed_at er NULL.
+// Hvis kontrakten er signert: oppretter bud i offers, oppdaterer signed_at,
+// logger HubSpot-notat. Returnerer antall nylig synkede.
+async function syncBudskjemaStatus(supabase, dealId, contracts) {
+  const unsigned = contracts.filter(c => !c.signed_at && c.oneflow_contract_id);
+  if (!unsigned.length) return 0;
+
+  let synced = 0;
+  for (const mapping of unsigned) {
+    try {
+      // Sjekk kontraktstatus i Oneflow
+      const contractRes = await ofApi(`/contracts/${mapping.oneflow_contract_id}`);
+      if (!contractRes.ok) {
+        console.log(`Oneflow contract ${mapping.oneflow_contract_id} fetch feil:`, contractRes.status);
+        continue;
+      }
+      const contract = contractRes.data;
+      // Oneflow state: 0=draft, 1=pending, 2=overdue, 3=signed, 4=declined, 5=cancelled
+      const isSigned = contract.state === 3 || contract.state === 'signed'
+                    || contract.contract_state === 3 || contract.contract_state === 'signed';
+      if (!isSigned) continue;
+
+      // Allerede opprettet bud for dette skjemaet? (sjekk offer_id)
+      if (mapping.offer_id) {
+        // Bare oppdater signed_at hvis den mangler
+        await supabase
+          .from('budskjema_contracts')
+          .update({ signed_at: new Date().toISOString() })
+          .eq('oneflow_contract_id', mapping.oneflow_contract_id)
+          .is('signed_at', null);
+        synced++;
+        continue;
+      }
+
+      // Hent data-felter fra Oneflow (budbeløp, frist, forbehold etc.)
+      const fields = await getContractDataFields(mapping.oneflow_contract_id);
+      console.log(`Sync: data-felter for kontrakt ${mapping.oneflow_contract_id}:`, JSON.stringify(fields));
+
+      const amountNOK  = parseBelop(fields['budbelop'] || fields['Budbeløp'] || fields['Budbelop']);
+      const expiryAt   = parseFrist(fields['budfrist'] || fields['Budfrist']);
+      const forbehold  = fields['forbehold'] || fields['Forbehold'] || null;
+      const overtagelse = parseFrist(fields['overtagelsesdato'] || fields['Overtagelsesdato']) || null;
+      const verdivurd  = fields['verdivurdering'] || fields['Verdivurdering'] || null;
+      const fartoy     = fields['fartoy'] || fields['Fartøy'] || null;
+
+      // Opprett bud i Supabase
+      const { data: offer, error: offerErr } = await supabase
+        .from('offers')
+        .insert({
+          deal_id:            dealId,
+          buyer_contact_id:   mapping.buyer_contact_id || null,
+          buyer_name:         mapping.buyer_name,
+          buyer_email:        mapping.buyer_email || null,
+          buyer_phone:        mapping.buyer_phone || null,
+          amount_nok:         amountNOK || 0,
+          received_via:       'Oneflow_budskjema',
+          source_doc_id:      String(mapping.oneflow_contract_id),
+          expiry_at:          expiryAt || null,
+          contingencies_text: forbehold || null,
+          contingencies:      forbehold ? ['Forbehold'] : [],
+          notes_internal:     [
+            !amountNOK ? '⚠️ Budbeløp mangler — sett manuelt' : null,
+            overtagelse ? `Ønsket overtagelse: ${overtagelse}` : null,
+            verdivurd   ? `Verdivurdering av eget fartøy: ${verdivurd}` : null,
+            fartoy      ? `Fartøy: ${fartoy}` : null,
+          ].filter(Boolean).join('\n') || null,
+        })
+        .select()
+        .single();
+
+      if (offerErr) {
+        console.error(`Sync: Supabase insert feil for kontrakt ${mapping.oneflow_contract_id}:`, offerErr.message);
+        continue;
+      }
+
+      // Logg event
+      await supabase.from('offer_events').insert({
+        offer_id: offer.id, deal_id: dealId, type: 'OfferCreated',
+        payload: { amount_nok: amountNOK, received_via: 'Oneflow_budskjema', oneflow_contract_id: mapping.oneflow_contract_id, synced: true },
+      });
+
+      // Oppdater mapping med signed_at og offer_id
+      await supabase
+        .from('budskjema_contracts')
+        .update({ signed_at: new Date().toISOString(), offer_id: offer.id })
+        .eq('oneflow_contract_id', mapping.oneflow_contract_id);
+
+      // Sett Budgiver-label i HubSpot (best-effort)
+      if (mapping.buyer_contact_id) {
+        try {
+          const labelRes = await hs('/crm/v4/associations/deals/contacts/labels');
+          const budgiverLabel = (labelRes.data?.results || []).find(l => l.label === 'Budgiver');
+          if (budgiverLabel) {
+            const assocRes = await hs(`/crm/v4/objects/deals/${dealId}/associations/contacts?limit=500`);
+            const existing = (assocRes.data?.results || []).find(a => String(a.toObjectId) === String(mapping.buyer_contact_id));
+            const existingIds = (existing?.associationTypes || []).filter(t => t.category === 'USER_DEFINED').map(t => t.typeId);
+            const merged = [...new Set([...existingIds, budgiverLabel.typeId])];
+            await hs(`/crm/v4/objects/deals/${dealId}/associations/contacts/${mapping.buyer_contact_id}`, 'PUT',
+              merged.map(id => ({ associationCategory: 'USER_DEFINED', associationTypeId: id })));
+          }
+        } catch (e) { console.error('Sync: Budgiver-label feil:', e.message); }
+      }
+
+      // HubSpot-notat (best-effort)
+      try {
+        const belopFmt = amountNOK ? new Intl.NumberFormat('no-NO').format(amountNOK) + ' NOK' : '(beløp mangler)';
+        const lines = [
+          `✅ Budskjema signert av ${mapping.buyer_name} (${mapping.buyer_email || 'ukjent e-post'}).`,
+          `Budbeløp: ${belopFmt}`,
+        ];
+        if (expiryAt)    lines.push(`Budfrist: ${new Date(expiryAt).toLocaleDateString('no-NO')}`);
+        if (forbehold)   lines.push(`Forbehold: ${forbehold}`);
+        if (overtagelse) lines.push(`Ønsket overtagelse: ${new Date(overtagelse).toLocaleDateString('no-NO')}`);
+        lines.push(`Oneflow kontrakt-ID: ${mapping.oneflow_contract_id}`);
+
+        await hs('/crm/v3/objects/notes', 'POST', {
+          properties: { hs_note_body: lines.join('\n'), hs_timestamp: new Date().toISOString() },
+          associations: [{ to: { id: dealId }, types: [{ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: 214 }] }],
+        });
+      } catch (e) { console.error('Sync: HubSpot note feil:', e.message); }
+
+      console.log(`✅ Sync: Bud opprettet ${offer.id} for deal ${dealId}, beløp ${amountNOK}, kontrakt ${mapping.oneflow_contract_id}`);
+      synced++;
+    } catch (e) {
+      console.error(`Sync: Uventet feil for kontrakt ${mapping.oneflow_contract_id}:`, e.message);
+    }
+  }
+  return synced;
+}
+
 // Format NOK with thousand separators
 function fmtNok(n) {
   return Number(n).toLocaleString('no-NO') + ' kr';
@@ -401,12 +565,28 @@ exports.handler = async (event) => {
     const [offersRes, actionsRes, contractsRes] = await Promise.all([
       supabase.from('offers').select('buyer_contact_id,buyer_email,amount_nok,status').eq('deal_id', dealId),
       supabase.from('contact_actions').select('contact_hs_id,action_type,performed_at').eq('deal_id', dealId),
-      supabase.from('budskjema_contracts').select('buyer_contact_id,signed_at').eq('deal_id', dealId).order('created_at', { ascending: false }),
+      supabase.from('budskjema_contracts').select('oneflow_contract_id,buyer_contact_id,buyer_name,buyer_email,buyer_phone,signed_at,offer_id').eq('deal_id', dealId).order('created_at', { ascending: false }),
     ]);
+
+    // ── Sync: sjekk usignerte budskjemaer mot Oneflow API ──────────────────
+    const contracts = contractsRes.data || [];
+    const syncCount = await syncBudskjemaStatus(supabase, dealId, contracts);
+
+    // Hvis vi synket noe, re-hent offers og contracts for oppdatert data
+    let finalOffers    = offersRes.data || [];
+    let finalContracts = contracts;
+    if (syncCount > 0) {
+      const [refreshedOffers, refreshedContracts] = await Promise.all([
+        supabase.from('offers').select('buyer_contact_id,buyer_email,amount_nok,status').eq('deal_id', dealId),
+        supabase.from('budskjema_contracts').select('oneflow_contract_id,buyer_contact_id,buyer_name,buyer_email,buyer_phone,signed_at,offer_id').eq('deal_id', dealId).order('created_at', { ascending: false }),
+      ]);
+      finalOffers    = refreshedOffers.data || finalOffers;
+      finalContracts = refreshedContracts.data || finalContracts;
+    }
 
     const offerByContactId = {};
     const offerByEmail     = {};
-    for (const o of (offersRes.data || [])) {
+    for (const o of finalOffers) {
       if (o.buyer_contact_id) offerByContactId[String(o.buyer_contact_id)] = o;
       if (o.buyer_email)      offerByEmail[o.buyer_email.toLowerCase()]     = o;
     }
@@ -416,7 +596,7 @@ exports.handler = async (event) => {
     }
     // Map buyer_contact_id → nyeste kontrakt (ORDER BY created_at DESC, så første treff per kontakt er nyest)
     const contractByContactId = {};
-    for (const c of (contractsRes.data || [])) {
+    for (const c of finalContracts) {
       if (c.buyer_contact_id && !contractByContactId[String(c.buyer_contact_id)]) {
         contractByContactId[String(c.buyer_contact_id)] = c;
       }
