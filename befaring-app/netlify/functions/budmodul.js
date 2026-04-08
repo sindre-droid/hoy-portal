@@ -1112,7 +1112,7 @@ exports.handler = async (event) => {
   // Oppretter Oneflow-kontrakt fra budskjema-malen, sender til kjøper,
   // og lagrer mapping (contract_id → deal_id + contact_id) i Supabase.
   if (action === 'send_budskjema') {
-    const { dealId, contactHsId, contactName, contactEmail, contactPhone, boatName } = body;
+    const { dealId, dealName, contactHsId, contactName, contactEmail, contactPhone, boatName } = body;
     if (!dealId || !contactHsId || !contactEmail || !contactName) {
       return { statusCode: 400, headers: h, body: JSON.stringify({ error: 'dealId, contactHsId, contactEmail og contactName er påkrevd' }) };
     }
@@ -1144,7 +1144,7 @@ exports.handler = async (event) => {
 
     // Oneflow individual-party: bruker "participant" (entall), _permissions INNE i participant
     const createBody = {
-      name:         `${dealId} - Budskjema - ${boatName || dealId}`,
+      name:         `${dealName || dealId} - Budskjema`,
       template_id:  OF_BUDSKJEMA_TEMPLATE,
       workspace_id: workspaceId,
       parties: [
@@ -1176,12 +1176,16 @@ exports.handler = async (event) => {
     if (boatName) {
       const dfRes = await ofApi(`/contracts/${contractId}/data_fields`);
       const fields = dfRes.data?.data || [];
+      console.log('Budskjema data_fields:', JSON.stringify(fields.map(f => ({ id: f.id, name: f.name, custom_id: f._private_ownerside?.custom_id, value: f.value }))));
       const fartoyField = fields.find(
         f => f._private_ownerside?.custom_id === 'fartoy'
           || f.name?.toLowerCase().includes('fartøy')
       );
       if (fartoyField?.id) {
-        await ofApi(`/contracts/${contractId}/data_fields/${fartoyField.id}`, 'PATCH', { value: boatName });
+        const patchRes = await ofApi(`/contracts/${contractId}/data_fields/${fartoyField.id}`, 'PATCH', { value: boatName });
+        console.log(`Fartøy PATCH ${fartoyField.id} → "${boatName}":`, patchRes.ok ? 'OK' : JSON.stringify(patchRes.data));
+      } else {
+        console.warn('Fartøy-felt ikke funnet i data_fields for kontrakt', contractId);
       }
     }
 

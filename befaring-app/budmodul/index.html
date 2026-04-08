@@ -795,6 +795,7 @@ async function sendBudskjema(hsId, name, email, phone) {
     const res = await api({}, 'POST', {
       action:         'send_budskjema',
       dealId:         currentDealId,
+      dealName:       currentDealName,
       contactHsId:    hsId,
       contactName:    name,
       contactEmail:   email || null,
