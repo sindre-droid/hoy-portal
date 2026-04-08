@@ -41,8 +41,8 @@ exports.handler = async (event) => {
   }
 
   // ── List template groups ──────────────────────────────────────────────────
-  if (action === 'template_groups') {
-    const res = await ofApi('/template_groups');
+  if (action === 'template_groups' || action === 'template_types') {
+    const res = await ofApi('/template_types');
     return { statusCode: 200, headers: h, body: JSON.stringify(res.data, null, 2) };
   }
 
@@ -51,9 +51,9 @@ exports.handler = async (event) => {
     const callbackUrl = `https://silver-puffpuff-8a67de.netlify.app/.netlify/functions/oneflow-webhook`;
 
     // Steg 1: Finn template group for budskjema-malen
-    const tgRes = await ofApi('/template_groups');
+    const tgRes = await ofApi('/template_types');
     const groups = tgRes.data?.data
-                || tgRes.data?._embedded?.['oneflow:template_groups']
+                || tgRes.data?._embedded?.['oneflow:template_types']
                 || tgRes.data?.results
                 || [];
 
