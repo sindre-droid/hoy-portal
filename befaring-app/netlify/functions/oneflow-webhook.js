@@ -205,6 +205,7 @@ exports.handler = async (event) => {
       buyer_email:        buyerEmail || null,
       buyer_phone:        buyerPhone || null,
       amount_nok:         amountNOK || 0,
+      created_by:         'system',
       received_via:       'Oneflow_budskjema',
       source_doc_id:      String(contractId),
       expiry_at:          expiryAt || null,

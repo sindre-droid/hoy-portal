@@ -163,6 +163,7 @@ async function syncBudskjemaStatus(supabase, dealId, contracts) {
           buyer_email:        mapping.buyer_email || null,
           buyer_phone:        mapping.buyer_phone || null,
           amount_nok:         amountNOK || 0,
+          created_by:         'system',
           received_via:       'Oneflow_budskjema',
           source_doc_id:      String(mapping.oneflow_contract_id),
           expiry_at:          expiryAt || null,
