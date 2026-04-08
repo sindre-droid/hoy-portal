@@ -965,6 +965,7 @@ exports.handler = async (event) => {
     const createBody = {
       name:         `${dealId} - Budskjema - ${boatName || dealId}`,
       template_id:  OF_BUDSKJEMA_TEMPLATE,
+      template_type_id: 114351,  // Knytter kontrakten til Budskjema template type → trigger webhook
       workspace_id: workspaceId,
       parties: [
         {
