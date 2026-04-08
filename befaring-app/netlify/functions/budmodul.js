@@ -153,6 +153,17 @@ async function syncBudskjemaStatus(supabase, dealId, contracts) {
       const verdivurd  = fields['verdivurdering'] || fields['Verdivurdering'] || null;
       const fartoy     = fields['fartoy'] || fields['Fartøy'] || null;
 
+      // Hvis budbeløp mangler: marker som signert men opprett IKKE bud (megler gjør det manuelt)
+      if (!amountNOK) {
+        console.warn(`Sync: Budbeløp mangler for kontrakt ${mapping.oneflow_contract_id} – markerer signert, bud opprettes ikke`);
+        await supabase
+          .from('budskjema_contracts')
+          .update({ signed_at: new Date().toISOString() })
+          .eq('oneflow_contract_id', mapping.oneflow_contract_id);
+        synced++;
+        continue;
+      }
+
       // Opprett bud i Supabase
       const { data: offer, error: offerErr } = await supabase
         .from('offers')
@@ -162,7 +173,7 @@ async function syncBudskjemaStatus(supabase, dealId, contracts) {
           buyer_name:         mapping.buyer_name,
           buyer_email:        mapping.buyer_email || null,
           buyer_phone:        mapping.buyer_phone || null,
-          amount_nok:         amountNOK || 0,
+          amount_nok:         amountNOK,
           created_by:         'system',
           received_via:       'Oneflow_budskjema',
           source_doc_id:      String(mapping.oneflow_contract_id),
@@ -170,7 +181,6 @@ async function syncBudskjemaStatus(supabase, dealId, contracts) {
           contingencies_text: forbehold || null,
           contingencies:      forbehold ? ['Forbehold'] : [],
           notes_internal:     [
-            !amountNOK ? '⚠️ Budbeløp mangler — sett manuelt' : null,
             overtagelse ? `Ønsket overtagelse: ${overtagelse}` : null,
             verdivurd   ? `Verdivurdering av eget fartøy: ${verdivurd}` : null,
             fartoy      ? `Fartøy: ${fartoy}` : null,
