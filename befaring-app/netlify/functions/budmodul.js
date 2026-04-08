@@ -1182,7 +1182,7 @@ exports.handler = async (event) => {
           || f.name?.toLowerCase().includes('fartøy')
       );
       if (fartoyField?.id) {
-        const patchRes = await ofApi(`/contracts/${contractId}/data_fields/${fartoyField.id}`, 'PATCH', { value: boatName });
+        const patchRes = await ofApi(`/contracts/${contractId}/data_fields/${fartoyField.id}`, 'PUT', { value: boatName });
         console.log(`Fartøy PATCH ${fartoyField.id} → "${boatName}":`, patchRes.ok ? 'OK' : JSON.stringify(patchRes.data));
       } else {
         console.warn('Fartøy-felt ikke funnet i data_fields for kontrakt', contractId);
