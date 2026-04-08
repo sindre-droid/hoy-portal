@@ -79,7 +79,8 @@ exports.handler = async (event) => {
     const webhookBody = {
       callback_url: callbackUrl,
     };
-    if (templateGroupId) {
+    // Bare legg til template_group_id hvis eksplisitt angitt
+    if (templateGroupId && templateGroupId !== 'none') {
       webhookBody.template_group_id = Number(templateGroupId);
     }
 
