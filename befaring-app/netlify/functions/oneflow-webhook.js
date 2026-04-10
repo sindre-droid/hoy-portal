@@ -108,19 +108,58 @@ function parseBelop(str) {
   return isNaN(n) ? null : n;
 }
 
-// Parse budfrist: prøv ISO og norsk format
-function parseFrist(str) {
+// Parse budfrist: støtter ISO, norsk dato, Oneflow date-only, og fritekst med "kl"/"klokken".
+// timeStr er valgfritt separat klokkeslett-felt ("HH:MM").
+function parseFrist(str, timeStr) {
   if (!str) return null;
-  // Prøv ISO first
-  const iso = new Date(str);
-  if (!isNaN(iso.getTime())) return iso.toISOString();
-  // Prøv norsk DD.MM.YYYY HH:MM
-  const match = str.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
-  if (match) {
-    const [, d, m, y, h = '23', min = '59'] = match;
-    return new Date(`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}T${h.padStart(2,'0')}:${min}:00`).toISOString();
+  const s = String(str).trim();
+
+  // Oneflow date field: "YYYY-MM-DD"
+  const isoDateOnly = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoDateOnly) {
+    const [, y, m, d] = isoDateOnly;
+    const { hr, min } = parseTimeStr(timeStr);
+    return new Date(`${y}-${m}-${d}T${hr}:${min}:00`).toISOString();
   }
+
+  // Full ISO med tid
+  const iso = new Date(s);
+  if (!isNaN(iso.getTime()) && s.includes('T')) return iso.toISOString();
+
+  // Norsk: DD.MM.YYYY med valgfritt "kl"/"klokken" + tid
+  const norsk = s.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(?:kl\.?:?\s*|klokken\s+)?(\d{1,2})[.:](\d{2}))?/i);
+  if (norsk) {
+    const [, d, m, y, inlineHr, inlineMin] = norsk;
+    let hr, min;
+    if (inlineHr && inlineMin) {
+      hr = inlineHr.padStart(2, '0');
+      min = inlineMin;
+    } else {
+      ({ hr, min } = parseTimeStr(timeStr));
+    }
+    return new Date(`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}T${hr}:${min}:00`).toISOString();
+  }
+
+  // Dato uten tid
+  if (!isNaN(iso.getTime())) {
+    const { hr, min } = parseTimeStr(timeStr);
+    const base = iso.toISOString().split('T')[0];
+    return new Date(`${base}T${hr}:${min}:00`).toISOString();
+  }
+
   return null;
+}
+
+function parseTimeStr(timeStr) {
+  if (!timeStr) return { hr: '23', min: '59' };
+  const t = String(timeStr).trim();
+  const colonMatch = t.match(/^(\d{1,2})[.:](\d{2})$/);
+  if (colonMatch) return { hr: colonMatch[1].padStart(2, '0'), min: colonMatch[2] };
+  const flatMatch = t.match(/^(\d{2})(\d{2})$/);
+  if (flatMatch) return { hr: flatMatch[1], min: flatMatch[2] };
+  const hourOnly = t.match(/^(\d{1,2})$/);
+  if (hourOnly) return { hr: hourOnly[1].padStart(2, '0'), min: '00' };
+  return { hr: '23', min: '59' };
 }
 
 exports.handler = async (event) => {
@@ -184,7 +223,9 @@ exports.handler = async (event) => {
   console.log('Oneflow data-felter:', JSON.stringify(fields));
 
   const amountNOK       = parseBelop(fields['budbelop']         || fields['Budbeløp']           || fields['Budbelop']);
-  const expiryAt        = parseFrist(fields['budfrist']         || fields['Budfrist']);
+  const fristRaw        = fields['budfrist']         || fields['Budfrist']             || null;
+  const fristKl         = fields['budfrist_klokkeslett'] || fields['Budfrist klokkeslett'] || null;
+  const expiryAt        = parseFrist(fristRaw, fristKl);
   const forbehold       = fields['forbehold']       || fields['Forbehold']       || null;
   const overtagelsesdato= parseFrist(fields['overtagelsesdato'] || fields['Overtagelsesdato'])   || null;
   const verdivurdering  = fields['verdivurdering']  || fields['Verdivurdering']  || null;
@@ -252,7 +293,7 @@ exports.handler = async (event) => {
       `✅ Budskjema signert av ${buyerName} (${buyerEmail || 'ukjent e-post'}).`,
       `Budbeløp: ${belopFmt}`,
     ];
-    if (expiryAt)         lines.push(`Budfrist: ${new Date(expiryAt).toLocaleDateString('no-NO')}`);
+    if (expiryAt)         lines.push(`Budfrist: ${new Date(expiryAt).toLocaleString('no-NO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`);
     if (forbehold)        lines.push(`Forbehold: ${forbehold}`);
     if (overtagelsesdato) lines.push(`Ønsket overtagelse: ${new Date(overtagelsesdato).toLocaleDateString('no-NO')}`);
     lines.push(`Oneflow kontrakt-ID: ${contractId}`);

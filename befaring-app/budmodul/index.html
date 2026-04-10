@@ -602,29 +602,33 @@ async function loadInteressenter() {
     renderInteressenter(data.unlabeled || [], data.selgere || []);
     populateInteressentPicker();
 
-    // Auto-refresh: hvis noen har ⏳ (sent men ikke signert), poll hvert 30s
+    // Auto-refresh: hvis noen har ⏳ (sent men ikke signert), poll hvert 15s
     const allContacts = [...interessenter, ...(data.unlabeled || [])];
     const hasPending  = allContacts.some(i => i.budskjema_sent_at && !i.budskjema_signed_at);
     if (budskjemaAutoRefreshTimer) clearInterval(budskjemaAutoRefreshTimer);
     if (hasPending) {
+      console.log('[auto-refresh] Starter polling – ventende budskjemaer funnet');
       budskjemaAutoRefreshTimer = setInterval(async () => {
         if (!currentDealId) { clearInterval(budskjemaAutoRefreshTimer); return; }
         try {
+          console.log('[auto-refresh] Sjekker status...');
           const r2 = await fetch(`${API}?interessenter=${encodeURIComponent(currentDealId)}`, {
             headers: { Authorization: `Bearer ${accessToken}` },
           });
           const d2 = await r2.json();
           interessenter = d2.interessenter || [];
           renderInteressenter(d2.unlabeled || [], d2.selgere || []);
+          populateInteressentPicker();
           // Hvis noen ble signert, refresh budboard og stopp polling
           const stillPending = [...(d2.interessenter||[]), ...(d2.unlabeled||[])].some(i => i.budskjema_sent_at && !i.budskjema_signed_at);
+          console.log(`[auto-refresh] Ventende: ${stillPending ? 'ja' : 'nei – alle signert, refresher budboard'}`);
           if (!stillPending) {
             clearInterval(budskjemaAutoRefreshTimer);
             budskjemaAutoRefreshTimer = null;
             await refreshBudboard(); // oppdater budoversikt med nytt bud
           }
-        } catch { /* stille feil ved auto-refresh */ }
-      }, 30000);
+        } catch (e) { console.warn('[auto-refresh] Feil:', e.message); }
+      }, 15000);
     }
   } catch {
     $('interessenterTable').innerHTML = '<div class="empty-state" style="padding:16px">Kunne ikke hente interessenter.</div>';

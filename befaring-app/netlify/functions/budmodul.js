@@ -82,16 +82,68 @@ function parseBelop(str) {
   return isNaN(n) ? null : n;
 }
 
-function parseFrist(str) {
+// Parse budfrist: støtter ISO, norsk dato, Oneflow date-only (YYYY-MM-DD),
+// og fritekst med "kl"/"klokken". Returnerer ISO-string.
+// timeStr er et valgfritt separat klokkeslett-felt ("HH:MM" eller "HHMM").
+function parseFrist(str, timeStr) {
   if (!str) return null;
-  const iso = new Date(str);
-  if (!isNaN(iso.getTime())) return iso.toISOString();
-  const match = str.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
-  if (match) {
-    const [, d, m, y, hr = '23', min = '59'] = match;
-    return new Date(`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}T${hr.padStart(2,'0')}:${min}:00`).toISOString();
+
+  // Rens input
+  const s = String(str).trim();
+
+  // 1) Oneflow date field gir typisk "YYYY-MM-DD" (uten tid)
+  const isoDateOnly = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoDateOnly) {
+    const [, y, m, d] = isoDateOnly;
+    const { hr, min } = parseTimeStr(timeStr);
+    return new Date(`${y}-${m}-${d}T${hr}:${min}:00`).toISOString();
   }
+
+  // 2) Full ISO med tid (2026-04-10T15:30:00Z)
+  const iso = new Date(s);
+  if (!isNaN(iso.getTime()) && s.includes('T')) return iso.toISOString();
+
+  // 3) Norsk format: DD.MM.YYYY med valgfritt klokkeslett
+  //    Støtter: "08.04.2026 kl: 15:30", "08.04.2026 klokken 19:00",
+  //    "08.04.2026 15:30", "08.04.2026"
+  const norsk = s.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(?:kl\.?:?\s*|klokken\s+)?(\d{1,2})[.:](\d{2}))?/i);
+  if (norsk) {
+    const [, d, m, y, inlineHr, inlineMin] = norsk;
+    // Bruk inline tid fra fritekst hvis tilgjengelig, ellers separat felt, ellers 23:59
+    let hr, min;
+    if (inlineHr && inlineMin) {
+      hr = inlineHr.padStart(2, '0');
+      min = inlineMin;
+    } else {
+      ({ hr, min } = parseTimeStr(timeStr));
+    }
+    return new Date(`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}T${hr}:${min}:00`).toISOString();
+  }
+
+  // 4) Bare dato uten tid (f.eks. fra Date() uten T)
+  if (!isNaN(iso.getTime())) {
+    const { hr, min } = parseTimeStr(timeStr);
+    const base = iso.toISOString().split('T')[0];
+    return new Date(`${base}T${hr}:${min}:00`).toISOString();
+  }
+
   return null;
+}
+
+// Hjelper: parse separat klokkeslett-streng ("15:30", "1530", "15.30") → { hr, min }
+function parseTimeStr(timeStr) {
+  if (!timeStr) return { hr: '23', min: '59' };
+  const t = String(timeStr).trim();
+  // "HH:MM" eller "HH.MM"
+  const colonMatch = t.match(/^(\d{1,2})[.:](\d{2})$/);
+  if (colonMatch) return { hr: colonMatch[1].padStart(2, '0'), min: colonMatch[2] };
+  // "HHMM"
+  const flatMatch = t.match(/^(\d{2})(\d{2})$/);
+  if (flatMatch) return { hr: flatMatch[1], min: flatMatch[2] };
+  // Bare timer
+  const hourOnly = t.match(/^(\d{1,2})$/);
+  if (hourOnly) return { hr: hourOnly[1].padStart(2, '0'), min: '00' };
+  return { hr: '23', min: '59' };
 }
 
 // Hent data-felter fra Oneflow-kontrakt som key→value map
@@ -147,7 +199,9 @@ async function syncBudskjemaStatus(supabase, dealId, contracts) {
       console.log(`Sync: data-felter for kontrakt ${mapping.oneflow_contract_id}:`, JSON.stringify(fields));
 
       const amountNOK  = parseBelop(fields['budbelop'] || fields['Budbeløp'] || fields['Budbelop']);
-      const expiryAt   = parseFrist(fields['budfrist'] || fields['Budfrist']);
+      const fristRaw   = fields['budfrist'] || fields['Budfrist'] || null;
+      const fristKl    = fields['budfrist_klokkeslett'] || fields['Budfrist klokkeslett'] || null;
+      const expiryAt   = parseFrist(fristRaw, fristKl);
       const forbehold  = fields['forbehold'] || fields['Forbehold'] || null;
       const overtagelse = parseFrist(fields['overtagelsesdato'] || fields['Overtagelsesdato']) || null;
       const verdivurd  = fields['verdivurdering'] || fields['Verdivurdering'] || null;
@@ -229,7 +283,7 @@ async function syncBudskjemaStatus(supabase, dealId, contracts) {
           `✅ Budskjema signert av ${mapping.buyer_name} (${mapping.buyer_email || 'ukjent e-post'}).`,
           `Budbeløp: ${belopFmt}`,
         ];
-        if (expiryAt)    lines.push(`Budfrist: ${new Date(expiryAt).toLocaleDateString('no-NO')}`);
+        if (expiryAt)    lines.push(`Budfrist: ${new Date(expiryAt).toLocaleString('no-NO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`);
         if (forbehold)   lines.push(`Forbehold: ${forbehold}`);
         if (overtagelse) lines.push(`Ønsket overtagelse: ${new Date(overtagelse).toLocaleDateString('no-NO')}`);
         lines.push(`Oneflow kontrakt-ID: ${mapping.oneflow_contract_id}`);
@@ -1181,19 +1235,21 @@ exports.handler = async (event) => {
       return { statusCode: 500, headers: h, body: JSON.stringify({ error: 'Mangler kontrakt-ID i Oneflow-respons' }) };
     }
 
-    // 2b. Sett fartøy-datafelt (custom_id: 'fartoy') på kontrakten
+    // 2b. Hent og logg alle datafelter på kontrakten (for å identifisere custom_id-er)
     // Oneflow data_fields returnerer { data: [...] } med custom_id i _private_ownerside
+    const dfRes = await ofApi(`/contracts/${contractId}/data_fields`);
+    const fields = dfRes.data?.data || [];
+    console.log('Budskjema data_fields (alle):', JSON.stringify(fields.map(f => ({ id: f.id, name: f.name, custom_id: f._private_ownerside?.custom_id, type: f.type, value: f.value }))));
+
+    // Sett fartøy-datafelt
     if (boatName) {
-      const dfRes = await ofApi(`/contracts/${contractId}/data_fields`);
-      const fields = dfRes.data?.data || [];
-      console.log('Budskjema data_fields:', JSON.stringify(fields.map(f => ({ id: f.id, name: f.name, custom_id: f._private_ownerside?.custom_id, value: f.value }))));
       const fartoyField = fields.find(
         f => f._private_ownerside?.custom_id === 'fartoy'
           || f.name?.toLowerCase().includes('fartøy')
       );
       if (fartoyField?.id) {
         const patchRes = await ofApi(`/contracts/${contractId}/data_fields/${fartoyField.id}`, 'PUT', { value: boatName });
-        console.log(`Fartøy PATCH ${fartoyField.id} → "${boatName}":`, patchRes.ok ? 'OK' : JSON.stringify(patchRes.data));
+        console.log(`Fartøy PUT ${fartoyField.id} → "${boatName}":`, patchRes.ok ? 'OK' : JSON.stringify(patchRes.data));
       } else {
         console.warn('Fartøy-felt ikke funnet i data_fields for kontrakt', contractId);
       }
