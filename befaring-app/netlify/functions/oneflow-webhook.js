@@ -109,7 +109,7 @@ function parseBelop(str) {
 }
 
 // Parse budfrist: støtter ISO, norsk dato, Oneflow date-only, og fritekst med "kl"/"klokken".
-// timeStr er valgfritt separat klokkeslett-felt ("HH:MM").
+// Alle tider tolkes som norsk tid (CET/CEST) med korrekt UTC-offset.
 function parseFrist(str, timeStr) {
   if (!str) return null;
   const s = String(str).trim();
@@ -119,12 +119,14 @@ function parseFrist(str, timeStr) {
   if (isoDateOnly) {
     const [, y, m, d] = isoDateOnly;
     const { hr, min } = parseTimeStr(timeStr);
-    return new Date(`${y}-${m}-${d}T${hr}:${min}:00`).toISOString();
+    return buildNorwegianISO(y, m, d, hr, min);
   }
 
-  // Full ISO med tid
-  const iso = new Date(s);
-  if (!isNaN(iso.getTime()) && s.includes('T')) return iso.toISOString();
+  // Full ISO med tidssone
+  if (s.includes('T') && (s.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(s))) {
+    const iso = new Date(s);
+    if (!isNaN(iso.getTime())) return iso.toISOString();
+  }
 
   // Norsk: DD.MM.YYYY med valgfritt "kl"/"klokken" + tid
   const norsk = s.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(?:kl\.?:?\s*|klokken\s+)?(\d{1,2})[.:](\d{2}))?/i);
@@ -137,14 +139,21 @@ function parseFrist(str, timeStr) {
     } else {
       ({ hr, min } = parseTimeStr(timeStr));
     }
-    return new Date(`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}T${hr}:${min}:00`).toISOString();
+    return buildNorwegianISO(y, m.padStart(2, '0'), d.padStart(2, '0'), hr, min);
   }
 
-  // Dato uten tid
+  // ISO uten tidssone — tolkes som norsk tid
+  const iso = new Date(s);
+  if (!isNaN(iso.getTime()) && s.includes('T')) {
+    const parts = s.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    if (parts) return buildNorwegianISO(parts[1], parts[2], parts[3], parts[4], parts[5]);
+  }
+
+  // Bare dato uten tid
   if (!isNaN(iso.getTime())) {
     const { hr, min } = parseTimeStr(timeStr);
-    const base = iso.toISOString().split('T')[0];
-    return new Date(`${base}T${hr}:${min}:00`).toISOString();
+    const base = iso.toISOString().split('T')[0].split('-');
+    return buildNorwegianISO(base[0], base[1], base[2], hr, min);
   }
 
   return null;
@@ -160,6 +169,25 @@ function parseTimeStr(timeStr) {
   const hourOnly = t.match(/^(\d{1,2})$/);
   if (hourOnly) return { hr: hourOnly[1].padStart(2, '0'), min: '00' };
   return { hr: '23', min: '59' };
+}
+
+function buildNorwegianISO(y, m, d, hr, min) {
+  const year = Number(y), month = Number(m), day = Number(d);
+  const isCEST = isNorwaySummerTime(year, month, day, Number(hr));
+  const offset = isCEST ? 2 : 1;
+  const local = new Date(Date.UTC(year, month - 1, day, Number(hr) - offset, Number(min)));
+  return local.toISOString();
+}
+
+function isNorwaySummerTime(year, month, day, hour) {
+  if (month > 3 && month < 10) return true;
+  if (month < 3 || month > 10) return false;
+  if (month === 3) {
+    const lastSunday = 31 - new Date(year, 2, 31).getDay();
+    return day > lastSunday || (day === lastSunday && hour >= 2);
+  }
+  const lastSunday = 31 - new Date(year, 9, 31).getDay();
+  return day < lastSunday || (day === lastSunday && hour < 3);
 }
 
 exports.handler = async (event) => {

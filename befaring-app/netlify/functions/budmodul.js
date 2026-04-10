@@ -85,6 +85,7 @@ function parseBelop(str) {
 // Parse budfrist: støtter ISO, norsk dato, Oneflow date-only (YYYY-MM-DD),
 // og fritekst med "kl"/"klokken". Returnerer ISO-string.
 // timeStr er et valgfritt separat klokkeslett-felt ("HH:MM" eller "HHMM").
+// Alle tider tolkes som norsk tid (CET/CEST) med korrekt UTC-offset.
 function parseFrist(str, timeStr) {
   if (!str) return null;
 
@@ -96,12 +97,14 @@ function parseFrist(str, timeStr) {
   if (isoDateOnly) {
     const [, y, m, d] = isoDateOnly;
     const { hr, min } = parseTimeStr(timeStr);
-    return new Date(`${y}-${m}-${d}T${hr}:${min}:00`).toISOString();
+    return buildNorwegianISO(y, m, d, hr, min);
   }
 
-  // 2) Full ISO med tid (2026-04-10T15:30:00Z)
-  const iso = new Date(s);
-  if (!isNaN(iso.getTime()) && s.includes('T')) return iso.toISOString();
+  // 2) Full ISO med tid og tidssone (2026-04-10T15:30:00Z eller +02:00)
+  if (s.includes('T') && (s.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(s))) {
+    const iso = new Date(s);
+    if (!isNaN(iso.getTime())) return iso.toISOString();
+  }
 
   // 3) Norsk format: DD.MM.YYYY med valgfritt klokkeslett
   //    Støtter: "08.04.2026 kl: 15:30", "08.04.2026 klokken 19:00",
@@ -109,7 +112,6 @@ function parseFrist(str, timeStr) {
   const norsk = s.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(?:kl\.?:?\s*|klokken\s+)?(\d{1,2})[.:](\d{2}))?/i);
   if (norsk) {
     const [, d, m, y, inlineHr, inlineMin] = norsk;
-    // Bruk inline tid fra fritekst hvis tilgjengelig, ellers separat felt, ellers 23:59
     let hr, min;
     if (inlineHr && inlineMin) {
       hr = inlineHr.padStart(2, '0');
@@ -117,17 +119,51 @@ function parseFrist(str, timeStr) {
     } else {
       ({ hr, min } = parseTimeStr(timeStr));
     }
-    return new Date(`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}T${hr}:${min}:00`).toISOString();
+    return buildNorwegianISO(y, m.padStart(2, '0'), d.padStart(2, '0'), hr, min);
   }
 
-  // 4) Bare dato uten tid (f.eks. fra Date() uten T)
+  // 4) ISO uten tidssone (tolkes som norsk tid)
+  const iso = new Date(s);
+  if (!isNaN(iso.getTime()) && s.includes('T')) {
+    // Har tid men ingen tidssone — parse manuelt som norsk
+    const parts = s.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    if (parts) return buildNorwegianISO(parts[1], parts[2], parts[3], parts[4], parts[5]);
+  }
+
+  // 5) Bare dato uten tid
   if (!isNaN(iso.getTime())) {
     const { hr, min } = parseTimeStr(timeStr);
-    const base = iso.toISOString().split('T')[0];
-    return new Date(`${base}T${hr}:${min}:00`).toISOString();
+    const base = iso.toISOString().split('T')[0].split('-');
+    return buildNorwegianISO(base[0], base[1], base[2], hr, min);
   }
 
   return null;
+}
+
+// Bygg ISO-streng fra norsk lokal tid med korrekt UTC-offset (CET +01:00 / CEST +02:00)
+function buildNorwegianISO(y, m, d, hr, min) {
+  // Bestem om datoen er i sommertid (CEST) eller vintertid (CET)
+  // Norge bruker EU-regler: sommertid starter siste søndag i mars, slutter siste søndag i oktober
+  const year = Number(y), month = Number(m), day = Number(d);
+  const isCEST = isNorwaySummerTime(year, month, day, Number(hr));
+  const offset = isCEST ? 2 : 1;
+  // Konverter til UTC ved å trekke fra offset
+  const local = new Date(Date.UTC(year, month - 1, day, Number(hr) - offset, Number(min)));
+  return local.toISOString();
+}
+
+// Sjekk om gitt dato/tid er i norsk sommertid (CEST)
+function isNorwaySummerTime(year, month, day, hour) {
+  if (month > 3 && month < 10) return true;   // april–september: alltid CEST
+  if (month < 3 || month > 10) return false;   // jan–feb, nov–des: alltid CET
+  // Mars: sommertid starter siste søndag kl 02:00
+  if (month === 3) {
+    const lastSunday = 31 - new Date(year, 2, 31).getDay();
+    return day > lastSunday || (day === lastSunday && hour >= 2);
+  }
+  // Oktober: sommertid slutter siste søndag kl 03:00
+  const lastSunday = 31 - new Date(year, 9, 31).getDay();
+  return day < lastSunday || (day === lastSunday && hour < 3);
 }
 
 // Hjelper: parse separat klokkeslett-streng ("15:30", "1530", "15.30") → { hr, min }
