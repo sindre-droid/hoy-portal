@@ -336,9 +336,10 @@ async function syncDealToHubSpot(supabase, dealId) {
       (max, o) => Math.max(max, o.amount_nok), 0
     );
 
+    const now = new Date().toISOString();
     const expiryDates = pending
       .map(o => o.expiry_at)
-      .filter(Boolean)
+      .filter(d => d && d > now)  // kun fremtidige frister
       .sort();
     const bestDeadline = expiryDates[0] || null;
 
@@ -568,7 +569,8 @@ exports.handler = async (event) => {
       const pending  = d.offers.filter(o => o.status === 'Pending');
       const accepted = d.offers.filter(o => o.status === 'Accepted');
       const highest  = [...pending, ...accepted].reduce((m, o) => Math.max(m, o.amount_nok), 0);
-      const soonest  = pending.map(o => o.expiry_at).filter(Boolean).sort()[0] || null;
+      const nowISO   = new Date().toISOString();
+      const soonest  = pending.map(o => o.expiry_at).filter(d => d && d > nowISO).sort()[0] || null;
       return {
         deal_id:       d.deal_id,
         active_count:  pending.length,
