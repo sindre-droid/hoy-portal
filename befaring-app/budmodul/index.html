@@ -1105,7 +1105,7 @@ async function confirmCounter() {
   btn.disabled = true;
   btn.textContent = 'Registrerer…';
   try {
-    const res = await api({
+    const res = await api({}, 'POST', {
       action: 'create_counter',
       parentOfferId: pendingCounterParentId,
       amountNOK,
