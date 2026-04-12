@@ -837,6 +837,8 @@ exports.handler = async (event) => {
       return { statusCode: 400, headers: h, body: JSON.stringify({ error: 'dealId, buyerName, amountNOK og receivedVia er påkrevd' }) };
     }
 
+    const parsedOfferExpiry = parseFrist(expiryAt);
+
     const { data: offer, error } = await supabase
       .from('offers')
       .insert({
@@ -850,7 +852,7 @@ exports.handler = async (event) => {
         created_by:        userId,
         received_via:      receivedVia,
         source_doc_id:     sourceDocId    || null,
-        expiry_at:         expiryAt       || null,
+        expiry_at:         parsedOfferExpiry || null,
         financing_status:  financingStatus,
         contingencies:     contingencies,
         contingencies_text:contingenciesText || null,
@@ -976,6 +978,9 @@ exports.handler = async (event) => {
 
     if (!parent) return { statusCode: 404, headers: h, body: JSON.stringify({ error: 'Originalbud ikke funnet' }) };
 
+    // Parse budfrist (støtter fritekst, ISO, norsk format)
+    const parsedExpiry = parseFrist(expiryAt);
+
     // Counter-offer inherits buyer info from parent
     const { data: counter, error } = await supabase
       .from('offers')
@@ -988,7 +993,7 @@ exports.handler = async (event) => {
         amount_nok:       amountNOK,
         created_by:       userId,
         received_via:     'Other',
-        expiry_at:        expiryAt || null,
+        expiry_at:        parsedExpiry || null,
         financing_status: parent.financing_status,
         contingencies:    parent.contingencies,
         notes_internal:   notesInternal || null,
@@ -1018,7 +1023,8 @@ exports.handler = async (event) => {
     const { data: offer } = await supabase.from('offers').select('deal_id').eq('id', offerId).single();
     if (!offer) return { statusCode: 404, headers: h, body: JSON.stringify({ error: 'Bud ikke funnet' }) };
 
-    await supabase.from('offers').update({ expiry_at: expiryAt || null }).eq('id', offerId);
+    const parsedUpdExpiry = parseFrist(expiryAt);
+    await supabase.from('offers').update({ expiry_at: parsedUpdExpiry || null }).eq('id', offerId);
     await logEvent(supabase, {
       offerId, dealId: offer.deal_id, userId,
       type: 'ExpiryUpdated',

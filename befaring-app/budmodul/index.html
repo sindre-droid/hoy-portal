@@ -426,8 +426,11 @@
       <input type="number" id="counterAmount" placeholder="F.eks. 1200000" min="1" step="1000">
     </div>
     <div class="field">
-      <label>Budfrist (dato og klokkeslett)</label>
-      <input type="text" id="counterExpiry" placeholder="F.eks. 15.04.2026 kl 15:00">
+      <label>Budfrist</label>
+      <div style="display:flex;gap:8px">
+        <input type="date" id="counterExpiryDate" style="flex:1">
+        <input type="time" id="counterExpiryTime" value="15:00" style="width:110px">
+      </div>
     </div>
     <div class="field">
       <label>Internt notat (valgfri)</label>
@@ -1078,7 +1081,8 @@ function showCounterModal(offerId) {
     $('counterParentInfo').textContent = `Motbud til ${parent.buyer_name || 'ukjent'} sitt bud på ${Number(parent.amount_nok).toLocaleString('no-NO')} kr`;
   }
   $('counterAmount').value = '';
-  $('counterExpiry').value = '';
+  $('counterExpiryDate').value = '';
+  $('counterExpiryTime').value = '15:00';
   $('counterNote').value = '';
   $('counterError').style.display = 'none';
   $('counterModal').style.display = 'flex';
@@ -1109,7 +1113,9 @@ async function confirmCounter() {
       action: 'create_counter',
       parentOfferId: pendingCounterParentId,
       amountNOK,
-      expiryAt: $('counterExpiry').value.trim() || null,
+      expiryAt: $('counterExpiryDate').value
+        ? `${$('counterExpiryDate').value}T${$('counterExpiryTime').value || '15:00'}:00`
+        : null,
       notesInternal: $('counterNote').value.trim() || null,
     });
     if (res.error) throw new Error(res.error);
