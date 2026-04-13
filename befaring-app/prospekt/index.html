@@ -180,6 +180,17 @@
   .crop-btn-inline{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;background:white;border:2px solid var(--gray);border-radius:6px;font-size:12px;font-weight:600;color:var(--navy);cursor:pointer;font-family:inherit;margin-top:4px}
   .crop-btn-inline:hover{border-color:var(--navy)}
 
+  /* ── Rich text editor ── */
+  .rte-toolbar{display:flex;gap:2px;padding:6px 8px;background:var(--surface);border:2px solid var(--gray);border-bottom:none;border-radius:8px 8px 0 0;flex-wrap:wrap}
+  .rte-toolbar button{background:white;border:1px solid var(--gray);border-radius:4px;padding:4px 10px;font-size:12px;font-family:inherit;cursor:pointer;color:var(--navy)}
+  .rte-toolbar button:hover{background:var(--gray);border-color:var(--navy)}
+  .rte-sep{width:1px;background:var(--gray);margin:0 4px}
+  .rte-editor{width:100%;min-height:160px;max-height:400px;overflow-y:auto;padding:12px 14px;border:2px solid var(--gray);border-radius:0 0 8px 8px;font-size:15px;font-family:inherit;color:var(--text);line-height:1.6;outline:none}
+  .rte-editor:focus{border-color:var(--navy)}
+  .rte-editor p{margin:0 0 8px}
+  .rte-editor ul{margin:0 0 8px 18px;padding:0}
+  .rte-editor li{margin-bottom:2px}
+
   /* ── Char limits ── */
   .char-count{font-size:11px;color:var(--gray-dark);text-align:right;margin-top:2px}
   .char-count.warn{color:var(--yellow)}
@@ -638,9 +649,19 @@ function renderOverviewSection(p) {
         Beskrivelse
         <button class="btn-generate" onclick="openAIGenerator()" id="genTextBtn">✨ Generer med AI</button>
       </label>
-      <textarea rows="8" id="descBodyField" maxlength="${MAX_BODY + 100}" oninput="updateCharCount(this,${MAX_BODY},'bodyCount')" onchange="updateField('description_body',this.value)">${esc(p.description_body||'')}</textarea>
+      <div class="rte-toolbar">
+        <button type="button" onclick="rteCmd('bold')" title="Fet"><b>B</b></button>
+        <button type="button" onclick="rteCmd('italic')" title="Kursiv"><i>I</i></button>
+        <span class="rte-sep"></span>
+        <button type="button" onclick="rteCmd('insertUnorderedList')" title="Punktliste">• Liste</button>
+        <button type="button" onclick="rteCmd('formatBlock','<p>')" title="Nytt avsnitt">¶ Avsnitt</button>
+        <span class="rte-sep"></span>
+        <button type="button" onclick="rteCmd('removeFormat')" title="Fjern formatering">✕ Fjern</button>
+      </div>
+      <div class="rte-editor" contenteditable="true" id="descBodyField"
+        oninput="handleRteInput()">${p.description_body||''}</div>
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <div class="field-hint">Bruk &lt;p&gt;-tagger for avsnitt. Tekst genereres fra båtdata i HubSpot.</div>
+        <div class="field-hint">Marker tekst og bruk knappene over for formatering.</div>
         <div class="char-count ${bodyClass}" id="bodyCount">${bodyLen} / ${MAX_BODY} tegn</div>
       </div>
     </div>
@@ -660,6 +681,29 @@ function renderOverviewSection(p) {
       ${caps.length < MAX_CAPS ? `<button class="btn-outline" style="margin-top:8px;font-size:13px;padding:6px 14px" onclick="addSpecRow('capacities')">+ Legg til rad</button>` : `<div class="field-hint" style="color:var(--yellow)">Maks ${MAX_CAPS} rader</div>`}
     </div>
   `;
+}
+
+// ── Rich text editor helpers ──
+function rteCmd(cmd, arg) {
+  document.execCommand(cmd, false, arg || null);
+  const el = document.getElementById('descBodyField');
+  if (el) el.focus();
+}
+
+function handleRteInput() {
+  const el = document.getElementById('descBodyField');
+  if (!el) return;
+  const html = el.innerHTML;
+  currentProspekt.description_body = html;
+  // Update char count based on text content
+  const textLen = el.textContent.length;
+  const MAX_BODY = 1500;
+  const countEl = document.getElementById('bodyCount');
+  if (countEl) {
+    countEl.textContent = `${textLen} / ${MAX_BODY} tegn`;
+    countEl.className = 'char-count' + (textLen > MAX_BODY ? ' over' : textLen > MAX_BODY * 0.85 ? ' warn' : '');
+  }
+  scheduleAutoSave();
 }
 
 function updateCharCount(el, max, countId) {
@@ -846,21 +890,37 @@ function renderEquipCategory(cat, ci) {
   const itemRows = [];
   for (let ii = 0; ii < totalSlots; ii++) {
     const text = ii < items.length ? items[ii].text || '' : '';
-    const sub = ii < items.length ? items[ii].sub || '' : '';
     const isExisting = ii < items.length;
+    // Sub-items: array of strings (migrate old single .sub to array)
+    let subs = [];
+    if (isExisting) {
+      if (Array.isArray(items[ii].subs)) subs = items[ii].subs;
+      else if (items[ii].sub) subs = [items[ii].sub];
+    }
+    const hasSubs = subs.length > 0;
     itemRows.push(`
       <div class="equip-item-row">
         <input type="text" value="${esc(text)}" placeholder="${isExisting ? 'Utstyr…' : 'Nytt utstyr…'}"
           onchange="handleEquipInput(${ci},${ii},this.value)" onkeydown="equipKeyDown(event,${ci},${ii})"
           style="${!isExisting ? 'border-style:dashed;opacity:0.7' : ''}">
-        ${isExisting ? `<button class="btn-icon btn-icon-del" onclick="removeEquipItem(${ci},${ii})" style="width:26px;height:26px;font-size:13px">×</button>` : '<div style="width:26px"></div>'}
+        ${isExisting ? `<button class="btn-icon" onclick="toggleEquipSubs(${ci},${ii})" title="Legg til detaljer" style="width:26px;height:26px;font-size:13px;background:${hasSubs ? 'var(--gold)' : 'var(--blue-bg)'};color:${hasSubs ? 'white' : 'var(--blue)'};border:none;border-radius:6px;cursor:pointer">↳</button>` : ''}
+        ${isExisting ? `<button class="btn-icon btn-icon-del" onclick="removeEquipItem(${ci},${ii})" style="width:26px;height:26px;font-size:13px">×</button>` : '<div style="width:52px"></div>'}
       </div>
-      ${isExisting ? `<div class="equip-item-row" style="padding-left:20px">
-        <input type="text" value="${esc(sub)}" placeholder="Detaljer (valgfritt, vises i kursiv)…"
-          style="font-size:12px;font-style:italic;border-style:dashed;opacity:0.7;padding:5px 8px"
-          onchange="updateEquipItem(${ci},${ii},'sub',this.value)">
-        <div style="width:26px"></div>
-      </div>` : ''}
+      ${isExisting && hasSubs ? subs.map((s, si) => `
+        <div class="equip-item-row" style="padding-left:20px">
+          <input type="text" value="${esc(s)}" placeholder="Detalj…"
+            style="font-size:12px;font-style:italic;border-style:dashed;opacity:0.7;padding:5px 8px"
+            onchange="updateEquipSub(${ci},${ii},${si},this.value)">
+          <button class="btn-icon btn-icon-del" onclick="removeEquipSub(${ci},${ii},${si})" style="width:22px;height:22px;font-size:11px">×</button>
+        </div>
+      `).join('') + `
+        <div class="equip-item-row" style="padding-left:20px">
+          <input type="text" value="" placeholder="+ Ny detalj…"
+            style="font-size:12px;font-style:italic;border-style:dashed;opacity:0.5;padding:5px 8px"
+            onchange="addEquipSub(${ci},${ii},this.value)">
+          <div style="width:22px"></div>
+        </div>
+      ` : ''}
     `);
   }
 
@@ -883,17 +943,149 @@ function renderEquipCategory(cat, ci) {
   `;
 }
 
+const DEFAULT_DECLARATION = [
+  { title: 'Båt', questions: [
+    { question: 'Ble båten kjøpt ny?' },
+    { question: 'Har båten vært utleid eller yrkesbrukt?' },
+    { question: 'Har båten vært skadet/reparert?' },
+    { question: 'Har båten grunnstøtt?' },
+    { question: 'Er båten omlakkert/malt?' },
+    { question: 'Er båten selvbygget/selvinnredet?' },
+    { question: 'Har båten feil/svakheter/lekkasjer i skrog?' },
+    { question: 'Har båten feil/svakheter/lekkasjer i overbygg?' },
+    { question: 'Har båten hatt råteskader/fuktskader?' },
+    { question: 'Har båten blærer i gelcoat under vannlinjen? (Osmose/plastpest)' },
+    { question: 'Har båten skader/sår under vannlinjen?' },
+    { question: 'Har motor/båt vært under vann?' },
+    { question: 'Har båten feil på skroggjennomføringer?' },
+    { question: 'Er båten CE-merket?' },
+    { question: 'Er båten registrert i skipsregisteret?' },
+    { question: 'Er båten registrert i småbåtregisteret?' },
+    { question: 'Er det lån på båten?' },
+    { question: 'Er båten Securemark-merket?' },
+  ]},
+  { title: 'Motor & Teknisk', questions: [
+    { question: 'Har båten feil på motor?' },
+    { question: 'Har båten feil på dynamo eller batterier?' },
+    { question: 'Har båten feil på drev/aksling/propell?' },
+    { question: 'Har motoren unormalt oljeforbruk?' },
+    { question: 'Har båten lekkasjer i vannsystemer/septik?' },
+    { question: 'Har båten feil på elektrisk anlegg?' },
+    { question: 'Har båten lekkasjer på drivstoffsystem?' },
+    { question: 'Har båten feil på lensepumper/ventiler?' },
+    { question: 'Har båten problemer med tæring?' },
+  ]},
+  { title: 'Driftsinfo', questions: [
+    { question: 'Siste service på motor, dato/timer?' },
+    { question: 'Driftstimer motor?' },
+    { question: 'Driftstimer generator?' },
+  ]},
+];
+
 function renderDeclarationSection(p) {
+  let sections = p.declaration_sections;
+  const hasData = sections && sections.length > 0;
+  if (!hasData) sections = DEFAULT_DECLARATION;
+
+  const otherNotes = p.declaration_other_notes || '';
+
   return `
     <div class="field-hint" style="margin-bottom:12px">
-      Egenerklæringen hentes automatisk fra Oneflow ved publisering.
-      Du kan også redigere seksjonene manuelt her.
+      Fyll ut selgers egenerklæring. Velg Ja/Nei for hvert spørsmål og legg til kommentarer ved behov.
+      ${!hasData ? '<br><strong>Skjemaet er forhåndsutfylt med standardspørsmål. Svarene lagres automatisk.</strong>' : ''}
     </div>
-    <div class="empty-state" style="padding:20px;font-size:13px">
-      Automatisk import fra Oneflow kommer i neste versjon.<br>
-      Manuell redigering kan legges til ved behov.
+    <div id="declEditor">
+      ${sections.map((sec, si) => renderDeclSection(sec, si)).join('')}
+    </div>
+    <div class="field" style="margin-top:16px">
+      <label>Andre merknader/spesifikasjoner</label>
+      <textarea rows="3" placeholder="Fritekst fra selger…" onchange="updateDeclNotes(this.value)">${esc(otherNotes)}</textarea>
+    </div>
+    ${!hasData ? `<div class="field-hint" style="margin-top:8px;color:var(--blue)">
+      Trykk på et svar for å starte utfylling. Skjemaet lagres automatisk.
+    </div>` : ''}
+  `;
+}
+
+function renderDeclSection(sec, si) {
+  const questions = sec.questions || [];
+  return `
+    <div class="equip-cat-card" style="margin-bottom:14px">
+      <div class="equip-cat-header" onclick="toggleDeclSection(${si})" style="cursor:pointer">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="sec-toggle open" id="declToggle-${si}">▾</span>
+          <span class="equip-cat-name">${esc(sec.title)}</span>
+          <span style="font-size:11px;color:var(--gray-dark)">${questions.filter(q => q.answer).length} / ${questions.length} besvart</span>
+        </div>
+      </div>
+      <div id="declItems-${si}" style="display:block;padding:10px 0 0">
+        ${questions.map((q, qi) => renderDeclQuestion(q, si, qi)).join('')}
+      </div>
     </div>
   `;
+}
+
+function renderDeclQuestion(q, si, qi) {
+  const ans = q.answer || '';
+  const comment = q.comment || '';
+  const yesActive = ans === 'Ja';
+  const neiActive = ans === 'Nei';
+  return `
+    <div style="padding:6px 12px;border-bottom:1px solid var(--gray);display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+      <span style="flex:1;font-size:13px;color:var(--text);min-width:200px">${esc(q.question)}</span>
+      <div style="display:flex;gap:4px">
+        <button onclick="setDeclAnswer(${si},${qi},'Ja')"
+          style="padding:4px 12px;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid ${yesActive ? 'var(--green)' : 'var(--gray)'};background:${yesActive ? 'var(--green-bg)' : 'white'};color:${yesActive ? 'var(--green)' : 'var(--gray-dark)'}">Ja</button>
+        <button onclick="setDeclAnswer(${si},${qi},'Nei')"
+          style="padding:4px 12px;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid ${neiActive ? 'var(--blue)' : 'var(--gray)'};background:${neiActive ? 'var(--blue-bg)' : 'white'};color:${neiActive ? 'var(--blue)' : 'var(--gray-dark)'}">Nei</button>
+      </div>
+      <input type="text" value="${esc(comment)}" placeholder="Kommentar…"
+        style="width:100%;font-size:12px;padding:5px 8px;border:1px dashed var(--gray);border-radius:4px;margin-top:2px;${!comment && !yesActive ? 'opacity:0.5' : ''}"
+        onchange="setDeclComment(${si},${qi},this.value)">
+    </div>
+  `;
+}
+
+function ensureDeclSections() {
+  if (!currentProspekt.declaration_sections || currentProspekt.declaration_sections.length === 0) {
+    // Deep-clone default
+    currentProspekt.declaration_sections = JSON.parse(JSON.stringify(DEFAULT_DECLARATION));
+  }
+  return currentProspekt.declaration_sections;
+}
+
+function setDeclAnswer(si, qi, value) {
+  const sections = ensureDeclSections();
+  if (sections[si]?.questions?.[qi]) {
+    const q = sections[si].questions[qi];
+    // Toggle: click same answer to clear
+    q.answer = q.answer === value ? '' : value;
+    renderSectionBody('declaration');
+    $('sec-declaration').classList.add('open');
+    scheduleAutoSave();
+  }
+}
+
+function setDeclComment(si, qi, value) {
+  const sections = ensureDeclSections();
+  if (sections[si]?.questions?.[qi]) {
+    sections[si].questions[qi].comment = value;
+    scheduleAutoSave();
+  }
+}
+
+function updateDeclNotes(value) {
+  currentProspekt.declaration_other_notes = value;
+  scheduleAutoSave();
+}
+
+function toggleDeclSection(si) {
+  const el = document.getElementById(`declItems-${si}`);
+  const toggle = document.getElementById(`declToggle-${si}`);
+  if (!el) return;
+  const isOpen = el.style.display !== 'none';
+  el.style.display = isOpen ? 'none' : 'block';
+  if (toggle) toggle.classList.toggle('open', !isOpen);
 }
 
 function renderFreetextSection(p) {
@@ -1114,6 +1306,63 @@ function removeEquipCategory(ci) {
 function updateEquipItem(ci, ii, prop, value) {
   const cats = currentProspekt.equipment_categories || [];
   if (cats[ci]?.items?.[ii]) { cats[ci].items[ii][prop] = value; scheduleAutoSave(); }
+}
+
+function toggleEquipSubs(ci, ii) {
+  const cats = currentProspekt.equipment_categories || [];
+  const item = cats[ci]?.items?.[ii];
+  if (!item) return;
+  // Migrate old .sub to .subs array
+  if (!Array.isArray(item.subs)) {
+    item.subs = item.sub ? [item.sub] : [];
+    delete item.sub;
+  }
+  // If already has subs, collapse (remove all subs). If empty, add one empty slot.
+  if (item.subs.length > 0) {
+    // Don't remove — just toggle visibility by re-rendering (subs stay in data)
+    // Actually: add a new empty sub to prompt entry
+    item.subs.push('');
+  } else {
+    item.subs.push('');
+  }
+  renderSectionBody('equipment');
+  $('sec-equipment').classList.add('open');
+}
+
+function updateEquipSub(ci, ii, si, value) {
+  const cats = currentProspekt.equipment_categories || [];
+  const item = cats[ci]?.items?.[ii];
+  if (!item || !Array.isArray(item.subs)) return;
+  if (value.trim() === '') {
+    item.subs.splice(si, 1);
+    renderSectionBody('equipment');
+    $('sec-equipment').classList.add('open');
+  } else {
+    item.subs[si] = value.trim();
+  }
+  scheduleAutoSave();
+}
+
+function addEquipSub(ci, ii, value) {
+  if (!value.trim()) return;
+  const cats = currentProspekt.equipment_categories || [];
+  const item = cats[ci]?.items?.[ii];
+  if (!item) return;
+  if (!Array.isArray(item.subs)) item.subs = [];
+  item.subs.push(value.trim());
+  renderSectionBody('equipment');
+  $('sec-equipment').classList.add('open');
+  scheduleAutoSave();
+}
+
+function removeEquipSub(ci, ii, si) {
+  const cats = currentProspekt.equipment_categories || [];
+  const item = cats[ci]?.items?.[ii];
+  if (!item || !Array.isArray(item.subs)) return;
+  item.subs.splice(si, 1);
+  renderSectionBody('equipment');
+  $('sec-equipment').classList.add('open');
+  scheduleAutoSave();
 }
 
 function addEquipItem(ci) {

@@ -213,32 +213,16 @@
 
   .cover-logo {
     position: absolute;
-    top: 4.5%;
+    top: 4%;
     left: 50%;
     transform: translateX(-50%);
     z-index: 2;
-    text-align: center;
+  }
+
+  .cover-logo img {
+    height: 90px;
+    width: auto;
     filter: drop-shadow(0 2px 16px rgba(0,0,0,0.5));
-  }
-
-  .cover-logo-mark {
-    font-family: var(--font-display);
-    font-size: 48px;
-    font-weight: 400;
-    color: white;
-    line-height: 1;
-    letter-spacing: 2px;
-    margin-bottom: 4px;
-  }
-
-  .cover-logo-text {
-    font-family: var(--font-display);
-    font-size: 14px;
-    font-weight: 300;
-    letter-spacing: 8px;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.88);
-    white-space: nowrap;
   }
 
   .cover-bottom {
@@ -989,7 +973,7 @@ function buildCoverPage(p) {
         <div class="cover-image-area">
           ${coverImg}
           <div class="cover-image-overlay"></div>
-          <div class="cover-logo"><div class="cover-logo-mark">HY</div><div class="cover-logo-text">House &nbsp;of &nbsp;Yachts</div></div>
+          <div class="cover-logo"><img src="/prospekt/logo-white-2x.png" alt="House of Yachts"></div>
         </div>
         <div class="cover-bottom">
           <div class="cover-year">${spaceYear(p.model_year)}</div>
@@ -1065,7 +1049,7 @@ function buildOverviewPage(p) {
         </div>
         <div class="page-footer-light">
           <div class="page-footer-accent"></div>
-          <span>House of Yachts &middot; ${esc(OFFICE_ADDRESS)} &middot; h-y.no</span>
+          <span>House of Yachts &middot; ${esc(OFFICE_ADDRESS)} &middot; houseofyachts.no</span>
         </div>
       </div>
     </div>
@@ -1133,9 +1117,13 @@ function buildEquipmentPages(p) {
         <div class="category-label">${esc(cat.name)}</div>
         ${(cat.items || []).map(item => {
           const text = item.text || item;
-          const subHtml = item.sub
-            ? `<div class="equip-sub-item">${esc(item.sub)}</div>`
-            : '';
+          // Support both old .sub (string) and new .subs (array)
+          let subsArr = [];
+          if (Array.isArray(item.subs)) subsArr = item.subs.filter(s => s);
+          else if (item.sub) subsArr = [item.sub];
+          const subHtml = subsArr.map(s =>
+            `<div class="equip-sub-item">${esc(s)}</div>`
+          ).join('');
           return `<div class="equip-item">${esc(text)}</div>${subHtml}`;
         }).join('')}
       </div>
@@ -1161,12 +1149,23 @@ function buildEquipmentPages(p) {
 
 function buildDeclarationPages(p) {
   const sections = p.declaration_sections || [];
-  if (sections.length === 0) return '';
+  // Only render if at least one question has an answer
+  const hasAnswers = sections.some(sec =>
+    (sec.questions || []).some(q => q.answer)
+  );
+  if (!hasAnswers) return '';
 
-  const sectionsHtml = sections.map(sec => `
+  // Filter to only show answered questions per section
+  const filteredSections = sections.map(sec => ({
+    ...sec,
+    questions: (sec.questions || []).filter(q => q.answer)
+  })).filter(sec => sec.questions.length > 0);
+
+  // Build section HTML blocks
+  const sectionBlocks = filteredSections.map(sec => `
     <div class="decl-section">
       <div class="category-label">${esc(sec.title)}</div>
-      ${(sec.questions || []).map(q => {
+      ${sec.questions.map(q => {
         const ansClass = q.answer === 'Ja' ? 'yes' : (q.answer === 'Nei' ? 'no' : '');
         const commentHtml = q.comment ? `<div class="decl-comment">${esc(q.comment)}</div>` : '';
         return `
@@ -1178,7 +1177,45 @@ function buildDeclarationPages(p) {
         `;
       }).join('')}
     </div>
-  `).join('');
+  `);
+
+  const otherNotes = p.declaration_other_notes;
+  const notesHtml = otherNotes ? `
+    <div class="decl-section">
+      <div class="category-label">Andre merknader</div>
+      <div style="font-size:10px;color:var(--hoy-dark-gray);font-weight:300;line-height:1.6;padding:6px 0">${esc(otherNotes)}</div>
+    </div>
+  ` : '';
+
+  // Count total question rows to decide on 1 or 2 pages
+  const totalQs = filteredSections.reduce((sum, s) => sum + s.questions.length, 0);
+  const needsTwoPages = totalQs > 18;
+
+  if (!needsTwoPages) {
+    return `
+      <div class="page-label">Egenerklæring</div>
+      <div class="page">
+        <div class="declaration">
+          <div class="declaration-header">
+            <h2 class="section-title">Selgers egenerklæring</h2>
+            <p class="section-subtitle">Utfylt og signert av eier. Opplysningene gis i god tro og etter beste evne.</p>
+          </div>
+          <div class="declaration-body">
+            ${sectionBlocks.join('')}
+            ${notesHtml}
+          </div>
+          <div class="declaration-notice">
+            Egenerklæringen er signert digitalt av selger via Oneflow. Originaldokumentet er tilgjengelig ved forespørsel til ansvarlig megler. Opplysningene erstatter ikke en uavhengig tilstandsvurdering.
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Two pages: split sections roughly in half
+  const midIdx = Math.ceil(filteredSections.length / 2);
+  const page1Blocks = sectionBlocks.slice(0, midIdx);
+  const page2Blocks = sectionBlocks.slice(midIdx);
 
   return `
     <div class="page-label">Egenerklæring</div>
@@ -1189,7 +1226,23 @@ function buildDeclarationPages(p) {
           <p class="section-subtitle">Utfylt og signert av eier. Opplysningene gis i god tro og etter beste evne.</p>
         </div>
         <div class="declaration-body">
-          ${sectionsHtml}
+          ${page1Blocks.join('')}
+        </div>
+        <div class="page-footer-light">
+          <div class="page-footer-accent"></div>
+          <span>Egenerklæring · Fortsetter neste side</span>
+        </div>
+      </div>
+    </div>
+    <div class="page-label">Egenerklæring (forts.)</div>
+    <div class="page">
+      <div class="declaration">
+        <div class="declaration-header" style="margin-bottom:2%">
+          <p class="section-subtitle">Selgers egenerklæring, fortsettelse</p>
+        </div>
+        <div class="declaration-body">
+          ${page2Blocks.join('')}
+          ${notesHtml}
         </div>
         <div class="declaration-notice">
           Egenerklæringen er signert digitalt av selger via Oneflow. Originaldokumentet er tilgjengelig ved forespørsel til ansvarlig megler. Opplysningene erstatter ikke en uavhengig tilstandsvurdering.
@@ -1219,7 +1272,7 @@ function buildFreetextPages(p) {
           </div>
           <div class="page-footer-light">
             <div class="page-footer-accent"></div>
-            <span>House of Yachts &middot; ${esc(OFFICE_ADDRESS)} &middot; h-y.no</span>
+            <span>House of Yachts &middot; ${esc(OFFICE_ADDRESS)} &middot; houseofyachts.no</span>
           </div>
         </div>
       </div>
@@ -1274,7 +1327,7 @@ function buildContactPage(p) {
               House of Yachts er et b&aring;tmeglerfirma i Oslofjord-regionen som spesialiserer seg p&aring; kj&oslash;p og salg av brukte fritidsb&aring;ter i premium-segmentet. Vi tilbyr full-service megling med profesjonell fotografering, markedsf&oslash;ring, visninger og trygg oppgj&oslash;rsh&aring;ndtering.
             </p>
             <p style="font-size:10px;line-height:1.6;color:var(--hoy-mid-gray);font-weight:300">
-              h-y.no &nbsp;&middot;&nbsp; Instagram: @houseofyachts
+              houseofyachts.no &nbsp;&middot;&nbsp; Instagram: @houseofyachts
             </p>
           </div>
 
@@ -1284,7 +1337,7 @@ function buildContactPage(p) {
           </div>
         </div>
         <div class="page-footer">
-          <span>&copy; ${new Date().getFullYear()} House of Yachts &middot; h-y.no</span>
+          <span>&copy; ${new Date().getFullYear()} House of Yachts &middot; houseofyachts.no</span>
           <span>${esc(OFFICE_ADDRESS)}</span>
         </div>
       </div>

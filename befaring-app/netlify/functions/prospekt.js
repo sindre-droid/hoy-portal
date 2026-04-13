@@ -480,7 +480,7 @@ exports.handler = async (event) => {
           'description_intro', 'description_body', 'visning_text',
           'cta_label', 'cta_address',
           'specs', 'capacities', 'gallery_pages', 'equipment_categories',
-          'declaration_sections', 'freetext_pages', 'sections_order',
+          'declaration_sections', 'declaration_other_notes', 'freetext_pages', 'sections_order',
         ];
         const updates = {};
         for (const k of allowed) {
