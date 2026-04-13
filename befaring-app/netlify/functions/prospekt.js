@@ -13,12 +13,36 @@
 const { createClient } = require('@supabase/supabase-js');
 
 const PIPELINE_B = process.env.PIPELINE_B || '3211644128';
+const BOAT_OBJ_TYPE = '2-145214665';
 
 const KNOWN_OWNERS = {
   'sindre@h-y.no': '633479117',
   'daniel@h-y.no': '29136352',
   'henrik@h-y.no': '77221549',
 };
+
+const KNOWN_MEGLERS = {
+  '633479117': { name: 'Sindre Jacobsen', email: 'sindre@h-y.no', phone: '+47 938 40 189', role: 'Gründer & Lead Megler' },
+  '29136352':  { name: 'Daniel Ruud',     email: 'daniel@h-y.no', phone: '+47 479 61 918', role: 'Megler' },
+  '77221549':  { name: 'Henrik Bratz',    email: 'henrik@h-y.no', phone: '+47 478 75 838', role: 'Megler' },
+};
+
+const BOAT_PROPS = [
+  'batmerke','bat_modell','arsmodell','boat_type','location',
+  'motorfabrikant','motorstorrelse','antall_motorer',
+  'driftstimer_motor','driftstimer_motor_2','driftstimer_motor_3',
+  'har_generator','generator_fabrikant','generator_kw','generator_driftstimer',
+  'historikk_skader','seilnummer','ce_konstruksjonskategori',
+  'skrog_tilstand','skrog_kommentar',
+  'undervann_tilstand','undervann_kommentar',
+  'interior_tilstand','interior_kommentar',
+  'motor_tilstand','motor_kommentar',
+  'dekk_tilstand','dekk_kommentar',
+  'lengde_i_cm','lengde_i_fot','bredde',
+  'type_motor','pris','mva_status',
+  'antall_kahytter','antall_soveplasser','antall_bad',
+  'utstyrsliste',
+];
 
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
@@ -28,6 +52,77 @@ const CORS = {
 const JSON_H = { 'Content-Type': 'application/json' };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+
+async function getBoatTypeId() {
+  try {
+    const r = await hs('/crm/v3/schemas');
+    const b = (r.data?.results||[]).find(s =>
+      s.name?.toLowerCase().includes('boat') ||
+      s.labels?.singular?.toLowerCase().includes('boat') ||
+      s.labels?.singular?.toLowerCase().includes('båt')
+    );
+    return b?.objectTypeId || null;
+  } catch { return null; }
+}
+
+async function fetchBoatData(dealId) {
+  try {
+    const boatTypeId = await getBoatTypeId();
+    if (!boatTypeId) return null;
+    const assoc = await hs(`/crm/v3/objects/deals/${dealId}/associations/${boatTypeId}`);
+    const boatId = assoc.data?.results?.[0]?.id;
+    if (!boatId) return null;
+    const br = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}/${boatId}?properties=${BOAT_PROPS.join(',')}`);
+    return br.data?.properties || null;
+  } catch { return null; }
+}
+
+function buildSpecs(bp) {
+  if (!bp) return [];
+  const specs = [];
+  const add = (label, val) => { if (val) specs.push({ label, value: val }); };
+
+  add('Merke', bp.batmerke);
+  add('Modell', bp.bat_modell);
+  add('Årsmodell', bp.arsmodell);
+  if (bp.lengde_i_fot) add('Lengde', `${bp.lengde_i_fot} fot`);
+  else if (bp.lengde_i_cm) add('Lengde', `${bp.lengde_i_cm} cm`);
+  if (bp.bredde) add('Bredde', `${bp.bredde} cm`);
+
+  // Motor
+  const motorParts = [];
+  if (bp.antall_motorer && Number(bp.antall_motorer) > 1) motorParts.push(`${bp.antall_motorer} ×`);
+  if (bp.motorfabrikant) motorParts.push(bp.motorfabrikant);
+  if (bp.motorstorrelse) motorParts.push(bp.motorstorrelse);
+  if (motorParts.length) add('Motor', motorParts.join(' '));
+
+  add('Motortype', bp.type_motor);
+  if (bp.driftstimer_motor) add('Driftstimer', `${bp.driftstimer_motor} t`);
+  add('Båttype', bp.boat_type);
+  add('CE-kategori', bp.ce_konstruksjonskategori);
+  add('MVA-status', bp.mva_status);
+
+  return specs;
+}
+
+function buildCapacities(bp) {
+  if (!bp) return [];
+  const caps = [];
+  const add = (label, val) => { if (val) caps.push({ label, value: val }); };
+  add('Kahytter', bp.antall_kahytter);
+  add('Soveplasser', bp.antall_soveplasser);
+  add('Bad/WC', bp.antall_bad);
+  return caps;
+}
+
+function buildEquipment(bp) {
+  if (!bp?.utstyrsliste) return [];
+  // Utstyrsliste fra HubSpot er typisk semikolon- eller linjeskift-separert
+  const raw = bp.utstyrsliste;
+  const items = raw.split(/[;\n]+/).map(s => s.trim()).filter(Boolean);
+  if (items.length === 0) return [];
+  return [{ name: 'Utstyr fra befaring', items: items.map(text => ({ text })) }];
+}
 
 function parseJwt(token) {
   try {
@@ -232,23 +327,44 @@ exports.handler = async (event) => {
           .maybeSingle();
         if (existing) return err(409, 'Prospekt already exists for this deal', { id: existing.id });
 
-        // Hent deal-info fra HubSpot
-        const dealRes = await hs(`/crm/v3/objects/deals/${deal_id}?properties=dealname,amount`);
+        // Hent deal-info + eier fra HubSpot
+        const dealRes = await hs(`/crm/v3/objects/deals/${deal_id}?properties=dealname,amount,hubspot_owner_id`);
         if (!dealRes.ok) throw new Error(`Could not fetch deal: ${dealRes.status}`);
 
         const dealName = dealRes.data.properties.dealname || '';
         const amount = dealRes.data.properties.amount;
+        const dealOwnerId = dealRes.data.properties.hubspot_owner_id;
 
-        // Forsøk å ekstrahere båtnavn og årsmodell fra dealname
-        // Typisk format: "Saxdor 320 GTC" eller "2023 Saxdor 320 GTC"
+        // Hent båtdata fra custom boat-objekt
+        const boatProps = await fetchBoatData(deal_id);
+
+        // Ekstrahere båtnavn og årsmodell
         const yearMatch = dealName.match(/\b(19|20)\d{2}\b/);
-        const modelYear = yearMatch ? parseInt(yearMatch[0], 10) : null;
-        const boatName = dealName.replace(/^\d{4}\s+/, '').trim() || dealName;
+        const modelYear = boatProps?.arsmodell
+          ? parseInt(boatProps.arsmodell, 10)
+          : (yearMatch ? parseInt(yearMatch[0], 10) : null);
+        const boatName = boatProps?.batmerke && boatProps?.bat_modell
+          ? `${boatProps.batmerke} ${boatProps.bat_modell}`
+          : (dealName.replace(/^\d{4}\s+/, '').trim() || dealName);
 
-        // Formater pris
-        const askingPrice = amount
-          ? Number(amount).toLocaleString('nb-NO', { maximumFractionDigits: 0 })
+        // Formater pris (bruk deal amount, fallback til båt-pris)
+        const rawPrice = amount || boatProps?.pris;
+        const askingPrice = rawPrice
+          ? new Intl.NumberFormat('nb-NO', { maximumFractionDigits: 0 }).format(Number(rawPrice))
           : '';
+
+        // Meglerinformasjon fra owner
+        const ownerId = dealOwnerId || KNOWN_OWNERS[jwt.email];
+        const megler = KNOWN_MEGLERS[String(ownerId)] || {};
+        const brokerName  = megler.name  || jwt.name || '';
+        const brokerEmail = megler.email || jwt.email;
+        const brokerPhone = megler.phone || '';
+        const brokerRole  = megler.role  || 'Megler';
+
+        // Bygg specs, kapasiteter og utstyr fra båtdata
+        const specs = buildSpecs(boatProps);
+        const capacities = buildCapacities(boatProps);
+        const equipment_categories = buildEquipment(boatProps);
 
         const { data, error } = await supabase
           .from('prospekter')
@@ -258,8 +374,15 @@ exports.handler = async (event) => {
             boat_name: boatName,
             model_year: modelYear,
             asking_price: askingPrice,
-            broker_name: jwt.name || 'Sindre Jacobsen',
-            broker_email: jwt.email,
+            broker_name: brokerName,
+            broker_email: brokerEmail,
+            broker_phone: brokerPhone,
+            broker_role: brokerRole,
+            specs,
+            capacities,
+            equipment_categories,
+            cta_label: 'Besøk oss for visning',
+            cta_address: 'Dicks vei 12, 1366 Lysaker',
           })
           .select()
           .single();

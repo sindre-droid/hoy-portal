@@ -144,6 +144,37 @@
   .gallery-img-card .caption-input:focus{outline:none;background:#fffbeb}
   .gallery-img-card .img-remove{position:absolute;top:4px;right:4px;width:22px;height:22px;background:rgba(0,0,0,0.6);color:white;border:none;border-radius:50%;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 
+  /* ── Gallery layout picker ── */
+  .gallery-page-editor{border:2px solid var(--gray);border-radius:12px;padding:16px;margin-bottom:14px;background:white}
+  .gallery-page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .gallery-page-header h4{font-size:14px;font-weight:700;color:var(--navy);margin:0}
+  .layout-options{display:flex;gap:8px}
+  .layout-opt{border:2px solid var(--gray);border-radius:8px;padding:6px 10px;font-size:11px;font-weight:600;cursor:pointer;background:white;transition:all 0.15s;font-family:inherit}
+  .layout-opt:hover{border-color:var(--navy)}
+  .layout-opt.active{border-color:var(--gold);background:var(--gold);color:var(--navy)}
+  .gallery-slot-grid{display:grid;gap:6px}
+  .gallery-slot{border:2px dashed var(--gray);border-radius:6px;min-height:60px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;transition:border-color 0.15s}
+  .gallery-slot:hover{border-color:var(--gold)}
+  .gallery-slot.filled{border-style:solid;border-color:var(--gray)}
+  .gallery-slot img{width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0}
+  .gallery-slot .slot-label{font-size:11px;color:var(--gray-dark);pointer-events:none;z-index:1}
+  .gallery-slot .slot-remove{position:absolute;top:4px;right:4px;width:20px;height:20px;background:rgba(0,0,0,0.6);color:white;border:none;border-radius:50%;font-size:11px;cursor:pointer;z-index:2;display:none;align-items:center;justify-content:center}
+  .gallery-slot.filled .slot-remove{display:flex}
+  .gallery-slot .slot-caption{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.5);z-index:2}
+  .gallery-slot .slot-caption input{width:100%;border:none;background:transparent;color:white;font-size:10px;padding:4px 6px;font-family:inherit}
+  .gallery-slot .slot-caption input::placeholder{color:rgba(255,255,255,0.5)}
+
+  /* ── Char limits ── */
+  .char-count{font-size:11px;color:var(--gray-dark);text-align:right;margin-top:2px}
+  .char-count.warn{color:var(--yellow)}
+  .char-count.over{color:var(--red);font-weight:600}
+  .limit-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;background:var(--yellow-bg);color:var(--yellow);margin-left:6px}
+
+  /* ── Generate text button ── */
+  .btn-generate{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity 0.15s}
+  .btn-generate:hover{opacity:0.88}
+  .btn-generate:disabled{opacity:0.4;cursor:not-allowed}
+
   /* ── Toast ── */
   .toast{position:fixed;bottom:24px;right:24px;padding:14px 24px;border-radius:10px;font-size:14px;font-weight:600;z-index:999;transition:opacity 0.3s,transform 0.3s;opacity:0;transform:translateY(12px);pointer-events:none}
   .toast.show{opacity:1;transform:translateY(0)}
@@ -565,6 +596,16 @@ function renderCoverSection(p) {
 function renderOverviewSection(p) {
   const specs = p.specs || [];
   const caps = p.capacities || [];
+  const MAX_INTRO = 180;
+  const MAX_BODY = 800;
+  const MAX_SPECS = 12;
+  const MAX_CAPS = 5;
+
+  const introLen = (p.description_intro||'').length;
+  const bodyLen = (p.description_body||'').length;
+  const introClass = introLen > MAX_INTRO ? 'over' : introLen > MAX_INTRO * 0.85 ? 'warn' : '';
+  const bodyClass = bodyLen > MAX_BODY ? 'over' : bodyLen > MAX_BODY * 0.85 ? 'warn' : '';
+
   return `
     <div class="field">
       <label>Oversiktsbilde (topp)</label>
@@ -572,29 +613,93 @@ function renderOverviewSection(p) {
     </div>
     <div class="field">
       <label>Intro-tekst (kursiv, 1-2 setninger)</label>
-      <textarea rows="3" onchange="updateField('description_intro',this.value)">${esc(p.description_intro||'')}</textarea>
+      <textarea rows="2" maxlength="${MAX_INTRO + 50}" oninput="updateCharCount(this,${MAX_INTRO},'introCount')" onchange="updateField('description_intro',this.value)">${esc(p.description_intro||'')}</textarea>
+      <div class="char-count ${introClass}" id="introCount">${introLen} / ${MAX_INTRO} tegn</div>
     </div>
     <div class="field">
-      <label>Beskrivelse</label>
-      <textarea rows="8" onchange="updateField('description_body',this.value)">${esc(p.description_body||'')}</textarea>
-      <div class="field-hint">Bruk dobbelt linjeskift for nytt avsnitt. HTML-tagger støttes: &lt;p&gt;, &lt;strong&gt;, &lt;em&gt;</div>
+      <label>
+        Beskrivelse
+        <button class="btn-generate" onclick="generateText()" id="genTextBtn">✨ Generer med AI</button>
+      </label>
+      <textarea rows="8" id="descBodyField" maxlength="${MAX_BODY + 100}" oninput="updateCharCount(this,${MAX_BODY},'bodyCount')" onchange="updateField('description_body',this.value)">${esc(p.description_body||'')}</textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="field-hint">Bruk &lt;p&gt;-tagger for avsnitt. Tekst genereres fra båtdata i HubSpot.</div>
+        <div class="char-count ${bodyClass}" id="bodyCount">${bodyLen} / ${MAX_BODY} tegn</div>
+      </div>
     </div>
     <div class="field">
       <label>Visningstekst</label>
-      <input type="text" value="${esc(p.visning_text||'')}" onchange="updateField('visning_text',this.value)">
+      <input type="text" value="${esc(p.visning_text||'')}" placeholder="Visning kan avtales med megler" onchange="updateField('visning_text',this.value)">
     </div>
     <hr style="border:none;border-top:1px solid var(--gray);margin:20px 0">
     <div class="field">
-      <label>Spesifikasjoner</label>
+      <label>Spesifikasjoner <span class="limit-badge">${specs.length} / ${MAX_SPECS}</span></label>
       <div id="specsEditor">${renderSpecRows(specs, 'specs')}</div>
-      <button class="btn-outline" style="margin-top:8px;font-size:13px;padding:6px 14px" onclick="addSpecRow('specs')">+ Legg til rad</button>
+      ${specs.length < MAX_SPECS ? `<button class="btn-outline" style="margin-top:8px;font-size:13px;padding:6px 14px" onclick="addSpecRow('specs')">+ Legg til rad</button>` : `<div class="field-hint" style="color:var(--yellow)">Maks ${MAX_SPECS} rader — fjern en for å legge til ny</div>`}
     </div>
     <div class="field">
-      <label>Kapasiteter</label>
+      <label>Kapasiteter <span class="limit-badge">${caps.length} / ${MAX_CAPS}</span></label>
       <div id="capsEditor">${renderSpecRows(caps, 'capacities')}</div>
-      <button class="btn-outline" style="margin-top:8px;font-size:13px;padding:6px 14px" onclick="addSpecRow('capacities')">+ Legg til rad</button>
+      ${caps.length < MAX_CAPS ? `<button class="btn-outline" style="margin-top:8px;font-size:13px;padding:6px 14px" onclick="addSpecRow('capacities')">+ Legg til rad</button>` : `<div class="field-hint" style="color:var(--yellow)">Maks ${MAX_CAPS} rader</div>`}
     </div>
   `;
+}
+
+function updateCharCount(el, max, countId) {
+  const len = el.value.length;
+  const countEl = $(countId);
+  if (!countEl) return;
+  countEl.textContent = `${len} / ${max} tegn`;
+  countEl.className = 'char-count' + (len > max ? ' over' : len > max * 0.85 ? ' warn' : '');
+}
+
+async function generateText() {
+  if (!currentProspekt?.deal_id) return toast('Ingen deal valgt', 'error');
+  const btn = $('genTextBtn');
+  btn.disabled = true;
+  btn.textContent = '✨ Genererer…';
+  try {
+    // Call annonsegenerator to fetch boat data
+    const boatRes = await fetch(`/.netlify/functions/annonsegenerator?fetch_boat=${currentProspekt.deal_id}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const boatData = await boatRes.json();
+
+    // Call annonsegenerator to generate text
+    const genRes = await fetch(`/.netlify/functions/annonsegenerator`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'generate',
+        deal_id: currentProspekt.deal_id,
+        format: 'prospekt',
+        boat_data: boatData,
+      }),
+    });
+    const genData = await genRes.json();
+
+    if (genData.error) throw new Error(genData.error);
+
+    // Try to split into intro + body
+    const text = genData.text || genData.content || '';
+    const parts = text.split(/\n\n+/);
+    if (parts.length >= 2) {
+      currentProspekt.description_intro = parts[0].replace(/<\/?p>/g, '').trim();
+      currentProspekt.description_body = parts.slice(1).map(p => `<p>${p.trim()}</p>`).join('\n');
+    } else {
+      currentProspekt.description_body = `<p>${text}</p>`;
+    }
+
+    renderSectionBody('overview');
+    $('sec-overview').classList.add('open');
+    scheduleAutoSave();
+    toast('Tekst generert');
+  } catch (e) {
+    console.error('Generate text error:', e);
+    toast('Kunne ikke generere tekst: ' + e.message, 'error');
+  }
+  btn.disabled = false;
+  btn.textContent = '✨ Generer med AI';
 }
 
 function renderSpecRows(rows, field) {
@@ -611,40 +716,85 @@ function renderSpecRows(rows, field) {
 
 function renderGallerySection(p) {
   const pages = p.gallery_pages || [];
-  const allImages = pages.flatMap((page, pi) => (page.images || []).map((img, ii) => ({ ...img, pi, ii })));
-  return `
-    <div class="field-hint" style="margin-bottom:12px">Velg bilder fra opplastede filer og legg til bildetekst. Bilder auto-fordeles i sider (maks 5 per side).</div>
-    <div id="galleryEditor">
-      ${allImages.length === 0 ? '<div class="empty-state" style="padding:20px">Ingen galleribilder valgt ennå</div>' : ''}
-      <div class="gallery-images-grid" id="galleryGrid">
-        ${allImages.map(img => renderGalleryImageCard(img, img.pi, img.ii)).join('')}
-      </div>
-    </div>
-    <div style="margin-top:12px">
-      <button class="img-picker-btn" onclick="openGalleryPicker()">📷 Velg bilder fra bildepakken</button>
-      <a href="/prospekt/bilder.html" target="_blank" style="font-size:12px;color:var(--gold);margin-left:12px">Last opp bilder →</a>
-    </div>
-  `;
-}
 
-function renderGalleryImageCard(img, pageIdx, imgIdx) {
+  const LAYOUTS = {
+    '5up': { label: '1+4', desc: '1 stort + 4 små', slots: 5 },
+    '4up': { label: '2×2', desc: '4 like store', slots: 4 },
+    '2up': { label: '1+1', desc: '2 side om side', slots: 2 },
+    '1up': { label: 'Full', desc: '1 fullside', slots: 1 },
+  };
+
+  const pagesHtml = pages.map((page, pi) => {
+    const layout = page.layout || '5up';
+    const info = LAYOUTS[layout] || LAYOUTS['5up'];
+    const images = page.images || [];
+
+    const layoutBtns = Object.entries(LAYOUTS).map(([key, l]) =>
+      `<button class="layout-opt ${key === layout ? 'active' : ''}" onclick="changeGalleryLayout(${pi},'${key}')">${l.label}</button>`
+    ).join('');
+
+    // Build slot grid based on layout
+    const slotCount = info.slots;
+    const slots = [];
+    for (let si = 0; si < slotCount; si++) {
+      const img = images[si];
+      const isWide = layout === '5up' && si === 0;
+      const filled = img ? 'filled' : '';
+      const imgTag = img ? `<img src="${esc(img.url)}" alt="">` : '';
+      const caption = img ? `<div class="slot-caption"><input type="text" value="${esc(img.caption||'')}" placeholder="Bildetekst…" onclick="event.stopPropagation()" onchange="updateGalleryCaption(${pi},${si},this.value)"></div>` : '';
+      const removeBtn = img ? `<button class="slot-remove" onclick="event.stopPropagation();removeGallerySlot(${pi},${si})">×</button>` : '';
+      const label = img ? '' : `<span class="slot-label">${isWide ? 'Stort bilde' : 'Velg bilde'}</span>`;
+
+      slots.push(`<div class="gallery-slot ${filled} ${isWide ? 'wide' : ''}" style="${isWide ? 'grid-column:1/-1' : ''}" onclick="pickGallerySlot(${pi},${si})">${imgTag}${label}${removeBtn}${caption}</div>`);
+    }
+
+    // Grid style depends on layout
+    let gridStyle;
+    if (layout === '5up') gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:140px 100px 100px';
+    else if (layout === '4up') gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:120px 120px';
+    else if (layout === '2up') gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:160px';
+    else gridStyle = 'grid-template-columns:1fr;grid-template-rows:200px';
+
+    return `
+      <div class="gallery-page-editor">
+        <div class="gallery-page-header">
+          <h4>Side ${pi + 1}</h4>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="layout-options">${layoutBtns}</div>
+            ${pages.length > 1 ? `<button class="btn-icon btn-icon-del" onclick="removeGalleryPage(${pi})" title="Fjern side">×</button>` : ''}
+          </div>
+        </div>
+        <div class="gallery-slot-grid" style="${gridStyle}">
+          ${slots.join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+
   return `
-    <div class="gallery-img-card">
-      <img src="${esc(img.url)}" alt="${esc(img.caption||'')}">
-      <input class="caption-input" type="text" value="${esc(img.caption||'')}" placeholder="Bildetekst…"
-        onchange="updateGalleryCaption(${pageIdx},${imgIdx},this.value)">
-      <button class="img-remove" onclick="removeGalleryImage(${pageIdx},${imgIdx})">×</button>
+    <div class="field-hint" style="margin-bottom:12px">Velg layout for hver side, klikk på en posisjon for å velge bilde. Maks 4 gallerisider.</div>
+    <div id="galleryEditor">
+      ${pages.length === 0 ? '<div class="empty-state" style="padding:20px">Ingen gallerisider lagt til</div>' : ''}
+      ${pagesHtml}
+    </div>
+    <div style="margin-top:12px;display:flex;gap:10px;align-items:center">
+      ${pages.length < 4 ? `<button class="btn-outline" style="font-size:13px;padding:8px 16px" onclick="addGalleryPage()">+ Legg til galleriside</button>` : `<span class="field-hint" style="color:var(--yellow)">Maks 4 gallerisider</span>`}
+      <a href="/prospekt/bilder.html" target="_blank" style="font-size:12px;color:var(--gold)">Last opp bilder →</a>
     </div>
   `;
 }
 
 function renderEquipmentSection(p) {
   const cats = p.equipment_categories || [];
+  const MAX_CATS = 8;
+  const totalItems = cats.reduce((sum, c) => sum + (c.items||[]).length, 0);
+  const MAX_ITEMS = 40;
   return `
+    <div class="field-hint" style="margin-bottom:12px">Maks ${MAX_CATS} kategorier og ~${MAX_ITEMS} utstyrsrader totalt for å passe på én A4-side. <span class="limit-badge">${totalItems} / ${MAX_ITEMS} rader</span></div>
     <div id="equipEditor">
       ${cats.map((c, ci) => renderEquipCategory(c, ci)).join('')}
     </div>
-    <button class="btn-outline" style="margin-top:10px;font-size:13px;padding:6px 14px" onclick="addEquipCategory()">+ Ny kategori</button>
+    ${cats.length < MAX_CATS ? `<button class="btn-outline" style="margin-top:10px;font-size:13px;padding:6px 14px" onclick="addEquipCategory()">+ Ny kategori</button>` : `<div class="field-hint" style="color:var(--yellow);margin-top:8px">Maks ${MAX_CATS} kategorier</div>`}
   `;
 }
 
@@ -874,17 +1024,71 @@ function updateGalleryCaption(pageIdx, imgIdx, value) {
   }
 }
 
-function removeGalleryImage(pageIdx, imgIdx) {
+function removeGallerySlot(pageIdx, slotIdx) {
   const pages = currentProspekt.gallery_pages || [];
-  if (pages[pageIdx]?.images) {
-    // TODO: also delete from storage
-    pages[pageIdx].images.splice(imgIdx, 1);
-    // Remove empty pages
-    currentProspekt.gallery_pages = pages.filter(p => p.images && p.images.length > 0);
+  if (pages[pageIdx]?.images?.[slotIdx]) {
+    pages[pageIdx].images.splice(slotIdx, 1);
     renderSectionBody('gallery');
     $('sec-gallery').classList.add('open');
     scheduleAutoSave();
   }
+}
+
+function removeGalleryPage(pageIdx) {
+  const pages = currentProspekt.gallery_pages || [];
+  pages.splice(pageIdx, 1);
+  currentProspekt.gallery_pages = pages;
+  renderSectionBody('gallery');
+  $('sec-gallery').classList.add('open');
+  scheduleAutoSave();
+}
+
+function addGalleryPage() {
+  const pages = currentProspekt.gallery_pages || [];
+  if (pages.length >= 4) return toast('Maks 4 gallerisider', 'error');
+  pages.push({ layout: '4up', images: [] });
+  currentProspekt.gallery_pages = pages;
+  renderSectionBody('gallery');
+  $('sec-gallery').classList.add('open');
+}
+
+function changeGalleryLayout(pageIdx, newLayout) {
+  const pages = currentProspekt.gallery_pages || [];
+  if (!pages[pageIdx]) return;
+  const SLOT_COUNTS = { '5up': 5, '4up': 4, '2up': 2, '1up': 1 };
+  pages[pageIdx].layout = newLayout;
+  // Trim excess images if new layout has fewer slots
+  const maxSlots = SLOT_COUNTS[newLayout] || 5;
+  if ((pages[pageIdx].images || []).length > maxSlots) {
+    pages[pageIdx].images = pages[pageIdx].images.slice(0, maxSlots);
+  }
+  currentProspekt.gallery_pages = pages;
+  renderSectionBody('gallery');
+  $('sec-gallery').classList.add('open');
+  scheduleAutoSave();
+}
+
+function pickGallerySlot(pageIdx, slotIdx) {
+  openImagePicker((urls) => {
+    if (urls.length === 0) return;
+    const pages = currentProspekt.gallery_pages || [];
+    if (!pages[pageIdx]) return;
+    const images = pages[pageIdx].images || [];
+    // Replace or insert at slot position
+    if (images[slotIdx]) {
+      images[slotIdx].url = urls[0];
+    } else {
+      // Fill empty slots up to this index
+      while (images.length < slotIdx) images.push({ url: '', caption: '' });
+      images[slotIdx] = { url: urls[0], caption: '' };
+    }
+    pages[pageIdx].images = images;
+    currentProspekt.gallery_pages = pages;
+    renderSectionBody('gallery');
+    $('sec-gallery').classList.add('open');
+    scheduleAutoSave();
+    toast('Bilde valgt');
+  }, false);  // single pick for specific slot
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -999,31 +1203,7 @@ function closePickerModal() {
   pickerCallback = null;
 }
 
-function openGalleryPicker() {
-  openImagePicker((urls) => {
-    const pages = currentProspekt.gallery_pages || [];
-    if (pages.length === 0) pages.push({ layout: '5up', images: [] });
-    let currentPage = pages[pages.length - 1];
-
-    for (const url of urls) {
-      // Skip if already added
-      const alreadyAdded = pages.some(p => (p.images||[]).some(i => i.url === url));
-      if (alreadyAdded) continue;
-
-      if (currentPage.images.length >= 5) {
-        currentPage = { layout: '4up', images: [] };
-        pages.push(currentPage);
-      }
-      currentPage.images.push({ url, caption: '' });
-    }
-
-    currentProspekt.gallery_pages = pages;
-    renderSectionBody('gallery');
-    $('sec-gallery').classList.add('open');
-    scheduleAutoSave();
-    toast(`${urls.length} bilde(r) lagt til`);
-  }, true);
-}
+// openGalleryPicker replaced by pickGallerySlot — individual slot picking
 
 function removeImage(field) {
   currentProspekt[field] = null;

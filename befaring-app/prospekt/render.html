@@ -220,7 +220,7 @@
   }
 
   .cover-logo svg {
-    height: 60px;
+    height: 52px;
     width: auto;
     filter: drop-shadow(0 2px 12px rgba(0,0,0,0.4));
   }
@@ -892,11 +892,25 @@ const API = '/.netlify/functions/prospekt';
 const OFFICE_ADDRESS = 'Dicks vei 12, 1366 Lysaker';
 
 // HoY logo as inline SVG (white, for cover page)
-const LOGO_SVG = `<svg viewBox="0 0 280 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <text x="0" y="42" font-family="'Georgia', serif" font-size="38" font-weight="700" fill="white" letter-spacing="3">HOUSE OF YACHTS</text>
+const LOGO_SVG = `<svg viewBox="0 0 320 52" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .logo-main { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 28px; font-weight: 600; fill: white; letter-spacing: 6px; }
+    .logo-line { stroke: rgba(196,152,62,0.8); stroke-width: 1; }
+  </style>
+  <line class="logo-line" x1="0" y1="0" x2="320" y2="0"/>
+  <text class="logo-main" x="160" y="34" text-anchor="middle">HOUSE OF YACHTS</text>
+  <line class="logo-line" x1="0" y1="46" x2="320" y2="46"/>
 </svg>`;
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+function formatPrice(v) {
+  if (!v) return '';
+  // If already formatted (contains space or period), pass through
+  const cleaned = String(v).replace(/[^0-9]/g, '');
+  if (!cleaned) return esc(v);
+  return new Intl.NumberFormat('nb-NO').format(Number(cleaned));
+}
 
 function getInitials(name) {
   if (!name) return '?';
@@ -950,7 +964,7 @@ function buildCoverPage(p) {
         <div class="cover-bottom">
           <div class="cover-year">${spaceYear(p.model_year)}</div>
           <h1 class="cover-title">${esc(p.boat_name)}</h1>
-          <div class="cover-price">NOK ${esc(p.asking_price)},-</div>
+          <div class="cover-price">NOK ${formatPrice(p.asking_price)},-</div>
           <div class="cover-divider"></div>
         </div>
         <div class="cover-footer">
@@ -1004,7 +1018,7 @@ function buildOverviewPage(p) {
         <div class="overview-content">
           <div class="specs-column">
             <h2 class="specs-boat-name">${esc(p.boat_name)}</h2>
-            <div class="specs-price">Prisantydning: NOK ${esc(p.asking_price)},-</div>
+            <div class="specs-price">Prisantydning: NOK ${formatPrice(p.asking_price)},-</div>
             <div class="category-label-inline">Spesifikasjoner</div>
             ${specs}
             ${capsHtml}
@@ -1027,32 +1041,17 @@ function buildOverviewPage(p) {
 }
 
 function buildGalleryPages(p) {
-  const allImages = [];
-  for (const page of (p.gallery_pages || [])) {
-    for (const img of (page.images || [])) {
-      allImages.push(img);
-    }
-  }
+  const pages = (p.gallery_pages || []).filter(pg => (pg.images || []).some(img => img.url));
+  if (pages.length === 0) return '';
 
-  if (allImages.length === 0) return '';
+  return pages.map((page, pi) => {
+    const layout = page.layout || '5up';
+    const images = (page.images || []).filter(img => img.url);
+    if (images.length === 0) return '';
 
-  // Auto-paginate: max 5 images per page
-  const pages = [];
-  for (let i = 0; i < allImages.length; i += 5) {
-    pages.push(allImages.slice(i, i + 5));
-  }
+    const gridClass = `gallery-grid-${layout}`;
 
-  return pages.map((pageImages, pi) => {
-    const count = pageImages.length;
-    let layout, gridClass;
-    if (count >= 5) { layout = '5up'; gridClass = 'gallery-grid-5up'; }
-    else if (count === 4) { layout = '4up'; gridClass = 'gallery-grid-4up'; }
-    else if (count === 3) { layout = '4up'; gridClass = 'gallery-grid-4up'; }
-    else if (count === 2) { layout = '2up'; gridClass = 'gallery-grid-2up'; }
-    else { layout = '1up'; gridClass = 'gallery-grid-1up'; }
-
-    const imagesHtml = pageImages.map((img, ii) => {
-      // In 5up: first image spans full width
+    const imagesHtml = images.map((img, ii) => {
       const wideClass = (layout === '5up' && ii === 0) ? 'gi-wide' : '';
       const captionHtml = img.caption
         ? `<div class="gi-caption">${esc(img.caption)}</div>` : '';
