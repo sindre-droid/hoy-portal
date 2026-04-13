@@ -943,140 +943,120 @@ function renderEquipCategory(cat, ci) {
   `;
 }
 
-const DEFAULT_DECLARATION = [
-  { title: 'Båt', questions: [
-    { question: 'Ble båten kjøpt ny?' },
-    { question: 'Har båten vært utleid eller yrkesbrukt?' },
-    { question: 'Har båten vært skadet/reparert?' },
-    { question: 'Har båten grunnstøtt?' },
-    { question: 'Er båten omlakkert/malt?' },
-    { question: 'Er båten selvbygget/selvinnredet?' },
-    { question: 'Har båten feil/svakheter/lekkasjer i skrog?' },
-    { question: 'Har båten feil/svakheter/lekkasjer i overbygg?' },
-    { question: 'Har båten hatt råteskader/fuktskader?' },
-    { question: 'Har båten blærer i gelcoat under vannlinjen? (Osmose/plastpest)' },
-    { question: 'Har båten skader/sår under vannlinjen?' },
-    { question: 'Har motor/båt vært under vann?' },
-    { question: 'Har båten feil på skroggjennomføringer?' },
-    { question: 'Er båten CE-merket?' },
-    { question: 'Er båten registrert i skipsregisteret?' },
-    { question: 'Er båten registrert i småbåtregisteret?' },
-    { question: 'Er det lån på båten?' },
-    { question: 'Er båten Securemark-merket?' },
-  ]},
-  { title: 'Motor & Teknisk', questions: [
-    { question: 'Har båten feil på motor?' },
-    { question: 'Har båten feil på dynamo eller batterier?' },
-    { question: 'Har båten feil på drev/aksling/propell?' },
-    { question: 'Har motoren unormalt oljeforbruk?' },
-    { question: 'Har båten lekkasjer i vannsystemer/septik?' },
-    { question: 'Har båten feil på elektrisk anlegg?' },
-    { question: 'Har båten lekkasjer på drivstoffsystem?' },
-    { question: 'Har båten feil på lensepumper/ventiler?' },
-    { question: 'Har båten problemer med tæring?' },
-  ]},
-  { title: 'Driftsinfo', questions: [
-    { question: 'Siste service på motor, dato/timer?' },
-    { question: 'Driftstimer motor?' },
-    { question: 'Driftstimer generator?' },
-  ]},
-];
-
 function renderDeclarationSection(p) {
-  let sections = p.declaration_sections;
-  const hasData = sections && sections.length > 0;
-  if (!hasData) sections = DEFAULT_DECLARATION;
-
+  const sections = p.declaration_sections;
+  const hasData = sections && sections.length > 0 && sections.some(s => (s.questions || []).some(q => q.answer));
+  const oneflowState = p.declaration_oneflow_state || '';
+  const oneflowId = p.declaration_oneflow_id || '';
   const otherNotes = p.declaration_other_notes || '';
 
+  // Status-badge
+  let statusHtml = '';
+  if (oneflowId) {
+    const stateLabel = oneflowState === 'signed' ? '✅ Signert' : oneflowState === 'pending' ? '⏳ Venter på signatur' : oneflowState === 'draft' ? '📝 Utkast' : oneflowState;
+    const stateColor = oneflowState === 'signed' ? 'var(--green)' : oneflowState === 'pending' ? 'var(--yellow)' : 'var(--gray-dark)';
+    statusHtml = `
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--surface);border-radius:8px;margin-bottom:14px;border:1px solid var(--gray)">
+        <span style="font-size:13px;font-weight:600;color:${stateColor}">${stateLabel}</span>
+        <span style="font-size:11px;color:var(--gray-dark)">Oneflow #${oneflowId}</span>
+        <button class="btn-outline" style="margin-left:auto;font-size:12px;padding:6px 12px" onclick="fetchDeclaration()">↻ Oppdater</button>
+      </div>
+    `;
+  }
+
+  if (!hasData) {
+    return `
+      <div class="field-hint" style="margin-bottom:12px">
+        Egenerklæringen hentes fra selgers signerte Oneflow-skjema. Klikk knappen under for å importere.
+      </div>
+      ${statusHtml}
+      <div style="text-align:center;padding:30px 20px">
+        <button class="btn-primary" onclick="fetchDeclaration()" id="fetchDeclBtn" style="font-size:15px;padding:14px 28px">
+          📄 Hent egenerklæring fra Oneflow
+        </button>
+        <div class="field-hint" style="margin-top:10px">
+          Søker automatisk etter egenerklæring knyttet til denne dealen i Oneflow.
+        </div>
+        <div id="declStatus" style="margin-top:12px;font-size:13px;color:var(--gray-dark)"></div>
+      </div>
+    `;
+  }
+
+  // Vis hentet data (read-only preview med mulighet for oppdatering)
   return `
-    <div class="field-hint" style="margin-bottom:12px">
-      Fyll ut selgers egenerklæring. Velg Ja/Nei for hvert spørsmål og legg til kommentarer ved behov.
-      ${!hasData ? '<br><strong>Skjemaet er forhåndsutfylt med standardspørsmål. Svarene lagres automatisk.</strong>' : ''}
-    </div>
+    ${statusHtml}
     <div id="declEditor">
-      ${sections.map((sec, si) => renderDeclSection(sec, si)).join('')}
+      ${sections.map((sec, si) => renderDeclSectionReadonly(sec, si)).join('')}
     </div>
-    <div class="field" style="margin-top:16px">
-      <label>Andre merknader/spesifikasjoner</label>
-      <textarea rows="3" placeholder="Fritekst fra selger…" onchange="updateDeclNotes(this.value)">${esc(otherNotes)}</textarea>
-    </div>
-    ${!hasData ? `<div class="field-hint" style="margin-top:8px;color:var(--blue)">
-      Trykk på et svar for å starte utfylling. Skjemaet lagres automatisk.
-    </div>` : ''}
+    ${otherNotes ? `
+      <div style="margin-top:12px;padding:12px 16px;background:var(--surface);border-radius:8px;border:1px solid var(--gray)">
+        <div style="font-size:11px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Andre merknader</div>
+        <div style="font-size:13px;color:var(--text);line-height:1.5">${esc(otherNotes)}</div>
+      </div>
+    ` : ''}
+    <div id="declStatus" style="margin-top:8px;font-size:13px;color:var(--gray-dark)"></div>
   `;
 }
 
-function renderDeclSection(sec, si) {
-  const questions = sec.questions || [];
+function renderDeclSectionReadonly(sec, si) {
+  const questions = (sec.questions || []).filter(q => q.answer);
+  if (questions.length === 0) return '';
   return `
     <div class="equip-cat-card" style="margin-bottom:14px">
       <div class="equip-cat-header" onclick="toggleDeclSection(${si})" style="cursor:pointer">
         <div style="display:flex;align-items:center;gap:8px">
           <span class="sec-toggle open" id="declToggle-${si}">▾</span>
           <span class="equip-cat-name">${esc(sec.title)}</span>
-          <span style="font-size:11px;color:var(--gray-dark)">${questions.filter(q => q.answer).length} / ${questions.length} besvart</span>
+          <span style="font-size:11px;color:var(--gray-dark)">${questions.length} svar</span>
         </div>
       </div>
-      <div id="declItems-${si}" style="display:block;padding:10px 0 0">
-        ${questions.map((q, qi) => renderDeclQuestion(q, si, qi)).join('')}
+      <div id="declItems-${si}" style="display:block;padding:6px 0 0">
+        ${questions.map(q => {
+          const isJa = q.answer === 'Ja';
+          const ansColor = isJa ? 'var(--green)' : 'var(--blue)';
+          const ansBg = isJa ? 'var(--green-bg)' : 'var(--blue-bg)';
+          const commentHtml = q.comment ? `<div style="font-size:12px;color:var(--gray-dark);font-style:italic;padding:2px 0 4px 12px;border-left:2px solid var(--gold);margin:4px 12px 0">${esc(q.comment)}</div>` : '';
+          return `
+            <div style="padding:6px 12px;border-bottom:1px solid var(--gray);display:flex;align-items:center;gap:8px">
+              <span style="flex:1;font-size:13px;color:var(--text)">${esc(q.question)}</span>
+              <span style="padding:3px 10px;border-radius:4px;font-size:12px;font-weight:600;background:${ansBg};color:${ansColor}">${esc(q.answer)}</span>
+            </div>
+            ${commentHtml}
+          `;
+        }).join('')}
       </div>
     </div>
   `;
 }
 
-function renderDeclQuestion(q, si, qi) {
-  const ans = q.answer || '';
-  const comment = q.comment || '';
-  const yesActive = ans === 'Ja';
-  const neiActive = ans === 'Nei';
-  return `
-    <div style="padding:6px 12px;border-bottom:1px solid var(--gray);display:flex;flex-wrap:wrap;align-items:center;gap:8px">
-      <span style="flex:1;font-size:13px;color:var(--text);min-width:200px">${esc(q.question)}</span>
-      <div style="display:flex;gap:4px">
-        <button onclick="setDeclAnswer(${si},${qi},'Ja')"
-          style="padding:4px 12px;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid ${yesActive ? 'var(--green)' : 'var(--gray)'};background:${yesActive ? 'var(--green-bg)' : 'white'};color:${yesActive ? 'var(--green)' : 'var(--gray-dark)'}">Ja</button>
-        <button onclick="setDeclAnswer(${si},${qi},'Nei')"
-          style="padding:4px 12px;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid ${neiActive ? 'var(--blue)' : 'var(--gray)'};background:${neiActive ? 'var(--blue-bg)' : 'white'};color:${neiActive ? 'var(--blue)' : 'var(--gray-dark)'}">Nei</button>
-      </div>
-      <input type="text" value="${esc(comment)}" placeholder="Kommentar…"
-        style="width:100%;font-size:12px;padding:5px 8px;border:1px dashed var(--gray);border-radius:4px;margin-top:2px;${!comment && !yesActive ? 'opacity:0.5' : ''}"
-        onchange="setDeclComment(${si},${qi},this.value)">
-    </div>
-  `;
-}
+async function fetchDeclaration() {
+  const statusEl = document.getElementById('declStatus');
+  const btn = document.getElementById('fetchDeclBtn');
+  if (statusEl) statusEl.innerHTML = '<span style="color:var(--navy)">Søker i Oneflow…</span>';
+  if (btn) { btn.disabled = true; btn.textContent = 'Henter…'; }
 
-function ensureDeclSections() {
-  if (!currentProspekt.declaration_sections || currentProspekt.declaration_sections.length === 0) {
-    // Deep-clone default
-    currentProspekt.declaration_sections = JSON.parse(JSON.stringify(DEFAULT_DECLARATION));
-  }
-  return currentProspekt.declaration_sections;
-}
+  try {
+    const res = await api({ action: 'fetch_declaration' }, 'POST', { id: currentProspekt.id });
+    if (!res.found) {
+      if (statusEl) statusEl.innerHTML = `<span style="color:var(--red)">${esc(res.message || 'Fant ingen egenerklæring.')}</span>`;
+      if (btn) { btn.disabled = false; btn.textContent = '📄 Hent egenerklæring fra Oneflow'; }
+      return;
+    }
 
-function setDeclAnswer(si, qi, value) {
-  const sections = ensureDeclSections();
-  if (sections[si]?.questions?.[qi]) {
-    const q = sections[si].questions[qi];
-    // Toggle: click same answer to clear
-    q.answer = q.answer === value ? '' : value;
+    // Oppdater currentProspekt med hentet data
+    currentProspekt.declaration_sections = res.declaration_sections;
+    currentProspekt.declaration_other_notes = res.declaration_other_notes || '';
+    currentProspekt.declaration_oneflow_id = res.contract_id;
+    currentProspekt.declaration_oneflow_state = res.contract_state;
+
+    // Re-render seksjonen
     renderSectionBody('declaration');
     $('sec-declaration').classList.add('open');
-    scheduleAutoSave();
+    toast('Egenerklæring hentet fra Oneflow');
+  } catch (e) {
+    if (statusEl) statusEl.innerHTML = `<span style="color:var(--red)">Feil: ${esc(e.message)}</span>`;
+    if (btn) { btn.disabled = false; btn.textContent = '📄 Hent egenerklæring fra Oneflow'; }
   }
-}
-
-function setDeclComment(si, qi, value) {
-  const sections = ensureDeclSections();
-  if (sections[si]?.questions?.[qi]) {
-    sections[si].questions[qi].comment = value;
-    scheduleAutoSave();
-  }
-}
-
-function updateDeclNotes(value) {
-  currentProspekt.declaration_other_notes = value;
-  scheduleAutoSave();
 }
 
 function toggleDeclSection(si) {

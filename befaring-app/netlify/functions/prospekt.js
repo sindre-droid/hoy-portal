@@ -221,6 +221,157 @@ async function hs(path, method = 'GET', body = null) {
   catch { return { ok: false, status: res.status, data: { raw: text } }; }
 }
 
+// ── Oneflow API ─────────────────────────────────────────────────────────────
+
+const OF_EGENERKLARING_TEMPLATE = 5128144;
+
+async function ofApi(path, method = 'GET', body = null) {
+  const res = await fetch(`https://api.oneflow.com/v1${path}`, {
+    method,
+    headers: {
+      'x-oneflow-api-token':  process.env.ONEFLOW_API_TOKEN,
+      'x-oneflow-user-email': process.env.ONEFLOW_USER_EMAIL,
+      'Content-Type': 'application/json',
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  const text = await res.text();
+  try { return { ok: res.ok, status: res.status, data: JSON.parse(text) }; }
+  catch { return { ok: false, status: res.status, data: { raw: text } }; }
+}
+
+async function getContractDataFields(contractId) {
+  const res = await ofApi(`/contracts/${contractId}/data_fields`);
+  if (!res.ok) return {};
+  const items = res.data?.data || res.data?._embedded?.['oneflow:data_fields'] || [];
+  return items.reduce((acc, f) => {
+    const customId = f._private_ownerside?.custom_id || f._private?.tag;
+    if (customId) acc[customId] = f.value || '';
+    if (f.name)   acc[f.name]   = f.value || '';
+    return acc;
+  }, {});
+}
+
+// Finn egenerklæring-kontrakt i Oneflow for en gitt deal
+async function findEgenerklaering(dealName, dealId) {
+  // Søk i Oneflow: match etter deal-name eller deal-ID i kontraktnavnet
+  const dealNum = String(dealId || '');
+  // Bruk båtnavn fra dealname — ofte formatert som "2023 Saxdor 320 GTC" el.
+  const boatKey = dealName ? dealName.toLowerCase().replace(/^\d{4}\s+/, '').trim() : '';
+
+  let contracts = [];
+  let offset = 0;
+  let totalCount = Infinity;
+  const MAX_PAGES = 5;
+
+  while (offset < totalCount && offset < MAX_PAGES * 100) {
+    const res = await ofApi(`/contracts?limit=100&offset=${offset}`);
+    if (!res.ok) break;
+    totalCount = res.data?.count || 0;
+    const page = res.data?.data || [];
+    contracts = [...contracts, ...page];
+    offset += 100;
+  }
+
+  // Finn kontrakter som matcher deal
+  for (const c of contracts) {
+    const name = (c._private?.name || '').toLowerCase();
+    const matches = (dealNum && name.includes(dealNum)) || (boatKey && name.includes(boatKey));
+    if (!matches) continue;
+
+    const tid = parseInt(c._private_ownerside?.template_id || c.template?._id || c.template?.id || 0);
+    if (tid === OF_EGENERKLARING_TEMPLATE || name.includes('egenerklær') || name.includes('egenerklaring')) {
+      return c;
+    }
+  }
+  return null;
+}
+
+// Parse Oneflow data-fields til strukturerte declaration_sections
+function parseEgenerklaeringFields(fields) {
+  // Oneflow egenerklæring har spørsmål som data_fields med custom_id-er.
+  // Vi mapper alle fields som har verdi og organiserer etter seksjon.
+  // Typisk: custom_id = "spm_1", "spm_2", ... med value = "Ja" / "Nei"
+  //         kommentar = "kommentar_1", "kommentar_2", ...
+  // Alternativt kan feltene ha beskrivende navn — vi må håndtere begge.
+
+  // Definer spørsmål i rekkefølge — matche mot Oneflow data_fields
+  const BOAT_QUESTIONS = [
+    'Ble båten kjøpt ny?',
+    'Har båten vært utleid eller yrkesbrukt?',
+    'Har båten vært skadet/reparert?',
+    'Har båten grunnstøtt?',
+    'Er båten omlakkert/malt?',
+    'Er båten selvbygget/selvinnredet?',
+    'Har båten feil/svakheter/lekkasjer i skrog?',
+    'Har båten feil/svakheter/lekkasjer i overbygg?',
+    'Har båten hatt råteskader/fuktskader?',
+    'Har båten blærer i gelcoat under vannlinjen?',
+    'Har båten skader/sår under vannlinjen?',
+    'Har motor/båt vært under vann?',
+    'Har båten feil på skroggjennomføringer?',
+    'Er båten CE-merket?',
+    'Er båten registrert i skipsregisteret?',
+    'Er båten registrert i småbåtregisteret?',
+    'Er det lån på båten?',
+    'Er båten Securemark-merket?',
+  ];
+  const MOTOR_QUESTIONS = [
+    'Har båten feil på motor?',
+    'Har båten feil på dynamo eller batterier?',
+    'Har båten feil på drev/aksling/propell?',
+    'Har motoren unormalt oljeforbruk?',
+    'Har båten lekkasjer i vannsystemer/septik?',
+    'Har båten feil på elektrisk anlegg?',
+    'Har båten lekkasjer på drivstoffsystem?',
+    'Har båten feil på lensepumper/ventiler?',
+    'Har båten problemer med tæring?',
+  ];
+  const DRIFT_QUESTIONS = [
+    'Siste service på motor, dato/timer?',
+    'Driftstimer motor?',
+    'Driftstimer generator?',
+  ];
+
+  // Prøv å mappe Oneflow-felter til spørsmål. Feltnavn varierer,
+  // så vi bruker fuzzy matching: normaliser og finn nærmeste match.
+  const allKeys = Object.keys(fields);
+  const normalize = s => s.toLowerCase().replace(/[^a-zæøå0-9]/g, '');
+
+  function matchField(question) {
+    const qNorm = normalize(question);
+    // Prøv å finne en data-field som ligner på spørsmålet
+    for (const key of allKeys) {
+      if (normalize(key).includes(qNorm.slice(0, 20)) || qNorm.includes(normalize(key).slice(0, 20))) {
+        return fields[key];
+      }
+    }
+    return null;
+  }
+
+  // Alternativ: prøv indeks-basert mapping (spm_1, spm_2, ...)
+  function mapByIndex(questions, startIdx) {
+    return questions.map((question, i) => {
+      const idx = startIdx + i;
+      const answer = fields[`spm_${idx}`] || fields[`q${idx}`] || matchField(question) || '';
+      const comment = fields[`kommentar_${idx}`] || fields[`comment_${idx}`] || fields[`k${idx}`] || '';
+      return { question, answer: answer || '', comment: comment || '' };
+    });
+  }
+
+  // Bygg seksjoner — prøv å hente data fra Oneflow-felter
+  const sections = [
+    { title: 'Båt', questions: mapByIndex(BOAT_QUESTIONS, 1) },
+    { title: 'Motor & Teknisk', questions: mapByIndex(MOTOR_QUESTIONS, BOAT_QUESTIONS.length + 1) },
+    { title: 'Driftsinfo', questions: mapByIndex(DRIFT_QUESTIONS, BOAT_QUESTIONS.length + MOTOR_QUESTIONS.length + 1) },
+  ];
+
+  // Hent "andre merknader" om det finnes
+  const otherNotes = fields['andre_merknader'] || fields['other_notes'] || fields['merknader'] || '';
+
+  return { sections, otherNotes };
+}
+
 // ── Handler ──────────────────────────────────────────────────────────────────
 
 exports.handler = async (event) => {
@@ -480,7 +631,8 @@ exports.handler = async (event) => {
           'description_intro', 'description_body', 'visning_text',
           'cta_label', 'cta_address',
           'specs', 'capacities', 'gallery_pages', 'equipment_categories',
-          'declaration_sections', 'declaration_other_notes', 'freetext_pages', 'sections_order',
+          'declaration_sections', 'declaration_other_notes', 'declaration_oneflow_id', 'declaration_oneflow_state',
+          'freetext_pages', 'sections_order',
         ];
         const updates = {};
         for (const k of allowed) {
@@ -570,6 +722,62 @@ exports.handler = async (event) => {
         if (error) throw error;
 
         return ok(data);
+      }
+
+      // ── Fetch declaration from Oneflow ──
+      if (action === 'fetch_declaration') {
+        const { id } = body;
+        if (!id) return err(400, 'id required');
+
+        // Hent prospekt for å finne deal_id og deal_name
+        const { data: prospekt, error: pErr } = await supabase
+          .from('prospekter')
+          .select('deal_id, deal_name, boat_name')
+          .eq('id', id)
+          .single();
+        if (pErr) throw pErr;
+
+        // Søk i Oneflow etter egenerklæring-kontrakt
+        const contract = await findEgenerklaering(prospekt.deal_name || prospekt.boat_name, prospekt.deal_id);
+        if (!contract) {
+          return ok({
+            found: false,
+            message: 'Fant ingen egenerklæring i Oneflow for denne dealen. Sjekk at kontrakten er opprettet og at navnet inneholder dealnummer eller båtnavn.',
+          });
+        }
+
+        const contractId = contract.id;
+        const contractState = contract.state; // 'signed', 'pending', 'draft', etc.
+        const contractName = contract._private?.name || '';
+
+        // Hent data-felter fra kontrakten
+        const fields = await getContractDataFields(contractId);
+
+        // Parse til strukturert format
+        const { sections, otherNotes } = parseEgenerklaeringFields(fields);
+
+        // Lagre til prospekt
+        const updatePayload = {
+          declaration_sections: sections,
+          declaration_other_notes: otherNotes || null,
+          declaration_oneflow_id: contractId,
+          declaration_oneflow_state: contractState,
+        };
+
+        await supabase
+          .from('prospekter')
+          .update(updatePayload)
+          .eq('id', id);
+
+        return ok({
+          found: true,
+          contract_id: contractId,
+          contract_name: contractName,
+          contract_state: contractState,
+          declaration_sections: sections,
+          declaration_other_notes: otherNotes,
+          raw_fields: fields, // For debugging — kan fjernes senere
+        });
       }
 
       return err(400, `Unknown action: ${action}`);
