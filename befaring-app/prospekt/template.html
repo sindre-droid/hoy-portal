@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{boat_name}} — Prospekt | House of Yachts</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap');
+
+  /* ══════════════════════════════════════════
+     DESIGN TOKENS
+     ══════════════════════════════════════════ */
+  :root {
+    --hoy-black: #0A0A0A;
+    --hoy-white: #FFFFFF;
+    --hoy-offwhite: #FAF9F7;
+    --hoy-cream: #F5F1EC;
+    --hoy-warm-gray: #E2DDD6;
+    --hoy-mid-gray: #9A9590;
+    --hoy-dark-gray: #3D3935;
+    --hoy-gold: #C4983E;
+    --hoy-gold-light: #D4AE62;
+    --hoy-gold-subtle: #F5EFE3;
+    --hoy-deep-teal: #1A3C34;
+    --hoy-teal: #2A5C4E;
+    --hoy-navy: #1B2B3A;
+
+    --font-display: 'Cormorant Garamond', 'Georgia', serif;
+    --font-body: 'Inter', -apple-system, sans-serif;
+
+    --page-w: 210mm;
+    --page-h: 297mm;
+  }
+
+  /* ══════════════════════════════════════════
+     PRINT / PUPPETEER — A4
+     ══════════════════════════════════════════ */
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  @media print {
+    body { background: white; }
+    .page-wrapper { gap: 0; padding: 0; max-width: none; }
+    .page-label { display: none; }
+    .page {
+      box-shadow: none;
+      border-radius: 0;
+      page-break-after: always;
+      page-break-inside: avoid;
+      width: var(--page-w);
+      height: var(--page-h);
+    }
+    .page:last-child { page-break-after: auto; }
+  }
+
+  /* ══════════════════════════════════════════
+     BASE & PREVIEW LAYOUT
+     ══════════════════════════════════════════ */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #D6D1CA;
+    font-family: var(--font-body);
+    color: var(--hoy-black);
+    -webkit-font-smoothing: antialiased;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .page-wrapper {
+    max-width: 900px;
+    margin: 40px auto;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    padding: 0 20px;
+  }
+
+  .page-label {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--hoy-mid-gray);
+    margin-bottom: -20px;
+    padding-left: 4px;
+  }
+
+  .page {
+    width: 100%;
+    aspect-ratio: 210 / 297;
+    background: var(--hoy-white);
+    box-shadow: 0 4px 40px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.05);
+    overflow: hidden;
+    position: relative;
+    border-radius: 2px;
+  }
+
+  /* ── Shared inner-page footer ── */
+  .page-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 7%;
+    background: var(--hoy-deep-teal);
+    font-family: var(--font-body);
+    font-size: 8px;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.5px;
+  }
+
+  .page-footer-light {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 7%;
+    background: var(--hoy-offwhite);
+    border-top: 1px solid var(--hoy-warm-gray);
+    font-size: 8px;
+    color: var(--hoy-mid-gray);
+  }
+
+  .page-footer-accent {
+    width: 30px;
+    height: 2px;
+    background: var(--hoy-gold);
+    flex-shrink: 0;
+  }
+
+  /* ── Shared section headers ── */
+  .section-title {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--hoy-black);
+  }
+
+  .section-subtitle {
+    font-size: 10px;
+    color: var(--hoy-mid-gray);
+    font-weight: 300;
+  }
+
+  .category-label {
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--hoy-gold);
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--hoy-warm-gray);
+  }
+
+  .category-label-inline {
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--hoy-gold);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .category-label-inline::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--hoy-warm-gray);
+  }
+
+  /* ══════════════════════════════════════════
+     PAGE: COVER (forside)
+     ══════════════════════════════════════════ */
+  .cover {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .cover-image-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: var(--hoy-deep-teal);
+  }
+
+  .cover-image-area img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .cover-image-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(10,10,10,0.25) 0%,
+      transparent 25%,
+      transparent 65%,
+      rgba(10,10,10,0.45) 100%
+    );
+  }
+
+  .cover-logo {
+    position: absolute;
+    top: 5%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+  }
+
+  .cover-logo img {
+    height: 60px;
+    width: auto;
+    filter: drop-shadow(0 2px 12px rgba(0,0,0,0.4));
+  }
+
+  .cover-bottom {
+    background: var(--hoy-white);
+    padding: 4.5% 8% 3.5%;
+    text-align: center;
+  }
+
+  .cover-year {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--hoy-mid-gray);
+    margin-bottom: 8px;
+  }
+
+  .cover-title {
+    font-family: var(--font-display);
+    font-size: 36px;
+    font-weight: 400;
+    color: var(--hoy-black);
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+
+  .cover-price {
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--hoy-dark-gray);
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+  }
+
+  .cover-divider {
+    width: 50px;
+    height: 2px;
+    background: var(--hoy-gold);
+    margin: 0 auto;
+  }
+
+  .cover-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 8%;
+    background: var(--hoy-deep-teal);
+    font-family: var(--font-body);
+    font-size: 9px;
+    color: rgba(255,255,255,0.7);
+    letter-spacing: 0.5px;
+  }
+
+  .cover-footer strong {
+    color: rgba(255,255,255,0.9);
+  }
+
+  /* ══════════════════════════════════════════
+     PAGE: OVERVIEW (oversikt + specs)
+     ══════════════════════════════════════════ */
+  .overview {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .overview-hero {
+    height: 36%;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .overview-hero img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .overview-hero-overlay {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 30%;
+    background: linear-gradient(to top, rgba(255,255,255,1), transparent);
+  }
+
+  .overview-content {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 35% 1fr;
+    gap: 0;
+    padding: 5% 7% 3%;
+  }
+
+  /* — Specs column — */
+  .specs-column {
+    padding-right: 6%;
+    border-right: 1px solid var(--hoy-warm-gray);
+  }
+
+  .specs-boat-name {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 400;
+    color: var(--hoy-black);
+    margin-bottom: 6px;
+  }
+
+  .specs-price {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--hoy-gold);
+    letter-spacing: 0.3px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--hoy-warm-gray);
+  }
+
+  .spec-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 4px 0;
+    font-size: 10px;
+    line-height: 1.6;
+  }
+
+  .spec-label { color: var(--hoy-mid-gray); font-weight: 400; }
+  .spec-value { color: var(--hoy-dark-gray); font-weight: 500; text-align: right; }
+
+  .spec-divider {
+    height: 1px;
+    background: var(--hoy-warm-gray);
+    margin: 8px 0;
+  }
+
+  /* — Description column — */
+  .description-column { padding-left: 6%; }
+
+  .desc-intro {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--hoy-dark-gray);
+    line-height: 1.6;
+    margin-bottom: 18px;
+  }
+
+  .desc-body {
+    font-size: 10.5px;
+    line-height: 1.75;
+    color: var(--hoy-dark-gray);
+    font-weight: 300;
+  }
+
+  .desc-body p { margin-bottom: 12px; }
+
+  .desc-visning {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--hoy-warm-gray);
+    font-style: italic;
+    color: var(--hoy-mid-gray);
+  }
+
+  /* ══════════════════════════════════════════
+     PAGE: GALLERY (bildegalleri)
+     Layout variants: gallery-5up, gallery-4up, gallery-2up
+     ══════════════════════════════════════════ */
+  .gallery {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 6% 6% 3%;
+  }
+
+  .gallery-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 4%;
+  }
+
+  .gallery-header h2 {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--hoy-black);
+  }
+
+  .gallery-header .gallery-subtitle {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--hoy-mid-gray);
+    font-weight: 500;
+  }
+
+  /* Layout: 5 bilder (1 bred + 4 rutenett) */
+  .gallery-grid-5up {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1.4fr 1fr 1fr;
+    gap: 8px;
+  }
+
+  /* Layout: 4 bilder (2×2 rutenett) */
+  .gallery-grid-4up {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 8px;
+  }
+
+  /* Layout: 2 bilder (stående, side om side) */
+  .gallery-grid-2up {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr;
+    gap: 8px;
+  }
+
+  /* Layout: 1 stor fullside-bilde */
+  .gallery-grid-1up {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+    gap: 0;
+  }
+
+  .gi {
+    overflow: hidden;
+    border-radius: 2px;
+    position: relative;
+  }
+
+  .gi img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .gi-wide { grid-column: 1 / -1; }
+
+  .gi-caption {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 20px 14px 8px;
+    background: linear-gradient(to top, rgba(0,0,0,0.5), transparent);
+    font-size: 9px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.85);
+    letter-spacing: 0.3px;
+  }
+
+  .gallery-page-indicator {
+    text-align: center;
+    padding-top: 3%;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: var(--hoy-mid-gray);
+  }
+
+  /* ══════════════════════════════════════════
+     PAGE: EQUIPMENT (utstyrsliste)
+     ══════════════════════════════════════════ */
+  .equipment {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 6% 7% 3%;
+  }
+
+  .equipment-header {
+    margin-bottom: 4%;
+  }
+
+  .equipment-header h2 {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--hoy-black);
+    margin-bottom: 4px;
+  }
+
+  .equipment-body {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 8%;
+  }
+
+  .equip-category { margin-bottom: 22px; }
+
+  .equip-item {
+    font-size: 10px;
+    line-height: 1.5;
+    color: var(--hoy-dark-gray);
+    font-weight: 300;
+    padding: 3px 0;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .equip-item::before {
+    content: '';
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--hoy-gold);
+    flex-shrink: 0;
+    margin-top: 5px;
+  }
+
+  .equip-note {
+    font-size: 9px;
+    color: var(--hoy-mid-gray);
+    font-style: italic;
+    margin-left: 12px;
+  }
+
+  /* ══════════════════════════════════════════
+     PAGE: DECLARATION (egenerklæring)
+     ══════════════════════════════════════════ */
+  .declaration {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 6% 7% 3%;
+  }
+
+  .declaration-header { margin-bottom: 4%; }
+
+  .declaration-body { flex: 1; }
+
+  .decl-section { margin-bottom: 20px; }
+
+  .decl-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    padding: 6px 0;
+    font-size: 10px;
+    border-bottom: 1px solid rgba(226, 221, 214, 0.5);
+  }
+
+  .decl-question { color: var(--hoy-dark-gray); font-weight: 300; line-height: 1.5; }
+  .decl-answer { font-weight: 500; color: var(--hoy-black); white-space: nowrap; }
+  .decl-answer.yes { color: var(--hoy-teal); }
+  .decl-answer.no { color: var(--hoy-mid-gray); }
+
+  .decl-comment {
+    grid-column: 1 / -1;
+    font-size: 9px;
+    color: var(--hoy-mid-gray);
+    font-style: italic;
+    padding: 2px 0 4px 12px;
+    border-left: 2px solid var(--hoy-gold);
+    margin-top: 2px;
+  }
+
+  .declaration-notice {
+    margin-top: auto;
+    padding: 14px 16px;
+    background: var(--hoy-cream);
+    border-radius: 4px;
+    font-size: 8.5px;
+    color: var(--hoy-mid-gray);
+    line-height: 1.6;
+  }
+
+  /* ══════════════════════════════════════════
+     PAGE: FREETEXT (fritekst)
+     ══════════════════════════════════════════ */
+  .freetext {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 6% 7% 3%;
+  }
+
+  .freetext-header { margin-bottom: 4%; }
+
+  .freetext-body {
+    flex: 1;
+    font-size: 10.5px;
+    line-height: 1.75;
+    color: var(--hoy-dark-gray);
+    font-weight: 300;
+  }
+
+  .freetext-body p { margin-bottom: 14px; }
+
+  .freetext-body h3 {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 400;
+    color: var(--hoy-black);
+    margin-bottom: 10px;
+    margin-top: 20px;
+  }
+
+  .freetext-body h3:first-child { margin-top: 0; }
+
+  /* ══════════════════════════════════════════
+     PAGE: CONTACT (kontaktside)
+     ══════════════════════════════════════════ */
+  .contact {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .contact-image-area {
+    height: 50%;
+    overflow: hidden;
+    position: relative;
+    background: var(--hoy-deep-teal);
+  }
+
+  .contact-image-area img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.9;
+  }
+
+  .contact-image-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      transparent 40%,
+      rgba(26, 60, 52, 0.95) 100%
+    );
+  }
+
+  .contact-image-text {
+    position: absolute;
+    bottom: 8%;
+    left: 8%;
+    right: 8%;
+    color: var(--hoy-white);
+  }
+
+  .contact-image-text h2 {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 300;
+    margin-bottom: 6px;
+  }
+
+  .contact-image-text p {
+    font-size: 11px;
+    font-weight: 300;
+    opacity: 0.8;
+    line-height: 1.6;
+  }
+
+  .contact-body {
+    flex: 1;
+    padding: 6% 8%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .contact-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 24px;
+    align-items: center;
+    margin-bottom: 30px;
+  }
+
+  .contact-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--hoy-gold);
+    flex-shrink: 0;
+  }
+
+  .contact-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Fallback: initialer når det ikke er bilde */
+  .contact-avatar-initials {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--hoy-gold-subtle);
+    border: 2px solid var(--hoy-gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 26px;
+    color: var(--hoy-gold);
+    flex-shrink: 0;
+  }
+
+  .contact-info h3 {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 400;
+    color: var(--hoy-black);
+    margin-bottom: 2px;
+  }
+
+  .contact-role {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--hoy-gold);
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+
+  .contact-detail {
+    font-size: 10.5px;
+    color: var(--hoy-dark-gray);
+    font-weight: 300;
+    line-height: 1.8;
+  }
+
+  .contact-cta {
+    text-align: center;
+    padding: 20px;
+    background: var(--hoy-cream);
+    border-radius: 4px;
+    border: 1px solid var(--hoy-warm-gray);
+  }
+
+  .contact-cta p {
+    font-size: 10px;
+    color: var(--hoy-mid-gray);
+    font-weight: 300;
+    margin-bottom: 10px;
+  }
+
+  .contact-cta .cta-text {
+    font-family: var(--font-display);
+    font-size: 18px;
+    color: var(--hoy-black);
+  }
+</style>
+</head>
+<body>
+
+<div class="page-wrapper">
+
+  <!-- ═══════════════════════════════════════════════════
+       PAGE: FORSIDE (obligatorisk)
+       ═══════════════════════════════════════════════════ -->
+  <div class="page-label">Forside</div>
+  <div class="page">
+    <div class="cover">
+      <div class="cover-image-area">
+        <img src="{{cover_image_url}}" alt="{{boat_name}}">
+        <div class="cover-image-overlay"></div>
+        <div class="cover-logo">
+          <img src="{{logo_reversed_url}}" alt="House of Yachts">
+        </div>
+      </div>
+
+      <div class="cover-bottom">
+        <div class="cover-year">{{model_year_spaced}}</div>
+        <h1 class="cover-title">{{boat_name}}</h1>
+        <div class="cover-price">NOK {{asking_price}},-</div>
+        <div class="cover-divider"></div>
+      </div>
+
+      <div class="cover-footer">
+        <span>{{office_address}}</span>
+        <span><strong>{{broker_name}}</strong> &nbsp;&middot;&nbsp; {{broker_phone}} &nbsp;&middot;&nbsp; {{broker_email}}</span>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════
+       PAGE: OVERSIKT (obligatorisk)
+       ═══════════════════════════════════════════════════ -->
+  <div class="page-label">Oversikt</div>
+  <div class="page">
+    <div class="overview">
+      <div class="overview-hero">
+        <img src="{{overview_image_url}}" alt="{{boat_name}}">
+        <div class="overview-hero-overlay"></div>
+      </div>
+
+      <div class="overview-content">
+        <div class="specs-column">
+          <h2 class="specs-boat-name">{{boat_name}}</h2>
+          <div class="specs-price">Prisantydning: NOK {{asking_price}},-</div>
+
+          <div class="category-label-inline">Spesifikasjoner</div>
+
+          <!-- Spesifikasjoner injiseres dynamisk -->
+          {{#specs}}
+          <div class="spec-row">
+            <span class="spec-label">{{spec_label}}</span>
+            <span class="spec-value">{{spec_value}}</span>
+          </div>
+          {{/specs}}
+
+          {{#has_capacities}}
+          <div class="spec-divider"></div>
+          <div style="margin-top:10px">
+            <div class="category-label-inline">Kapasiteter</div>
+            {{#capacities}}
+            <div class="spec-row">
+              <span class="spec-label">{{cap_label}}</span>
+              <span class="spec-value">{{cap_value}}</span>
+            </div>
+            {{/capacities}}
+          </div>
+          {{/has_capacities}}
+        </div>
+
+        <div class="description-column">
+          <p class="desc-intro">{{description_intro}}</p>
+
+          <div class="desc-body">
+            {{description_body}}
+
+            {{#visning_text}}
+            <p class="desc-visning">{{visning_text}}</p>
+            {{/visning_text}}
+          </div>
+        </div>
+      </div>
+
+      <div class="page-footer-light">
+        <div class="page-footer-accent"></div>
+        <span>House of Yachts &nbsp;·&nbsp; {{office_address}} &nbsp;·&nbsp; h-y.no</span>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════
+       PAGE: BILDEGALLERI (valgfritt, 1-3 sider)
+       Bruk klassen gallery-grid-5up / gallery-grid-4up /
+       gallery-grid-2up / gallery-grid-1up etter behov
+       ═══════════════════════════════════════════════════ -->
+  {{#gallery_pages}}
+  <div class="page-label">Bildegalleri {{gallery_page_num}}</div>
+  <div class="page">
+    <div class="gallery">
+      <div class="gallery-header">
+        <h2>Bildegalleri</h2>
+        <span class="gallery-subtitle">{{boat_name}} &nbsp;·&nbsp; {{model_year}}</span>
+      </div>
+
+      <div class="gallery-grid-{{gallery_layout}}">
+        {{#gallery_images}}
+        <div class="gi {{gi_class}}">
+          <img src="{{image_url}}" alt="{{image_alt}}">
+          {{#image_caption}}<div class="gi-caption">{{image_caption}}</div>{{/image_caption}}
+        </div>
+        {{/gallery_images}}
+      </div>
+
+      <div class="gallery-page-indicator">{{gallery_page_num}} / {{gallery_total_pages}}</div>
+    </div>
+  </div>
+  {{/gallery_pages}}
+
+
+  <!-- ═══════════════════════════════════════════════════
+       PAGE: UTSTYRSLISTE (valgfritt, 1-2 sider)
+       ═══════════════════════════════════════════════════ -->
+  {{#equipment_pages}}
+  <div class="page-label">Utstyrsliste {{equipment_page_num}}</div>
+  <div class="page">
+    <div class="equipment">
+      <div class="equipment-header">
+        <h2>Utstyr og spesifikasjoner</h2>
+        <p class="section-subtitle">Komplett oversikt over utstyr og tilbehør</p>
+      </div>
+
+      <div class="equipment-body">
+        {{#equipment_columns}}
+        <div>
+          {{#categories}}
+          <div class="equip-category">
+            <div class="category-label">{{category_name}}</div>
+            {{#items}}
+            <div class="equip-item">{{item_text}}</div>
+            {{#item_note}}<div class="equip-item equip-note">{{item_note}}</div>{{/item_note}}
+            {{/items}}
+          </div>
+          {{/categories}}
+        </div>
+        {{/equipment_columns}}
+      </div>
+    </div>
+  </div>
+  {{/equipment_pages}}
+
+
+  <!-- ═══════════════════════════════════════════════════
+       PAGE: EGENERKLÆRING (valgfritt, 1-2 sider)
+       ═══════════════════════════════════════════════════ -->
+  {{#has_declaration}}
+  {{#declaration_pages}}
+  <div class="page-label">Egenerklæring {{declaration_page_num}}</div>
+  <div class="page">
+    <div class="declaration">
+      <div class="declaration-header">
+        <h2 class="section-title">Selgers egenerklæring</h2>
+        <p class="section-subtitle">Utfylt og signert av eier. Opplysningene gis i god tro og etter beste evne.</p>
+      </div>
+
+      <div class="declaration-body">
+        {{#declaration_sections}}
+        <div class="decl-section">
+          <div class="category-label">{{section_title}}</div>
+          {{#questions}}
+          <div class="decl-row">
+            <span class="decl-question">{{question_text}}</span>
+            <span class="decl-answer {{answer_class}}">{{answer_text}}</span>
+          </div>
+          {{#comment}}<div class="decl-comment">{{comment}}</div>{{/comment}}
+          {{/questions}}
+        </div>
+        {{/declaration_sections}}
+      </div>
+
+      {{#is_last_declaration_page}}
+      <div class="declaration-notice">
+        Egenerklæringen er signert digitalt av selger via Oneflow. Originaldokumentet er tilgjengelig ved forespørsel til ansvarlig megler. Opplysningene erstatter ikke en uavhengig tilstandsvurdering.
+      </div>
+      {{/is_last_declaration_page}}
+    </div>
+  </div>
+  {{/declaration_pages}}
+  {{/has_declaration}}
+
+
+  <!-- ═══════════════════════════════════════════════════
+       PAGE: FRITEKST (valgfritt — tilstandsrapport el.l.)
+       ═══════════════════════════════════════════════════ -->
+  {{#has_freetext}}
+  {{#freetext_pages}}
+  <div class="page-label">{{freetext_page_title}}</div>
+  <div class="page">
+    <div class="freetext">
+      <div class="freetext-header">
+        <h2 class="section-title">{{freetext_heading}}</h2>
+        {{#freetext_subtitle}}<p class="section-subtitle">{{freetext_subtitle}}</p>{{/freetext_subtitle}}
+      </div>
+
+      <div class="freetext-body">
+        {{freetext_content}}
+      </div>
+
+      <div class="page-footer-light">
+        <div class="page-footer-accent"></div>
+        <span>House of Yachts &nbsp;·&nbsp; {{office_address}} &nbsp;·&nbsp; h-y.no</span>
+      </div>
+    </div>
+  </div>
+  {{/freetext_pages}}
+  {{/has_freetext}}
+
+
+  <!-- ═══════════════════════════════════════════════════
+       PAGE: KONTAKT (obligatorisk, alltid siste side)
+       ═══════════════════════════════════════════════════ -->
+  <div class="page-label">Kontakt</div>
+  <div class="page">
+    <div class="contact">
+      <div class="contact-image-area">
+        <img src="{{contact_image_url}}" alt="{{boat_name}}">
+        <div class="contact-image-overlay"></div>
+        <div class="contact-image-text">
+          <h2>Interessert?</h2>
+          <p>Ta kontakt for visning eller ytterligere informasjon om dette fartøyet. Vi er tilgjengelige for spørsmål og arrangerer gjerne en uforpliktende befaring.</p>
+        </div>
+      </div>
+
+      <div class="contact-body">
+        <div class="contact-card">
+          {{#broker_photo_url}}
+          <div class="contact-avatar">
+            <img src="{{broker_photo_url}}" alt="{{broker_name}}">
+          </div>
+          {{/broker_photo_url}}
+          {{^broker_photo_url}}
+          <div class="contact-avatar-initials">{{broker_initials}}</div>
+          {{/broker_photo_url}}
+
+          <div class="contact-info">
+            <h3>{{broker_name}}</h3>
+            <div class="contact-role">{{broker_role}}</div>
+            <div class="contact-detail">
+              {{broker_phone}}<br>
+              {{broker_email}}
+            </div>
+          </div>
+        </div>
+
+        <div class="contact-cta">
+          <p>{{cta_label}}</p>
+          <div class="cta-text">{{cta_address}}</div>
+        </div>
+      </div>
+
+      <div class="page-footer">
+        <span>© {{current_year}} House of Yachts &nbsp;·&nbsp; h-y.no</span>
+        <span>{{office_address}}</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

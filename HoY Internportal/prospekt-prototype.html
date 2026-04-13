@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>House of Yachts — Prospekt Prototype</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap');
+
+  :root {
+    --hoy-black: #0A0A0A;
+    --hoy-white: #FFFFFF;
+    --hoy-offwhite: #F7F6F3;
+    --hoy-warm-gray: #E8E5E0;
+    --hoy-mid-gray: #9A9590;
+    --hoy-dark-gray: #3D3935;
+    --hoy-accent: #1A7A6D;
+    --hoy-accent-light: #E6F2F0;
+    --hoy-gold: #B8965A;
+    --hoy-navy: #1B2B3A;
+    --page-width: 210mm;
+    --page-height: 297mm;
+    --bleed: 3mm;
+    --margin: 15mm;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #E8E5E0;
+    font-family: 'Inter', sans-serif;
+    color: var(--hoy-black);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page-wrapper {
+    max-width: 900px;
+    margin: 40px auto;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    padding: 0 20px;
+  }
+
+  .page-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--hoy-mid-gray);
+    margin-bottom: -20px;
+    padding-left: 4px;
+  }
+
+  /* ── Each page ── */
+  .page {
+    width: 100%;
+    aspect-ratio: 210 / 297;
+    background: var(--hoy-white);
+    box-shadow: 0 4px 40px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04);
+    overflow: hidden;
+    position: relative;
+    border-radius: 2px;
+  }
+
+  /* ══════════════════════════════════════════
+     PAGE 1 — COVER
+     ══════════════════════════════════════════ */
+  .cover {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .cover-image-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: var(--hoy-navy);
+  }
+
+  .cover-image-area img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .cover-image-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(10,10,10,0.15) 0%,
+      transparent 30%,
+      transparent 60%,
+      rgba(10,10,10,0.5) 100%
+    );
+  }
+
+  .cover-logo {
+    position: absolute;
+    top: 5%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+  }
+
+  .cover-logo svg {
+    width: 120px;
+    height: auto;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));
+  }
+
+  .cover-badge {
+    position: absolute;
+    bottom: 6%;
+    right: 6%;
+    z-index: 2;
+  }
+
+  .cover-badge svg {
+    width: 60px;
+    height: auto;
+    opacity: 0.7;
+  }
+
+  .cover-bottom {
+    background: var(--hoy-white);
+    padding: 5% 8% 5%;
+    text-align: center;
+  }
+
+  .cover-year {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--hoy-mid-gray);
+    margin-bottom: 8px;
+  }
+
+  .cover-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 36px;
+    font-weight: 400;
+    color: var(--hoy-black);
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+  }
+
+  .cover-divider {
+    width: 50px;
+    height: 2px;
+    background: var(--hoy-accent);
+    margin: 0 auto 16px;
+  }
+
+  .cover-price {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    color: var(--hoy-dark-gray);
+    letter-spacing: 1px;
+  }
+
+  .cover-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 8%;
+    background: var(--hoy-navy);
+    font-family: 'Inter', sans-serif;
+    font-size: 9px;
+    color: rgba(255,255,255,0.7);
+    letter-spacing: 0.5px;
+  }
+
+  .cover-footer a {
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+  }
+
+  /* ══════════════════════════════════════════
+     PAGE 2 — OVERVIEW (Specs + Description)
+     ══════════════════════════════════════════ */
+  .overview {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .overview-hero {
+    height: 38%;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .overview-hero img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .overview-hero-overlay {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 40%;
+    background: linear-gradient(to top, rgba(255,255,255,0.95), transparent);
+  }
+
+  .overview-content {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 35% 1fr;
+    gap: 0;
+    padding: 5% 7% 4%;
+  }
+
+  .specs-column {
+    padding-right: 6%;
+    border-right: 1px solid var(--hoy-warm-gray);
+  }
+
+  .specs-title-block {
+    margin-bottom: 20px;
+  }
+
+  .specs-title-block h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 24px;
+    font-weight: 400;
+    color: var(--hoy-black);
+    margin-bottom: 4px;
+  }
+
+  .specs-section-label {
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--hoy-accent);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .specs-section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--hoy-warm-gray);
+  }
+
+  .spec-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 5px 0;
+    font-size: 10px;
+    line-height: 1.6;
+  }
+
+  .spec-label {
+    color: var(--hoy-mid-gray);
+    font-weight: 400;
+  }
+
+  .spec-value {
+    color: var(--hoy-dark-gray);
+    font-weight: 500;
+    text-align: right;
+  }
+
+  .spec-divider {
+    height: 1px;
+    background: var(--hoy-warm-gray);
+    margin: 10px 0;
+  }
+
+  .price-highlight {
+    margin-top: 16px;
+    padding: 12px 0;
+    border-top: 1px solid var(--hoy-warm-gray);
+    border-bottom: 1px solid var(--hoy-warm-gray);
+  }
+
+  .price-highlight .spec-label {
+    font-weight: 500;
+    color: var(--hoy-dark-gray);
+  }
+
+  .price-highlight .spec-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--hoy-black);
+  }
+
+  .description-column {
+    padding-left: 6%;
+  }
+
+  .desc-intro {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 16px;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--hoy-dark-gray);
+    line-height: 1.6;
+    margin-bottom: 18px;
+  }
+
+  .desc-body {
+    font-size: 10.5px;
+    line-height: 1.75;
+    color: var(--hoy-dark-gray);
+    font-weight: 300;
+  }
+
+  .desc-body p {
+    margin-bottom: 12px;
+  }
+
+  .overview-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 7%;
+    background: var(--hoy-offwhite);
+    border-top: 1px solid var(--hoy-warm-gray);
+    font-size: 9px;
+    color: var(--hoy-mid-gray);
+  }
+
+  .overview-footer-accent {
+    width: 30px;
+    height: 2px;
+    background: var(--hoy-accent);
+  }
+
+  /* ══════════════════════════════════════════
+     PAGE 3 — PHOTO GALLERY
+     ══════════════════════════════════════════ */
+  .gallery {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 6% 6% 4%;
+  }
+
+  .gallery-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 4%;
+  }
+
+  .gallery-header h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--hoy-black);
+  }
+
+  .gallery-header .gallery-subtitle {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--hoy-mid-gray);
+    font-weight: 500;
+  }
+
+  .gallery-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1.4fr 1fr 1fr;
+    gap: 8px;
+  }
+
+  .gallery-grid .gi {
+    overflow: hidden;
+    border-radius: 2px;
+    position: relative;
+  }
+
+  .gallery-grid .gi img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .gallery-grid .gi-wide {
+    grid-column: 1 / -1;
+  }
+
+  .gallery-page-indicator {
+    text-align: center;
+    padding-top: 3%;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: var(--hoy-mid-gray);
+  }
+
+  /* ══════════════════════════════════════════
+     PAGE 4 — EQUIPMENT LIST
+     ══════════════════════════════════════════ */
+  .equipment {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 6% 7% 4%;
+  }
+
+  .equipment-header {
+    margin-bottom: 4%;
+  }
+
+  .equipment-header h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--hoy-black);
+    margin-bottom: 4px;
+  }
+
+  .equipment-header p {
+    font-size: 10px;
+    color: var(--hoy-mid-gray);
+    font-weight: 300;
+  }
+
+  .equipment-body {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 8%;
+  }
+
+  .equip-category {
+    margin-bottom: 22px;
+  }
+
+  .equip-category-title {
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--hoy-accent);
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--hoy-warm-gray);
+  }
+
+  .equip-item {
+    font-size: 10px;
+    line-height: 1.5;
+    color: var(--hoy-dark-gray);
+    font-weight: 300;
+    padding: 3px 0;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .equip-item::before {
+    content: '';
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--hoy-accent);
+    flex-shrink: 0;
+    margin-top: 5px;
+  }
+
+  .equip-note {
+    font-size: 9px;
+    color: var(--hoy-mid-gray);
+    font-style: italic;
+    margin-left: 11px;
+  }
+
+  /* ══════════════════════════════════════════
+     PAGE 5 — SELLER DECLARATION
+     ══════════════════════════════════════════ */
+  .declaration {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 6% 7% 4%;
+  }
+
+  .declaration-header {
+    margin-bottom: 4%;
+  }
+
+  .declaration-header h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--hoy-black);
+    margin-bottom: 4px;
+  }
+
+  .declaration-header p {
+    font-size: 10px;
+    color: var(--hoy-mid-gray);
+    font-weight: 300;
+  }
+
+  .declaration-body {
+    flex: 1;
+  }
+
+  .decl-section {
+    margin-bottom: 20px;
+  }
+
+  .decl-section-title {
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--hoy-accent);
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--hoy-warm-gray);
+  }
+
+  .decl-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    padding: 6px 0;
+    font-size: 10px;
+    border-bottom: 1px solid rgba(232, 229, 224, 0.5);
+  }
+
+  .decl-question {
+    color: var(--hoy-dark-gray);
+    font-weight: 300;
+    line-height: 1.5;
+  }
+
+  .decl-answer {
+    font-weight: 500;
+    color: var(--hoy-black);
+    white-space: nowrap;
+  }
+
+  .decl-answer.yes { color: var(--hoy-accent); }
+  .decl-answer.no { color: var(--hoy-mid-gray); }
+
+  .decl-comment {
+    grid-column: 1 / -1;
+    font-size: 9px;
+    color: var(--hoy-mid-gray);
+    font-style: italic;
+    padding: 2px 0 4px 12px;
+    border-left: 2px solid var(--hoy-warm-gray);
+    margin-top: 2px;
+  }
+
+  .declaration-notice {
+    margin-top: auto;
+    padding: 14px 16px;
+    background: var(--hoy-offwhite);
+    border-radius: 4px;
+    font-size: 8.5px;
+    color: var(--hoy-mid-gray);
+    line-height: 1.6;
+  }
+
+  /* ══════════════════════════════════════════
+     PAGE 6 — BROKER / CONTACT
+     ══════════════════════════════════════════ */
+  .contact {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .contact-image-area {
+    height: 55%;
+    overflow: hidden;
+    position: relative;
+    background: var(--hoy-navy);
+  }
+
+  .contact-image-area img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.85;
+  }
+
+  .contact-image-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      transparent 40%,
+      rgba(27, 43, 58, 0.95) 100%
+    );
+  }
+
+  .contact-image-text {
+    position: absolute;
+    bottom: 8%;
+    left: 8%;
+    right: 8%;
+    color: var(--hoy-white);
+  }
+
+  .contact-image-text h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 32px;
+    font-weight: 300;
+    margin-bottom: 6px;
+  }
+
+  .contact-image-text p {
+    font-size: 11px;
+    font-weight: 300;
+    opacity: 0.75;
+    line-height: 1.6;
+  }
+
+  .contact-body {
+    flex: 1;
+    padding: 6% 8%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .contact-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 24px;
+    align-items: center;
+    margin-bottom: 30px;
+  }
+
+  .contact-avatar {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: var(--hoy-warm-gray);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 24px;
+    color: var(--hoy-dark-gray);
+  }
+
+  .contact-info h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px;
+    font-weight: 400;
+    color: var(--hoy-black);
+    margin-bottom: 2px;
+  }
+
+  .contact-info .contact-role {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--hoy-mid-gray);
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+
+  .contact-detail {
+    font-size: 10.5px;
+    color: var(--hoy-dark-gray);
+    font-weight: 300;
+    line-height: 1.8;
+  }
+
+  .contact-cta {
+    text-align: center;
+    padding: 20px;
+    border: 1px solid var(--hoy-warm-gray);
+    border-radius: 4px;
+  }
+
+  .contact-cta p {
+    font-size: 10px;
+    color: var(--hoy-mid-gray);
+    font-weight: 300;
+    margin-bottom: 10px;
+  }
+
+  .contact-cta .cta-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    color: var(--hoy-black);
+  }
+
+  .contact-footer {
+    margin-top: auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 8%;
+    background: var(--hoy-navy);
+    font-size: 8px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 0.5px;
+  }
+
+  .contact-footer-logo svg {
+    width: 40px;
+    height: auto;
+  }
+
+  /* ── SVG Logo ── */
+  .hoy-logo-white { fill: white; }
+  .hoy-logo-dark { fill: var(--hoy-black); }
+
+  /* ── Placeholder images ── */
+  .placeholder-img {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, var(--hoy-navy) 0%, #2a4a5e 50%, var(--hoy-accent) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,0.2);
+    font-size: 12px;
+    font-weight: 300;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .placeholder-img.light {
+    background: linear-gradient(135deg, var(--hoy-offwhite) 0%, var(--hoy-warm-gray) 100%);
+    color: rgba(0,0,0,0.1);
+  }
+
+  .placeholder-img.warm {
+    background: linear-gradient(135deg, #2a4a5e 0%, var(--hoy-navy) 50%, #1a3a4e 100%);
+  }
+
+  .placeholder-img.interior {
+    background: linear-gradient(135deg, #3d3530 0%, #5a4a3e 50%, #4d3d32 100%);
+  }
+</style>
+</head>
+<body>
+
+<div class="page-wrapper">
+
+  <!-- ═══════════ PAGE 1: COVER ═══════════ -->
+  <div class="page-label">Side 1 — Forside</div>
+  <div class="page">
+    <div class="cover">
+      <div class="cover-image-area">
+        <div class="placeholder-img">Hero — fullbredde actionbilde</div>
+        <div class="cover-image-overlay"></div>
+
+        <!-- HoY Logo -->
+        <div class="cover-logo">
+          <svg viewBox="0 0 200 180" xmlns="http://www.w3.org/2000/svg">
+            <rect x="40" y="10" width="120" height="120" fill="none" stroke="white" stroke-width="2.5"/>
+            <line x1="40" y1="130" x2="100" y2="10" stroke="white" stroke-width="2.5"/>
+            <text x="100" y="76" text-anchor="middle" font-family="'Cormorant Garamond', serif" font-size="56" font-weight="300" fill="white">H</text>
+            <text x="100" y="120" text-anchor="middle" font-family="'Cormorant Garamond', serif" font-size="56" font-weight="300" fill="white">Y</text>
+            <text x="100" y="155" text-anchor="middle" font-family="'Inter', sans-serif" font-size="9" font-weight="400" letter-spacing="12" fill="white">HOUSE OF YACHTS</text>
+          </svg>
+        </div>
+      </div>
+
+      <div class="cover-bottom">
+        <div class="cover-year">2 0 2 3</div>
+        <h1 class="cover-title">Saxdor 320 GTC</h1>
+        <div class="cover-divider"></div>
+        <div class="cover-price">NOK 2.590.000,-</div>
+      </div>
+
+      <div class="cover-footer">
+        <span>Dicks vei 12 &nbsp;&middot;&nbsp; 1366 Lysaker</span>
+        <span><strong style="color:rgba(255,255,255,0.9)">Sindre Jacobsen</strong> &nbsp;&middot;&nbsp; +47 938 40 189 &nbsp;&middot;&nbsp; sindre@h-y.no</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ PAGE 2: OVERVIEW ═══════════ -->
+  <div class="page-label">Side 2 — Oversikt</div>
+  <div class="page">
+    <div class="overview">
+      <div class="overview-hero">
+        <div class="placeholder-img warm">Oversiktsbilde — f.eks. fugleperspektiv</div>
+        <div class="overview-hero-overlay"></div>
+      </div>
+
+      <div class="overview-content">
+        <div class="specs-column">
+          <div class="specs-title-block">
+            <h2>Saxdor 320 GTC</h2>
+          </div>
+
+          <div class="specs-section-label">Spesifikasjoner</div>
+
+          <div class="spec-row">
+            <span class="spec-label">Merke</span>
+            <span class="spec-value">Saxdor</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">Modell</span>
+            <span class="spec-value">320 GTC</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">Årsmodell</span>
+            <span class="spec-value">2023</span>
+          </div>
+
+          <div class="spec-divider"></div>
+
+          <div class="spec-row">
+            <span class="spec-label">Lengde</span>
+            <span class="spec-value">34 fot</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">Bredde</span>
+            <span class="spec-value">310 cm</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">Motor</span>
+            <span class="spec-value">2 × Mercury 300 V8</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">Motortype</span>
+            <span class="spec-value">Utenbords</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">Effekt</span>
+            <span class="spec-value">600 hk</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">Maks fart</span>
+            <span class="spec-value">45 knop</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">Drivstoff</span>
+            <span class="spec-value">Bensin</span>
+          </div>
+
+          <div class="spec-divider"></div>
+
+          <div class="spec-row">
+            <span class="spec-label">Materiale</span>
+            <span class="spec-value">Glassfiber</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">Farge</span>
+            <span class="spec-value">Hvit</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">Timer</span>
+            <span class="spec-value">ca. 80</span>
+          </div>
+
+          <div class="price-highlight">
+            <div class="spec-row" style="padding:0">
+              <span class="spec-label">Prisantydning</span>
+              <span class="spec-value">NOK 2.590.000,-</span>
+            </div>
+          </div>
+
+          <div style="margin-top:14px">
+            <div class="specs-section-label">Kapasiteter</div>
+            <div class="spec-row">
+              <span class="spec-label">Ferskvann</span>
+              <span class="spec-value">100 liter</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-label">Septik</span>
+              <span class="spec-value">60 liter</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-label">Gråvann</span>
+              <span class="spec-value">40 liter</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="description-column">
+          <p class="desc-intro">
+            House of Yachts har gleden av å presentere en meget velholdt og riktig utstyrt Saxdor 320 GTC, levert ny i Norge i 2023.
+          </p>
+
+          <div class="desc-body">
+            <p>Med to Mercury 300 V8 AMS og kun ca. 80 timer, kombinerer denne båten ytelse, funksjon og overnatting i en frisk og prisbelønt design.</p>
+
+            <p>Den innovative layouten med walkaround-dekk, sidedør og full bredde skyvedør til salong gir imponerende bevegelsesfrihet — samtidig som interiøret byr på soveløsning og praktiske fasiliteter for helgeturer.</p>
+
+            <p>Et særtrekk ved 320 GTC er de elektrisk nedfellbare skrogsidene akter, som utvider dekksarealet betraktelig og skaper en luftig terrassefølelse på sjøen. Når sidene er nede, får du en åpen, sosial flate som innbyr til både bading, soling og måltider om bord.</p>
+
+            <p>Når du er klar for avgang, felles de enkelt opp igjen med et knappetrykk. En genial løsning — både estetisk og praktisk.</p>
+
+            <p>Båten er skipsregistrert, har hatt kun én eier og er hovedsakelig brukt i ferskvann. Den fremstår i svært god teknisk og kosmetisk stand, og leveres med full servicehistorikk.</p>
+
+            <p style="margin-top:18px; padding-top:14px; border-top:1px solid var(--hoy-warm-gray); font-style:italic; color:var(--hoy-mid-gray);">
+              Visning etter avtale på vår salgsbrygge på Lysaker.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="overview-footer">
+        <div class="overview-footer-accent"></div>
+        <span>House of Yachts &nbsp;·&nbsp; Dicks vei 12, 1366 Lysaker &nbsp;·&nbsp; h-y.no</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ PAGE 3: GALLERY ═══════════ -->
+  <div class="page-label">Side 3 — Bildegalleri</div>
+  <div class="page">
+    <div class="gallery">
+      <div class="gallery-header">
+        <h2>Bildegalleri</h2>
+        <span class="gallery-subtitle">Saxdor 320 GTC &nbsp;·&nbsp; 2023</span>
+      </div>
+
+      <div class="gallery-grid">
+        <div class="gi gi-wide">
+          <div class="placeholder-img warm">Bredformat — cockpit / dekk</div>
+        </div>
+        <div class="gi">
+          <div class="placeholder-img interior">Interiør — salong</div>
+        </div>
+        <div class="gi">
+          <div class="placeholder-img interior">Interiør — kahytt</div>
+        </div>
+        <div class="gi">
+          <div class="placeholder-img warm">Detalj — dashbord</div>
+        </div>
+        <div class="gi">
+          <div class="placeholder-img">Motor / akter</div>
+        </div>
+      </div>
+
+      <div class="gallery-page-indicator">1 / 2</div>
+    </div>
+  </div>
+
+  <!-- ═══════════ PAGE 4: EQUIPMENT ═══════════ -->
+  <div class="page-label">Side 4 — Utstyrsliste</div>
+  <div class="page">
+    <div class="equipment">
+      <div class="equipment-header">
+        <h2>Utstyr og spesifikasjoner</h2>
+        <p>Komplett oversikt over utstyr og tilbehør</p>
+      </div>
+
+      <div class="equipment-body">
+        <div>
+          <div class="equip-category">
+            <div class="equip-category-title">Høydepunkter</div>
+            <div class="equip-item">2 × Mercury 300 V8 AMS — ca. 80 timer</div>
+            <div class="equip-item">Baugthruster</div>
+            <div class="equip-item">Avansert Fusion stereoanlegg</div>
+            <div class="equip-item equip-note">Oppgradert radio, forsterker og 8 høyttalere</div>
+            <div class="equip-item">Webasto dieselvarmer i kabin og front</div>
+            <div class="equip-item">Walkaround-layout med sidedør til fordekk</div>
+            <div class="equip-item">Solpute på fordekk + akterbenk med bord</div>
+          </div>
+
+          <div class="equip-category">
+            <div class="equip-category-title">Dekk og eksteriør</div>
+            <div class="equip-item">Solskjerming (biminitopp) og trekk til alle puter</div>
+            <div class="equip-item">Skyvedør i glass i full bredde inn til salong</div>
+            <div class="equip-item">Elektrisk nedfellbare skrogsider akter</div>
+            <div class="equip-item">Dusj akter og bidedusj på toalettrom</div>
+            <div class="equip-item">Softgrip dørk (lys)</div>
+            <div class="equip-item">LED dekkslys og gulvbelysning i cockpit</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="equip-category">
+            <div class="equip-category-title">Kabin og interiør</div>
+            <div class="equip-item">Soveløsning i kabin + sittegruppe i cockpit</div>
+            <div class="equip-item">Lifestyle-pakke</div>
+            <div class="equip-item equip-note">Fjærmadrass m/ overmadrass, formsydd sengetrekk</div>
+            <div class="equip-item">Gardiner og myggnett i frontkabin</div>
+            <div class="equip-item">Åpningsvinduer og lys takluke</div>
+            <div class="equip-item">Lys interiør, hvitt skrog og overbygg</div>
+            <div class="equip-item">Putefarge: Smoked Orange (ekstra)</div>
+          </div>
+
+          <div class="equip-category">
+            <div class="equip-category-title">Strøm og komfort</div>
+            <div class="equip-item">Landstrøm 230V m/ 40A lader</div>
+            <div class="equip-item">El. toalett og varmtvannsbereder</div>
+            <div class="equip-item">LED-belysning og USB-uttak</div>
+            <div class="equip-item">Diesel kokeplate + kjøleskap i pentry</div>
+          </div>
+
+          <div class="equip-category">
+            <div class="equip-category-title">Navigasjon</div>
+            <div class="equip-item">Kartbrikke for Skagerrak/Kattegatt</div>
+            <div class="equip-item">Bunnstoffet og levert klargjort for nordiske forhold</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ PAGE 5: SELLER DECLARATION ═══════════ -->
+  <div class="page-label">Side 5 — Selgers egenerklæring</div>
+  <div class="page">
+    <div class="declaration">
+      <div class="declaration-header">
+        <h2>Selgers egenerklæring</h2>
+        <p>Utfylt og signert av eier. Opplysningene gis i god tro og etter beste evne.</p>
+      </div>
+
+      <div class="declaration-body">
+        <div class="decl-section">
+          <div class="decl-section-title">Eierforhold og dokumentasjon</div>
+
+          <div class="decl-row">
+            <span class="decl-question">Er du registrert eier av fartøyet?</span>
+            <span class="decl-answer yes">Ja</span>
+          </div>
+          <div class="decl-row">
+            <span class="decl-question">Er fartøyet skipsregistrert eller registrert i Småbåtregisteret?</span>
+            <span class="decl-answer yes">Ja</span>
+          </div>
+          <div class="decl-row">
+            <span class="decl-question">Foreligger det heftelser, pant eller gjeld knyttet til fartøyet?</span>
+            <span class="decl-answer no">Nei</span>
+          </div>
+          <div class="decl-row">
+            <span class="decl-question">Har fartøyet vært involvert i grunnstøting, kollisjon eller annen skade?</span>
+            <span class="decl-answer no">Nei</span>
+          </div>
+          <div class="decl-row">
+            <span class="decl-question">Har det vært utført forsikringsskadeoppgjør?</span>
+            <span class="decl-answer no">Nei</span>
+          </div>
+        </div>
+
+        <div class="decl-section">
+          <div class="decl-section-title">Teknisk tilstand</div>
+
+          <div class="decl-row">
+            <span class="decl-question">Er du kjent med feil eller mangler ved motor/drev?</span>
+            <span class="decl-answer no">Nei</span>
+          </div>
+          <div class="decl-row">
+            <span class="decl-question">Er du kjent med feil eller mangler ved skrog/dekk?</span>
+            <span class="decl-answer no">Nei</span>
+          </div>
+          <div class="decl-row">
+            <span class="decl-question">Er du kjent med feil ved elektrisk anlegg?</span>
+            <span class="decl-answer no">Nei</span>
+          </div>
+          <div class="decl-row">
+            <span class="decl-question">Er det utført reparasjoner eller utbedringer siste 3 år?</span>
+            <span class="decl-answer yes">Ja</span>
+          </div>
+          <div class="decl-comment">Ny impeller montert ved 60-timersservice (2024). Full service utført hos autorisert Mercury-forhandler.</div>
+          <div class="decl-row">
+            <span class="decl-question">Er fartøyet hovedsakelig brukt i ferskvann?</span>
+            <span class="decl-answer yes">Ja</span>
+          </div>
+        </div>
+
+        <div class="decl-section">
+          <div class="decl-section-title">Utstyr og tilbehør</div>
+
+          <div class="decl-row">
+            <span class="decl-question">Følger alt utstyr nevnt i annonsen med i salget?</span>
+            <span class="decl-answer yes">Ja</span>
+          </div>
+          <div class="decl-row">
+            <span class="decl-question">Er det utstyr som ikke fungerer som det skal?</span>
+            <span class="decl-answer no">Nei</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="declaration-notice">
+        Egenerklæringen er signert digitalt av selger via Oneflow. Originaldokumentet er tilgjengelig ved forespørsel til ansvarlig megler. Opplysningene erstatter ikke en uavhengig tilstandsvurdering.
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ PAGE 6: CONTACT / BACK ═══════════ -->
+  <div class="page-label">Side 6 — Kontakt</div>
+  <div class="page">
+    <div class="contact">
+      <div class="contact-image-area">
+        <div class="placeholder-img warm">Stemningsbilde — sjø / brygge / solnedgang</div>
+        <div class="contact-image-overlay"></div>
+        <div class="contact-image-text">
+          <h2>Interessert?</h2>
+          <p>Ta kontakt for visning eller ytterligere informasjon om dette fartøyet. Vi er tilgjengelige for spørsmål og arrangerer gjerne en uforpliktende befaring.</p>
+        </div>
+      </div>
+
+      <div class="contact-body">
+        <div class="contact-card">
+          <div class="contact-avatar">SJ</div>
+          <div class="contact-info">
+            <h3>Sindre Jacobsen</h3>
+            <div class="contact-role">Ansvarlig megler</div>
+            <div class="contact-detail">
+              +47 938 40 189<br>
+              sindre@h-y.no
+            </div>
+          </div>
+        </div>
+
+        <div class="contact-cta">
+          <p>Besøk oss for visning</p>
+          <div class="cta-text">Dicks vei 12, 1366 Lysaker</div>
+        </div>
+      </div>
+
+      <div class="contact-footer">
+        <span>© 2026 House of Yachts &nbsp;·&nbsp; Org.nr 925 123 456</span>
+        <span>h-y.no</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

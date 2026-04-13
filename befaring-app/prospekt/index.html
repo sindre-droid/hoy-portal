@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Prospekt-editor — House of Yachts</title>
+<style>
+  :root {
+    --navy:#0a2140;--gold:#c9a84c;--white:#fff;--surface:#f5f7fa;
+    --gray:#dde3ec;--gray-dark:#6b7a8d;--text:#12233a;
+    --green:#166534;--green-bg:#dcfce7;
+    --red:#991b1b;--red-bg:#fee2e2;
+    --yellow:#92400e;--yellow-bg:#fef3c7;
+    --blue:#1e40af;--blue-bg:#dbeafe;
+    --radius:12px;--shadow:0 2px 16px rgba(10,33,64,0.10);
+  }
+  *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--surface);color:var(--text);margin:0;padding:0;min-height:100vh}
+
+  /* ── Loading / Login ── */
+  .loading-screen,.login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy)}
+  .loading-text{color:rgba(255,255,255,0.5);font-size:15px}
+  .login-box{background:white;border-radius:20px;padding:40px 36px;max-width:400px;width:calc(100% - 32px);text-align:center;box-shadow:0 8px 40px rgba(0,0,0,0.3)}
+  .login-logo{font-size:22px;font-weight:800;color:var(--navy);margin-bottom:4px}
+  .login-sub{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:28px}
+  .login-form{display:flex;flex-direction:column;gap:12px;text-align:left;margin-bottom:20px}
+  .login-form label{font-size:13px;font-weight:600;color:var(--navy);display:block;margin-bottom:4px}
+  .login-form input{width:100%;padding:13px 15px;border:2px solid var(--gray);border-radius:10px;font-size:16px;font-family:inherit}
+  .login-form input:focus{outline:none;border-color:var(--navy)}
+  .btn-login{width:100%;padding:15px;background:var(--navy);color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer}
+  .login-error{color:#991b1b;font-size:13px;font-weight:600;margin-top:10px;display:none}
+
+  /* ── Header ── */
+  .header{background:var(--navy);color:white;padding:14px 20px;position:sticky;top:0;z-index:200;box-shadow:0 2px 16px rgba(0,0,0,0.35)}
+  .header-inner{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .brand{display:flex;flex-direction:column}
+  .brand-name{font-size:14px;font-weight:800;letter-spacing:0.8px}
+  .brand-sub{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--gold)}
+  .header-title{font-size:16px;font-weight:700;color:rgba(255,255,255,0.9)}
+  .header-right{display:flex;align-items:center;gap:12px}
+  .user-label{font-size:12px;color:rgba(255,255,255,0.55)}
+  .btn-nav{background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.18);border-radius:20px;color:rgba(255,255,255,0.85);padding:6px 14px;font-size:12px;font-family:inherit;cursor:pointer;text-decoration:none}
+  .btn-nav:hover{background:rgba(255,255,255,0.2)}
+
+  /* ── Picker ── */
+  .picker-wrap{max-width:700px;margin:60px auto;padding:0 16px;text-align:center}
+  .picker-title{font-size:22px;font-weight:700;color:var(--navy);margin-bottom:8px}
+  .picker-sub{font-size:14px;color:var(--gray-dark);margin-bottom:24px}
+  .deal-select{width:100%;padding:14px 16px;border:2px solid var(--gray);border-radius:12px;font-size:16px;font-family:inherit;color:var(--text);background:white;cursor:pointer}
+  .deal-select:focus{outline:none;border-color:var(--navy)}
+  .btn-primary{background:var(--navy);color:white;border:none;border-radius:10px;padding:14px 28px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity 0.2s}
+  .btn-primary:hover{opacity:0.88}
+  .btn-primary:disabled{opacity:0.4;cursor:not-allowed}
+
+  /* ── Prospekt-liste ── */
+  .prospekt-list{margin-top:36px;text-align:left}
+  .prospekt-list h3{font-size:14px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gray-dark);margin-bottom:12px}
+  .pl-card{background:white;border:2px solid var(--gray);border-radius:12px;padding:16px 20px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:border-color 0.15s}
+  .pl-card:hover{border-color:var(--navy)}
+  .pl-name{font-size:15px;font-weight:700;color:var(--navy)}
+  .pl-meta{font-size:12px;color:var(--gray-dark)}
+  .pl-badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+  .pl-badge.draft{background:var(--yellow-bg);color:var(--yellow)}
+  .pl-badge.published{background:var(--green-bg);color:var(--green)}
+
+  /* ── Editor layout ── */
+  .editor-wrap{max-width:1200px;margin:0 auto;padding:24px 16px 80px}
+  .editor-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+  .editor-header h2{font-size:22px;font-weight:800;color:var(--navy);margin:0}
+  .editor-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .btn-gold{background:var(--gold);color:var(--navy);border:none;border-radius:10px;padding:12px 22px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+  .btn-gold:hover{opacity:0.88}
+  .btn-gold:disabled{opacity:0.4;cursor:not-allowed}
+  .btn-outline{background:white;color:var(--navy);border:2px solid var(--gray);border-radius:10px;padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+  .btn-outline:hover{border-color:var(--navy)}
+  .btn-danger{background:white;color:var(--red);border:2px solid var(--red);border-radius:10px;padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+
+  /* ── Section cards ── */
+  .section-grid{display:grid;grid-template-columns:1fr;gap:16px}
+  .sec-card{background:white;border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+  .sec-card-header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--gray);cursor:pointer;user-select:none}
+  .sec-card-header:hover{background:#f8fafd}
+  .sec-card-title{font-size:15px;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:8px}
+  .sec-card-title .drag-handle{cursor:grab;color:var(--gray-dark);font-size:16px}
+  .sec-toggle{font-size:18px;color:var(--gray-dark);transition:transform 0.2s}
+  .sec-toggle.open{transform:rotate(180deg)}
+  .sec-card-body{padding:20px;display:none}
+  .sec-card-body.open{display:block}
+
+  /* ── Form fields ── */
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:13px;font-weight:600;color:var(--navy);margin-bottom:5px}
+  .field input,.field select,.field textarea{width:100%;padding:11px 13px;border:2px solid var(--gray);border-radius:8px;font-size:15px;font-family:inherit;color:var(--text)}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--navy)}
+  .field textarea{resize:vertical;min-height:100px}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .field-hint{font-size:12px;color:var(--gray-dark);margin-top:4px}
+
+  /* ── Image upload ── */
+  .img-drop{border:2px dashed var(--gray);border-radius:10px;padding:28px 16px;text-align:center;cursor:pointer;transition:border-color 0.15s;background:var(--surface)}
+  .img-drop:hover,.img-drop.dragover{border-color:var(--gold);background:#fffbeb}
+  .img-drop-text{font-size:13px;color:var(--gray-dark)}
+  .img-preview{position:relative;display:inline-block;margin:8px 8px 0 0}
+  .img-preview img{width:120px;height:80px;object-fit:cover;border-radius:6px;border:2px solid var(--gray)}
+  .img-preview .img-remove{position:absolute;top:-6px;right:-6px;width:22px;height:22px;background:var(--red);color:white;border:none;border-radius:50%;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+
+  /* ── Spec rows ── */
+  .spec-editor-row{display:flex;gap:8px;margin-bottom:6px;align-items:center}
+  .spec-editor-row input{flex:1}
+  .btn-icon{width:32px;height:32px;border:none;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+  .btn-icon-add{background:var(--green-bg);color:var(--green)}
+  .btn-icon-del{background:var(--red-bg);color:var(--red)}
+
+  /* ── Equipment editor ── */
+  .equip-cat-card{border:1px solid var(--gray);border-radius:8px;padding:14px;margin-bottom:12px}
+  .equip-cat-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .equip-cat-name{font-size:13px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:1px}
+  .equip-item-row{display:flex;gap:6px;margin-bottom:4px;align-items:center}
+  .equip-item-row input{flex:1;padding:7px 10px;font-size:13px}
+
+  /* ── Gallery editor ── */
+  .gallery-images-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:10px}
+  .gallery-img-card{position:relative;border-radius:8px;overflow:hidden;border:2px solid var(--gray);background:var(--surface)}
+  .gallery-img-card img{width:100%;height:100px;object-fit:cover;display:block}
+  .gallery-img-card .caption-input{width:100%;border:none;border-top:1px solid var(--gray);padding:6px 8px;font-size:11px;font-family:inherit}
+  .gallery-img-card .caption-input:focus{outline:none;background:#fffbeb}
+  .gallery-img-card .img-remove{position:absolute;top:4px;right:4px;width:22px;height:22px;background:rgba(0,0,0,0.6);color:white;border:none;border-radius:50%;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+  /* ── Toast ── */
+  .toast{position:fixed;bottom:24px;right:24px;padding:14px 24px;border-radius:10px;font-size:14px;font-weight:600;z-index:999;transition:opacity 0.3s,transform 0.3s;opacity:0;transform:translateY(12px);pointer-events:none}
+  .toast.show{opacity:1;transform:translateY(0)}
+  .toast.success{background:var(--green-bg);color:var(--green);border:1px solid #86efac}
+  .toast.error{background:var(--red-bg);color:var(--red);border:1px solid #fca5a5}
+
+  /* ── Sortable drag ghost ── */
+  .sec-card.dragging{opacity:0.5}
+  .sec-card.drag-over{border-top:3px solid var(--gold)}
+
+  .empty-state{text-align:center;padding:48px 20px;color:var(--gray-dark);font-size:15px}
+
+  /* ── Status indicator ── */
+  .save-indicator{font-size:12px;color:var(--gray-dark);padding:4px 10px}
+  .save-indicator.saving{color:var(--gold)}
+  .save-indicator.saved{color:var(--green)}
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loadingScreen" class="loading-screen" style="display:none">
+  <div class="loading-text" id="loadingText">Starter…</div>
+</div>
+
+<!-- Login -->
+<div id="loginScreen" class="login-screen" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">HOUSE OF YACHTS</div>
+    <div class="login-sub">Prospekt-editor</div>
+    <div class="login-form">
+      <div><label for="loginEmail">E-post</label>
+        <input type="email" id="loginEmail" placeholder="navn@h-y.no" autocomplete="email"></div>
+      <div><label for="loginPassword">Passord</label>
+        <input type="password" id="loginPassword" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter')doLogin()"></div>
+    </div>
+    <div class="login-error" id="loginError"></div>
+    <button class="btn-login" id="loginBtn" onclick="doLogin()">Logg inn</button>
+  </div>
+</div>
+
+<!-- App -->
+<div id="appScreen" style="display:none">
+
+  <div class="header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-name">HOUSE OF YACHTS</div>
+        <div class="brand-sub">Internportal</div>
+      </div>
+      <div class="header-title">Prospekt-editor</div>
+      <div class="header-right">
+        <span class="user-label" id="userLabel"></span>
+        <a href="/" class="btn-nav">← Portal</a>
+        <button class="btn-nav" onclick="doLogout()">Logg ut</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Picker view -->
+  <div id="pickerView">
+    <div class="picker-wrap">
+      <div class="picker-title">Prospekt-editor</div>
+      <div class="picker-sub">Opprett eller rediger prospekt for et oppdrag</div>
+
+      <select class="deal-select" id="dealSelect" onchange="onDealSelect()">
+        <option value="">Laster oppdrag…</option>
+      </select>
+      <div style="margin-top:14px;display:flex;gap:10px;justify-content:center">
+        <button class="btn-primary" id="createBtn" disabled onclick="createProspekt()">+ Nytt prospekt</button>
+      </div>
+
+      <div class="prospekt-list" id="prospektList"></div>
+    </div>
+  </div>
+
+  <!-- Editor view -->
+  <div id="editorView" style="display:none">
+    <div class="editor-wrap">
+
+      <div class="editor-header">
+        <div>
+          <h2 id="editorTitle">Redigerer prospekt</h2>
+          <span class="save-indicator" id="saveIndicator"></span>
+        </div>
+        <div class="editor-actions">
+          <button class="btn-outline" onclick="backToPicker()">← Tilbake</button>
+          <button class="btn-outline" onclick="previewProspekt()">Forhåndsvisning</button>
+          <button class="btn-gold" id="saveBtn" onclick="saveProspekt()">Lagre</button>
+          <button class="btn-primary" id="publishBtn" onclick="togglePublish()">Publiser</button>
+        </div>
+      </div>
+
+      <div class="section-grid" id="sectionGrid">
+        <!-- Sections rendered by JS -->
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Constants ────────────────────────────────────────────────────────────────
+const API = '/.netlify/functions/prospekt';
+const AUTH_API = '/.netlify/functions/auth';
+const $ = id => document.getElementById(id);
+
+let accessToken = null;
+let currentProspekt = null;  // full prospekt object from API
+let autoSaveTimer = null;
+
+// ── Screens ──────────────────────────────────────────────────────────────────
+function showScreen(id) {
+  for (const s of ['loadingScreen','loginScreen','appScreen']) $(s).style.display = 'none';
+  $(id).style.display = id === 'appScreen' ? 'block' : 'flex';
+}
+
+// ── Auth ─────────────────────────────────────────────────────────────────────
+async function fetchUser(token) {
+  const p = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+  return { email: p.email, name: p.name || p.email.split('@')[0] };
+}
+
+(async function init() {
+  showScreen('loadingScreen');
+  const saved = localStorage.getItem('hoy_access_token');
+  if (saved) {
+    try {
+      accessToken = saved;
+      const u = await fetchUser(saved);
+      onLogin(u);
+      return;
+    } catch {}
+  }
+  showScreen('loginScreen');
+})();
+
+async function doLogin() {
+  const email = $('loginEmail').value.trim();
+  const pass  = $('loginPassword').value;
+  const err   = $('loginError');
+  const btn   = $('loginBtn');
+  if (!email || !pass) { err.textContent = 'Fyll inn begge felt'; err.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = 'Logger inn…';
+  err.style.display = 'none';
+  try {
+    const r = await fetch(AUTH_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass }),
+    });
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error_description || 'Feil passord eller e-post'); }
+    const data = await r.json();
+    accessToken = data.access_token;
+    localStorage.setItem('hoy_access_token', accessToken);
+    const u = await fetchUser(accessToken);
+    onLogin(u);
+  } catch (e) {
+    err.textContent = e.message; err.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Logg inn';
+  }
+}
+
+function doLogout() {
+  localStorage.removeItem('hoy_access_token');
+  accessToken = null;
+  location.reload();
+}
+
+async function onLogin(user) {
+  $('userLabel').textContent = user.email || '';
+  showScreen('appScreen');
+  await loadPicker();
+}
+
+// ── API helper ───────────────────────────────────────────────────────────────
+async function api(qs, method = 'GET', body = null) {
+  const url = method === 'GET'
+    ? `${API}?${new URLSearchParams(qs)}`
+    : `${API}?${new URLSearchParams(qs)}`;
+  const r = await fetch(url, {
+    method,
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || 'Noe gikk galt');
+  return data;
+}
+
+// ── Toast ────────────────────────────────────────────────────────────────────
+function toast(msg, type = 'success') {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// PICKER VIEW
+// ════════════════════════════════════════════════════════════════════════════════
+
+async function loadPicker() {
+  // Load deals and existing prospekter in parallel
+  const [deals, prospekter] = await Promise.all([
+    api({ deals: 1 }),
+    api({ list: 1 }),
+  ]);
+
+  // Populate deal dropdown (only deals without prospekt)
+  const sel = $('dealSelect');
+  sel.innerHTML = '<option value="">— Velg oppdrag —</option>';
+  for (const d of deals) {
+    if (d.has_prospekt) continue;
+    const opt = document.createElement('option');
+    opt.value = d.id;
+    opt.textContent = d.name;
+    sel.appendChild(opt);
+  }
+
+  $('createBtn').disabled = true;
+
+  // Render existing prospekter
+  const list = $('prospektList');
+  if (prospekter.length === 0) {
+    list.innerHTML = '<div class="empty-state">Ingen prospekter opprettet ennå</div>';
+    return;
+  }
+
+  list.innerHTML = `<h3>Eksisterende prospekter</h3>`;
+  for (const p of prospekter) {
+    const date = new Date(p.updated_at).toLocaleDateString('nb-NO', { day:'numeric', month:'short', year:'numeric' });
+    const card = document.createElement('div');
+    card.className = 'pl-card';
+    card.onclick = () => openEditor(p.id);
+    card.innerHTML = `
+      <div>
+        <div class="pl-name">${esc(p.boat_name || p.deal_name)}</div>
+        <div class="pl-meta">Sist endret: ${date}</div>
+      </div>
+      <span class="pl-badge ${p.status}">${p.status === 'published' ? 'Publisert' : 'Utkast'}</span>
+    `;
+    list.appendChild(card);
+  }
+}
+
+function onDealSelect() {
+  $('createBtn').disabled = !$('dealSelect').value;
+}
+
+async function createProspekt() {
+  const dealId = $('dealSelect').value;
+  if (!dealId) return;
+  $('createBtn').disabled = true;
+  $('createBtn').textContent = 'Oppretter…';
+  try {
+    const p = await api({ action: 'create' }, 'POST', { deal_id: dealId });
+    toast('Prospekt opprettet');
+    await openEditor(p.id);
+  } catch (e) {
+    // Hvis det allerede finnes — åpne det
+    if (e.message.includes('already exists')) {
+      toast('Prospekt finnes allerede — åpner', 'success');
+      // Re-fetch to get the ID
+      await loadPicker();
+    } else {
+      toast(e.message, 'error');
+    }
+  }
+  $('createBtn').disabled = false;
+  $('createBtn').textContent = '+ Nytt prospekt';
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// EDITOR VIEW
+// ════════════════════════════════════════════════════════════════════════════════
+
+async function openEditor(id) {
+  currentProspekt = await api({ id });
+  $('pickerView').style.display = 'none';
+  $('editorView').style.display = 'block';
+  $('editorTitle').textContent = currentProspekt.boat_name || 'Nytt prospekt';
+  $('publishBtn').textContent = currentProspekt.status === 'published' ? 'Avpubliser' : 'Publiser';
+  renderSections();
+}
+
+function backToPicker() {
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  currentProspekt = null;
+  $('editorView').style.display = 'none';
+  $('pickerView').style.display = 'block';
+  loadPicker();
+}
+
+// ── Section definitions ──────────────────────────────────────────────────────
+const SECTION_DEFS = {
+  cover:       { title: 'Forside',           icon: '🖼️', required: true },
+  overview:    { title: 'Oversikt & Specs',  icon: '📋', required: true },
+  gallery:     { title: 'Bildegalleri',      icon: '📷', required: false },
+  equipment:   { title: 'Utstyrsliste',      icon: '⚙️', required: false },
+  declaration: { title: 'Egenerklæring',     icon: '📝', required: false },
+  freetext:    { title: 'Fritekst',          icon: '✏️', required: false },
+  contact:     { title: 'Kontaktside',       icon: '📞', required: true },
+};
+
+function renderSections() {
+  const grid = $('sectionGrid');
+  grid.innerHTML = '';
+  const order = currentProspekt.sections_order || Object.keys(SECTION_DEFS);
+
+  for (const key of order) {
+    const def = SECTION_DEFS[key];
+    if (!def) continue;
+
+    const card = document.createElement('div');
+    card.className = 'sec-card';
+    card.dataset.section = key;
+    card.draggable = !def.required;
+
+    card.innerHTML = `
+      <div class="sec-card-header" onclick="toggleSection(this)">
+        <div class="sec-card-title">
+          ${!def.required ? '<span class="drag-handle" title="Dra for å sortere">⠿</span>' : ''}
+          <span>${def.icon} ${def.title}</span>
+          ${def.required ? '<span style="font-size:11px;color:var(--gray-dark)">(obligatorisk)</span>' : ''}
+        </div>
+        <span class="sec-toggle">▾</span>
+      </div>
+      <div class="sec-card-body" id="sec-${key}"></div>
+    `;
+    grid.appendChild(card);
+
+    // Render section-specific content
+    renderSectionBody(key);
+  }
+
+  // Set up drag & drop for section reordering
+  setupSectionDrag();
+}
+
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.sec-toggle');
+  body.classList.toggle('open');
+  toggle.classList.toggle('open');
+}
+
+// ── Section body renderers ───────────────────────────────────────────────────
+
+function renderSectionBody(key) {
+  const el = $(`sec-${key}`);
+  const p = currentProspekt;
+
+  switch (key) {
+    case 'cover': el.innerHTML = renderCoverSection(p); break;
+    case 'overview': el.innerHTML = renderOverviewSection(p); break;
+    case 'gallery': el.innerHTML = renderGallerySection(p); break;
+    case 'equipment': el.innerHTML = renderEquipmentSection(p); break;
+    case 'declaration': el.innerHTML = renderDeclarationSection(p); break;
+    case 'freetext': el.innerHTML = renderFreetextSection(p); break;
+    case 'contact': el.innerHTML = renderContactSection(p); break;
+  }
+}
+
+function renderCoverSection(p) {
+  return `
+    <div class="field-row">
+      <div class="field">
+        <label>Båtnavn</label>
+        <input type="text" value="${esc(p.boat_name||'')}" onchange="updateField('boat_name',this.value)">
+      </div>
+      <div class="field">
+        <label>Årsmodell</label>
+        <input type="number" value="${p.model_year||''}" onchange="updateField('model_year',parseInt(this.value)||null)">
+      </div>
+    </div>
+    <div class="field">
+      <label>Prisantydning</label>
+      <input type="text" value="${esc(p.asking_price||'')}" placeholder="2.590.000" onchange="updateField('asking_price',this.value)">
+      <div class="field-hint">Vises som "NOK [verdi],-"</div>
+    </div>
+    <div class="field">
+      <label>Forsidebilde</label>
+      ${renderImageUpload('cover_image_url', p.cover_image_url)}
+    </div>
+  `;
+}
+
+function renderOverviewSection(p) {
+  const specs = p.specs || [];
+  const caps = p.capacities || [];
+  return `
+    <div class="field">
+      <label>Oversiktsbilde (topp)</label>
+      ${renderImageUpload('overview_image_url', p.overview_image_url)}
+    </div>
+    <div class="field">
+      <label>Intro-tekst (kursiv, 1-2 setninger)</label>
+      <textarea rows="3" onchange="updateField('description_intro',this.value)">${esc(p.description_intro||'')}</textarea>
+    </div>
+    <div class="field">
+      <label>Beskrivelse</label>
+      <textarea rows="8" onchange="updateField('description_body',this.value)">${esc(p.description_body||'')}</textarea>
+      <div class="field-hint">Bruk dobbelt linjeskift for nytt avsnitt. HTML-tagger støttes: &lt;p&gt;, &lt;strong&gt;, &lt;em&gt;</div>
+    </div>
+    <div class="field">
+      <label>Visningstekst</label>
+      <input type="text" value="${esc(p.visning_text||'')}" onchange="updateField('visning_text',this.value)">
+    </div>
+    <hr style="border:none;border-top:1px solid var(--gray);margin:20px 0">
+    <div class="field">
+      <label>Spesifikasjoner</label>
+      <div id="specsEditor">${renderSpecRows(specs, 'specs')}</div>
+      <button class="btn-outline" style="margin-top:8px;font-size:13px;padding:6px 14px" onclick="addSpecRow('specs')">+ Legg til rad</button>
+    </div>
+    <div class="field">
+      <label>Kapasiteter</label>
+      <div id="capsEditor">${renderSpecRows(caps, 'capacities')}</div>
+      <button class="btn-outline" style="margin-top:8px;font-size:13px;padding:6px 14px" onclick="addSpecRow('capacities')">+ Legg til rad</button>
+    </div>
+  `;
+}
+
+function renderSpecRows(rows, field) {
+  return rows.map((r, i) => `
+    <div class="spec-editor-row">
+      <input type="text" value="${esc(r.label||'')}" placeholder="Egenskap" style="font-size:13px;padding:7px 10px"
+        onchange="updateSpecRow('${field}',${i},'label',this.value)">
+      <input type="text" value="${esc(r.value||'')}" placeholder="Verdi" style="font-size:13px;padding:7px 10px"
+        onchange="updateSpecRow('${field}',${i},'value',this.value)">
+      <button class="btn-icon btn-icon-del" onclick="removeSpecRow('${field}',${i})">×</button>
+    </div>
+  `).join('');
+}
+
+function renderGallerySection(p) {
+  const pages = p.gallery_pages || [];
+  return `
+    <div class="field-hint" style="margin-bottom:12px">Last opp bilder og organiser i gallerisider. Hver side kan ha 1–5 bilder med valgfri bildetekst.</div>
+    <div id="galleryEditor">
+      ${pages.length === 0 ? '<div class="empty-state" style="padding:20px">Ingen galleribilder ennå</div>' : ''}
+      <div class="gallery-images-grid" id="galleryGrid">
+        ${pages.flatMap((page, pi) => (page.images || []).map((img, ii) => renderGalleryImageCard(img, pi, ii))).join('')}
+      </div>
+    </div>
+    <div style="margin-top:12px">
+      <div class="img-drop" id="galleryDrop"
+        ondragover="event.preventDefault();this.classList.add('dragover')"
+        ondragleave="this.classList.remove('dragover')"
+        ondrop="handleGalleryDrop(event)"
+        onclick="$('galleryFileInput').click()">
+        <div class="img-drop-text">Slipp bilder her eller klikk for å velge</div>
+      </div>
+      <input type="file" id="galleryFileInput" style="display:none" accept="image/*" multiple onchange="handleGalleryFiles(this.files)">
+    </div>
+  `;
+}
+
+function renderGalleryImageCard(img, pageIdx, imgIdx) {
+  return `
+    <div class="gallery-img-card">
+      <img src="${esc(img.url)}" alt="${esc(img.caption||'')}">
+      <input class="caption-input" type="text" value="${esc(img.caption||'')}" placeholder="Bildetekst…"
+        onchange="updateGalleryCaption(${pageIdx},${imgIdx},this.value)">
+      <button class="img-remove" onclick="removeGalleryImage(${pageIdx},${imgIdx})">×</button>
+    </div>
+  `;
+}
+
+function renderEquipmentSection(p) {
+  const cats = p.equipment_categories || [];
+  return `
+    <div id="equipEditor">
+      ${cats.map((c, ci) => renderEquipCategory(c, ci)).join('')}
+    </div>
+    <button class="btn-outline" style="margin-top:10px;font-size:13px;padding:6px 14px" onclick="addEquipCategory()">+ Ny kategori</button>
+  `;
+}
+
+function renderEquipCategory(cat, ci) {
+  return `
+    <div class="equip-cat-card">
+      <div class="equip-cat-header">
+        <input type="text" value="${esc(cat.name||'')}" placeholder="Kategorinavn"
+          style="font-size:13px;font-weight:700;padding:5px 8px;border:1px solid var(--gray);border-radius:4px;width:200px"
+          onchange="updateEquipCatName(${ci},this.value)">
+        <button class="btn-icon btn-icon-del" onclick="removeEquipCategory(${ci})">×</button>
+      </div>
+      <div id="equipItems-${ci}">
+        ${(cat.items||[]).map((item, ii) => `
+          <div class="equip-item-row">
+            <input type="text" value="${esc(item.text||'')}" placeholder="Utstyr…"
+              onchange="updateEquipItem(${ci},${ii},'text',this.value)">
+            <button class="btn-icon btn-icon-del" onclick="removeEquipItem(${ci},${ii})" style="width:26px;height:26px;font-size:13px">×</button>
+          </div>
+        `).join('')}
+      </div>
+      <button class="btn-outline" style="font-size:12px;padding:4px 10px;margin-top:6px" onclick="addEquipItem(${ci})">+ Legg til</button>
+    </div>
+  `;
+}
+
+function renderDeclarationSection(p) {
+  return `
+    <div class="field-hint" style="margin-bottom:12px">
+      Egenerklæringen hentes automatisk fra Oneflow ved publisering.
+      Du kan også redigere seksjonene manuelt her.
+    </div>
+    <div class="empty-state" style="padding:20px;font-size:13px">
+      Automatisk import fra Oneflow kommer i neste versjon.<br>
+      Manuell redigering kan legges til ved behov.
+    </div>
+  `;
+}
+
+function renderFreetextSection(p) {
+  const pages = p.freetext_pages || [];
+  const pg = pages[0] || {};
+  return `
+    <div class="field">
+      <label>Overskrift</label>
+      <input type="text" value="${esc(pg.heading||'')}" placeholder="F.eks. Tilstandsrapport"
+        onchange="updateFreetextField(0,'heading',this.value)">
+    </div>
+    <div class="field">
+      <label>Undertittel (valgfritt)</label>
+      <input type="text" value="${esc(pg.subtitle||'')}"
+        onchange="updateFreetextField(0,'subtitle',this.value)">
+    </div>
+    <div class="field">
+      <label>Innhold</label>
+      <textarea rows="10" onchange="updateFreetextField(0,'content',this.value)">${esc(pg.content||'')}</textarea>
+      <div class="field-hint">Bruk &lt;h3&gt; for underoverskrifter og &lt;p&gt; for avsnitt</div>
+    </div>
+  `;
+}
+
+function renderContactSection(p) {
+  return `
+    <div class="field-row">
+      <div class="field">
+        <label>Meglernavn</label>
+        <input type="text" value="${esc(p.broker_name||'')}" onchange="updateField('broker_name',this.value)">
+      </div>
+      <div class="field">
+        <label>Tittel</label>
+        <input type="text" value="${esc(p.broker_role||'')}" onchange="updateField('broker_role',this.value)">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Telefon</label>
+        <input type="text" value="${esc(p.broker_phone||'')}" onchange="updateField('broker_phone',this.value)">
+      </div>
+      <div class="field">
+        <label>E-post</label>
+        <input type="text" value="${esc(p.broker_email||'')}" onchange="updateField('broker_email',this.value)">
+      </div>
+    </div>
+    <div class="field">
+      <label>Meglerbilde</label>
+      ${renderImageUpload('broker_photo_url', p.broker_photo_url)}
+    </div>
+    <div class="field">
+      <label>Kontaktside-bilde (bakgrunn)</label>
+      ${renderImageUpload('contact_image_url', p.contact_image_url)}
+    </div>
+    <hr style="border:none;border-top:1px solid var(--gray);margin:20px 0">
+    <div class="field-row">
+      <div class="field">
+        <label>CTA-label</label>
+        <input type="text" value="${esc(p.cta_label||'')}" placeholder="Besøk oss for visning" onchange="updateField('cta_label',this.value)">
+      </div>
+      <div class="field">
+        <label>CTA-adresse</label>
+        <input type="text" value="${esc(p.cta_address||'')}" placeholder="Dicks vei 12, 1366 Lysaker" onchange="updateField('cta_address',this.value)">
+      </div>
+    </div>
+  `;
+}
+
+// ── Image upload helper ──────────────────────────────────────────────────────
+
+function renderImageUpload(field, currentUrl) {
+  if (currentUrl) {
+    return `
+      <div class="img-preview">
+        <img src="${esc(currentUrl)}" alt="">
+        <button class="img-remove" onclick="removeImage('${field}')">×</button>
+      </div>
+    `;
+  }
+  const inputId = `file-${field}`;
+  return `
+    <div class="img-drop"
+      ondragover="event.preventDefault();this.classList.add('dragover')"
+      ondragleave="this.classList.remove('dragover')"
+      ondrop="handleSingleImageDrop(event,'${field}')"
+      onclick="$('${inputId}').click()">
+      <div class="img-drop-text">Slipp bilde her eller klikk for å velge</div>
+    </div>
+    <input type="file" id="${inputId}" style="display:none" accept="image/*" onchange="handleSingleImageFile(this.files[0],'${field}')">
+  `;
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// DATA UPDATE FUNCTIONS
+// ════════════════════════════════════════════════════════════════════════════════
+
+function updateField(field, value) {
+  currentProspekt[field] = value;
+  scheduleAutoSave();
+}
+
+// ── Specs / Capacities ──
+function updateSpecRow(field, idx, prop, value) {
+  const arr = currentProspekt[field] || [];
+  if (arr[idx]) { arr[idx][prop] = value; currentProspekt[field] = arr; scheduleAutoSave(); }
+}
+
+function addSpecRow(field) {
+  const arr = currentProspekt[field] || [];
+  arr.push({ label: '', value: '' });
+  currentProspekt[field] = arr;
+  renderSectionBody('overview');
+  // Re-open section
+  $('sec-overview').classList.add('open');
+}
+
+function removeSpecRow(field, idx) {
+  const arr = currentProspekt[field] || [];
+  arr.splice(idx, 1);
+  currentProspekt[field] = arr;
+  renderSectionBody('overview');
+  $('sec-overview').classList.add('open');
+  scheduleAutoSave();
+}
+
+// ── Equipment ──
+function updateEquipCatName(ci, value) {
+  const cats = currentProspekt.equipment_categories || [];
+  if (cats[ci]) { cats[ci].name = value; scheduleAutoSave(); }
+}
+
+function addEquipCategory() {
+  const cats = currentProspekt.equipment_categories || [];
+  cats.push({ name: '', items: [] });
+  currentProspekt.equipment_categories = cats;
+  renderSectionBody('equipment');
+  $('sec-equipment').classList.add('open');
+}
+
+function removeEquipCategory(ci) {
+  const cats = currentProspekt.equipment_categories || [];
+  cats.splice(ci, 1);
+  currentProspekt.equipment_categories = cats;
+  renderSectionBody('equipment');
+  $('sec-equipment').classList.add('open');
+  scheduleAutoSave();
+}
+
+function updateEquipItem(ci, ii, prop, value) {
+  const cats = currentProspekt.equipment_categories || [];
+  if (cats[ci]?.items?.[ii]) { cats[ci].items[ii][prop] = value; scheduleAutoSave(); }
+}
+
+function addEquipItem(ci) {
+  const cats = currentProspekt.equipment_categories || [];
+  if (!cats[ci]) return;
+  cats[ci].items = cats[ci].items || [];
+  cats[ci].items.push({ text: '' });
+  currentProspekt.equipment_categories = cats;
+  renderSectionBody('equipment');
+  $('sec-equipment').classList.add('open');
+}
+
+function removeEquipItem(ci, ii) {
+  const cats = currentProspekt.equipment_categories || [];
+  if (cats[ci]?.items) { cats[ci].items.splice(ii, 1); }
+  currentProspekt.equipment_categories = cats;
+  renderSectionBody('equipment');
+  $('sec-equipment').classList.add('open');
+  scheduleAutoSave();
+}
+
+// ── Freetext ──
+function updateFreetextField(pageIdx, prop, value) {
+  const pages = currentProspekt.freetext_pages || [];
+  if (!pages[pageIdx]) pages[pageIdx] = {};
+  pages[pageIdx][prop] = value;
+  currentProspekt.freetext_pages = pages;
+  scheduleAutoSave();
+}
+
+// ── Gallery ──
+function updateGalleryCaption(pageIdx, imgIdx, value) {
+  const pages = currentProspekt.gallery_pages || [];
+  if (pages[pageIdx]?.images?.[imgIdx]) {
+    pages[pageIdx].images[imgIdx].caption = value;
+    scheduleAutoSave();
+  }
+}
+
+function removeGalleryImage(pageIdx, imgIdx) {
+  const pages = currentProspekt.gallery_pages || [];
+  if (pages[pageIdx]?.images) {
+    // TODO: also delete from storage
+    pages[pageIdx].images.splice(imgIdx, 1);
+    // Remove empty pages
+    currentProspekt.gallery_pages = pages.filter(p => p.images && p.images.length > 0);
+    renderSectionBody('gallery');
+    $('sec-gallery').classList.add('open');
+    scheduleAutoSave();
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// IMAGE UPLOAD
+// ════════════════════════════════════════════════════════════════════════════════
+
+async function uploadImage(file) {
+  const reader = new FileReader();
+  return new Promise((resolve, reject) => {
+    reader.onload = async () => {
+      const base64 = reader.result.split(',')[1];
+      try {
+        const res = await api({ action: 'upload_image' }, 'POST', {
+          prospekt_id: currentProspekt.id,
+          file_name: file.name,
+          file_base64: base64,
+          content_type: file.type,
+        });
+        resolve(res.url);
+      } catch (e) { reject(e); }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleSingleImageFile(file, field) {
+  if (!file) return;
+  toast('Laster opp…');
+  try {
+    const url = await uploadImage(file);
+    currentProspekt[field] = url;
+    scheduleAutoSave();
+    // Re-render the section that contains this field
+    const section = field.includes('contact') || field.includes('broker') || field.includes('cta') ? 'contact' : 'cover';
+    if (field === 'overview_image_url') renderSectionBody('overview');
+    else renderSectionBody(section);
+    $(`sec-${section}`).classList.add('open');
+    toast('Bilde lastet opp');
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+function handleSingleImageDrop(event, field) {
+  event.preventDefault();
+  event.currentTarget.classList.remove('dragover');
+  const file = event.dataTransfer.files[0];
+  if (file) handleSingleImageFile(file, field);
+}
+
+async function handleGalleryFiles(files) {
+  if (!files.length) return;
+  toast(`Laster opp ${files.length} bilde(r)…`);
+  const pages = currentProspekt.gallery_pages || [];
+
+  // Add to first page, or create one
+  if (pages.length === 0) pages.push({ layout: '5up', images: [] });
+  let currentPage = pages[pages.length - 1];
+
+  for (const file of files) {
+    try {
+      const url = await uploadImage(file);
+      // Auto-paginate: max 5 images per page
+      if (currentPage.images.length >= 5) {
+        currentPage = { layout: '4up', images: [] };
+        pages.push(currentPage);
+      }
+      currentPage.images.push({ url, caption: '' });
+    } catch (e) { console.error('Upload failed:', e); }
+  }
+
+  currentProspekt.gallery_pages = pages;
+  renderSectionBody('gallery');
+  $('sec-gallery').classList.add('open');
+  scheduleAutoSave();
+  toast('Bilder lastet opp');
+}
+
+function handleGalleryDrop(event) {
+  event.preventDefault();
+  event.currentTarget.classList.remove('dragover');
+  handleGalleryFiles(event.dataTransfer.files);
+}
+
+async function removeImage(field) {
+  // TODO: delete from Supabase Storage
+  currentProspekt[field] = null;
+  const section = field.includes('contact') || field.includes('broker') ? 'contact'
+    : field === 'overview_image_url' ? 'overview' : 'cover';
+  renderSectionBody(section);
+  $(`sec-${section}`).classList.add('open');
+  scheduleAutoSave();
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// SAVE / PUBLISH
+// ════════════════════════════════════════════════════════════════════════════════
+
+function scheduleAutoSave() {
+  $('saveIndicator').textContent = 'Ulagrede endringer';
+  $('saveIndicator').className = 'save-indicator';
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => saveProspekt(true), 3000);
+}
+
+async function saveProspekt(isAuto = false) {
+  if (!currentProspekt) return;
+  if (autoSaveTimer) { clearTimeout(autoSaveTimer); autoSaveTimer = null; }
+
+  $('saveIndicator').textContent = 'Lagrer…';
+  $('saveIndicator').className = 'save-indicator saving';
+  if (!isAuto) { $('saveBtn').disabled = true; $('saveBtn').textContent = 'Lagrer…'; }
+
+  try {
+    const { id, created_at, updated_at, status, pdf_url, deal_id, deal_name, ...fields } = currentProspekt;
+    await api({ action: 'update' }, 'POST', { id, ...fields });
+    $('saveIndicator').textContent = 'Lagret ✓';
+    $('saveIndicator').className = 'save-indicator saved';
+    if (!isAuto) toast('Lagret');
+  } catch (e) {
+    $('saveIndicator').textContent = 'Feil ved lagring';
+    $('saveIndicator').className = 'save-indicator';
+    toast(e.message, 'error');
+  }
+
+  if (!isAuto) { $('saveBtn').disabled = false; $('saveBtn').textContent = 'Lagre'; }
+}
+
+async function togglePublish() {
+  const isPublished = currentProspekt.status === 'published';
+  const action = isPublished ? 'unpublish' : 'publish';
+  try {
+    await api({ action }, 'POST', { id: currentProspekt.id });
+    currentProspekt.status = isPublished ? 'draft' : 'published';
+    $('publishBtn').textContent = currentProspekt.status === 'published' ? 'Avpubliser' : 'Publiser';
+    toast(isPublished ? 'Avpublisert' : 'Publisert');
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// PREVIEW
+// ════════════════════════════════════════════════════════════════════════════════
+
+function previewProspekt() {
+  // Save first, then open preview in new tab
+  saveProspekt(false).then(() => {
+    // For now, just open the template preview — PDF generation comes next
+    toast('Forhåndsvisning kommer i neste versjon');
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// SECTION DRAG & DROP (reordering)
+// ════════════════════════════════════════════════════════════════════════════════
+
+function setupSectionDrag() {
+  const grid = $('sectionGrid');
+  let dragEl = null;
+
+  grid.addEventListener('dragstart', e => {
+    const card = e.target.closest('.sec-card');
+    if (!card || !card.draggable) return;
+    dragEl = card;
+    card.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+
+  grid.addEventListener('dragend', e => {
+    if (dragEl) { dragEl.classList.remove('dragging'); dragEl = null; }
+    grid.querySelectorAll('.sec-card').forEach(c => c.classList.remove('drag-over'));
+  });
+
+  grid.addEventListener('dragover', e => {
+    e.preventDefault();
+    const target = e.target.closest('.sec-card');
+    if (!target || target === dragEl) return;
+    grid.querySelectorAll('.sec-card').forEach(c => c.classList.remove('drag-over'));
+    target.classList.add('drag-over');
+  });
+
+  grid.addEventListener('drop', e => {
+    e.preventDefault();
+    const target = e.target.closest('.sec-card');
+    if (!target || target === dragEl || !dragEl) return;
+
+    // Get new order
+    const cards = [...grid.querySelectorAll('.sec-card')];
+    const fromIdx = cards.indexOf(dragEl);
+    const toIdx = cards.indexOf(target);
+
+    // Don't allow moving before/after required sections at edges
+    const order = currentProspekt.sections_order || Object.keys(SECTION_DEFS);
+    const moved = order.splice(fromIdx, 1)[0];
+    order.splice(toIdx, 0, moved);
+    currentProspekt.sections_order = order;
+
+    renderSections();
+    scheduleAutoSave();
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// UTILITIES
+// ════════════════════════════════════════════════════════════════════════════════
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>

@@ -30,3 +30,8 @@
   to = "/budmodul/"
   status = 301
 
+[[redirects]]
+  from = "/prospekt"
+  to = "/prospekt/"
+  status = 301
+
