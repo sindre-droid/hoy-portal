@@ -14,6 +14,12 @@ const { createClient } = require('@supabase/supabase-js');
 
 const PIPELINE_B = process.env.PIPELINE_B || '3211644128';
 
+const KNOWN_OWNERS = {
+  'sindre@h-y.no': '633479117',
+  'daniel@h-y.no': '29136352',
+  'henrik@h-y.no': '77221549',
+};
+
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -86,8 +92,11 @@ exports.handler = async (event) => {
         return ok(data);
       }
 
-      // ── Get Pipeline B deals for dropdown (kun aktive stages) ──
+      // ── Get Pipeline B deals for dropdown (kun aktive stages, egne + splits) ──
       if (qs.deals) {
+        const ownerId = KNOWN_OWNERS[jwt.email] || null;
+        if (!ownerId) return ok([]);
+
         // Hent stages for Pipeline B og filtrer til aktive
         const ACTIVE_KEYWORDS = ['prep','listing ready','klar','live','publisert','under offer','bud','forhandl','negotiation','in contract','kontrakt'];
         const stagesRes = await hs(`/crm/v3/pipelines/deals/${PIPELINE_B}/stages`);
@@ -98,16 +107,31 @@ exports.handler = async (event) => {
 
         if (activeStageIds.length === 0) return ok([]);
 
-        const hsRes = await hs(`/crm/v3/objects/deals/search`, 'POST', {
-          filterGroups: [{ filters: [
-            { propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_B },
-            { propertyName: 'dealstage', operator: 'IN', values: activeStageIds },
-          ] }],
-          properties: ['dealname', 'dealstage', 'amount'],
-          sorts: [{ propertyName: 'dealname', direction: 'ASCENDING' }],
-          limit: 100,
-        });
-        if (!hsRes.ok) throw new Error(`HubSpot error ${hsRes.status}: ${JSON.stringify(hsRes.data)}`);
+        // Hent egne deals + deal splits i parallell
+        const ownerF = { propertyName: 'hubspot_owner_id', operator: 'EQ', value: ownerId };
+        const splitF = { propertyName: 'hs_all_deal_split_owner_ids', operator: 'CONTAINS_TOKEN', value: ownerId };
+        const stageF = { propertyName: 'dealstage', operator: 'IN', values: activeStageIds };
+        const pipeF  = { propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_B };
+
+        const [ownRes, splitRes] = await Promise.all([
+          hs(`/crm/v3/objects/deals/search`, 'POST', {
+            filterGroups: [{ filters: [pipeF, stageF, ownerF] }],
+            properties: ['dealname', 'dealstage', 'amount'],
+            sorts: [{ propertyName: 'dealname', direction: 'ASCENDING' }],
+            limit: 100,
+          }),
+          hs(`/crm/v3/objects/deals/search`, 'POST', {
+            filterGroups: [{ filters: [pipeF, stageF, splitF] }],
+            properties: ['dealname', 'dealstage', 'amount'],
+            sorts: [{ propertyName: 'dealname', direction: 'ASCENDING' }],
+            limit: 100,
+          }),
+        ]);
+
+        // Kombiner og dedupliser
+        const allDeals = [...(ownRes.data?.results || []), ...(splitRes.data?.results || [])];
+        const seen = new Set();
+        const hsRes = { ok: true, data: { results: allDeals.filter(d => { if (seen.has(d.id)) return false; seen.add(d.id); return true; }) } };
 
         // Sjekk hvilke deals som allerede har prospekt
         const { data: existing } = await supabase
