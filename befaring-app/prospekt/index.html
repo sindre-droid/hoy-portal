@@ -164,6 +164,19 @@
   .gallery-slot .slot-caption input{width:100%;border:none;background:transparent;color:white;font-size:10px;padding:4px 6px;font-family:inherit}
   .gallery-slot .slot-caption input::placeholder{color:rgba(255,255,255,0.5)}
 
+  /* ── Crop modal ── */
+  .crop-overlay{position:fixed;inset:0;background:rgba(10,33,64,0.7);z-index:600;display:flex;align-items:center;justify-content:center;padding:16px}
+  .crop-modal{background:white;border-radius:16px;max-width:600px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.4)}
+  .crop-modal-header{padding:16px 24px;border-bottom:1px solid var(--gray);display:flex;justify-content:space-between;align-items:center}
+  .crop-modal-header h3{font-size:16px;font-weight:700;color:var(--navy);margin:0}
+  .crop-preview-area{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;background:#1a1a1a;cursor:grab}
+  .crop-preview-area.dragging{cursor:grabbing}
+  .crop-preview-area img{position:absolute;user-select:none;-webkit-user-drag:none}
+  .crop-controls{padding:16px 24px;display:flex;align-items:center;gap:12px}
+  .crop-controls label{font-size:12px;font-weight:600;color:var(--navy)}
+  .crop-controls input[type=range]{flex:1}
+  .crop-modal-footer{padding:12px 24px;border-top:1px solid var(--gray);display:flex;justify-content:flex-end;gap:8px}
+
   /* ── Char limits ── */
   .char-count{font-size:11px;color:var(--gray-dark);text-align:right;margin-top:2px}
   .char-count.warn{color:var(--yellow)}
@@ -635,7 +648,7 @@ function renderOverviewSection(p) {
     <div class="field">
       <label>Spesifikasjoner <span class="limit-badge">${specs.length} / ${MAX_SPECS}</span></label>
       <div id="specsEditor">${renderSpecRows(specs, 'specs')}</div>
-      ${specs.length < MAX_SPECS ? `<button class="btn-outline" style="margin-top:8px;font-size:13px;padding:6px 14px" onclick="addSpecRow('specs')">+ Legg til rad</button>` : `<div class="field-hint" style="color:var(--yellow)">Maks ${MAX_SPECS} rader — fjern en for å legge til ny</div>`}
+      ${specs.length < MAX_SPECS ? `<div style="margin-top:8px;display:flex;gap:8px"><button class="btn-outline" style="font-size:13px;padding:6px 14px" onclick="addSpecRow('specs')">+ Rad</button><button class="btn-outline" style="font-size:13px;padding:6px 14px" onclick="addSpecDivider('specs')">— Skillelinje</button></div>` : `<div class="field-hint" style="color:var(--yellow)">Maks ${MAX_SPECS} rader — fjern en for å legge til ny</div>`}
     </div>
     <div class="field">
       <label>Kapasiteter <span class="limit-badge">${caps.length} / ${MAX_CAPS}</span></label>
@@ -703,15 +716,21 @@ async function generateText() {
 }
 
 function renderSpecRows(rows, field) {
-  return rows.map((r, i) => `
-    <div class="spec-editor-row">
-      <input type="text" value="${esc(r.label||'')}" placeholder="Egenskap" style="font-size:13px;padding:7px 10px"
-        onchange="updateSpecRow('${field}',${i},'label',this.value)">
-      <input type="text" value="${esc(r.value||'')}" placeholder="Verdi" style="font-size:13px;padding:7px 10px"
-        onchange="updateSpecRow('${field}',${i},'value',this.value)">
-      <button class="btn-icon btn-icon-del" onclick="removeSpecRow('${field}',${i})">×</button>
-    </div>
-  `).join('');
+  return rows.map((r, i) => {
+    if (r.divider) return `
+      <div class="spec-editor-row" style="justify-content:center;padding:4px 0">
+        <hr style="flex:1;border:none;border-top:1px solid var(--gray)">
+        <button class="btn-icon btn-icon-del" style="width:24px;height:24px;font-size:12px" onclick="removeSpecRow('${field}',${i})">×</button>
+      </div>`;
+    return `
+      <div class="spec-editor-row">
+        <input type="text" value="${esc(r.label||'')}" placeholder="Egenskap" style="font-size:13px;padding:7px 10px"
+          onchange="updateSpecRow('${field}',${i},'label',this.value)">
+        <input type="text" value="${esc(r.value||'')}" placeholder="Verdi" style="font-size:13px;padding:7px 10px"
+          onchange="updateSpecRow('${field}',${i},'value',this.value)">
+        <button class="btn-icon btn-icon-del" onclick="removeSpecRow('${field}',${i})">×</button>
+      </div>`;
+  }).join('');
 }
 
 function renderGallerySection(p) {
@@ -740,12 +759,18 @@ function renderGallerySection(p) {
       const img = images[si];
       const isWide = layout === '5up' && si === 0;
       const filled = img ? 'filled' : '';
-      const imgTag = img ? `<img src="${esc(img.url)}" alt="">` : '';
+      // imgTag built inline below with crop position styles
       const caption = img ? `<div class="slot-caption"><input type="text" value="${esc(img.caption||'')}" placeholder="Bildetekst…" onclick="event.stopPropagation()" onchange="updateGalleryCaption(${pi},${si},this.value)"></div>` : '';
       const removeBtn = img ? `<button class="slot-remove" onclick="event.stopPropagation();removeGallerySlot(${pi},${si})">×</button>` : '';
+      const cropBtn = img ? `<button class="slot-remove" style="right:auto;left:4px;background:rgba(0,0,0,0.6);font-size:10px" onclick="event.stopPropagation();openCropModal(${pi},${si})" title="Juster bildeposisjon">✂</button>` : '';
       const label = img ? '' : `<span class="slot-label">${isWide ? 'Stort bilde' : 'Velg bilde'}</span>`;
 
-      slots.push(`<div class="gallery-slot ${filled} ${isWide ? 'wide' : ''}" style="${isWide ? 'grid-column:1/-1' : ''}" onclick="pickGallerySlot(${pi},${si})">${imgTag}${label}${removeBtn}${caption}</div>`);
+      // Apply stored crop position
+      const posStyle = img?.posX !== undefined ? `object-position:${img.posX||50}% ${img.posY||50}%;` : '';
+      const zoomStyle = img?.zoom && img.zoom > 1 ? `transform:scale(${img.zoom});` : '';
+      const imgTagStyled = img ? `<img src="${esc(img.url)}" alt="" style="${posStyle}${zoomStyle}">` : '';
+
+      slots.push(`<div class="gallery-slot ${filled} ${isWide ? 'wide' : ''}" style="${isWide ? 'grid-column:1/-1' : ''}" onclick="pickGallerySlot(${pi},${si})">${imgTagStyled}${label}${removeBtn}${cropBtn}${caption}</div>`);
     }
 
     // Grid style depends on layout
@@ -772,7 +797,10 @@ function renderGallerySection(p) {
   }).join('');
 
   return `
-    <div class="field-hint" style="margin-bottom:12px">Velg layout for hver side, klikk på en posisjon for å velge bilde. Maks 4 gallerisider.</div>
+    <div class="field-hint" style="margin-bottom:12px">
+      Velg layout for hver side, klikk på en posisjon for å velge bilde. Maks 4 gallerisider.<br>
+      <strong>Tips:</strong> Bildene croppes til å fylle posisjonen. Liggende bilder (16:9) fungerer best i «1+4» og «2×2». For stående bilder, bruk «1+1» eller «Full».
+    </div>
     <div id="galleryEditor">
       ${pages.length === 0 ? '<div class="empty-state" style="padding:20px">Ingen gallerisider lagt til</div>' : ''}
       ${pagesHtml}
@@ -857,6 +885,14 @@ function renderFreetextSection(p) {
 }
 
 function renderContactSection(p) {
+  // Auto-set broker photo if not already set
+  const brokerPhotoHtml = p.broker_photo_url
+    ? `<div class="img-preview">
+        <img src="${esc(p.broker_photo_url)}" alt="">
+        <button class="img-remove" onclick="removeImage('broker_photo_url')">×</button>
+       </div>`
+    : `<div class="field-hint">Meglerbilde settes automatisk. <button class="btn-outline" style="font-size:12px;padding:4px 10px" onclick="openImagePicker('broker_photo_url')">Velg manuelt</button></div>`;
+
   return `
     <div class="field-row">
       <div class="field">
@@ -880,7 +916,7 @@ function renderContactSection(p) {
     </div>
     <div class="field">
       <label>Meglerbilde</label>
-      ${renderImageUpload('broker_photo_url', p.broker_photo_url)}
+      ${brokerPhotoHtml}
     </div>
     <div class="field">
       <label>Kontaktside-bilde (bakgrunn)</label>
@@ -890,11 +926,11 @@ function renderContactSection(p) {
     <div class="field-row">
       <div class="field">
         <label>CTA-label</label>
-        <input type="text" value="${esc(p.cta_label||'')}" placeholder="Besøk oss for visning" onchange="updateField('cta_label',this.value)">
+        <input type="text" value="${esc(p.cta_label||'Besøk oss for visning')}" placeholder="Besøk oss for visning" onchange="updateField('cta_label',this.value)">
       </div>
       <div class="field">
         <label>CTA-adresse</label>
-        <input type="text" value="${esc(p.cta_address||'')}" placeholder="Dicks vei 12, 1366 Lysaker" onchange="updateField('cta_address',this.value)">
+        <input type="text" value="${esc(p.cta_address||'Dicks vei 12, 1366 Lysaker')}" placeholder="Dicks vei 12, 1366 Lysaker" onchange="updateField('cta_address',this.value)">
       </div>
     </div>
   `;
@@ -947,6 +983,14 @@ function addSpecRow(field) {
   currentProspekt[field] = arr;
   renderSectionBody('overview');
   // Re-open section
+  $('sec-overview').classList.add('open');
+}
+
+function addSpecDivider(field) {
+  const arr = currentProspekt[field] || [];
+  arr.push({ divider: true });
+  currentProspekt[field] = arr;
+  renderSectionBody('overview');
   $('sec-overview').classList.add('open');
 }
 
@@ -1089,6 +1133,129 @@ function pickGallerySlot(pageIdx, slotIdx) {
     scheduleAutoSave();
     toast('Bilde valgt');
   }, false);  // single pick for specific slot
+}
+
+// ── Crop modal ──────────────────────────────────────────────────────────────
+
+let cropState = { pi: 0, si: 0, posX: 50, posY: 50, zoom: 1, dragging: false, startX: 0, startY: 0 };
+
+function openCropModal(pi, si) {
+  const pages = currentProspekt.gallery_pages || [];
+  const img = pages[pi]?.images?.[si];
+  if (!img) return;
+
+  cropState = { pi, si, posX: img.posX || 50, posY: img.posY || 50, zoom: img.zoom || 1, dragging: false };
+
+  const existing = document.querySelector('.crop-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'crop-overlay';
+  overlay.onclick = (e) => { if (e.target === overlay) closeCropModal(); };
+  overlay.innerHTML = `
+    <div class="crop-modal">
+      <div class="crop-modal-header">
+        <h3>Juster bildeposisjon</h3>
+        <button style="background:none;border:none;font-size:22px;color:var(--gray-dark);cursor:pointer" onclick="closeCropModal()">×</button>
+      </div>
+      <div class="crop-preview-area" id="cropArea">
+        <img src="${esc(img.url)}" id="cropImg" style="width:${cropState.zoom * 100}%;left:${cropState.posX}%;top:${cropState.posY}%;transform:translate(-${cropState.posX}%,-${cropState.posY}%)">
+      </div>
+      <div class="crop-controls">
+        <label>Zoom</label>
+        <input type="range" min="1" max="2.5" step="0.05" value="${cropState.zoom}" oninput="updateCropZoom(this.value)">
+        <span id="cropZoomLabel" style="font-size:12px;color:var(--gray-dark);min-width:35px">${Math.round(cropState.zoom * 100)}%</span>
+      </div>
+      <div class="crop-modal-footer">
+        <button class="btn-outline" onclick="resetCrop()">Nullstill</button>
+        <button class="btn-gold" onclick="applyCrop()">Bruk</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  // Setup drag
+  const area = document.getElementById('cropArea');
+  area.addEventListener('mousedown', startCropDrag);
+  area.addEventListener('mousemove', doCropDrag);
+  area.addEventListener('mouseup', endCropDrag);
+  area.addEventListener('mouseleave', endCropDrag);
+  // Touch
+  area.addEventListener('touchstart', (e) => { e.preventDefault(); startCropDrag(e.touches[0]); }, { passive: false });
+  area.addEventListener('touchmove', (e) => { e.preventDefault(); doCropDrag(e.touches[0]); }, { passive: false });
+  area.addEventListener('touchend', endCropDrag);
+}
+
+function startCropDrag(e) {
+  cropState.dragging = true;
+  cropState.startX = e.clientX;
+  cropState.startY = e.clientY;
+  cropState.startPosX = cropState.posX;
+  cropState.startPosY = cropState.posY;
+  const area = document.getElementById('cropArea');
+  if (area) area.classList.add('dragging');
+}
+
+function doCropDrag(e) {
+  if (!cropState.dragging) return;
+  const area = document.getElementById('cropArea');
+  if (!area) return;
+  const rect = area.getBoundingClientRect();
+  const dx = (e.clientX - cropState.startX) / rect.width * 100;
+  const dy = (e.clientY - cropState.startY) / rect.height * 100;
+  cropState.posX = Math.max(0, Math.min(100, cropState.startPosX + dx));
+  cropState.posY = Math.max(0, Math.min(100, cropState.startPosY + dy));
+  updateCropPreview();
+}
+
+function endCropDrag() {
+  cropState.dragging = false;
+  const area = document.getElementById('cropArea');
+  if (area) area.classList.remove('dragging');
+}
+
+function updateCropZoom(val) {
+  cropState.zoom = parseFloat(val);
+  document.getElementById('cropZoomLabel').textContent = Math.round(cropState.zoom * 100) + '%';
+  updateCropPreview();
+}
+
+function updateCropPreview() {
+  const img = document.getElementById('cropImg');
+  if (!img) return;
+  img.style.width = `${cropState.zoom * 100}%`;
+  img.style.left = `${cropState.posX}%`;
+  img.style.top = `${cropState.posY}%`;
+  img.style.transform = `translate(-${cropState.posX}%, -${cropState.posY}%)`;
+}
+
+function resetCrop() {
+  cropState.posX = 50;
+  cropState.posY = 50;
+  cropState.zoom = 1;
+  document.querySelector('.crop-controls input[type=range]').value = 1;
+  document.getElementById('cropZoomLabel').textContent = '100%';
+  updateCropPreview();
+}
+
+function applyCrop() {
+  const pages = currentProspekt.gallery_pages || [];
+  const img = pages[cropState.pi]?.images?.[cropState.si];
+  if (img) {
+    img.posX = Math.round(cropState.posX);
+    img.posY = Math.round(cropState.posY);
+    img.zoom = cropState.zoom;
+  }
+  closeCropModal();
+  renderSectionBody('gallery');
+  $('sec-gallery').classList.add('open');
+  scheduleAutoSave();
+  toast('Bildeposisjon lagret');
+}
+
+function closeCropModal() {
+  const overlay = document.querySelector('.crop-overlay');
+  if (overlay) overlay.remove();
 }
 
 // ════════════════════════════════════════════════════════════════════════════════

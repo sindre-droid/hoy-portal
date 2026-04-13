@@ -22,9 +22,9 @@ const KNOWN_OWNERS = {
 };
 
 const KNOWN_MEGLERS = {
-  '633479117': { name: 'Sindre Jacobsen', email: 'sindre@h-y.no', phone: '+47 938 40 189', role: 'Gründer & Lead Megler' },
-  '29136352':  { name: 'Daniel Ruud',     email: 'daniel@h-y.no', phone: '+47 479 61 918', role: 'Megler' },
-  '77221549':  { name: 'Henrik Bratz',    email: 'henrik@h-y.no', phone: '+47 478 75 838', role: 'Megler' },
+  '633479117': { name: 'Sindre Jacobsen', email: 'sindre@h-y.no', phone: '+47 938 40 189', role: 'Båtmegler' },
+  '29136352':  { name: 'Daniel Ruud',     email: 'daniel@h-y.no', phone: '+47 479 61 918', role: 'Båtmegler' },
+  '77221549':  { name: 'Henrik Bratz',    email: 'henrik@h-y.no', phone: '+47 478 75 838', role: 'Båtmegler' },
 };
 
 const BOAT_PROPS = [
@@ -80,16 +80,22 @@ async function fetchBoatData(dealId) {
 function buildSpecs(bp) {
   if (!bp) return [];
   const specs = [];
-  const add = (label, val) => { if (val) specs.push({ label, value: val }); };
+  const add = (label, val) => { if (val) specs.push({ label, value: String(val) }); };
+  const divider = () => specs.push({ divider: true });
 
+  // Gruppe 1: Identifikasjon
   add('Merke', bp.batmerke);
   add('Modell', bp.bat_modell);
   add('Årsmodell', bp.arsmodell);
+
+  divider();
+
+  // Gruppe 2: Dimensjoner & Motor
   if (bp.lengde_i_fot) add('Lengde', `${bp.lengde_i_fot} fot`);
   else if (bp.lengde_i_cm) add('Lengde', `${bp.lengde_i_cm} cm`);
   if (bp.bredde) add('Bredde', `${bp.bredde} cm`);
 
-  // Motor
+  // Motor — bygg kombinert linje
   const motorParts = [];
   if (bp.antall_motorer && Number(bp.antall_motorer) > 1) motorParts.push(`${bp.antall_motorer} ×`);
   if (bp.motorfabrikant) motorParts.push(bp.motorfabrikant);
@@ -97,10 +103,24 @@ function buildSpecs(bp) {
   if (motorParts.length) add('Motor', motorParts.join(' '));
 
   add('Motortype', bp.type_motor);
-  if (bp.driftstimer_motor) add('Driftstimer', `${bp.driftstimer_motor} t`);
-  add('Båttype', bp.boat_type);
+  // Effekt: motorstorrelse er typisk "300 V8" eller "225" — ekstraher hk
+  if (bp.motorstorrelse) {
+    const hkMatch = String(bp.motorstorrelse).match(/(\d+)/);
+    if (hkMatch) {
+      const hkPerMotor = parseInt(hkMatch[1], 10);
+      const antall = parseInt(bp.antall_motorer, 10) || 1;
+      const totalHk = hkPerMotor * antall;
+      add('Effekt', `${totalHk} hk`);
+    }
+  }
+  if (bp.driftstimer_motor) add('Driftstimer', `ca. ${bp.driftstimer_motor} t`);
+
+  divider();
+
+  // Gruppe 3: Øvrig
   add('CE-kategori', bp.ce_konstruksjonskategori);
-  add('MVA-status', bp.mva_status);
+  add('MVA', bp.mva_status);
+  add('Beliggenhet', bp.location);
 
   return specs;
 }
@@ -108,20 +128,64 @@ function buildSpecs(bp) {
 function buildCapacities(bp) {
   if (!bp) return [];
   const caps = [];
-  const add = (label, val) => { if (val) caps.push({ label, value: val }); };
+  const add = (label, val) => { if (val) caps.push({ label, value: String(val) }); };
   add('Kahytter', bp.antall_kahytter);
   add('Soveplasser', bp.antall_soveplasser);
   add('Bad/WC', bp.antall_bad);
+  // Tanker etc. — legges til manuelt av megler, finnes sjelden i HubSpot
   return caps;
 }
 
+// Standard utstyrskategorier for båtprospekter
+const DEFAULT_EQUIP_CATEGORIES = [
+  'Navigasjon & Elektronikk',
+  'Motor & Teknisk',
+  'Sikkerhet',
+  'Dekk & Eksteriør',
+  'Interiør & Komfort',
+  'Bysse',
+];
+
 function buildEquipment(bp) {
-  if (!bp?.utstyrsliste) return [];
-  // Utstyrsliste fra HubSpot er typisk semikolon- eller linjeskift-separert
-  const raw = bp.utstyrsliste;
-  const items = raw.split(/[;\n]+/).map(s => s.trim()).filter(Boolean);
-  if (items.length === 0) return [];
-  return [{ name: 'Utstyr fra befaring', items: items.map(text => ({ text })) }];
+  // Start med ferdiglagde tomme kategorier
+  const categories = DEFAULT_EQUIP_CATEGORIES.map(name => ({ name, items: [] }));
+
+  // Hvis utstyrsliste finnes, fordel i første kategori eller "Øvrig"
+  if (bp?.utstyrsliste) {
+    const raw = bp.utstyrsliste;
+    const items = raw.split(/[;\n]+/).map(s => s.trim()).filter(Boolean);
+    if (items.length > 0) {
+      // Forsøk enkel automatisk kategorisering
+      const navKeywords = ['plotter','gps','radar','vhf','ekkolodd','ais','autopilot','kompass','instrument','dab'];
+      const techKeywords = ['generator','inverter','batteri','lader','solar','landstrøm','varme','eberspächer','shore','power'];
+      const safetyKeywords = ['redning','brannslukk','nødrakett','flåte','livbøy','førstehjelp','sikkerhet'];
+      const deckKeywords = ['bimini','kalesje','teak','anker','vinsj','fender','fortøy','belysning','led','badeplattform','bade','solseng','havnetrekk','sprayhood'];
+      const galleyKeywords = ['kjøle','frys','komfyr','ovn','mikro','koketopp','vask','oppvask','kaffemaskin'];
+      const interiorKeywords = ['toalett','dusj','stereo','lyd','tv','sofa','gardiner','oppbevaring','ac ','aircondition','klimaanlegg'];
+
+      for (const text of items) {
+        const lower = text.toLowerCase();
+        if (navKeywords.some(k => lower.includes(k))) categories[0].items.push({ text });
+        else if (techKeywords.some(k => lower.includes(k))) categories[1].items.push({ text });
+        else if (safetyKeywords.some(k => lower.includes(k))) categories[2].items.push({ text });
+        else if (deckKeywords.some(k => lower.includes(k))) categories[3].items.push({ text });
+        else if (interiorKeywords.some(k => lower.includes(k))) categories[4].items.push({ text });
+        else if (galleyKeywords.some(k => lower.includes(k))) categories[5].items.push({ text });
+        else categories[4].items.push({ text }); // default: Interiør & Komfort
+      }
+    }
+  }
+
+  // Generator-info som egen rad under Motor & Teknisk
+  if (bp?.har_generator === 'true' || bp?.generator_fabrikant) {
+    const genParts = [];
+    if (bp.generator_fabrikant) genParts.push(bp.generator_fabrikant);
+    if (bp.generator_kw) genParts.push(`${bp.generator_kw} kW`);
+    if (bp.generator_driftstimer) genParts.push(`${bp.generator_driftstimer} t`);
+    if (genParts.length) categories[1].items.push({ text: `Generator: ${genParts.join(', ')}` });
+  }
+
+  return categories;
 }
 
 function parseJwt(token) {
@@ -347,8 +411,8 @@ exports.handler = async (event) => {
           ? `${boatProps.batmerke} ${boatProps.bat_modell}`
           : (dealName.replace(/^\d{4}\s+/, '').trim() || dealName);
 
-        // Formater pris (bruk deal amount, fallback til båt-pris)
-        const rawPrice = amount || boatProps?.pris;
+        // Formater pris — hent fra båtkortet (pris), IKKE deal amount (som er provisjon)
+        const rawPrice = boatProps?.pris || null;
         const askingPrice = rawPrice
           ? new Intl.NumberFormat('nb-NO', { maximumFractionDigits: 0 }).format(Number(rawPrice))
           : '';

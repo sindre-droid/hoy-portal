@@ -219,8 +219,8 @@
     z-index: 2;
   }
 
-  .cover-logo svg {
-    height: 52px;
+  .cover-logo img {
+    height: 60px;
     width: auto;
     filter: drop-shadow(0 2px 12px rgba(0,0,0,0.4));
   }
@@ -891,16 +891,8 @@
 const API = '/.netlify/functions/prospekt';
 const OFFICE_ADDRESS = 'Dicks vei 12, 1366 Lysaker';
 
-// HoY logo as inline SVG (white, for cover page)
-const LOGO_SVG = `<svg viewBox="0 0 320 52" xmlns="http://www.w3.org/2000/svg">
-  <style>
-    .logo-main { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 28px; font-weight: 600; fill: white; letter-spacing: 6px; }
-    .logo-line { stroke: rgba(196,152,62,0.8); stroke-width: 1; }
-  </style>
-  <line class="logo-line" x1="0" y1="0" x2="320" y2="0"/>
-  <text class="logo-main" x="160" y="34" text-anchor="middle">HOUSE OF YACHTS</text>
-  <line class="logo-line" x1="0" y1="46" x2="320" y2="46"/>
-</svg>`;
+// HoY logo — use the actual PNG hosted in /prospekt/
+const LOGO_URL = '/prospekt/logo-reversed.png';
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
@@ -959,7 +951,7 @@ function buildCoverPage(p) {
         <div class="cover-image-area">
           ${coverImg}
           <div class="cover-image-overlay"></div>
-          <div class="cover-logo">${LOGO_SVG}</div>
+          <div class="cover-logo"><img src="${LOGO_URL}" alt="House of Yachts"></div>
         </div>
         <div class="cover-bottom">
           <div class="cover-year">${spaceYear(p.model_year)}</div>
@@ -981,12 +973,10 @@ function buildOverviewPage(p) {
     ? `<img src="${esc(p.overview_image_url)}" alt="${esc(p.boat_name)}">`
     : '';
 
-  const specs = (p.specs || []).map(s => `
-    <div class="spec-row">
-      <span class="spec-label">${esc(s.label)}</span>
-      <span class="spec-value">${esc(s.value)}</span>
-    </div>
-  `).join('');
+  const specs = (p.specs || []).map(s => {
+    if (s.divider) return '<div class="spec-divider"></div>';
+    return `<div class="spec-row"><span class="spec-label">${esc(s.label)}</span><span class="spec-value">${esc(s.value)}</span></div>`;
+  }).join('');
 
   const caps = (p.capacities || []);
   const capsHtml = caps.length > 0 ? `
@@ -1055,9 +1045,13 @@ function buildGalleryPages(p) {
       const wideClass = (layout === '5up' && ii === 0) ? 'gi-wide' : '';
       const captionHtml = img.caption
         ? `<div class="gi-caption">${esc(img.caption)}</div>` : '';
+      // Apply stored crop position if set
+      const posStyle = img.posX !== undefined ? `object-position:${img.posX}% ${img.posY}%;` : '';
+      const zoomStyle = img.zoom && img.zoom > 1 ? `transform:scale(${img.zoom});` : '';
+      const imgStyle = (posStyle || zoomStyle) ? ` style="${posStyle}${zoomStyle}"` : '';
       return `
         <div class="gi ${wideClass}">
-          <img src="${esc(img.url)}" alt="${esc(img.caption || '')}">
+          <img src="${esc(img.url)}" alt="${esc(img.caption || '')}"${imgStyle}>
           ${captionHtml}
         </div>
       `;
