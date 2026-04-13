@@ -55,7 +55,7 @@ exports.handler = async (event) => {
   const jwt = parseJwt(auth);
   if (!jwt?.email) return { statusCode: 401, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'Unauthorized' }) };
 
-  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
   const qs = event.queryStringParameters || {};
 
   try {
