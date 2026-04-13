@@ -474,7 +474,7 @@ exports.handler = async (event) => {
         const allowed = [
           'boat_name', 'model_year', 'asking_price',
           'broker_name', 'broker_email', 'broker_phone', 'broker_role', 'broker_photo_url',
-          'cover_image_url', 'overview_image_url', 'contact_image_url',
+          'cover_image_url', 'cover_image_crop', 'overview_image_url', 'overview_image_crop', 'contact_image_url',
           'description_intro', 'description_body', 'visning_text',
           'cta_label', 'cta_address',
           'specs', 'capacities', 'gallery_pages', 'equipment_categories',
