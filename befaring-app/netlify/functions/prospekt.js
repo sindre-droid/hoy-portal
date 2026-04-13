@@ -253,11 +253,14 @@ async function getContractDataFields(contractId) {
 }
 
 // Finn egenerklæring-kontrakt i Oneflow for en gitt deal
+// dealName format: "25065 - Saxdor 320 GTC" → dealNum="25065", boatKey="saxdor 320 gtc"
 async function findEgenerklaering(dealName, dealId) {
-  // Søk i Oneflow: match etter deal-name eller deal-ID i kontraktnavnet
-  const dealNum = String(dealId || '');
-  // Bruk båtnavn fra dealname — ofte formatert som "2023 Saxdor 320 GTC" el.
-  const boatKey = dealName ? dealName.toLowerCase().replace(/^\d{4}\s+/, '').trim() : '';
+  // Parse deal-nummer og båtnavn fra dealname (format: "25065 - Saxdor 320 GTC")
+  const dealNum  = (dealName || '').match(/^(\d+)/)?.[1] || '';
+  const boatName = (dealName || '').replace(/^\d+\s*-\s*/, '').trim().toLowerCase();
+  const boatKey  = boatName.length >= 6 ? boatName : null;
+
+  if (!dealNum && !boatKey) return null;
 
   let contracts = [];
   let offset = 0;
@@ -270,6 +273,14 @@ async function findEgenerklaering(dealName, dealId) {
     totalCount = res.data?.count || 0;
     const page = res.data?.data || [];
     contracts = [...contracts, ...page];
+
+    // Sjekk om vi allerede fant en match — avslutt tidlig
+    const hasMatch = page.some(c => {
+      const n = (c._private?.name || '').toLowerCase();
+      return (dealNum && n.includes(dealNum)) || (boatKey && n.includes(boatKey));
+    });
+    if (hasMatch) break;
+
     offset += 100;
   }
 
@@ -279,6 +290,7 @@ async function findEgenerklaering(dealName, dealId) {
     const matches = (dealNum && name.includes(dealNum)) || (boatKey && name.includes(boatKey));
     if (!matches) continue;
 
+    // Sjekk template ID eller kontraktnavn
     const tid = parseInt(c._private_ownerside?.template_id || c.template?._id || c.template?.id || 0);
     if (tid === OF_EGENERKLARING_TEMPLATE || name.includes('egenerklær') || name.includes('egenerklaring')) {
       return c;
@@ -738,13 +750,16 @@ exports.handler = async (event) => {
         if (pErr) throw pErr;
 
         // Søk i Oneflow etter egenerklæring-kontrakt
-        const contract = await findEgenerklaering(prospekt.deal_name || prospekt.boat_name, prospekt.deal_id);
+        const searchName = prospekt.deal_name || prospekt.boat_name;
+        console.log('fetch_declaration: searching Oneflow for deal_name:', searchName, 'deal_id:', prospekt.deal_id);
+        const contract = await findEgenerklaering(searchName, prospekt.deal_id);
         if (!contract) {
           return ok({
             found: false,
-            message: 'Fant ingen egenerklæring i Oneflow for denne dealen. Sjekk at kontrakten er opprettet og at navnet inneholder dealnummer eller båtnavn.',
+            message: `Fant ingen egenerklæring i Oneflow for "${searchName}". Sjekk at kontrakten er opprettet og at navnet inneholder dealnummer eller båtnavn.`,
           });
         }
+        console.log('fetch_declaration: found contract', contract.id, contract._private?.name, 'state:', contract.state);
 
         const contractId = contract.id;
         const contractState = contract.state; // 'signed', 'pending', 'draft', etc.
