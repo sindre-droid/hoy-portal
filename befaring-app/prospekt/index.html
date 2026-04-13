@@ -349,10 +349,10 @@ async function loadPicker() {
     ]);
 
     if (results[0].status === 'fulfilled') deals = results[0].value || [];
-    else console.error('Feil ved lasting av deals:', results[0].reason);
+    else { console.error('Deals-feil:', results[0].reason); toast('Feil ved lasting av deals: ' + results[0].reason?.message, 'error'); }
 
     if (results[1].status === 'fulfilled') prospekter = results[1].value || [];
-    else console.error('Feil ved lasting av prospekter:', results[1].reason);
+    else { console.error('Prospekter-feil:', results[1].reason); toast('Feil ved lasting av prospekter: ' + results[1].reason?.message, 'error'); }
   } catch (e) {
     console.error('loadPicker error:', e);
     toast('Kunne ikke laste data: ' + e.message, 'error');

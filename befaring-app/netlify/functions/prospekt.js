@@ -88,13 +88,15 @@ exports.handler = async (event) => {
 
       // ── Get Pipeline B deals for dropdown ──
       if (qs.deals) {
+        console.log('Fetching deals for pipeline:', PIPELINE_B);
         const hsRes = await hs(`/crm/v3/objects/deals/search`, 'POST', {
           filterGroups: [{ filters: [{ propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_B }] }],
           properties: ['dealname', 'dealstage', 'amount'],
           sorts: [{ propertyName: 'dealname', direction: 'ASCENDING' }],
           limit: 100,
         });
-        if (!hsRes.ok) throw new Error(`HubSpot error: ${hsRes.status}`);
+        console.log('HubSpot response:', hsRes.ok, hsRes.status);
+        if (!hsRes.ok) throw new Error(`HubSpot error ${hsRes.status}: ${JSON.stringify(hsRes.data)}`);
 
         // Sjekk hvilke deals som allerede har prospekt
         const { data: existing } = await supabase
