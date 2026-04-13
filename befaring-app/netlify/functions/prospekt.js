@@ -86,16 +86,27 @@ exports.handler = async (event) => {
         return ok(data);
       }
 
-      // ── Get Pipeline B deals for dropdown ──
+      // ── Get Pipeline B deals for dropdown (kun aktive stages) ──
       if (qs.deals) {
-        console.log('Fetching deals for pipeline:', PIPELINE_B);
+        // Hent stages for Pipeline B og filtrer til aktive
+        const ACTIVE_KEYWORDS = ['prep','listing ready','klar','live','publisert','under offer','bud','forhandl','negotiation','in contract','kontrakt'];
+        const stagesRes = await hs(`/crm/v3/pipelines/deals/${PIPELINE_B}/stages`);
+        const stages = stagesRes.data?.results || [];
+        const activeStageIds = stages
+          .filter(s => ACTIVE_KEYWORDS.some(kw => (s.label||'').toLowerCase().includes(kw)))
+          .map(s => s.id);
+
+        if (activeStageIds.length === 0) return ok([]);
+
         const hsRes = await hs(`/crm/v3/objects/deals/search`, 'POST', {
-          filterGroups: [{ filters: [{ propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_B }] }],
+          filterGroups: [{ filters: [
+            { propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_B },
+            { propertyName: 'dealstage', operator: 'IN', values: activeStageIds },
+          ] }],
           properties: ['dealname', 'dealstage', 'amount'],
           sorts: [{ propertyName: 'dealname', direction: 'ASCENDING' }],
           limit: 100,
         });
-        console.log('HubSpot response:', hsRes.ok, hsRes.status);
         if (!hsRes.ok) throw new Error(`HubSpot error ${hsRes.status}: ${JSON.stringify(hsRes.data)}`);
 
         // Sjekk hvilke deals som allerede har prospekt
