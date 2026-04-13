@@ -474,7 +474,7 @@ exports.handler = async (event) => {
         const allowed = [
           'boat_name', 'model_year', 'asking_price',
           'broker_name', 'broker_email', 'broker_phone', 'broker_role', 'broker_photo_url',
-          'cover_image_url', 'cover_image_crop', 'overview_image_url', 'overview_image_crop', 'contact_image_url',
+          'cover_image_url', 'overview_image_url', 'contact_image_url',
           'description_intro', 'description_body', 'visning_text',
           'cta_label', 'cta_address',
           'specs', 'capacities', 'gallery_pages', 'equipment_categories',
@@ -492,7 +492,10 @@ exports.handler = async (event) => {
           .eq('id', id)
           .select()
           .single();
-        if (error) throw error;
+        if (error) {
+          console.error('Supabase update error:', JSON.stringify(error), 'fields:', Object.keys(updates));
+          throw error;
+        }
 
         return ok(data);
       }
@@ -573,8 +576,9 @@ exports.handler = async (event) => {
     return err(405, 'Method not allowed');
 
   } catch (e) {
-    console.error('prospekt error:', e);
-    return err(500, e.message || 'Internal error');
+    const errMsg = e?.message || e?.details || JSON.stringify(e) || 'Internal error';
+    console.error('prospekt error:', errMsg, e);
+    return err(500, errMsg);
   }
 };
 
