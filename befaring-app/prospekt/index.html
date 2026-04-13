@@ -233,6 +233,7 @@
         <div class="editor-actions">
           <button class="btn-outline" onclick="backToPicker()">← Tilbake</button>
           <button class="btn-outline" onclick="previewProspekt()">Forhåndsvisning</button>
+          <button class="btn-outline" onclick="downloadPdf()">⬇ Last ned PDF</button>
           <button class="btn-gold" id="saveBtn" onclick="saveProspekt()">Lagre</button>
           <button class="btn-primary" id="publishBtn" onclick="togglePublish()">Publiser</button>
         </div>
@@ -1083,10 +1084,19 @@ async function togglePublish() {
 // ════════════════════════════════════════════════════════════════════════════════
 
 function previewProspekt() {
-  // Save first, then open preview in new tab
+  // Save first, then open render page in new tab
   saveProspekt(false).then(() => {
-    // For now, just open the template preview — PDF generation comes next
-    toast('Forhåndsvisning kommer i neste versjon');
+    if (!currentProspekt?.id) return;
+    window.open(`/prospekt/render.html?id=${currentProspekt.id}`, '_blank');
+  });
+}
+
+function downloadPdf() {
+  // Save first, then open render page (user can Ctrl+P / Cmd+P to save as PDF)
+  saveProspekt(false).then(() => {
+    if (!currentProspekt?.id) return;
+    // Open render page — print dialog opens automatically when ?print=1
+    window.open(`/prospekt/render.html?id=${currentProspekt.id}&print=1`, '_blank');
   });
 }
 

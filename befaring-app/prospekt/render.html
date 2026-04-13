@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prospekt — House of Yachts</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap');
+
+  /* ══════════════════════════════════════════
+     DESIGN TOKENS
+     ══════════════════════════════════════════ */
+  :root {
+    --hoy-black: #0A0A0A;
+    --hoy-white: #FFFFFF;
+    --hoy-offwhite: #FAF9F7;
+    --hoy-cream: #F5F1EC;
+    --hoy-warm-gray: #E2DDD6;
+    --hoy-mid-gray: #9A9590;
+    --hoy-dark-gray: #3D3935;
+    --hoy-gold: #C4983E;
+    --hoy-gold-light: #D4AE62;
+    --hoy-gold-subtle: #F5EFE3;
+    --hoy-deep-teal: #1A3C34;
+    --hoy-teal: #2A5C4E;
+    --hoy-navy: #1B2B3A;
+
+    --font-display: 'Cormorant Garamond', 'Georgia', serif;
+    --font-body: 'Inter', -apple-system, sans-serif;
+
+    --page-w: 210mm;
+    --page-h: 297mm;
+  }
+
+  /* ══════════════════════════════════════════
+     PRINT / PUPPETEER — A4
+     ══════════════════════════════════════════ */
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  @media print {
+    body { background: white; }
+    .page-wrapper { gap: 0; padding: 0; max-width: none; }
+    .page-label { display: none; }
+    .page {
+      box-shadow: none;
+      border-radius: 0;
+      page-break-after: always;
+      page-break-inside: avoid;
+      width: var(--page-w);
+      height: var(--page-h);
+    }
+    .page:last-child { page-break-after: auto; }
+    .render-toolbar { display: none !important; }
+    .render-loading { display: none !important; }
+  }
+
+  /* ══════════════════════════════════════════
+     BASE & PREVIEW LAYOUT
+     ══════════════════════════════════════════ */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #D6D1CA;
+    font-family: var(--font-body);
+    color: var(--hoy-black);
+    -webkit-font-smoothing: antialiased;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .page-wrapper {
+    max-width: 900px;
+    margin: 40px auto;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    padding: 0 20px;
+  }
+
+  .page-label {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--hoy-mid-gray);
+    margin-bottom: -20px;
+    padding-left: 4px;
+  }
+
+  .page {
+    width: 100%;
+    aspect-ratio: 210 / 297;
+    background: var(--hoy-white);
+    box-shadow: 0 4px 40px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.05);
+    overflow: hidden;
+    position: relative;
+    border-radius: 2px;
+  }
+
+  /* ── Shared inner-page footer ── */
+  .page-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 7%;
+    background: var(--hoy-deep-teal);
+    font-family: var(--font-body);
+    font-size: 8px;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.5px;
+  }
+
+  .page-footer-light {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 7%;
+    background: var(--hoy-offwhite);
+    border-top: 1px solid var(--hoy-warm-gray);
+    font-size: 8px;
+    color: var(--hoy-mid-gray);
+  }
+
+  .page-footer-accent {
+    width: 30px;
+    height: 2px;
+    background: var(--hoy-gold);
+    flex-shrink: 0;
+  }
+
+  /* ── Shared section headers ── */
+  .section-title {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--hoy-black);
+  }
+
+  .section-subtitle {
+    font-size: 10px;
+    color: var(--hoy-mid-gray);
+    font-weight: 300;
+  }
+
+  .category-label {
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--hoy-gold);
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--hoy-warm-gray);
+  }
+
+  .category-label-inline {
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--hoy-gold);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .category-label-inline::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--hoy-warm-gray);
+  }
+
+  /* ══════════════════════════════════════════
+     PAGE: COVER
+     ══════════════════════════════════════════ */
+  .cover {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .cover-image-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: var(--hoy-deep-teal);
+  }
+
+  .cover-image-area img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .cover-image-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(10,10,10,0.25) 0%,
+      transparent 25%,
+      transparent 65%,
+      rgba(10,10,10,0.45) 100%
+    );
+  }
+
+  .cover-logo {
+    position: absolute;
+    top: 5%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+  }
+
+  .cover-logo svg {
+    height: 60px;
+    width: auto;
+    filter: drop-shadow(0 2px 12px rgba(0,0,0,0.4));
+  }
+
+  .cover-bottom {
+    background: var(--hoy-white);
+    padding: 4.5% 8% 3.5%;
+    text-align: center;
+  }
+
+  .cover-year {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--hoy-mid-gray);
+    margin-bottom: 8px;
+  }
+
+  .cover-title {
+    font-family: var(--font-display);
+    font-size: 36px;
+    font-weight: 400;
+    color: var(--hoy-black);
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+
+  .cover-price {
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--hoy-dark-gray);
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+  }
+
+  .cover-divider {
+    width: 50px;
+    height: 2px;
+    background: var(--hoy-gold);
+    margin: 0 auto;
+  }
+
+  .cover-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 8%;
+    background: var(--hoy-deep-teal);
+    font-family: var(--font-body);
+    font-size: 9px;
+    color: rgba(255,255,255,0.7);
+    letter-spacing: 0.5px;
+  }
+
+  .cover-footer strong {
+    color: rgba(255,255,255,0.9);
+  }
+
+  /* ══════════════════════════════════════════
+     PAGE: OVERVIEW
+     ══════════════════════════════════════════ */
+  .overview {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .overview-hero {
+    height: 36%;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .overview-hero img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .overview-hero-overlay {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 30%;
+    background: linear-gradient(to top, rgba(255,255,255,1), transparent);
+  }
+
+  .overview-content {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 35% 1fr;
+    gap: 0;
+    padding: 5% 7% 3%;
+  }
+
+  .specs-column {
+    padding-right: 6%;
+    border-right: 1px solid var(--hoy-warm-gray);
+  }
+
+  .specs-boat-name {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 400;
+    color: var(--hoy-black);
+    margin-bottom: 6px;
+  }
+
+  .specs-price {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--hoy-gold);
+    letter-spacing: 0.3px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--hoy-warm-gray);
+  }
+
+  .spec-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 4px 0;
+    font-size: 10px;
+    line-height: 1.6;
+  }
+
+  .spec-label { color: var(--hoy-mid-gray); font-weight: 400; }
+  .spec-value { color: var(--hoy-dark-gray); font-weight: 500; text-align: right; }
+
+  .spec-divider {
+    height: 1px;
+    background: var(--hoy-warm-gray);
+    margin: 8px 0;
+  }
+
+  .description-column { padding-left: 6%; }
+
+  .desc-intro {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--hoy-dark-gray);
+    line-height: 1.6;
+    margin-bottom: 18px;
+  }
+
+  .desc-body {
+    font-size: 10.5px;
+    line-height: 1.75;
+    color: var(--hoy-dark-gray);
+    font-weight: 300;
+  }
+
+  .desc-body p { margin-bottom: 12px; }
+
+  .desc-visning {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--hoy-warm-gray);
+    font-style: italic;
+    color: var(--hoy-mid-gray);
+  }
+
+  /* ══════════════════════════════════════════
+     PAGE: GALLERY
+     ══════════════════════════════════════════ */
+  .gallery {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 6% 6% 3%;
+  }
+
+  .gallery-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 4%;
+  }
+
+  .gallery-header h2 {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--hoy-black);
+  }
+
+  .gallery-header .gallery-subtitle {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--hoy-mid-gray);
+    font-weight: 500;
+  }
+
+  .gallery-grid-5up {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1.4fr 1fr 1fr;
+    gap: 8px;
+  }
+
+  .gallery-grid-4up {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .gallery-grid-2up {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr;
+    gap: 8px;
+  }
+
+  .gallery-grid-1up {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+    gap: 0;
+  }
+
+  .gi {
+    overflow: hidden;
+    border-radius: 2px;
+    position: relative;
+  }
+
+  .gi img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .gi-wide { grid-column: 1 / -1; }
+
+  .gi-caption {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 20px 14px 8px;
+    background: linear-gradient(to top, rgba(0,0,0,0.5), transparent);
+    font-size: 9px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.85);
+    letter-spacing: 0.3px;
+  }
+
+  .gallery-page-indicator {
+    text-align: center;
+    padding-top: 3%;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: var(--hoy-mid-gray);
+  }
+
+  /* ══════════════════════════════════════════
+     PAGE: EQUIPMENT
+     ══════════════════════════════════════════ */
+  .equipment {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 6% 7% 3%;
+  }
+
+  .equipment-header { margin-bottom: 4%; }
+
+  .equipment-header h2 {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--hoy-black);
+    margin-bottom: 4px;
+  }
+
+  .equipment-body {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 8%;
+  }
+
+  .equip-category { margin-bottom: 22px; }
+
+  .equip-item {
+    font-size: 10px;
+    line-height: 1.5;
+    color: var(--hoy-dark-gray);
+    font-weight: 300;
+    padding: 3px 0;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .equip-item::before {
+    content: '';
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--hoy-gold);
+    flex-shrink: 0;
+    margin-top: 5px;
+  }
+
+  .equip-note {
+    font-size: 9px;
+    color: var(--hoy-mid-gray);
+    font-style: italic;
+    margin-left: 12px;
+  }
+
+  /* ══════════════════════════════════════════
+     PAGE: DECLARATION
+     ══════════════════════════════════════════ */
+  .declaration {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 6% 7% 3%;
+  }
+
+  .declaration-header { margin-bottom: 4%; }
+  .declaration-body { flex: 1; }
+  .decl-section { margin-bottom: 20px; }
+
+  .decl-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    padding: 6px 0;
+    font-size: 10px;
+    border-bottom: 1px solid rgba(226, 221, 214, 0.5);
+  }
+
+  .decl-question { color: var(--hoy-dark-gray); font-weight: 300; line-height: 1.5; }
+  .decl-answer { font-weight: 500; color: var(--hoy-black); white-space: nowrap; }
+  .decl-answer.yes { color: var(--hoy-teal); }
+  .decl-answer.no { color: var(--hoy-mid-gray); }
+
+  .decl-comment {
+    grid-column: 1 / -1;
+    font-size: 9px;
+    color: var(--hoy-mid-gray);
+    font-style: italic;
+    padding: 2px 0 4px 12px;
+    border-left: 2px solid var(--hoy-gold);
+    margin-top: 2px;
+  }
+
+  .declaration-notice {
+    margin-top: auto;
+    padding: 14px 16px;
+    background: var(--hoy-cream);
+    border-radius: 4px;
+    font-size: 8.5px;
+    color: var(--hoy-mid-gray);
+    line-height: 1.6;
+  }
+
+  /* ══════════════════════════════════════════
+     PAGE: FREETEXT
+     ══════════════════════════════════════════ */
+  .freetext {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 6% 7% 3%;
+  }
+
+  .freetext-header { margin-bottom: 4%; }
+
+  .freetext-body {
+    flex: 1;
+    font-size: 10.5px;
+    line-height: 1.75;
+    color: var(--hoy-dark-gray);
+    font-weight: 300;
+  }
+
+  .freetext-body p { margin-bottom: 14px; }
+
+  .freetext-body h3 {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 400;
+    color: var(--hoy-black);
+    margin-bottom: 10px;
+    margin-top: 20px;
+  }
+
+  .freetext-body h3:first-child { margin-top: 0; }
+
+  /* ══════════════════════════════════════════
+     PAGE: CONTACT
+     ══════════════════════════════════════════ */
+  .contact {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .contact-image-area {
+    height: 50%;
+    overflow: hidden;
+    position: relative;
+    background: var(--hoy-deep-teal);
+  }
+
+  .contact-image-area img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.9;
+  }
+
+  .contact-image-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      transparent 40%,
+      rgba(26, 60, 52, 0.95) 100%
+    );
+  }
+
+  .contact-image-text {
+    position: absolute;
+    bottom: 8%;
+    left: 8%;
+    right: 8%;
+    color: var(--hoy-white);
+  }
+
+  .contact-image-text h2 {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 300;
+    margin-bottom: 6px;
+  }
+
+  .contact-image-text p {
+    font-size: 11px;
+    font-weight: 300;
+    opacity: 0.8;
+    line-height: 1.6;
+  }
+
+  .contact-body {
+    flex: 1;
+    padding: 6% 8%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .contact-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 24px;
+    align-items: center;
+    margin-bottom: 30px;
+  }
+
+  .contact-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--hoy-gold);
+    flex-shrink: 0;
+  }
+
+  .contact-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .contact-avatar-initials {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--hoy-gold-subtle);
+    border: 2px solid var(--hoy-gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 26px;
+    color: var(--hoy-gold);
+    flex-shrink: 0;
+  }
+
+  .contact-info h3 {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 400;
+    color: var(--hoy-black);
+    margin-bottom: 2px;
+  }
+
+  .contact-role {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--hoy-gold);
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+
+  .contact-detail {
+    font-size: 10.5px;
+    color: var(--hoy-dark-gray);
+    font-weight: 300;
+    line-height: 1.8;
+  }
+
+  .contact-cta {
+    text-align: center;
+    padding: 20px;
+    background: var(--hoy-cream);
+    border-radius: 4px;
+    border: 1px solid var(--hoy-warm-gray);
+  }
+
+  .contact-cta p {
+    font-size: 10px;
+    color: var(--hoy-mid-gray);
+    font-weight: 300;
+    margin-bottom: 10px;
+  }
+
+  .contact-cta .cta-text {
+    font-family: var(--font-display);
+    font-size: 18px;
+    color: var(--hoy-black);
+  }
+
+  /* ══════════════════════════════════════════
+     TOOLBAR (hidden in print)
+     ══════════════════════════════════════════ */
+  .render-toolbar {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    display: flex;
+    gap: 10px;
+    z-index: 999;
+  }
+
+  .render-toolbar button {
+    padding: 14px 28px;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    transition: transform 0.15s, opacity 0.15s;
+  }
+
+  .render-toolbar button:hover { transform: translateY(-2px); }
+
+  .btn-pdf {
+    background: #0a2140;
+    color: white;
+  }
+
+  .btn-back {
+    background: white;
+    color: #0a2140;
+    border: 2px solid #dde3ec !important;
+  }
+
+  /* ── Loading state ── */
+  .render-loading {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background: #D6D1CA;
+  }
+
+  .render-loading .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid rgba(0,0,0,0.12);
+    border-top-color: #C4983E;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .render-loading p {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--hoy-mid-gray);
+  }
+
+  .render-error {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: #D6D1CA;
+    text-align: center;
+  }
+
+  .render-error h2 {
+    font-size: 20px;
+    color: var(--hoy-dark-gray);
+  }
+
+  .render-error p {
+    font-size: 14px;
+    color: var(--hoy-mid-gray);
+  }
+</style>
+</head>
+<body>
+
+<!-- Loading state -->
+<div class="render-loading" id="loadingState">
+  <div class="spinner"></div>
+  <p>Genererer prospekt&hellip;</p>
+</div>
+
+<!-- Error state -->
+<div class="render-error" id="errorState" style="display:none">
+  <h2>Kunne ikke laste prospekt</h2>
+  <p id="errorMsg"></p>
+  <button class="btn-back" style="margin-top:12px;padding:10px 20px;border:2px solid #dde3ec;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer" onclick="history.back()">Tilbake</button>
+</div>
+
+<!-- Prospekt pages rendered here -->
+<div class="page-wrapper" id="pageWrapper" style="display:none"></div>
+
+<!-- Floating toolbar -->
+<div class="render-toolbar" id="toolbar" style="display:none">
+  <button class="btn-back" onclick="history.back()">← Tilbake</button>
+  <button class="btn-pdf" onclick="window.print()">Last ned PDF</button>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════════════════════
+// RENDER ENGINE — fetches prospekt data and builds all pages
+// ════════════════════════════════════════════════════════════════════════════════
+
+const API = '/.netlify/functions/prospekt';
+const OFFICE_ADDRESS = 'Dicks vei 12, 1366 Lysaker';
+
+// HoY logo as inline SVG (white, for cover page)
+const LOGO_SVG = `<svg viewBox="0 0 280 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <text x="0" y="42" font-family="'Georgia', serif" font-size="38" font-weight="700" fill="white" letter-spacing="3">HOUSE OF YACHTS</text>
+</svg>`;
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+function getInitials(name) {
+  if (!name) return '?';
+  return name.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
+}
+
+function spaceYear(y) {
+  if (!y) return '';
+  return String(y).split('').join(' &nbsp;');
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+function getToken() {
+  try {
+    const u = JSON.parse(localStorage.getItem('gotrue.user'));
+    if (u?.token?.access_token) return u.token.access_token;
+  } catch {}
+  return null;
+}
+
+async function api(params) {
+  const token = getToken();
+  if (!token) throw new Error('Ikke innlogget');
+  const qs = new URLSearchParams(params).toString();
+  const r = await fetch(`${API}?${qs}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const text = await r.text();
+  try { return JSON.parse(text); }
+  catch { throw new Error(text); }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// PAGE BUILDERS
+// ════════════════════════════════════════════════════════════════════════════════
+
+function buildCoverPage(p) {
+  const coverImg = p.cover_image_url
+    ? `<img src="${esc(p.cover_image_url)}" alt="${esc(p.boat_name)}">`
+    : '';
+
+  return `
+    <div class="page-label">Forside</div>
+    <div class="page">
+      <div class="cover">
+        <div class="cover-image-area">
+          ${coverImg}
+          <div class="cover-image-overlay"></div>
+          <div class="cover-logo">${LOGO_SVG}</div>
+        </div>
+        <div class="cover-bottom">
+          <div class="cover-year">${spaceYear(p.model_year)}</div>
+          <h1 class="cover-title">${esc(p.boat_name)}</h1>
+          <div class="cover-price">NOK ${esc(p.asking_price)},-</div>
+          <div class="cover-divider"></div>
+        </div>
+        <div class="cover-footer">
+          <span>${esc(OFFICE_ADDRESS)}</span>
+          <span><strong>${esc(p.broker_name)}</strong> &middot; ${esc(p.broker_phone || '')} &middot; ${esc(p.broker_email || '')}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function buildOverviewPage(p) {
+  const heroImg = p.overview_image_url
+    ? `<img src="${esc(p.overview_image_url)}" alt="${esc(p.boat_name)}">`
+    : '';
+
+  const specs = (p.specs || []).map(s => `
+    <div class="spec-row">
+      <span class="spec-label">${esc(s.label)}</span>
+      <span class="spec-value">${esc(s.value)}</span>
+    </div>
+  `).join('');
+
+  const caps = (p.capacities || []);
+  const capsHtml = caps.length > 0 ? `
+    <div class="spec-divider"></div>
+    <div style="margin-top:10px">
+      <div class="category-label-inline">Kapasiteter</div>
+      ${caps.map(c => `
+        <div class="spec-row">
+          <span class="spec-label">${esc(c.label)}</span>
+          <span class="spec-value">${esc(c.value)}</span>
+        </div>
+      `).join('')}
+    </div>
+  ` : '';
+
+  const descBody = p.description_body || '';
+  const visning = p.visning_text
+    ? `<p class="desc-visning">${esc(p.visning_text)}</p>`
+    : '';
+
+  return `
+    <div class="page-label">Oversikt</div>
+    <div class="page">
+      <div class="overview">
+        <div class="overview-hero">
+          ${heroImg}
+          <div class="overview-hero-overlay"></div>
+        </div>
+        <div class="overview-content">
+          <div class="specs-column">
+            <h2 class="specs-boat-name">${esc(p.boat_name)}</h2>
+            <div class="specs-price">Prisantydning: NOK ${esc(p.asking_price)},-</div>
+            <div class="category-label-inline">Spesifikasjoner</div>
+            ${specs}
+            ${capsHtml}
+          </div>
+          <div class="description-column">
+            <p class="desc-intro">${esc(p.description_intro || '')}</p>
+            <div class="desc-body">
+              ${descBody}
+              ${visning}
+            </div>
+          </div>
+        </div>
+        <div class="page-footer-light">
+          <div class="page-footer-accent"></div>
+          <span>House of Yachts &middot; ${esc(OFFICE_ADDRESS)} &middot; h-y.no</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function buildGalleryPages(p) {
+  const allImages = [];
+  for (const page of (p.gallery_pages || [])) {
+    for (const img of (page.images || [])) {
+      allImages.push(img);
+    }
+  }
+
+  if (allImages.length === 0) return '';
+
+  // Auto-paginate: max 5 images per page
+  const pages = [];
+  for (let i = 0; i < allImages.length; i += 5) {
+    pages.push(allImages.slice(i, i + 5));
+  }
+
+  return pages.map((pageImages, pi) => {
+    const count = pageImages.length;
+    let layout, gridClass;
+    if (count >= 5) { layout = '5up'; gridClass = 'gallery-grid-5up'; }
+    else if (count === 4) { layout = '4up'; gridClass = 'gallery-grid-4up'; }
+    else if (count === 3) { layout = '4up'; gridClass = 'gallery-grid-4up'; }
+    else if (count === 2) { layout = '2up'; gridClass = 'gallery-grid-2up'; }
+    else { layout = '1up'; gridClass = 'gallery-grid-1up'; }
+
+    const imagesHtml = pageImages.map((img, ii) => {
+      // In 5up: first image spans full width
+      const wideClass = (layout === '5up' && ii === 0) ? 'gi-wide' : '';
+      const captionHtml = img.caption
+        ? `<div class="gi-caption">${esc(img.caption)}</div>` : '';
+      return `
+        <div class="gi ${wideClass}">
+          <img src="${esc(img.url)}" alt="${esc(img.caption || '')}">
+          ${captionHtml}
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="page-label">Bildegalleri ${pi + 1}</div>
+      <div class="page">
+        <div class="gallery">
+          <div class="gallery-header">
+            <h2>Bildegalleri</h2>
+            <span class="gallery-subtitle">${esc(p.boat_name)} &middot; ${esc(String(p.model_year || ''))}</span>
+          </div>
+          <div class="${gridClass}">
+            ${imagesHtml}
+          </div>
+          <div class="gallery-page-indicator">${pi + 1} / ${pages.length}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function buildEquipmentPages(p) {
+  const cats = p.equipment_categories || [];
+  if (cats.length === 0) return '';
+
+  // Split into two columns
+  const mid = Math.ceil(cats.length / 2);
+  const leftCats = cats.slice(0, mid);
+  const rightCats = cats.slice(mid);
+
+  function renderColumn(categories) {
+    return categories.map(cat => `
+      <div class="equip-category">
+        <div class="category-label">${esc(cat.name)}</div>
+        ${(cat.items || []).map(item => `
+          <div class="equip-item">${esc(item.text || item)}</div>
+        `).join('')}
+      </div>
+    `).join('');
+  }
+
+  return `
+    <div class="page-label">Utstyrsliste</div>
+    <div class="page">
+      <div class="equipment">
+        <div class="equipment-header">
+          <h2>Utstyr og spesifikasjoner</h2>
+          <p class="section-subtitle">Komplett oversikt over utstyr og tilbeh&oslash;r</p>
+        </div>
+        <div class="equipment-body">
+          <div>${renderColumn(leftCats)}</div>
+          <div>${renderColumn(rightCats)}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function buildDeclarationPages(p) {
+  const sections = p.declaration_sections || [];
+  if (sections.length === 0) return '';
+
+  const sectionsHtml = sections.map(sec => `
+    <div class="decl-section">
+      <div class="category-label">${esc(sec.title)}</div>
+      ${(sec.questions || []).map(q => {
+        const ansClass = q.answer === 'Ja' ? 'yes' : (q.answer === 'Nei' ? 'no' : '');
+        const commentHtml = q.comment ? `<div class="decl-comment">${esc(q.comment)}</div>` : '';
+        return `
+          <div class="decl-row">
+            <span class="decl-question">${esc(q.question)}</span>
+            <span class="decl-answer ${ansClass}">${esc(q.answer)}</span>
+          </div>
+          ${commentHtml}
+        `;
+      }).join('')}
+    </div>
+  `).join('');
+
+  return `
+    <div class="page-label">Egenerklæring</div>
+    <div class="page">
+      <div class="declaration">
+        <div class="declaration-header">
+          <h2 class="section-title">Selgers egenerklæring</h2>
+          <p class="section-subtitle">Utfylt og signert av eier. Opplysningene gis i god tro og etter beste evne.</p>
+        </div>
+        <div class="declaration-body">
+          ${sectionsHtml}
+        </div>
+        <div class="declaration-notice">
+          Egenerklæringen er signert digitalt av selger via Oneflow. Originaldokumentet er tilgjengelig ved forespørsel til ansvarlig megler. Opplysningene erstatter ikke en uavhengig tilstandsvurdering.
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function buildFreetextPages(p) {
+  const pages = p.freetext_pages || [];
+  if (pages.length === 0) return '';
+
+  return pages.map(pg => {
+    const subtitleHtml = pg.subtitle
+      ? `<p class="section-subtitle">${esc(pg.subtitle)}</p>` : '';
+    return `
+      <div class="page-label">${esc(pg.heading || 'Fritekst')}</div>
+      <div class="page">
+        <div class="freetext">
+          <div class="freetext-header">
+            <h2 class="section-title">${esc(pg.heading || '')}</h2>
+            ${subtitleHtml}
+          </div>
+          <div class="freetext-body">
+            ${pg.content || ''}
+          </div>
+          <div class="page-footer-light">
+            <div class="page-footer-accent"></div>
+            <span>House of Yachts &middot; ${esc(OFFICE_ADDRESS)} &middot; h-y.no</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function buildContactPage(p) {
+  const contactImg = p.contact_image_url
+    ? `<img src="${esc(p.contact_image_url)}" alt="${esc(p.boat_name)}">`
+    : '';
+
+  let avatarHtml;
+  if (p.broker_photo_url) {
+    avatarHtml = `
+      <div class="contact-avatar">
+        <img src="${esc(p.broker_photo_url)}" alt="${esc(p.broker_name)}">
+      </div>
+    `;
+  } else {
+    avatarHtml = `<div class="contact-avatar-initials">${esc(getInitials(p.broker_name))}</div>`;
+  }
+
+  return `
+    <div class="page-label">Kontakt</div>
+    <div class="page">
+      <div class="contact">
+        <div class="contact-image-area">
+          ${contactImg}
+          <div class="contact-image-overlay"></div>
+          <div class="contact-image-text">
+            <h2>Interessert?</h2>
+            <p>Ta kontakt for visning eller ytterligere informasjon om dette fart&oslash;yet. Vi er tilgjengelige for sp&oslash;rsm&aring;l og arrangerer gjerne en uforpliktende befaring.</p>
+          </div>
+        </div>
+        <div class="contact-body">
+          <div class="contact-card">
+            ${avatarHtml}
+            <div class="contact-info">
+              <h3>${esc(p.broker_name)}</h3>
+              <div class="contact-role">${esc(p.broker_role || 'Megler')}</div>
+              <div class="contact-detail">
+                ${esc(p.broker_phone || '')}<br>
+                ${esc(p.broker_email || '')}
+              </div>
+            </div>
+          </div>
+          <div class="contact-cta">
+            <p>${esc(p.cta_label || 'Besøk oss for visning')}</p>
+            <div class="cta-text">${esc(p.cta_address || OFFICE_ADDRESS)}</div>
+          </div>
+        </div>
+        <div class="page-footer">
+          <span>&copy; ${new Date().getFullYear()} House of Yachts &middot; h-y.no</span>
+          <span>${esc(OFFICE_ADDRESS)}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// SECTION ORDERING & RENDERING
+// ════════════════════════════════════════════════════════════════════════════════
+
+const SECTION_BUILDERS = {
+  cover:       buildCoverPage,
+  overview:    buildOverviewPage,
+  gallery:     buildGalleryPages,
+  equipment:   buildEquipmentPages,
+  declaration: buildDeclarationPages,
+  freetext:    buildFreetextPages,
+  contact:     buildContactPage,
+};
+
+const DEFAULT_ORDER = ['cover', 'overview', 'gallery', 'equipment', 'declaration', 'freetext', 'contact'];
+
+function renderProspekt(p) {
+  const order = p.sections_order || DEFAULT_ORDER;
+
+  // Always include cover first and contact last, even if not in sections_order
+  const sections = [];
+  if (!order.includes('cover')) sections.push('cover');
+  for (const s of order) sections.push(s);
+  if (!order.includes('contact')) sections.push('contact');
+
+  let html = '';
+  for (const section of sections) {
+    const builder = SECTION_BUILDERS[section];
+    if (builder) html += builder(p);
+  }
+  return html;
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════════════════════
+
+async function init() {
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+
+  if (!id) {
+    showError('Mangler prospekt-ID i URL');
+    return;
+  }
+
+  try {
+    const data = await api({ id });
+    if (data.error) throw new Error(data.error);
+
+    // Update page title
+    document.title = `${data.boat_name || 'Prospekt'} — House of Yachts`;
+
+    // Render pages
+    const wrapper = document.getElementById('pageWrapper');
+    wrapper.innerHTML = renderProspekt(data);
+    wrapper.style.display = '';
+
+    // Show toolbar
+    document.getElementById('toolbar').style.display = '';
+
+    // Hide loading
+    document.getElementById('loadingState').style.display = 'none';
+
+    // Auto-print if ?print=1
+    if (params.get('print') === '1') {
+      // Small delay to let images start loading
+      setTimeout(() => window.print(), 600);
+    }
+
+  } catch (e) {
+    console.error('Render error:', e);
+    showError(e.message);
+  }
+}
+
+function showError(msg) {
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('errorState').style.display = '';
+  document.getElementById('errorMsg').textContent = msg;
+}
+
+init();
+</script>
+</body>
+</html>
