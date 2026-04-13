@@ -92,27 +92,51 @@ exports.handler = async (event) => {
         return ok(data);
       }
 
-      // ── List uploaded images for a deal ──
+      // ── List uploaded images for a deal (recursive, includes subfolders) ──
       if (qs.images) {
         const dealId = qs.images;
-        const { data: files, error } = await supabase.storage
+        const images = [];
+
+        // List root level
+        const { data: rootFiles } = await supabase.storage
           .from('prospekt-bilder')
           .list(dealId, { limit: 200, sortBy: { column: 'name', order: 'asc' } });
-        if (error) throw error;
 
         const { data: { publicUrl: baseUrl } } = supabase.storage
           .from('prospekt-bilder')
           .getPublicUrl(dealId + '/');
 
-        const images = (files || [])
-          .filter(f => /\.(jpe?g|png|webp)$/i.test(f.name))
-          .map(f => ({
-            name: f.name,
-            url: baseUrl + f.name,
-            path: `${dealId}/${f.name}`,
-            size: f.metadata?.size || 0,
-            created: f.created_at,
-          }));
+        for (const f of (rootFiles || [])) {
+          if (/\.(jpe?g|png)$/i.test(f.name)) {
+            images.push({
+              name: f.name,
+              folder: '',
+              url: baseUrl + f.name,
+              path: `${dealId}/${f.name}`,
+            });
+          } else if (!f.name.includes('.')) {
+            // Likely a subfolder — list it
+            const folderName = f.name;
+            const { data: subFiles } = await supabase.storage
+              .from('prospekt-bilder')
+              .list(`${dealId}/${folderName}`, { limit: 200, sortBy: { column: 'name', order: 'asc' } });
+
+            const { data: { publicUrl: subBaseUrl } } = supabase.storage
+              .from('prospekt-bilder')
+              .getPublicUrl(`${dealId}/${folderName}/`);
+
+            for (const sf of (subFiles || [])) {
+              if (/\.(jpe?g|png)$/i.test(sf.name)) {
+                images.push({
+                  name: sf.name,
+                  folder: folderName,
+                  url: subBaseUrl + sf.name,
+                  path: `${dealId}/${folderName}/${sf.name}`,
+                });
+              }
+            }
+          }
+        }
 
         return ok(images);
       }

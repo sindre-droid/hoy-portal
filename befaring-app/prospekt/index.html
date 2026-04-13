@@ -905,6 +905,7 @@ function openImagePicker(fieldOrCallback, multi = false) {
         renderSectionBody(section);
         $(`sec-${section}`).classList.add('open');
         scheduleAutoSave();
+        toast('Bilde valgt');
       }
     };
   } else {
@@ -923,6 +924,31 @@ function renderPickerModal() {
   overlay.onclick = (e) => { if (e.target === overlay) closePickerModal(); };
 
   const imgs = availableImages;
+
+  // Group by folder
+  const grouped = {};
+  for (const img of imgs) {
+    const key = img.folder || 'Øvrige';
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(img);
+  }
+
+  const gridHtml = imgs.length === 0
+    ? `<div class="picker-empty">
+         Ingen bilder lastet opp for dette oppdraget ennå.<br><br>
+         <a href="/prospekt/bilder.html" target="_blank" style="color:var(--gold);font-weight:600">Åpne bildeopplasting →</a>
+       </div>`
+    : Object.entries(grouped).map(([folder, folderImgs]) => `
+        <div style="font-size:11px;font-weight:700;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;margin:12px 0 8px;grid-column:1/-1">${esc(folder)}</div>
+        ${folderImgs.map(img => `
+          <div class="picker-img" data-url="${esc(img.url)}" onclick="togglePickerImage(this)">
+            <img src="${esc(img.url)}" alt="${esc(img.name)}" loading="lazy">
+            <div class="picker-check">✓</div>
+            <div class="picker-img-name">${esc(img.name)}</div>
+          </div>
+        `).join('')}
+      `).join('');
+
   overlay.innerHTML = `
     <div class="picker-modal">
       <div class="picker-modal-header">
@@ -930,19 +956,7 @@ function renderPickerModal() {
         <button class="picker-modal-close" onclick="closePickerModal()">×</button>
       </div>
       <div class="picker-modal-body">
-        ${imgs.length === 0
-          ? `<div class="picker-empty">
-               Ingen bilder lastet opp for dette oppdraget ennå.<br><br>
-               <a href="/prospekt/bilder.html" target="_blank" style="color:var(--gold);font-weight:600">Åpne bildeopplasting →</a>
-             </div>`
-          : `<div class="picker-grid">${imgs.map((img, i) => `
-              <div class="picker-img" data-url="${esc(img.url)}" onclick="togglePickerImage(this)">
-                <img src="${esc(img.url)}" alt="${esc(img.name)}" loading="lazy">
-                <div class="picker-check">✓</div>
-                <div class="picker-img-name">${esc(img.name)}</div>
-              </div>
-            `).join('')}</div>`
-        }
+        <div class="picker-grid">${gridHtml}</div>
       </div>
       <div class="picker-modal-footer">
         <span class="picker-selected-count" style="font-size:13px;color:var(--gray-dark)">Ingen valgt</span>

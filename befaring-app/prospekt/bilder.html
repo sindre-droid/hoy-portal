@@ -139,10 +139,10 @@
         ondrop="handleDrop(event)"
         onclick="$('fileInput').click()">
         <div class="drop-zone-icon">📸</div>
-        <div class="drop-zone-text">Slipp bilder her eller klikk for å velge</div>
-        <div class="drop-zone-hint">JPG, PNG, WebP — ingen størrelsesgrense</div>
+        <div class="drop-zone-text">Slipp mapper eller bilder her, eller klikk for å velge</div>
+        <div class="drop-zone-hint">Støtter mapper (Eksteriør, Interiør, Detaljer) — JPG-filer lastes opp, WebP filtreres bort</div>
       </div>
-      <input type="file" id="fileInput" style="display:none" accept="image/*" multiple onchange="handleFiles(this.files)">
+      <input type="file" id="fileInput" style="display:none" accept="image/jpeg,image/jpg,image/png" multiple onchange="handleFileInput(this.files)">
 
       <div class="upload-progress" id="uploadProgress"></div>
 
@@ -294,12 +294,23 @@ async function loadImages() {
     header.style.display = 'flex';
     $('imagesCount').textContent = `${images.length} bilder`;
 
-    grid.innerHTML = images.map(img => `
-      <div class="img-card">
-        <img src="${esc(img.url)}" alt="${esc(img.name)}" loading="lazy">
-        <div class="img-card-name">${esc(img.name)}</div>
-        <button class="img-del" onclick="event.stopPropagation();deleteImage('${esc(img.path)}',this.closest('.img-card'))">×</button>
-      </div>
+    // Group by folder
+    const grouped = {};
+    for (const img of images) {
+      const key = img.folder || 'Øvrige';
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(img);
+    }
+
+    grid.innerHTML = Object.entries(grouped).map(([folder, imgs]) => `
+      <div style="grid-column:1/-1;font-size:12px;font-weight:700;color:var(--gold);letter-spacing:1px;text-transform:uppercase;margin-top:8px">${esc(folder)}</div>
+      ${imgs.map(img => `
+        <div class="img-card">
+          <img src="${esc(img.url)}" alt="${esc(img.name)}" loading="lazy">
+          <div class="img-card-name">${esc(img.name)}</div>
+          <button class="img-del" onclick="event.stopPropagation();deleteImage('${esc(img.path)}',this.closest('.img-card'))">×</button>
+        </div>
+      `).join('')}
     `).join('');
   } catch (e) {
     console.error('loadImages:', e);
@@ -307,24 +318,99 @@ async function loadImages() {
 }
 
 // ── Upload ───────────────────────────────────────────────────────────────────
-function handleDrop(event) {
-  event.preventDefault();
-  event.currentTarget.classList.remove('dragover');
-  handleFiles(event.dataTransfer.files);
+
+// Handle regular file input (no folder support)
+function handleFileInput(fileList) {
+  const files = [...fileList].filter(f => isAllowedImage(f.name));
+  if (files.length) uploadFiles(files.map(f => ({ file: f, folder: '' })));
 }
 
-async function handleFiles(fileList) {
-  const files = [...fileList].filter(f => f.type.startsWith('image/'));
+// Handle drop — supports folders via webkitGetAsEntry
+async function handleDrop(event) {
+  event.preventDefault();
+  event.currentTarget.classList.remove('dragover');
+
+  const items = event.dataTransfer.items;
+  if (!items) {
+    // Fallback: no DataTransferItemList
+    const files = [...event.dataTransfer.files].filter(f => isAllowedImage(f.name));
+    if (files.length) uploadFiles(files.map(f => ({ file: f, folder: '' })));
+    return;
+  }
+
+  // Recursively collect files from dropped entries (supports folders)
+  const entries = [];
+  for (const item of items) {
+    const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
+    if (entry) entries.push(entry);
+  }
+
+  toast('Leser mapper…');
+  const collected = [];
+  await Promise.all(entries.map(entry => collectFiles(entry, '', collected)));
+
+  if (collected.length === 0) {
+    toast('Ingen JPG/PNG-bilder funnet', 'error');
+    return;
+  }
+
+  toast(`Fant ${collected.length} bilder`);
+  uploadFiles(collected);
+}
+
+// Recursively traverse directory entries
+function collectFiles(entry, parentPath, result) {
+  return new Promise((resolve) => {
+    if (entry.isFile) {
+      entry.file(file => {
+        if (isAllowedImage(file.name)) {
+          result.push({ file, folder: parentPath });
+        }
+        resolve();
+      }, () => resolve());
+    } else if (entry.isDirectory) {
+      const folderName = entry.name;
+      // Skip webp folders
+      if (folderName.toLowerCase() === 'webp' || folderName.toLowerCase().includes('webp')) {
+        resolve();
+        return;
+      }
+      const reader = entry.createReader();
+      const readAll = (allEntries = []) => {
+        reader.readEntries(async (batch) => {
+          if (batch.length === 0) {
+            // Done reading
+            await Promise.all(allEntries.map(e => collectFiles(e, folderName, result)));
+            resolve();
+          } else {
+            readAll([...allEntries, ...batch]);
+          }
+        }, () => resolve());
+      };
+      readAll();
+    } else {
+      resolve();
+    }
+  });
+}
+
+function isAllowedImage(name) {
+  return /\.(jpe?g|png)$/i.test(name);
+}
+
+async function uploadFiles(items) {
+  const files = items;
   if (!files.length) return;
 
   const progress = $('uploadProgress');
 
   // Create progress rows
   const rows = files.map((f, i) => {
+    const displayName = f.folder ? `${f.folder}/${f.file.name}` : f.file.name;
     const row = document.createElement('div');
     row.className = 'upload-progress-item';
     row.innerHTML = `
-      <span class="upload-progress-name">${esc(f.name)}</span>
+      <span class="upload-progress-name">${esc(displayName)}</span>
       <span class="upload-progress-status pending" id="up-${i}">Venter…</span>
     `;
     progress.appendChild(row);
@@ -334,23 +420,27 @@ async function handleFiles(fileList) {
   // Upload sequentially (to avoid overwhelming)
   let success = 0;
   for (let i = 0; i < files.length; i++) {
+    const { file, folder } = files[i];
     const status = $(`up-${i}`);
     status.textContent = 'Laster opp…';
     status.className = 'upload-progress-status uploading';
+
+    // Preserve folder structure: "Eksteriør/bilde.jpg"
+    const storageName = folder ? `${folder}/${file.name}` : file.name;
 
     try {
       // 1. Get signed URL
       const { upload_url } = await api({ action: 'upload_url' }, 'POST', {
         deal_id: currentDealId,
-        file_name: files[i].name,
-        content_type: files[i].type,
+        file_name: storageName,
+        content_type: file.type,
       });
 
       // 2. Upload directly to Supabase
       const r = await fetch(upload_url, {
         method: 'PUT',
-        headers: { 'Content-Type': files[i].type },
-        body: files[i],
+        headers: { 'Content-Type': file.type },
+        body: file,
       });
 
       if (!r.ok) throw new Error(`${r.status}`);
@@ -361,7 +451,7 @@ async function handleFiles(fileList) {
     } catch (e) {
       status.textContent = 'Feilet';
       status.className = 'upload-progress-status error';
-      console.error(`Upload ${files[i].name}:`, e);
+      console.error(`Upload ${storageName}:`, e);
     }
   }
 
