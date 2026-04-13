@@ -160,7 +160,15 @@ exports.handler = async (event) => {
     if (event.httpMethod === 'POST') {
       const action = qs.action;
       let body = {};
-      try { body = JSON.parse(event.body || '{}'); } catch {}
+      try {
+        const raw = event.isBase64Encoded
+          ? Buffer.from(event.body, 'base64').toString('utf8')
+          : event.body;
+        body = JSON.parse(raw || '{}');
+      } catch (parseErr) {
+        console.error('Body parse error:', parseErr.message, 'isBase64Encoded:', event.isBase64Encoded, 'body length:', event.body?.length);
+        return err(400, 'Invalid JSON body');
+      }
 
       // ── Create prospekt from deal ──
       if (action === 'create') {
@@ -246,8 +254,9 @@ exports.handler = async (event) => {
       // ── Upload image ──
       if (action === 'upload_image') {
         const { prospekt_id, file_name, file_base64, content_type } = body;
+        console.log('upload_image:', { prospekt_id, file_name, content_type, base64_length: file_base64?.length });
         if (!prospekt_id || !file_name || !file_base64)
-          return err(400, 'prospekt_id, file_name, file_base64 required');
+          return err(400, `Missing fields: prospekt_id=${!!prospekt_id}, file_name=${!!file_name}, file_base64=${!!file_base64}`);
 
         const buffer = Buffer.from(file_base64, 'base64');
         const path = `${prospekt_id}/${Date.now()}-${file_name}`;
