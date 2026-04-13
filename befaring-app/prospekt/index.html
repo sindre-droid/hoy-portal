@@ -234,8 +234,8 @@
 
 <script>
 // ── Constants ────────────────────────────────────────────────────────────────
-const API = '/.netlify/functions/prospekt';
-const AUTH_API = '/.netlify/functions/auth';
+const IDENTITY = `${window.location.origin}/.netlify/identity`;
+const API      = `${window.location.origin}/.netlify/functions/prospekt`;
 const $ = id => document.getElementById(id);
 
 let accessToken = null;
@@ -249,21 +249,22 @@ function showScreen(id) {
 }
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
-async function fetchUser(token) {
-  const p = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
-  return { email: p.email, name: p.name || p.email.split('@')[0] };
+async function fetchUser(tok) {
+  const r = await fetch(`${IDENTITY}/user`, { headers: { Authorization: `Bearer ${tok}` } });
+  if (!r.ok) throw new Error('Session utløpt');
+  return r.json();
 }
 
 (async function init() {
   showScreen('loadingScreen');
-  const saved = localStorage.getItem('hoy_access_token');
-  if (saved) {
+  const tok = localStorage.getItem('hoy_access_token');
+  if (tok) {
     try {
-      accessToken = saved;
-      const u = await fetchUser(saved);
+      accessToken = tok;
+      const u = await fetchUser(tok);
       onLogin(u);
       return;
-    } catch {}
+    } catch { localStorage.removeItem('hoy_access_token'); }
   }
   showScreen('loginScreen');
 })();
@@ -277,10 +278,10 @@ async function doLogin() {
   btn.disabled = true; btn.textContent = 'Logger inn…';
   err.style.display = 'none';
   try {
-    const r = await fetch(AUTH_API, {
+    const r = await fetch(`${IDENTITY}/token`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password: pass }),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `grant_type=password&username=${encodeURIComponent(email)}&password=${encodeURIComponent(pass)}`,
     });
     if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error_description || 'Feil passord eller e-post'); }
     const data = await r.json();
@@ -334,14 +335,30 @@ function toast(msg, type = 'success') {
 // ════════════════════════════════════════════════════════════════════════════════
 
 async function loadPicker() {
-  // Load deals and existing prospekter in parallel
-  const [deals, prospekter] = await Promise.all([
-    api({ deals: 1 }),
-    api({ list: 1 }),
-  ]);
+  const sel = $('dealSelect');
+  sel.innerHTML = '<option value="">Laster oppdrag…</option>';
+
+  let deals = [];
+  let prospekter = [];
+
+  try {
+    // Load deals and existing prospekter in parallel
+    const results = await Promise.allSettled([
+      api({ deals: 1 }),
+      api({ list: 1 }),
+    ]);
+
+    if (results[0].status === 'fulfilled') deals = results[0].value || [];
+    else console.error('Feil ved lasting av deals:', results[0].reason);
+
+    if (results[1].status === 'fulfilled') prospekter = results[1].value || [];
+    else console.error('Feil ved lasting av prospekter:', results[1].reason);
+  } catch (e) {
+    console.error('loadPicker error:', e);
+    toast('Kunne ikke laste data: ' + e.message, 'error');
+  }
 
   // Populate deal dropdown (only deals without prospekt)
-  const sel = $('dealSelect');
   sel.innerHTML = '<option value="">— Velg oppdrag —</option>';
   for (const d of deals) {
     if (d.has_prospekt) continue;
@@ -349,6 +366,9 @@ async function loadPicker() {
     opt.value = d.id;
     opt.textContent = d.name;
     sel.appendChild(opt);
+  }
+  if (deals.length === 0) {
+    sel.innerHTML = '<option value="">Ingen oppdrag funnet</option>';
   }
 
   $('createBtn').disabled = true;
