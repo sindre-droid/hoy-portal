@@ -987,8 +987,9 @@ function updatePickerCount() {
 
 function confirmPickerSelection() {
   const urls = [...document.querySelectorAll('.picker-img.selected')].map(el => el.dataset.url);
+  const cb = pickerCallback;  // save before closing
   closePickerModal();
-  if (pickerCallback) pickerCallback(urls);
+  if (cb) cb(urls);
 }
 
 function closePickerModal() {

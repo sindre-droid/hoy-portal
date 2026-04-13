@@ -398,6 +398,16 @@ function isAllowedImage(name) {
   return /\.(jpe?g|png)$/i.test(name);
 }
 
+// Sanitize folder/file names for storage: Norwegian chars → ASCII
+function sanitizeName(name) {
+  return name
+    .replace(/æ/gi, 'ae')
+    .replace(/ø/gi, 'o')
+    .replace(/å/gi, 'a')
+    .replace(/[^a-zA-Z0-9._\-\/\s]/g, '')
+    .replace(/\s+/g, '-');
+}
+
 async function uploadFiles(items) {
   const files = items;
   if (!files.length) return;
@@ -425,8 +435,10 @@ async function uploadFiles(items) {
     status.textContent = 'Laster opp…';
     status.className = 'upload-progress-status uploading';
 
-    // Preserve folder structure: "Eksteriør/bilde.jpg"
-    const storageName = folder ? `${folder}/${file.name}` : file.name;
+    // Preserve folder structure, sanitize for storage
+    const safeFolder = folder ? sanitizeName(folder) : '';
+    const safeName = sanitizeName(file.name);
+    const storageName = safeFolder ? `${safeFolder}/${safeName}` : safeName;
 
     try {
       // 1. Get signed URL
