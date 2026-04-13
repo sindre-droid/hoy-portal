@@ -945,9 +945,9 @@ function renderEquipCategory(cat, ci) {
 
 function renderDeclarationSection(p) {
   const sections = p.declaration_sections;
-  const hasData = oneflowId || (sections && sections.length > 0 && sections.some(s => (s.questions || []).some(q => q.answer)));
   const oneflowState = p.declaration_oneflow_state || '';
   const oneflowId = p.declaration_oneflow_id || '';
+  const hasData = oneflowId || (sections && sections.length > 0 && sections.some(s => (s.questions || []).some(q => q.answer)));
   const otherNotes = p.declaration_other_notes || '';
 
   // Status-badge
