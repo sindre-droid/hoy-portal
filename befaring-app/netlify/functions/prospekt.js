@@ -92,6 +92,31 @@ exports.handler = async (event) => {
         return ok(data);
       }
 
+      // ── List uploaded images for a deal ──
+      if (qs.images) {
+        const dealId = qs.images;
+        const { data: files, error } = await supabase.storage
+          .from('prospekt-bilder')
+          .list(dealId, { limit: 200, sortBy: { column: 'name', order: 'asc' } });
+        if (error) throw error;
+
+        const { data: { publicUrl: baseUrl } } = supabase.storage
+          .from('prospekt-bilder')
+          .getPublicUrl(dealId + '/');
+
+        const images = (files || [])
+          .filter(f => /\.(jpe?g|png|webp)$/i.test(f.name))
+          .map(f => ({
+            name: f.name,
+            url: baseUrl + f.name,
+            path: `${dealId}/${f.name}`,
+            size: f.metadata?.size || 0,
+            created: f.created_at,
+          }));
+
+        return ok(images);
+      }
+
       // ── Get Pipeline B deals for dropdown (kun aktive stages, egne + splits) ──
       if (qs.deals) {
         const ownerId = KNOWN_OWNERS[jwt.email] || null;
@@ -251,29 +276,29 @@ exports.handler = async (event) => {
         return ok(data);
       }
 
-      // ── Upload image ──
-      if (action === 'upload_image') {
-        const { prospekt_id, file_name, file_base64, content_type } = body;
-        console.log('upload_image:', { prospekt_id, file_name, content_type, base64_length: file_base64?.length });
-        if (!prospekt_id || !file_name || !file_base64)
-          return err(400, `Missing fields: prospekt_id=${!!prospekt_id}, file_name=${!!file_name}, file_base64=${!!file_base64}`);
+      // ── Get signed upload URL (bilder lagres per deal_id) ──
+      if (action === 'upload_url') {
+        const { deal_id, file_name, content_type } = body;
+        if (!deal_id || !file_name)
+          return err(400, 'deal_id and file_name required');
 
-        const buffer = Buffer.from(file_base64, 'base64');
-        const path = `${prospekt_id}/${Date.now()}-${file_name}`;
+        const path = `${deal_id}/${file_name}`;
 
-        const { error: uploadErr } = await supabase.storage
+        const { data: signedData, error: signErr } = await supabase.storage
           .from('prospekt-bilder')
-          .upload(path, buffer, {
-            contentType: content_type || 'image/jpeg',
-            upsert: false,
-          });
-        if (uploadErr) throw uploadErr;
+          .createSignedUploadUrl(path, { upsert: true });
+        if (signErr) throw signErr;
 
         const { data: urlData } = supabase.storage
           .from('prospekt-bilder')
           .getPublicUrl(path);
 
-        return ok({ url: urlData.publicUrl, path });
+        return ok({
+          upload_url: signedData.signedUrl,
+          token: signedData.token,
+          path,
+          public_url: urlData.publicUrl,
+        });
       }
 
       // ── Delete image ──

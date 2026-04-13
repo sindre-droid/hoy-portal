@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bildeopplasting — House of Yachts</title>
+<style>
+  :root {
+    --navy:#0a2140;--gold:#c9a84c;--white:#fff;--surface:#f5f7fa;
+    --gray:#dde3ec;--gray-dark:#6b7a8d;--text:#12233a;
+    --green:#166534;--green-bg:#dcfce7;
+    --red:#991b1b;--red-bg:#fee2e2;
+    --radius:12px;--shadow:0 2px 16px rgba(10,33,64,0.10);
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--surface);color:var(--text);margin:0;padding:0;min-height:100vh}
+
+  .loading-screen,.login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy)}
+  .loading-text{color:rgba(255,255,255,0.5);font-size:15px}
+  .login-box{background:white;border-radius:20px;padding:40px 36px;max-width:400px;width:calc(100% - 32px);text-align:center;box-shadow:0 8px 40px rgba(0,0,0,0.3)}
+  .login-logo{font-size:22px;font-weight:800;color:var(--navy);margin-bottom:4px}
+  .login-sub{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:28px}
+  .login-form{display:flex;flex-direction:column;gap:12px;text-align:left;margin-bottom:20px}
+  .login-form label{font-size:13px;font-weight:600;color:var(--navy);display:block;margin-bottom:4px}
+  .login-form input{width:100%;padding:13px 15px;border:2px solid var(--gray);border-radius:10px;font-size:16px;font-family:inherit}
+  .login-form input:focus{outline:none;border-color:var(--navy)}
+  .btn-login{width:100%;padding:15px;background:var(--navy);color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer}
+  .login-error{color:#991b1b;font-size:13px;font-weight:600;margin-top:10px;display:none}
+
+  .header{background:var(--navy);color:white;padding:14px 20px;position:sticky;top:0;z-index:200;box-shadow:0 2px 16px rgba(0,0,0,0.35)}
+  .header-inner{max-width:960px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .brand{display:flex;flex-direction:column}
+  .brand-name{font-size:14px;font-weight:800;letter-spacing:0.8px}
+  .brand-sub{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--gold)}
+  .header-title{font-size:16px;font-weight:700;color:rgba(255,255,255,0.9)}
+  .header-right{display:flex;align-items:center;gap:12px}
+  .user-label{font-size:12px;color:rgba(255,255,255,0.55)}
+  .btn-nav{background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.18);border-radius:20px;color:rgba(255,255,255,0.85);padding:6px 14px;font-size:12px;font-family:inherit;cursor:pointer;text-decoration:none}
+  .btn-nav:hover{background:rgba(255,255,255,0.2)}
+
+  .main{max-width:960px;margin:0 auto;padding:32px 16px 80px}
+  .picker-title{font-size:22px;font-weight:700;color:var(--navy);margin-bottom:8px;text-align:center}
+  .picker-sub{font-size:14px;color:var(--gray-dark);margin-bottom:24px;text-align:center}
+  .deal-select{width:100%;max-width:500px;margin:0 auto;display:block;padding:14px 16px;border:2px solid var(--gray);border-radius:12px;font-size:16px;font-family:inherit;color:var(--text);background:white;cursor:pointer}
+  .deal-select:focus{outline:none;border-color:var(--navy)}
+
+  /* Upload area */
+  .upload-section{display:none;margin-top:32px}
+  .upload-deal-name{font-size:18px;font-weight:700;color:var(--navy);margin-bottom:4px}
+  .upload-deal-sub{font-size:13px;color:var(--gray-dark);margin-bottom:20px}
+
+  .drop-zone{border:3px dashed var(--gray);border-radius:14px;padding:48px 24px;text-align:center;cursor:pointer;transition:border-color 0.15s,background 0.15s;background:white}
+  .drop-zone:hover,.drop-zone.dragover{border-color:var(--gold);background:#fffbeb}
+  .drop-zone-icon{font-size:40px;margin-bottom:10px}
+  .drop-zone-text{font-size:15px;color:var(--gray-dark);margin-bottom:4px}
+  .drop-zone-hint{font-size:12px;color:var(--gray-dark);opacity:0.7}
+
+  /* Progress */
+  .upload-progress{margin-top:20px}
+  .upload-progress-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--gray)}
+  .upload-progress-name{flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .upload-progress-status{font-size:12px;font-weight:600;white-space:nowrap}
+  .upload-progress-status.pending{color:var(--gray-dark)}
+  .upload-progress-status.uploading{color:var(--gold)}
+  .upload-progress-status.done{color:var(--green)}
+  .upload-progress-status.error{color:var(--red)}
+
+  /* Image grid */
+  .images-header{display:flex;justify-content:space-between;align-items:center;margin-top:32px;margin-bottom:14px}
+  .images-header h3{font-size:15px;font-weight:700;color:var(--navy);margin:0}
+  .images-count{font-size:13px;color:var(--gray-dark)}
+  .images-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+  .img-card{position:relative;border-radius:8px;overflow:hidden;background:var(--gray);aspect-ratio:4/3}
+  .img-card img{width:100%;height:100%;object-fit:cover;display:block}
+  .img-card-name{position:absolute;bottom:0;left:0;right:0;padding:16px 8px 6px;background:linear-gradient(to top,rgba(0,0,0,0.6),transparent);font-size:10px;color:white;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .img-card .img-del{position:absolute;top:4px;right:4px;width:24px;height:24px;background:rgba(0,0,0,0.6);color:white;border:none;border-radius:50%;font-size:14px;cursor:pointer;display:none;align-items:center;justify-content:center}
+  .img-card:hover .img-del{display:flex}
+
+  .toast{position:fixed;bottom:24px;right:24px;padding:14px 24px;border-radius:10px;font-size:14px;font-weight:600;z-index:999;transition:opacity 0.3s,transform 0.3s;opacity:0;transform:translateY(12px);pointer-events:none}
+  .toast.show{opacity:1;transform:translateY(0)}
+  .toast.success{background:var(--green-bg);color:var(--green);border:1px solid #86efac}
+  .toast.error{background:var(--red-bg);color:var(--red);border:1px solid #fca5a5}
+</style>
+</head>
+<body>
+
+<div id="loadingScreen" class="loading-screen" style="display:none">
+  <div class="loading-text">Starter…</div>
+</div>
+
+<div id="loginScreen" class="login-screen" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">HOUSE OF YACHTS</div>
+    <div class="login-sub">Bildeopplasting</div>
+    <div class="login-form">
+      <div><label for="loginEmail">E-post</label>
+        <input type="email" id="loginEmail" placeholder="navn@h-y.no" autocomplete="email"></div>
+      <div><label for="loginPassword">Passord</label>
+        <input type="password" id="loginPassword" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter')doLogin()"></div>
+    </div>
+    <div class="login-error" id="loginError"></div>
+    <button class="btn-login" id="loginBtn" onclick="doLogin()">Logg inn</button>
+  </div>
+</div>
+
+<div id="appScreen" style="display:none">
+  <div class="header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-name">HOUSE OF YACHTS</div>
+        <div class="brand-sub">Internportal</div>
+      </div>
+      <div class="header-title">Bildeopplasting</div>
+      <div class="header-right">
+        <span class="user-label" id="userLabel"></span>
+        <a href="/prospekt/" class="btn-nav">← Prospekt-editor</a>
+        <a href="/" class="btn-nav">Portal</a>
+        <button class="btn-nav" onclick="doLogout()">Logg ut</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="picker-title">Last opp bilder</div>
+    <div class="picker-sub">Velg oppdrag og last opp fotografens bilder</div>
+
+    <select class="deal-select" id="dealSelect" onchange="onDealSelect()">
+      <option value="">Laster oppdrag…</option>
+    </select>
+
+    <div class="upload-section" id="uploadSection">
+      <div class="upload-deal-name" id="uploadDealName"></div>
+      <div class="upload-deal-sub" id="uploadDealSub">Slipp bilder nedenfor eller klikk for å velge filer</div>
+
+      <div class="drop-zone" id="dropZone"
+        ondragover="event.preventDefault();this.classList.add('dragover')"
+        ondragleave="this.classList.remove('dragover')"
+        ondrop="handleDrop(event)"
+        onclick="$('fileInput').click()">
+        <div class="drop-zone-icon">📸</div>
+        <div class="drop-zone-text">Slipp bilder her eller klikk for å velge</div>
+        <div class="drop-zone-hint">JPG, PNG, WebP — ingen størrelsesgrense</div>
+      </div>
+      <input type="file" id="fileInput" style="display:none" accept="image/*" multiple onchange="handleFiles(this.files)">
+
+      <div class="upload-progress" id="uploadProgress"></div>
+
+      <div class="images-header" id="imagesHeader" style="display:none">
+        <h3>Opplastede bilder</h3>
+        <span class="images-count" id="imagesCount"></span>
+      </div>
+      <div class="images-grid" id="imagesGrid"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const IDENTITY = `${window.location.origin}/.netlify/identity`;
+const API      = `${window.location.origin}/.netlify/functions/prospekt`;
+const $ = id => document.getElementById(id);
+
+let accessToken = null;
+let currentDealId = null;
+
+// ── Auth (same as rest of portal) ────────────────────────────────────────────
+function showScreen(id) {
+  for (const s of ['loadingScreen','loginScreen','appScreen']) $(s).style.display = 'none';
+  $(id).style.display = id === 'appScreen' ? 'block' : 'flex';
+}
+
+async function fetchUser(tok) {
+  const r = await fetch(`${IDENTITY}/user`, { headers: { Authorization: `Bearer ${tok}` } });
+  if (!r.ok) throw new Error('Session utløpt');
+  return r.json();
+}
+
+(async function init() {
+  showScreen('loadingScreen');
+  const tok = localStorage.getItem('hoy_access_token');
+  if (tok) {
+    try {
+      accessToken = tok;
+      const u = await fetchUser(tok);
+      onLogin(u);
+      return;
+    } catch { localStorage.removeItem('hoy_access_token'); }
+  }
+  showScreen('loginScreen');
+})();
+
+async function doLogin() {
+  const email = $('loginEmail').value.trim();
+  const pass  = $('loginPassword').value;
+  const err   = $('loginError');
+  const btn   = $('loginBtn');
+  if (!email || !pass) { err.textContent = 'Fyll inn begge felt'; err.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = 'Logger inn…';
+  err.style.display = 'none';
+  try {
+    const r = await fetch(`${IDENTITY}/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `grant_type=password&username=${encodeURIComponent(email)}&password=${encodeURIComponent(pass)}`,
+    });
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error_description || 'Feil passord eller e-post'); }
+    const data = await r.json();
+    accessToken = data.access_token;
+    localStorage.setItem('hoy_access_token', accessToken);
+    const u = await fetchUser(accessToken);
+    onLogin(u);
+  } catch (e) {
+    err.textContent = e.message; err.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Logg inn';
+  }
+}
+
+function doLogout() { localStorage.removeItem('hoy_access_token'); location.reload(); }
+
+async function onLogin(user) {
+  $('userLabel').textContent = user.email || '';
+  showScreen('appScreen');
+  await loadDeals();
+}
+
+// ── API ──────────────────────────────────────────────────────────────────────
+async function api(qs, method = 'GET', body = null) {
+  const url = `${API}?${new URLSearchParams(qs)}`;
+  const r = await fetch(url, {
+    method,
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  const text = await r.text();
+  let data;
+  try { data = JSON.parse(text); } catch { throw new Error(`Server error (${r.status})`); }
+  if (!r.ok) throw new Error(data.error || `Feil ${r.status}`);
+  return data;
+}
+
+function toast(msg, type = 'success') {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── Deals ────────────────────────────────────────────────────────────────────
+async function loadDeals() {
+  const sel = $('dealSelect');
+  try {
+    const deals = await api({ deals: 1 });
+    sel.innerHTML = '<option value="">— Velg oppdrag —</option>';
+    for (const d of deals) {
+      const opt = document.createElement('option');
+      opt.value = d.id;
+      opt.textContent = d.name + (d.has_prospekt ? ' ✓' : '');
+      sel.appendChild(opt);
+    }
+  } catch (e) {
+    sel.innerHTML = '<option value="">Feil ved lasting</option>';
+    toast(e.message, 'error');
+  }
+}
+
+async function onDealSelect() {
+  const dealId = $('dealSelect').value;
+  if (!dealId) { $('uploadSection').style.display = 'none'; return; }
+
+  currentDealId = dealId;
+  const dealName = $('dealSelect').options[$('dealSelect').selectedIndex].textContent;
+  $('uploadDealName').textContent = dealName;
+  $('uploadSection').style.display = 'block';
+  $('uploadProgress').innerHTML = '';
+
+  await loadImages();
+}
+
+// ── Image listing ────────────────────────────────────────────────────────────
+async function loadImages() {
+  try {
+    const images = await api({ images: currentDealId });
+    const grid = $('imagesGrid');
+    const header = $('imagesHeader');
+
+    if (images.length === 0) {
+      header.style.display = 'none';
+      grid.innerHTML = '';
+      return;
+    }
+
+    header.style.display = 'flex';
+    $('imagesCount').textContent = `${images.length} bilder`;
+
+    grid.innerHTML = images.map(img => `
+      <div class="img-card">
+        <img src="${esc(img.url)}" alt="${esc(img.name)}" loading="lazy">
+        <div class="img-card-name">${esc(img.name)}</div>
+        <button class="img-del" onclick="event.stopPropagation();deleteImage('${esc(img.path)}',this.closest('.img-card'))">×</button>
+      </div>
+    `).join('');
+  } catch (e) {
+    console.error('loadImages:', e);
+  }
+}
+
+// ── Upload ───────────────────────────────────────────────────────────────────
+function handleDrop(event) {
+  event.preventDefault();
+  event.currentTarget.classList.remove('dragover');
+  handleFiles(event.dataTransfer.files);
+}
+
+async function handleFiles(fileList) {
+  const files = [...fileList].filter(f => f.type.startsWith('image/'));
+  if (!files.length) return;
+
+  const progress = $('uploadProgress');
+
+  // Create progress rows
+  const rows = files.map((f, i) => {
+    const row = document.createElement('div');
+    row.className = 'upload-progress-item';
+    row.innerHTML = `
+      <span class="upload-progress-name">${esc(f.name)}</span>
+      <span class="upload-progress-status pending" id="up-${i}">Venter…</span>
+    `;
+    progress.appendChild(row);
+    return row;
+  });
+
+  // Upload sequentially (to avoid overwhelming)
+  let success = 0;
+  for (let i = 0; i < files.length; i++) {
+    const status = $(`up-${i}`);
+    status.textContent = 'Laster opp…';
+    status.className = 'upload-progress-status uploading';
+
+    try {
+      // 1. Get signed URL
+      const { upload_url } = await api({ action: 'upload_url' }, 'POST', {
+        deal_id: currentDealId,
+        file_name: files[i].name,
+        content_type: files[i].type,
+      });
+
+      // 2. Upload directly to Supabase
+      const r = await fetch(upload_url, {
+        method: 'PUT',
+        headers: { 'Content-Type': files[i].type },
+        body: files[i],
+      });
+
+      if (!r.ok) throw new Error(`${r.status}`);
+
+      status.textContent = '✓ Ferdig';
+      status.className = 'upload-progress-status done';
+      success++;
+    } catch (e) {
+      status.textContent = 'Feilet';
+      status.className = 'upload-progress-status error';
+      console.error(`Upload ${files[i].name}:`, e);
+    }
+  }
+
+  toast(`${success} av ${files.length} bilder lastet opp`);
+
+  // Clear progress after a moment, refresh grid
+  setTimeout(() => { progress.innerHTML = ''; }, 2000);
+  await loadImages();
+
+  // Reset file input
+  $('fileInput').value = '';
+}
+
+async function deleteImage(path, cardEl) {
+  if (!confirm('Slett dette bildet?')) return;
+  try {
+    await api({ action: 'delete_image' }, 'POST', { path });
+    cardEl.remove();
+    toast('Bilde slettet');
+    // Update count
+    const remaining = $('imagesGrid').children.length;
+    $('imagesCount').textContent = `${remaining} bilder`;
+    if (remaining === 0) $('imagesHeader').style.display = 'none';
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+</script>
+</body>
+</html>

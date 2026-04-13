@@ -96,13 +96,31 @@
   .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .field-hint{font-size:12px;color:var(--gray-dark);margin-top:4px}
 
-  /* ── Image upload ── */
-  .img-drop{border:2px dashed var(--gray);border-radius:10px;padding:28px 16px;text-align:center;cursor:pointer;transition:border-color 0.15s;background:var(--surface)}
-  .img-drop:hover,.img-drop.dragover{border-color:var(--gold);background:#fffbeb}
-  .img-drop-text{font-size:13px;color:var(--gray-dark)}
+  /* ── Image picker ── */
   .img-preview{position:relative;display:inline-block;margin:8px 8px 0 0}
   .img-preview img{width:120px;height:80px;object-fit:cover;border-radius:6px;border:2px solid var(--gray)}
   .img-preview .img-remove{position:absolute;top:-6px;right:-6px;width:22px;height:22px;background:var(--red);color:white;border:none;border-radius:50%;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+
+  .img-picker-btn{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;background:white;border:2px solid var(--gray);border-radius:8px;font-size:13px;font-weight:600;color:var(--navy);cursor:pointer;font-family:inherit;transition:border-color 0.15s}
+  .img-picker-btn:hover{border-color:var(--navy)}
+
+  /* Image picker modal */
+  .picker-overlay{position:fixed;inset:0;background:rgba(10,33,64,0.55);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px}
+  .picker-modal{background:white;border-radius:16px;max-width:800px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.35)}
+  .picker-modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--gray);display:flex;justify-content:space-between;align-items:center}
+  .picker-modal-header h3{font-size:18px;font-weight:800;color:var(--navy);margin:0}
+  .picker-modal-close{background:none;border:none;font-size:24px;color:var(--gray-dark);cursor:pointer;padding:4px}
+  .picker-modal-body{flex:1;overflow-y:auto;padding:20px 24px}
+  .picker-modal-footer{padding:16px 24px;border-top:1px solid var(--gray);display:flex;justify-content:space-between;align-items:center}
+  .picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+  .picker-img{position:relative;border-radius:8px;overflow:hidden;cursor:pointer;aspect-ratio:4/3;border:3px solid transparent;transition:border-color 0.15s}
+  .picker-img:hover{border-color:var(--gray)}
+  .picker-img.selected{border-color:var(--gold)}
+  .picker-img img{width:100%;height:100%;object-fit:cover;display:block}
+  .picker-img .picker-check{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;background:var(--gold);color:white;display:none;align-items:center;justify-content:center;font-size:14px;font-weight:700}
+  .picker-img.selected .picker-check{display:flex}
+  .picker-img-name{position:absolute;bottom:0;left:0;right:0;padding:12px 6px 4px;background:linear-gradient(to top,rgba(0,0,0,0.5),transparent);font-size:9px;color:white;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .picker-empty{text-align:center;padding:40px;color:var(--gray-dark);font-size:14px}
 
   /* ── Spec rows ── */
   .spec-editor-row{display:flex;gap:8px;margin-bottom:6px;align-items:center}
@@ -434,6 +452,10 @@ async function openEditor(id) {
   $('editorView').style.display = 'block';
   $('editorTitle').textContent = currentProspekt.boat_name || 'Nytt prospekt';
   $('publishBtn').textContent = currentProspekt.status === 'published' ? 'Avpubliser' : 'Publiser';
+
+  // Load available images for this deal
+  await loadAvailableImages();
+
   renderSections();
 }
 
@@ -588,23 +610,18 @@ function renderSpecRows(rows, field) {
 
 function renderGallerySection(p) {
   const pages = p.gallery_pages || [];
+  const allImages = pages.flatMap((page, pi) => (page.images || []).map((img, ii) => ({ ...img, pi, ii })));
   return `
-    <div class="field-hint" style="margin-bottom:12px">Last opp bilder og organiser i gallerisider. Hver side kan ha 1–5 bilder med valgfri bildetekst.</div>
+    <div class="field-hint" style="margin-bottom:12px">Velg bilder fra opplastede filer og legg til bildetekst. Bilder auto-fordeles i sider (maks 5 per side).</div>
     <div id="galleryEditor">
-      ${pages.length === 0 ? '<div class="empty-state" style="padding:20px">Ingen galleribilder ennå</div>' : ''}
+      ${allImages.length === 0 ? '<div class="empty-state" style="padding:20px">Ingen galleribilder valgt ennå</div>' : ''}
       <div class="gallery-images-grid" id="galleryGrid">
-        ${pages.flatMap((page, pi) => (page.images || []).map((img, ii) => renderGalleryImageCard(img, pi, ii))).join('')}
+        ${allImages.map(img => renderGalleryImageCard(img, img.pi, img.ii)).join('')}
       </div>
     </div>
     <div style="margin-top:12px">
-      <div class="img-drop" id="galleryDrop"
-        ondragover="event.preventDefault();this.classList.add('dragover')"
-        ondragleave="this.classList.remove('dragover')"
-        ondrop="handleGalleryDrop(event)"
-        onclick="$('galleryFileInput').click()">
-        <div class="img-drop-text">Slipp bilder her eller klikk for å velge</div>
-      </div>
-      <input type="file" id="galleryFileInput" style="display:none" accept="image/*" multiple onchange="handleGalleryFiles(this.files)">
+      <button class="img-picker-btn" onclick="openGalleryPicker()">📷 Velg bilder fra bildepakken</button>
+      <a href="/prospekt/bilder.html" target="_blank" style="font-size:12px;color:var(--gold);margin-left:12px">Last opp bilder →</a>
     </div>
   `;
 }
@@ -732,7 +749,19 @@ function renderContactSection(p) {
   `;
 }
 
-// ── Image upload helper ──────────────────────────────────────────────────────
+// ── Image picker helper ──────────────────────────────────────────────────────
+
+let availableImages = [];  // cached list from Supabase Storage
+
+async function loadAvailableImages() {
+  if (!currentProspekt?.deal_id) return;
+  try {
+    availableImages = await api({ images: currentProspekt.deal_id });
+  } catch (e) {
+    console.error('Could not load images:', e);
+    availableImages = [];
+  }
+}
 
 function renderImageUpload(field, currentUrl) {
   if (currentUrl) {
@@ -743,17 +772,7 @@ function renderImageUpload(field, currentUrl) {
       </div>
     `;
   }
-  const inputId = `file-${field}`;
-  return `
-    <div class="img-drop"
-      ondragover="event.preventDefault();this.classList.add('dragover')"
-      ondragleave="this.classList.remove('dragover')"
-      ondrop="handleSingleImageDrop(event,'${field}')"
-      onclick="$('${inputId}').click()">
-      <div class="img-drop-text">Slipp bilde her eller klikk for å velge</div>
-    </div>
-    <input type="file" id="${inputId}" style="display:none" accept="image/*" onchange="handleSingleImageFile(this.files[0],'${field}')">
-  `;
+  return `<button class="img-picker-btn" onclick="openImagePicker('${field}')">📷 Velg bilde</button>`;
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -868,88 +887,129 @@ function removeGalleryImage(pageIdx, imgIdx) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
-// IMAGE UPLOAD
+// IMAGE PICKER
 // ════════════════════════════════════════════════════════════════════════════════
 
-async function uploadImage(file) {
-  const reader = new FileReader();
-  return new Promise((resolve, reject) => {
-    reader.onload = async () => {
-      const base64 = reader.result.split(',')[1];
-      try {
-        const res = await api({ action: 'upload_image' }, 'POST', {
-          prospekt_id: currentProspekt.id,
-          file_name: file.name,
-          file_base64: base64,
-          content_type: file.type,
-        });
-        resolve(res.url);
-      } catch (e) { reject(e); }
+let pickerCallback = null;
+let pickerMulti = false;
+
+function openImagePicker(fieldOrCallback, multi = false) {
+  pickerMulti = multi;
+  if (typeof fieldOrCallback === 'string') {
+    // Single image field
+    pickerCallback = (urls) => {
+      if (urls.length > 0) {
+        currentProspekt[fieldOrCallback] = urls[0];
+        const section = fieldOrCallback.includes('contact') || fieldOrCallback.includes('broker') ? 'contact'
+          : fieldOrCallback === 'overview_image_url' ? 'overview' : 'cover';
+        renderSectionBody(section);
+        $(`sec-${section}`).classList.add('open');
+        scheduleAutoSave();
+      }
     };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+  } else {
+    pickerCallback = fieldOrCallback;
+  }
+  renderPickerModal();
 }
 
-async function handleSingleImageFile(file, field) {
-  if (!file) return;
-  toast('Laster opp…');
-  try {
-    const url = await uploadImage(file);
-    currentProspekt[field] = url;
-    scheduleAutoSave();
-    // Re-render the section that contains this field
-    const section = field.includes('contact') || field.includes('broker') || field.includes('cta') ? 'contact' : 'cover';
-    if (field === 'overview_image_url') renderSectionBody('overview');
-    else renderSectionBody(section);
-    $(`sec-${section}`).classList.add('open');
-    toast('Bilde lastet opp');
-  } catch (e) { toast(e.message, 'error'); }
+function renderPickerModal() {
+  // Remove existing modal if any
+  const existing = document.querySelector('.picker-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'picker-overlay';
+  overlay.onclick = (e) => { if (e.target === overlay) closePickerModal(); };
+
+  const imgs = availableImages;
+  overlay.innerHTML = `
+    <div class="picker-modal">
+      <div class="picker-modal-header">
+        <h3>${pickerMulti ? 'Velg bilder' : 'Velg bilde'}</h3>
+        <button class="picker-modal-close" onclick="closePickerModal()">×</button>
+      </div>
+      <div class="picker-modal-body">
+        ${imgs.length === 0
+          ? `<div class="picker-empty">
+               Ingen bilder lastet opp for dette oppdraget ennå.<br><br>
+               <a href="/prospekt/bilder.html" target="_blank" style="color:var(--gold);font-weight:600">Åpne bildeopplasting →</a>
+             </div>`
+          : `<div class="picker-grid">${imgs.map((img, i) => `
+              <div class="picker-img" data-url="${esc(img.url)}" onclick="togglePickerImage(this)">
+                <img src="${esc(img.url)}" alt="${esc(img.name)}" loading="lazy">
+                <div class="picker-check">✓</div>
+                <div class="picker-img-name">${esc(img.name)}</div>
+              </div>
+            `).join('')}</div>`
+        }
+      </div>
+      <div class="picker-modal-footer">
+        <span class="picker-selected-count" style="font-size:13px;color:var(--gray-dark)">Ingen valgt</span>
+        <div style="display:flex;gap:8px">
+          <button class="btn-outline" onclick="closePickerModal()">Avbryt</button>
+          <button class="btn-gold" onclick="confirmPickerSelection()">Velg</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
 }
 
-function handleSingleImageDrop(event, field) {
-  event.preventDefault();
-  event.currentTarget.classList.remove('dragover');
-  const file = event.dataTransfer.files[0];
-  if (file) handleSingleImageFile(file, field);
+function togglePickerImage(el) {
+  if (!pickerMulti) {
+    // Deselect all others for single pick
+    document.querySelectorAll('.picker-img.selected').forEach(e => e.classList.remove('selected'));
+  }
+  el.classList.toggle('selected');
+  updatePickerCount();
 }
 
-async function handleGalleryFiles(files) {
-  if (!files.length) return;
-  toast(`Laster opp ${files.length} bilde(r)…`);
-  const pages = currentProspekt.gallery_pages || [];
+function updatePickerCount() {
+  const count = document.querySelectorAll('.picker-img.selected').length;
+  const label = document.querySelector('.picker-selected-count');
+  if (label) label.textContent = count === 0 ? 'Ingen valgt' : `${count} valgt`;
+}
 
-  // Add to first page, or create one
-  if (pages.length === 0) pages.push({ layout: '5up', images: [] });
-  let currentPage = pages[pages.length - 1];
+function confirmPickerSelection() {
+  const urls = [...document.querySelectorAll('.picker-img.selected')].map(el => el.dataset.url);
+  closePickerModal();
+  if (pickerCallback) pickerCallback(urls);
+}
 
-  for (const file of files) {
-    try {
-      const url = await uploadImage(file);
-      // Auto-paginate: max 5 images per page
+function closePickerModal() {
+  const overlay = document.querySelector('.picker-overlay');
+  if (overlay) overlay.remove();
+  pickerCallback = null;
+}
+
+function openGalleryPicker() {
+  openImagePicker((urls) => {
+    const pages = currentProspekt.gallery_pages || [];
+    if (pages.length === 0) pages.push({ layout: '5up', images: [] });
+    let currentPage = pages[pages.length - 1];
+
+    for (const url of urls) {
+      // Skip if already added
+      const alreadyAdded = pages.some(p => (p.images||[]).some(i => i.url === url));
+      if (alreadyAdded) continue;
+
       if (currentPage.images.length >= 5) {
         currentPage = { layout: '4up', images: [] };
         pages.push(currentPage);
       }
       currentPage.images.push({ url, caption: '' });
-    } catch (e) { console.error('Upload failed:', e); }
-  }
+    }
 
-  currentProspekt.gallery_pages = pages;
-  renderSectionBody('gallery');
-  $('sec-gallery').classList.add('open');
-  scheduleAutoSave();
-  toast('Bilder lastet opp');
+    currentProspekt.gallery_pages = pages;
+    renderSectionBody('gallery');
+    $('sec-gallery').classList.add('open');
+    scheduleAutoSave();
+    toast(`${urls.length} bilde(r) lagt til`);
+  }, true);
 }
 
-function handleGalleryDrop(event) {
-  event.preventDefault();
-  event.currentTarget.classList.remove('dragover');
-  handleGalleryFiles(event.dataTransfer.files);
-}
-
-async function removeImage(field) {
-  // TODO: delete from Supabase Storage
+function removeImage(field) {
   currentProspekt[field] = null;
   const section = field.includes('contact') || field.includes('broker') ? 'contact'
     : field === 'overview_image_url' ? 'overview' : 'cover';
