@@ -635,7 +635,7 @@ function renderOverviewSection(p) {
     <div class="field">
       <label>
         Beskrivelse
-        <button class="btn-generate" onclick="generateText()" id="genTextBtn">✨ Generer med AI</button>
+        <button class="btn-generate" onclick="openAIGenerator()" id="genTextBtn">✨ Generer med AI</button>
       </label>
       <textarea rows="8" id="descBodyField" maxlength="${MAX_BODY + 100}" oninput="updateCharCount(this,${MAX_BODY},'bodyCount')" onchange="updateField('description_body',this.value)">${esc(p.description_body||'')}</textarea>
       <div style="display:flex;justify-content:space-between;align-items:center">
@@ -669,19 +669,25 @@ function updateCharCount(el, max, countId) {
   countEl.className = 'char-count' + (len > max ? ' over' : len > max * 0.85 ? ' warn' : '');
 }
 
-async function generateText() {
+function openAIGenerator() {
+  if (!currentProspekt?.deal_id) return toast('Ingen deal valgt', 'error');
+  // Open annonsegenerator in new tab with the deal pre-selected
+  window.open(`/annonsegenerator/?deal=${currentProspekt.deal_id}`, '_blank');
+  toast('Annonsegenerator åpnet i ny fane. Kopier teksten tilbake hit når du er fornøyd.');
+}
+
+// Legacy generateText — kept for reference but no longer called
+async function _generateText_legacy() {
   if (!currentProspekt?.deal_id) return toast('Ingen deal valgt', 'error');
   const btn = $('genTextBtn');
   btn.disabled = true;
   btn.textContent = '✨ Genererer…';
   try {
-    // Call annonsegenerator to fetch boat data
     const boatRes = await fetch(`/.netlify/functions/annonsegenerator?fetch_boat=${currentProspekt.deal_id}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     const boatData = await boatRes.json();
 
-    // Call annonsegenerator to generate text
     const genRes = await fetch(`/.netlify/functions/annonsegenerator`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
@@ -830,24 +836,41 @@ function renderEquipmentSection(p) {
 }
 
 function renderEquipCategory(cat, ci) {
+  const items = cat.items || [];
+  const isOpen = items.length > 0;
+  // Show existing items + 3 empty slots for quick entry
+  const EMPTY_SLOTS = 3;
+  const totalSlots = items.length + EMPTY_SLOTS;
+
+  const itemRows = [];
+  for (let ii = 0; ii < totalSlots; ii++) {
+    const text = ii < items.length ? items[ii].text || '' : '';
+    const isExisting = ii < items.length;
+    itemRows.push(`
+      <div class="equip-item-row">
+        <input type="text" value="${esc(text)}" placeholder="${isExisting ? 'Utstyr…' : 'Nytt utstyr…'}"
+          onchange="handleEquipInput(${ci},${ii},this.value)" onkeydown="equipKeyDown(event,${ci},${ii})"
+          style="${!isExisting ? 'border-style:dashed;opacity:0.7' : ''}">
+        ${isExisting ? `<button class="btn-icon btn-icon-del" onclick="removeEquipItem(${ci},${ii})" style="width:26px;height:26px;font-size:13px">×</button>` : '<div style="width:26px"></div>'}
+      </div>
+    `);
+  }
+
   return `
     <div class="equip-cat-card">
-      <div class="equip-cat-header">
-        <input type="text" value="${esc(cat.name||'')}" placeholder="Kategorinavn"
-          style="font-size:13px;font-weight:700;padding:5px 8px;border:1px solid var(--gray);border-radius:4px;width:200px"
-          onchange="updateEquipCatName(${ci},this.value)">
-        <button class="btn-icon btn-icon-del" onclick="removeEquipCategory(${ci})">×</button>
+      <div class="equip-cat-header" onclick="toggleEquipCat(${ci})" style="cursor:pointer">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="sec-toggle ${isOpen ? 'open' : ''}" id="equipToggle-${ci}">▾</span>
+          <input type="text" value="${esc(cat.name||'')}" placeholder="Kategorinavn"
+            style="font-size:13px;font-weight:700;padding:5px 8px;border:1px solid var(--gray);border-radius:4px;width:200px"
+            onclick="event.stopPropagation()" onchange="updateEquipCatName(${ci},this.value)">
+          <span style="font-size:11px;color:var(--gray-dark)">${items.length} stk</span>
+        </div>
+        <button class="btn-icon btn-icon-del" onclick="event.stopPropagation();removeEquipCategory(${ci})">×</button>
       </div>
-      <div id="equipItems-${ci}">
-        ${(cat.items||[]).map((item, ii) => `
-          <div class="equip-item-row">
-            <input type="text" value="${esc(item.text||'')}" placeholder="Utstyr…"
-              onchange="updateEquipItem(${ci},${ii},'text',this.value)">
-            <button class="btn-icon btn-icon-del" onclick="removeEquipItem(${ci},${ii})" style="width:26px;height:26px;font-size:13px">×</button>
-          </div>
-        `).join('')}
+      <div id="equipItems-${ci}" style="display:${isOpen ? 'block' : 'none'};padding:10px 0 0">
+        ${itemRows.join('')}
       </div>
-      <button class="btn-outline" style="font-size:12px;padding:4px 10px;margin-top:6px" onclick="addEquipItem(${ci})">+ Legg til</button>
     </div>
   `;
 }
@@ -1013,9 +1036,54 @@ function removeSpecRow(field, idx) {
 }
 
 // ── Equipment ──
+function toggleEquipCat(ci) {
+  const el = document.getElementById(`equipItems-${ci}`);
+  const tog = document.getElementById(`equipToggle-${ci}`);
+  if (!el) return;
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  if (tog) tog.classList.toggle('open', !open);
+}
+
 function updateEquipCatName(ci, value) {
   const cats = currentProspekt.equipment_categories || [];
   if (cats[ci]) { cats[ci].name = value; scheduleAutoSave(); }
+}
+
+function handleEquipInput(ci, ii, value) {
+  const cats = currentProspekt.equipment_categories || [];
+  if (!cats[ci]) return;
+  const items = cats[ci].items = cats[ci].items || [];
+  if (ii < items.length) {
+    // Editing existing item
+    if (value.trim() === '') {
+      // Empty → remove it
+      items.splice(ii, 1);
+      renderSectionBody('equipment');
+      $('sec-equipment').classList.add('open');
+    } else {
+      items[ii].text = value;
+    }
+  } else {
+    // New slot — only add if not empty
+    if (value.trim()) {
+      items.push({ text: value.trim() });
+      // Re-render to get fresh empty slots
+      renderSectionBody('equipment');
+      $('sec-equipment').classList.add('open');
+    }
+  }
+  scheduleAutoSave();
+}
+
+function equipKeyDown(e, ci, ii) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    // Move focus to next input
+    const row = e.target.closest('.equip-item-row');
+    const next = row?.nextElementSibling?.querySelector('input');
+    if (next) next.focus();
+  }
 }
 
 function addEquipCategory() {
@@ -1159,15 +1227,19 @@ let cropState = {
   aspectRatio: '16/9',
 };
 
-// Aspect ratios matching the actual prospekt layout:
-// Cover image area: ~210:175 (roughly 6:5), Overview hero: ~210:130 (~21:13)
-// Gallery 5up top (wide): ~2:1.4, Gallery 5up small: ~1:1, Gallery 4up: ~1:1
-// Gallery 2up: ~1:2 (portrait-ish), Gallery 1up: ~210:260 (~21:26)
+// Aspect ratios matching the ACTUAL prospekt PDF layout (A4 = 210×297mm):
+// Cover: flex:1 minus ~60mm bottom = 210×237mm ≈ 89:100
+// Overview hero: height:36% = 210×107mm ≈ 2:1
+// Gallery page has 6% padding, header ~4%. Grid fills remaining ~85%.
+// 5up: rows 1.4fr+1fr+1fr, top slot full-width ~19:10, small slots ~13:10
+// 4up: 2×2, each slot ~4:5 (portrait)
+// 2up: side-by-side, each ~1:2
+// 1up: full grid, roughly matches page minus header ~88:100
 function getGallerySlotAspectRatio(layout, slotIdx) {
-  if (layout === '5up') return slotIdx === 0 ? '2 / 1.2' : '1 / 1';
-  if (layout === '4up') return '1 / 1';
-  if (layout === '2up') return '1 / 1.6';
-  if (layout === '1up') return '21 / 26';
+  if (layout === '5up') return slotIdx === 0 ? '19 / 10' : '13 / 10';
+  if (layout === '4up') return '4 / 5';
+  if (layout === '2up') return '1 / 2';
+  if (layout === '1up') return '88 / 100';
   return '16 / 9';
 }
 
@@ -1193,7 +1265,7 @@ function openSingleImageCrop(field) {
   if (!url) return;
 
   const cropData = currentProspekt[field.replace('_url', '_crop')] || {};
-  const ar = field === 'cover_image_url' ? '6 / 5' : '21 / 13';
+  const ar = field === 'cover_image_url' ? '89 / 100' : '2 / 1';
 
   cropState = {
     mode: 'single', field, pi: 0, si: 0,

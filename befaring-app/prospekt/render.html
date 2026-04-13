@@ -217,12 +217,18 @@
     left: 50%;
     transform: translateX(-50%);
     z-index: 2;
+    text-align: center;
+    filter: drop-shadow(0 2px 12px rgba(0,0,0,0.35));
   }
 
-  .cover-logo img {
-    height: 60px;
-    width: auto;
-    filter: drop-shadow(0 2px 12px rgba(0,0,0,0.4));
+  .cover-logo-text {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 300;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.92);
+    white-space: nowrap;
   }
 
   .cover-bottom {
@@ -891,9 +897,6 @@
 const API = '/.netlify/functions/prospekt';
 const OFFICE_ADDRESS = 'Dicks vei 12, 1366 Lysaker';
 
-// HoY logo — use the actual PNG hosted in /prospekt/
-const LOGO_URL = '/prospekt/logo-white-transparent.png';
-
 function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
 function formatPrice(v) {
@@ -955,7 +958,7 @@ function buildCoverPage(p) {
         <div class="cover-image-area">
           ${coverImg}
           <div class="cover-image-overlay"></div>
-          <div class="cover-logo"><img src="${LOGO_URL}" alt="House of Yachts"></div>
+          <div class="cover-logo"><div class="cover-logo-text">House &nbsp;of &nbsp;Yachts</div></div>
         </div>
         <div class="cover-bottom">
           <div class="cover-year">${spaceYear(p.model_year)}</div>
