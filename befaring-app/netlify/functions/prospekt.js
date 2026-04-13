@@ -95,21 +95,34 @@ function buildSpecs(bp) {
   else if (bp.lengde_i_cm) add('Lengde', `${bp.lengde_i_cm} cm`);
   if (bp.bredde) add('Bredde', `${bp.bredde} cm`);
 
-  // Motor — bygg kombinert linje
+  // Motor — bygg kombinert linje: "2 × Mercury 300hk" eller "Volvo Penta D6"
+  const antallMotorer = parseInt(bp.antall_motorer, 10) || 1;
   const motorParts = [];
-  if (bp.antall_motorer && Number(bp.antall_motorer) > 1) motorParts.push(`${bp.antall_motorer} ×`);
+  if (antallMotorer > 1) motorParts.push(`${antallMotorer} ×`);
   if (bp.motorfabrikant) motorParts.push(bp.motorfabrikant);
-  if (bp.motorstorrelse) motorParts.push(bp.motorstorrelse);
+  // motorstorrelse kan være "300", "300 HK", "V8 300HK", etc.
+  if (bp.motorstorrelse) {
+    const ms = String(bp.motorstorrelse).trim();
+    // Legg til "hk" bare hvis ikke allerede i strengen
+    if (/^\d+$/.test(ms)) {
+      motorParts.push(`${ms}hk`);
+    } else {
+      motorParts.push(ms);
+    }
+  }
   if (motorParts.length) add('Motor', motorParts.join(' '));
 
-  add('Motortype', bp.type_motor);
-  // Effekt: motorstorrelse er typisk "300 V8" eller "225" — ekstraher hk
+  // Motortype — kun vis hvis det faktisk er en type-streng, ikke et tall
+  if (bp.type_motor && !/^\d+$/.test(String(bp.type_motor).trim())) {
+    add('Motortype', bp.type_motor);
+  }
+
+  // Effekt — beregn total kun hvis motorstorrelse er et rent tall (hk per motor)
   if (bp.motorstorrelse) {
-    const hkMatch = String(bp.motorstorrelse).match(/(\d+)/);
-    if (hkMatch) {
-      const hkPerMotor = parseInt(hkMatch[1], 10);
-      const antall = parseInt(bp.antall_motorer, 10) || 1;
-      const totalHk = hkPerMotor * antall;
+    const ms = String(bp.motorstorrelse).trim();
+    const hkMatch = ms.match(/^(\d+)\s*(?:hk|hp)?$/i);
+    if (hkMatch && antallMotorer > 1) {
+      const totalHk = parseInt(hkMatch[1], 10) * antallMotorer;
       add('Effekt', `${totalHk} hk`);
     }
   }
@@ -136,42 +149,39 @@ function buildCapacities(bp) {
   return caps;
 }
 
-// Standard utstyrskategorier for båtprospekter
+// Standard utstyrskategorier for båtprospekter (5 kategorier)
 const DEFAULT_EQUIP_CATEGORIES = [
   'Navigasjon & Elektronikk',
   'Motor & Teknisk',
-  'Sikkerhet',
   'Dekk & Eksteriør',
   'Interiør & Komfort',
-  'Bysse',
+  'Sikkerhet',
 ];
 
 function buildEquipment(bp) {
   // Start med ferdiglagde tomme kategorier
   const categories = DEFAULT_EQUIP_CATEGORIES.map(name => ({ name, items: [] }));
+  // Indekser: 0=Nav, 1=Motor, 2=Dekk, 3=Interiør, 4=Sikkerhet
 
-  // Hvis utstyrsliste finnes, fordel i første kategori eller "Øvrig"
   if (bp?.utstyrsliste) {
     const raw = bp.utstyrsliste;
     const items = raw.split(/[;\n]+/).map(s => s.trim()).filter(Boolean);
     if (items.length > 0) {
-      // Forsøk enkel automatisk kategorisering
-      const navKeywords = ['plotter','gps','radar','vhf','ekkolodd','ais','autopilot','kompass','instrument','dab'];
-      const techKeywords = ['generator','inverter','batteri','lader','solar','landstrøm','varme','eberspächer','shore','power'];
-      const safetyKeywords = ['redning','brannslukk','nødrakett','flåte','livbøy','førstehjelp','sikkerhet'];
-      const deckKeywords = ['bimini','kalesje','teak','anker','vinsj','fender','fortøy','belysning','led','badeplattform','bade','solseng','havnetrekk','sprayhood'];
-      const galleyKeywords = ['kjøle','frys','komfyr','ovn','mikro','koketopp','vask','oppvask','kaffemaskin'];
-      const interiorKeywords = ['toalett','dusj','stereo','lyd','tv','sofa','gardiner','oppbevaring','ac ','aircondition','klimaanlegg'];
+      const navKeywords = ['plotter','gps','radar','vhf','ekkolodd','ais','autopilot','kompass','instrument','dab','kartmaskin','skjerm'];
+      const techKeywords = ['generator','inverter','batteri','lader','solar','landstrøm','shore','power','thruster','baugpropell','trim','hydraul'];
+      const deckKeywords = ['bimini','kalesje','teak','anker','vinsj','fender','fortøy','belysning','led','badeplattform','bade','solseng','havnetrekk','sprayhood','davit','passer','cockpit','dekk'];
+      const safetyKeywords = ['redning','brannslukk','nødrakett','flåte','livbøy','førstehjelp','sikkerhet','mob','epirb','nødsender'];
+      // Interiør + Komfort + Bysse (sammenslått)
+      const interiorKeywords = ['toalett','dusj','stereo','lyd','tv','sofa','gardiner','oppbevaring','ac ','aircondition','klimaanlegg','varme','eberspächer','kjøle','frys','komfyr','ovn','mikro','koketopp','vask','oppvask','kaffemaskin','isbiter','is maskin'];
 
       for (const text of items) {
         const lower = text.toLowerCase();
         if (navKeywords.some(k => lower.includes(k))) categories[0].items.push({ text });
         else if (techKeywords.some(k => lower.includes(k))) categories[1].items.push({ text });
-        else if (safetyKeywords.some(k => lower.includes(k))) categories[2].items.push({ text });
-        else if (deckKeywords.some(k => lower.includes(k))) categories[3].items.push({ text });
-        else if (interiorKeywords.some(k => lower.includes(k))) categories[4].items.push({ text });
-        else if (galleyKeywords.some(k => lower.includes(k))) categories[5].items.push({ text });
-        else categories[4].items.push({ text }); // default: Interiør & Komfort
+        else if (deckKeywords.some(k => lower.includes(k))) categories[2].items.push({ text });
+        else if (safetyKeywords.some(k => lower.includes(k))) categories[4].items.push({ text });
+        else if (interiorKeywords.some(k => lower.includes(k))) categories[3].items.push({ text });
+        else categories[3].items.push({ text }); // default: Interiør & Komfort
       }
     }
   }
@@ -464,7 +474,7 @@ exports.handler = async (event) => {
         const allowed = [
           'boat_name', 'model_year', 'asking_price',
           'broker_name', 'broker_email', 'broker_phone', 'broker_role', 'broker_photo_url',
-          'cover_image_url', 'overview_image_url', 'contact_image_url',
+          'cover_image_url', 'cover_image_crop', 'overview_image_url', 'overview_image_crop', 'contact_image_url',
           'description_intro', 'description_body', 'visning_text',
           'cta_label', 'cta_address',
           'specs', 'capacities', 'gallery_pages', 'equipment_categories',

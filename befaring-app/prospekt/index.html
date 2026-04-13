@@ -169,13 +169,16 @@
   .crop-modal{background:white;border-radius:16px;max-width:600px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.4)}
   .crop-modal-header{padding:16px 24px;border-bottom:1px solid var(--gray);display:flex;justify-content:space-between;align-items:center}
   .crop-modal-header h3{font-size:16px;font-weight:700;color:var(--navy);margin:0}
-  .crop-preview-area{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;background:#1a1a1a;cursor:grab}
+  .crop-preview-area{position:relative;width:100%;overflow:hidden;background:#1a1a1a;cursor:grab}
   .crop-preview-area.dragging{cursor:grabbing}
-  .crop-preview-area img{position:absolute;user-select:none;-webkit-user-drag:none}
+  .crop-preview-area img{position:absolute;inset:0;width:100%;height:100%;user-select:none;-webkit-user-drag:none;object-fit:cover}
+  .crop-frame-hint{position:absolute;inset:0;border:2px dashed rgba(255,255,255,0.25);pointer-events:none;z-index:1}
   .crop-controls{padding:16px 24px;display:flex;align-items:center;gap:12px}
   .crop-controls label{font-size:12px;font-weight:600;color:var(--navy)}
   .crop-controls input[type=range]{flex:1}
   .crop-modal-footer{padding:12px 24px;border-top:1px solid var(--gray);display:flex;justify-content:flex-end;gap:8px}
+  .crop-btn-inline{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;background:white;border:2px solid var(--gray);border-radius:6px;font-size:12px;font-weight:600;color:var(--navy);cursor:pointer;font-family:inherit;margin-top:4px}
+  .crop-btn-inline:hover{border-color:var(--navy)}
 
   /* ── Char limits ── */
   .char-count{font-size:11px;color:var(--gray-dark);text-align:right;margin-top:2px}
@@ -952,11 +955,17 @@ async function loadAvailableImages() {
 
 function renderImageUpload(field, currentUrl) {
   if (currentUrl) {
+    // Add crop button for cover and overview images
+    const showCrop = (field === 'cover_image_url' || field === 'overview_image_url');
+    const cropBtn = showCrop
+      ? `<button class="crop-btn-inline" onclick="openSingleImageCrop('${field}')">✂ Juster posisjon</button>`
+      : '';
     return `
       <div class="img-preview">
         <img src="${esc(currentUrl)}" alt="">
         <button class="img-remove" onclick="removeImage('${field}')">×</button>
       </div>
+      ${cropBtn}
     `;
   }
   return `<button class="img-picker-btn" onclick="openImagePicker('${field}')">📷 Velg bilde</button>`;
@@ -1137,15 +1146,65 @@ function pickGallerySlot(pageIdx, slotIdx) {
 
 // ── Crop modal ──────────────────────────────────────────────────────────────
 
-let cropState = { pi: 0, si: 0, posX: 50, posY: 50, zoom: 1, dragging: false, startX: 0, startY: 0 };
+// ── Crop modal (frame-aware) ─────────────────────────────────────────────────
+// Shows the image inside the exact aspect ratio it occupies in the prospekt.
+// User drags to reposition the image within that frame.
+
+let cropState = {
+  mode: 'gallery',  // 'gallery' | 'single' (cover/overview)
+  field: null,       // for single mode: 'cover_image_url' etc.
+  pi: 0, si: 0,     // for gallery mode
+  posX: 50, posY: 50, zoom: 1,
+  dragging: false, startX: 0, startY: 0, startPosX: 50, startPosY: 50,
+  aspectRatio: '16/9',
+};
+
+// Aspect ratios matching the actual prospekt layout:
+// Cover image area: ~210:175 (roughly 6:5), Overview hero: ~210:130 (~21:13)
+// Gallery 5up top (wide): ~2:1.4, Gallery 5up small: ~1:1, Gallery 4up: ~1:1
+// Gallery 2up: ~1:2 (portrait-ish), Gallery 1up: ~210:260 (~21:26)
+function getGallerySlotAspectRatio(layout, slotIdx) {
+  if (layout === '5up') return slotIdx === 0 ? '2 / 1.2' : '1 / 1';
+  if (layout === '4up') return '1 / 1';
+  if (layout === '2up') return '1 / 1.6';
+  if (layout === '1up') return '21 / 26';
+  return '16 / 9';
+}
 
 function openCropModal(pi, si) {
   const pages = currentProspekt.gallery_pages || [];
   const img = pages[pi]?.images?.[si];
   if (!img) return;
 
-  cropState = { pi, si, posX: img.posX || 50, posY: img.posY || 50, zoom: img.zoom || 1, dragging: false };
+  const layout = pages[pi]?.layout || '5up';
+  const ar = getGallerySlotAspectRatio(layout, si);
 
+  cropState = {
+    mode: 'gallery', field: null, pi, si,
+    posX: img.posX ?? 50, posY: img.posY ?? 50, zoom: img.zoom || 1,
+    dragging: false, startX: 0, startY: 0, startPosX: 50, startPosY: 50,
+    aspectRatio: ar,
+  };
+  showCropOverlay(img.url);
+}
+
+function openSingleImageCrop(field) {
+  const url = currentProspekt[field];
+  if (!url) return;
+
+  const cropData = currentProspekt[field.replace('_url', '_crop')] || {};
+  const ar = field === 'cover_image_url' ? '6 / 5' : '21 / 13';
+
+  cropState = {
+    mode: 'single', field, pi: 0, si: 0,
+    posX: cropData.posX ?? 50, posY: cropData.posY ?? 50, zoom: cropData.zoom || 1,
+    dragging: false, startX: 0, startY: 0, startPosX: 50, startPosY: 50,
+    aspectRatio: ar,
+  };
+  showCropOverlay(url);
+}
+
+function showCropOverlay(imgUrl) {
   const existing = document.querySelector('.crop-overlay');
   if (existing) existing.remove();
 
@@ -1155,11 +1214,13 @@ function openCropModal(pi, si) {
   overlay.innerHTML = `
     <div class="crop-modal">
       <div class="crop-modal-header">
-        <h3>Juster bildeposisjon</h3>
+        <h3>Dra bildet for å justere posisjon</h3>
         <button style="background:none;border:none;font-size:22px;color:var(--gray-dark);cursor:pointer" onclick="closeCropModal()">×</button>
       </div>
-      <div class="crop-preview-area" id="cropArea">
-        <img src="${esc(img.url)}" id="cropImg" style="width:${cropState.zoom * 100}%;left:${cropState.posX}%;top:${cropState.posY}%;transform:translate(-${cropState.posX}%,-${cropState.posY}%)">
+      <div class="crop-preview-area" id="cropArea" style="aspect-ratio:${cropState.aspectRatio}">
+        <img src="${esc(imgUrl)}" id="cropImg"
+          style="object-position:${cropState.posX}% ${cropState.posY}%;transform:scale(${cropState.zoom})">
+        <div class="crop-frame-hint"></div>
       </div>
       <div class="crop-controls">
         <label>Zoom</label>
@@ -1174,16 +1235,15 @@ function openCropModal(pi, si) {
   `;
   document.body.appendChild(overlay);
 
-  // Setup drag
+  // Setup drag — moving image within the frame
   const area = document.getElementById('cropArea');
   area.addEventListener('mousedown', startCropDrag);
-  area.addEventListener('mousemove', doCropDrag);
-  area.addEventListener('mouseup', endCropDrag);
-  area.addEventListener('mouseleave', endCropDrag);
+  document.addEventListener('mousemove', doCropDrag);
+  document.addEventListener('mouseup', endCropDrag);
   // Touch
   area.addEventListener('touchstart', (e) => { e.preventDefault(); startCropDrag(e.touches[0]); }, { passive: false });
-  area.addEventListener('touchmove', (e) => { e.preventDefault(); doCropDrag(e.touches[0]); }, { passive: false });
-  area.addEventListener('touchend', endCropDrag);
+  document.addEventListener('touchmove', (e) => { if (cropState.dragging) { e.preventDefault(); doCropDrag(e.touches[0]); } }, { passive: false });
+  document.addEventListener('touchend', endCropDrag);
 }
 
 function startCropDrag(e) {
@@ -1201,14 +1261,16 @@ function doCropDrag(e) {
   const area = document.getElementById('cropArea');
   if (!area) return;
   const rect = area.getBoundingClientRect();
-  const dx = (e.clientX - cropState.startX) / rect.width * 100;
-  const dy = (e.clientY - cropState.startY) / rect.height * 100;
+  // Invert direction: dragging right → posX decreases (image moves right = we see more left)
+  const dx = -(e.clientX - cropState.startX) / rect.width * 100;
+  const dy = -(e.clientY - cropState.startY) / rect.height * 100;
   cropState.posX = Math.max(0, Math.min(100, cropState.startPosX + dx));
   cropState.posY = Math.max(0, Math.min(100, cropState.startPosY + dy));
   updateCropPreview();
 }
 
 function endCropDrag() {
+  if (!cropState.dragging) return;
   cropState.dragging = false;
   const area = document.getElementById('cropArea');
   if (area) area.classList.remove('dragging');
@@ -1223,10 +1285,8 @@ function updateCropZoom(val) {
 function updateCropPreview() {
   const img = document.getElementById('cropImg');
   if (!img) return;
-  img.style.width = `${cropState.zoom * 100}%`;
-  img.style.left = `${cropState.posX}%`;
-  img.style.top = `${cropState.posY}%`;
-  img.style.transform = `translate(-${cropState.posX}%, -${cropState.posY}%)`;
+  img.style.objectPosition = `${cropState.posX}% ${cropState.posY}%`;
+  img.style.transform = `scale(${cropState.zoom})`;
 }
 
 function resetCrop() {
@@ -1239,16 +1299,27 @@ function resetCrop() {
 }
 
 function applyCrop() {
-  const pages = currentProspekt.gallery_pages || [];
-  const img = pages[cropState.pi]?.images?.[cropState.si];
-  if (img) {
-    img.posX = Math.round(cropState.posX);
-    img.posY = Math.round(cropState.posY);
-    img.zoom = cropState.zoom;
+  const posX = Math.round(cropState.posX);
+  const posY = Math.round(cropState.posY);
+  const zoom = cropState.zoom;
+
+  if (cropState.mode === 'gallery') {
+    const pages = currentProspekt.gallery_pages || [];
+    const img = pages[cropState.pi]?.images?.[cropState.si];
+    if (img) { img.posX = posX; img.posY = posY; img.zoom = zoom; }
+    closeCropModal();
+    renderSectionBody('gallery');
+    $('sec-gallery').classList.add('open');
+  } else {
+    // Single image (cover / overview)
+    const cropField = cropState.field.replace('_url', '_crop');
+    currentProspekt[cropField] = { posX, posY, zoom };
+    closeCropModal();
+    // Re-render the relevant section
+    if (cropState.field === 'cover_image_url') { renderSectionBody('cover'); $('sec-cover').classList.add('open'); }
+    else if (cropState.field === 'overview_image_url') { renderSectionBody('overview'); $('sec-overview').classList.add('open'); }
   }
-  closeCropModal();
-  renderSectionBody('gallery');
-  $('sec-gallery').classList.add('open');
+
   scheduleAutoSave();
   toast('Bildeposisjon lagret');
 }
@@ -1256,6 +1327,8 @@ function applyCrop() {
 function closeCropModal() {
   const overlay = document.querySelector('.crop-overlay');
   if (overlay) overlay.remove();
+  document.removeEventListener('mousemove', doCropDrag);
+  document.removeEventListener('mouseup', endCropDrag);
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
