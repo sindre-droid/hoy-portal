@@ -945,7 +945,7 @@ function renderEquipCategory(cat, ci) {
 
 function renderDeclarationSection(p) {
   const sections = p.declaration_sections;
-  const hasData = sections && sections.length > 0 && sections.some(s => (s.questions || []).some(q => q.answer));
+  const hasData = oneflowId || (sections && sections.length > 0 && sections.some(s => (s.questions || []).some(q => q.answer)));
   const oneflowState = p.declaration_oneflow_state || '';
   const oneflowId = p.declaration_oneflow_id || '';
   const otherNotes = p.declaration_other_notes || '';
@@ -982,11 +982,28 @@ function renderDeclarationSection(p) {
     `;
   }
 
+  // Sjekk om noen spørsmål faktisk har svar
+  const answeredCount = sections.reduce((sum, s) => sum + (s.questions || []).filter(q => q.answer).length, 0);
+
   // Vis hentet data (read-only preview med mulighet for oppdatering)
+  let debugHtml = '';
+  if (answeredCount === 0 && p._raw_fields) {
+    // Ingen svar mappet — vis raw data for debugging
+    const rf = p._raw_fields;
+    const fieldLines = Object.entries(rf).map(([k, v]) => `<b>${esc(k)}</b>: ${esc(String(v || '(tom)'))}`).join('<br>');
+    debugHtml = `
+      <div style="margin-top:16px;padding:14px;background:#fff3cd;border:1px solid #ffc107;border-radius:8px">
+        <div style="font-size:13px;font-weight:700;color:#856404;margin-bottom:8px">⚠️ Ingen svar ble mappet. Her er rå-dataen fra Oneflow:</div>
+        <div style="font-size:11px;font-family:monospace;color:#333;line-height:1.8;max-height:300px;overflow-y:auto">${fieldLines || '<i>Ingen data-felter funnet i kontrakten.</i>'}</div>
+        <div class="field-hint" style="margin-top:8px">Send dette til utvikler så vi kan mappe feltene riktig.</div>
+      </div>
+    `;
+  }
+
   return `
     ${statusHtml}
     <div id="declEditor">
-      ${sections.map((sec, si) => renderDeclSectionReadonly(sec, si)).join('')}
+      ${answeredCount > 0 ? sections.map((sec, si) => renderDeclSectionReadonly(sec, si)).join('') : '<div class="field-hint">Data hentet, men feltene kunne ikke mappes automatisk ennå.</div>'}
     </div>
     ${otherNotes ? `
       <div style="margin-top:12px;padding:12px 16px;background:var(--surface);border-radius:8px;border:1px solid var(--gray)">
@@ -994,6 +1011,7 @@ function renderDeclarationSection(p) {
         <div style="font-size:13px;color:var(--text);line-height:1.5">${esc(otherNotes)}</div>
       </div>
     ` : ''}
+    ${debugHtml}
     <div id="declStatus" style="margin-top:8px;font-size:13px;color:var(--gray-dark)"></div>
   `;
 }
@@ -1043,11 +1061,16 @@ async function fetchDeclaration() {
       return;
     }
 
+    // Debug: vis raw_fields fra Oneflow
+    console.log('Oneflow raw_fields:', res.raw_fields);
+    console.log('Parsed sections:', res.declaration_sections);
+
     // Oppdater currentProspekt med hentet data
     currentProspekt.declaration_sections = res.declaration_sections;
     currentProspekt.declaration_other_notes = res.declaration_other_notes || '';
     currentProspekt.declaration_oneflow_id = res.contract_id;
     currentProspekt.declaration_oneflow_state = res.contract_state;
+    currentProspekt._raw_fields = res.raw_fields; // For debugging
 
     // Re-render seksjonen
     renderSectionBody('declaration');
