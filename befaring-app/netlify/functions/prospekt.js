@@ -112,6 +112,9 @@ function buildSpecs(bp) {
   }
   if (motorParts.length) add('Motor', motorParts.join(' '));
 
+  // Driftstimer rett etter Motor
+  if (bp.driftstimer_motor) add('Driftstimer', `ca. ${bp.driftstimer_motor} t`);
+
   // Motortype — kun vis hvis det faktisk er en type-streng, ikke et tall
   if (bp.type_motor && !/^\d+$/.test(String(bp.type_motor).trim())) {
     add('Motortype', bp.type_motor);
@@ -126,7 +129,6 @@ function buildSpecs(bp) {
       add('Effekt', `${totalHk} hk`);
     }
   }
-  if (bp.driftstimer_motor) add('Driftstimer', `ca. ${bp.driftstimer_motor} t`);
 
   divider();
 

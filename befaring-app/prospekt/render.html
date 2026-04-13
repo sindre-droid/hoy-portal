@@ -213,21 +213,31 @@
 
   .cover-logo {
     position: absolute;
-    top: 5%;
+    top: 4.5%;
     left: 50%;
     transform: translateX(-50%);
     z-index: 2;
     text-align: center;
-    filter: drop-shadow(0 2px 12px rgba(0,0,0,0.35));
+    filter: drop-shadow(0 2px 16px rgba(0,0,0,0.5));
+  }
+
+  .cover-logo-mark {
+    font-family: var(--font-display);
+    font-size: 48px;
+    font-weight: 400;
+    color: white;
+    line-height: 1;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
   }
 
   .cover-logo-text {
     font-family: var(--font-display);
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 300;
-    letter-spacing: 6px;
+    letter-spacing: 8px;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.92);
+    color: rgba(255,255,255,0.88);
     white-space: nowrap;
   }
 
@@ -543,6 +553,27 @@
     background: var(--hoy-gold);
     flex-shrink: 0;
     margin-top: 5px;
+  }
+
+  .equip-sub-item {
+    font-size: 9px;
+    color: var(--hoy-mid-gray);
+    font-style: italic;
+    font-weight: 300;
+    padding: 1px 0 3px 12px;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  .equip-sub-item::before {
+    content: '';
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--hoy-mid-gray);
+    flex-shrink: 0;
+    margin-top: 4px;
   }
 
   .equip-note {
@@ -958,7 +989,7 @@ function buildCoverPage(p) {
         <div class="cover-image-area">
           ${coverImg}
           <div class="cover-image-overlay"></div>
-          <div class="cover-logo"><div class="cover-logo-text">House &nbsp;of &nbsp;Yachts</div></div>
+          <div class="cover-logo"><div class="cover-logo-mark">HY</div><div class="cover-logo-text">House &nbsp;of &nbsp;Yachts</div></div>
         </div>
         <div class="cover-bottom">
           <div class="cover-year">${spaceYear(p.model_year)}</div>
@@ -1100,9 +1131,13 @@ function buildEquipmentPages(p) {
     return categories.map(cat => `
       <div class="equip-category">
         <div class="category-label">${esc(cat.name)}</div>
-        ${(cat.items || []).map(item => `
-          <div class="equip-item">${esc(item.text || item)}</div>
-        `).join('')}
+        ${(cat.items || []).map(item => {
+          const text = item.text || item;
+          const subHtml = item.sub
+            ? `<div class="equip-sub-item">${esc(item.sub)}</div>`
+            : '';
+          return `<div class="equip-item">${esc(text)}</div>${subHtml}`;
+        }).join('')}
       </div>
     `).join('');
   }
@@ -1232,7 +1267,18 @@ function buildContactPage(p) {
               </div>
             </div>
           </div>
-          <div class="contact-cta">
+
+          <div class="contact-about">
+            <div class="category-label-inline" style="margin-bottom:8px">Om House of Yachts</div>
+            <p style="font-size:10px;line-height:1.6;color:var(--hoy-dark-gray);font-weight:300;margin-bottom:6px">
+              House of Yachts er et b&aring;tmeglerfirma i Oslofjord-regionen som spesialiserer seg p&aring; kj&oslash;p og salg av brukte fritidsb&aring;ter i premium-segmentet. Vi tilbyr full-service megling med profesjonell fotografering, markedsf&oslash;ring, visninger og trygg oppgj&oslash;rsh&aring;ndtering.
+            </p>
+            <p style="font-size:10px;line-height:1.6;color:var(--hoy-mid-gray);font-weight:300">
+              h-y.no &nbsp;&middot;&nbsp; Instagram: @houseofyachts
+            </p>
+          </div>
+
+          <div class="contact-cta" style="margin-top:auto">
             <p>${esc(p.cta_label || 'Besøk oss for visning')}</p>
             <div class="cta-text">${esc(p.cta_address || OFFICE_ADDRESS)}</div>
           </div>

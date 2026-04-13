@@ -612,8 +612,8 @@ function renderCoverSection(p) {
 function renderOverviewSection(p) {
   const specs = p.specs || [];
   const caps = p.capacities || [];
-  const MAX_INTRO = 180;
-  const MAX_BODY = 800;
+  const MAX_INTRO = 400;
+  const MAX_BODY = 1500;
   const MAX_SPECS = 12;
   const MAX_CAPS = 5;
 
@@ -626,6 +626,7 @@ function renderOverviewSection(p) {
     <div class="field">
       <label>Oversiktsbilde (topp)</label>
       ${renderImageUpload('overview_image_url', p.overview_image_url)}
+      <div class="field-hint">Bruk et helprofilbilde av båten sett fra siden — dette skaper den beste overgangen til teksten under.</div>
     </div>
     <div class="field">
       <label>Intro-tekst (kursiv, 1-2 setninger)</label>
@@ -845,6 +846,7 @@ function renderEquipCategory(cat, ci) {
   const itemRows = [];
   for (let ii = 0; ii < totalSlots; ii++) {
     const text = ii < items.length ? items[ii].text || '' : '';
+    const sub = ii < items.length ? items[ii].sub || '' : '';
     const isExisting = ii < items.length;
     itemRows.push(`
       <div class="equip-item-row">
@@ -853,6 +855,12 @@ function renderEquipCategory(cat, ci) {
           style="${!isExisting ? 'border-style:dashed;opacity:0.7' : ''}">
         ${isExisting ? `<button class="btn-icon btn-icon-del" onclick="removeEquipItem(${ci},${ii})" style="width:26px;height:26px;font-size:13px">×</button>` : '<div style="width:26px"></div>'}
       </div>
+      ${isExisting ? `<div class="equip-item-row" style="padding-left:20px">
+        <input type="text" value="${esc(sub)}" placeholder="Detaljer (valgfritt, vises i kursiv)…"
+          style="font-size:12px;font-style:italic;border-style:dashed;opacity:0.7;padding:5px 8px"
+          onchange="updateEquipItem(${ci},${ii},'sub',this.value)">
+        <div style="width:26px"></div>
+      </div>` : ''}
     `);
   }
 
