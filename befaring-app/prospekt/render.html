@@ -40,29 +40,7 @@
     margin: 0;
   }
 
-  @media print {
-    body { background: white; margin: 0; }
-    .page-wrapper { gap: 0; padding: 0; max-width: none; display: block; }
-    .page-label { display: none; }
-    .page {
-      box-shadow: none;
-      border-radius: 0;
-      page-break-after: always;
-      page-break-inside: avoid;
-      break-after: page;
-      break-inside: avoid;
-      width: 210mm;
-      /* Slightly under 297mm to avoid Chrome's extra-blank-page bug
-         when content height == page height exactly */
-      height: 296mm;
-      aspect-ratio: auto;
-      margin: 0;
-      padding: 0;
-    }
-    .page:last-child { page-break-after: auto; break-after: auto; }
-    .render-toolbar { display: none !important; }
-    .render-loading { display: none !important; }
-  }
+  /* print reset is placed at bottom of stylesheet to win cascade */
 
   /* ══════════════════════════════════════════
      BASE & PREVIEW LAYOUT
@@ -939,6 +917,42 @@
   .render-error p {
     font-size: 14px;
     color: var(--hoy-mid-gray);
+  }
+
+  /* ══════════════════════════════════════════
+     PRINT RESET — placed last so it wins cascade over base rules
+     ══════════════════════════════════════════ */
+  @media print {
+    html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
+    .page-wrapper {
+      display: block !important;
+      gap: 0 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      max-width: none !important;
+    }
+    .page-label { display: none !important; }
+    .render-toolbar { display: none !important; }
+    .render-loading { display: none !important; }
+    .page {
+      box-shadow: none !important;
+      border-radius: 0 !important;
+      width: 210mm !important;
+      /* Slightly under A4 (297mm) to avoid Chrome's extra-blank-page bug
+         when content height == page height exactly */
+      height: 296mm !important;
+      aspect-ratio: auto !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      page-break-after: always;
+      page-break-inside: avoid;
+      break-after: page;
+      break-inside: avoid;
+    }
+    .page:last-child {
+      page-break-after: auto;
+      break-after: auto;
+    }
   }
 </style>
 </head>
