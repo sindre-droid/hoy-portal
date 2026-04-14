@@ -406,89 +406,149 @@ async function findEgenerklaering(dealName, dealId) {
   return null;
 }
 
-// Parse Oneflow data-fields til strukturerte declaration_sections
-function parseEgenerklaeringFields(fields) {
-  // Oneflow egenerklæring har spørsmål som data_fields med custom_id-er.
-  // Vi mapper alle fields som har verdi og organiserer etter seksjon.
-  // Typisk: custom_id = "spm_1", "spm_2", ... med value = "Ja" / "Nei"
-  //         kommentar = "kommentar_1", "kommentar_2", ...
-  // Alternativt kan feltene ha beskrivende navn — vi må håndtere begge.
+// ── Parse egenerklæring fra PDF-tekst ───────────────────────────────────────
+// Oneflow-template 5128144 rendrer et veldig konsistent skjema som vi kan
+// parse pålitelig ved å bruke de statiske spørsmålstekstene som ankere.
 
-  // Definer spørsmål i rekkefølge — matche mot Oneflow data_fields
-  const BOAT_QUESTIONS = [
-    'Ble båten kjøpt ny?',
-    'Har båten vært utleid eller yrkesbrukt?',
-    'Har båten vært skadet/reparert?',
-    'Har båten grunnstøtt?',
-    'Er båten omlakkert/malt?',
-    'Er båten selvbygget/selvinnredet?',
-    'Har båten feil/svakheter/lekkasjer i skrog?',
-    'Har båten feil/svakheter/lekkasjer i overbygg?',
-    'Har båten hatt råteskader/fuktskader?',
-    'Har båten blærer i gelcoat under vannlinjen?',
-    'Har båten skader/sår under vannlinjen?',
-    'Har motor/båt vært under vann?',
-    'Har båten feil på skroggjennomføringer?',
-    'Er båten CE-merket?',
-    'Er båten registrert i skipsregisteret?',
-    'Er båten registrert i småbåtregisteret?',
-    'Er det lån på båten?',
-    'Er båten Securemark-merket?',
-  ];
-  const MOTOR_QUESTIONS = [
-    'Har båten feil på motor?',
-    'Har båten feil på dynamo eller batterier?',
-    'Har båten feil på drev/aksling/propell?',
-    'Har motoren unormalt oljeforbruk?',
-    'Har båten lekkasjer i vannsystemer/septik?',
-    'Har båten feil på elektrisk anlegg?',
-    'Har båten lekkasjer på drivstoffsystem?',
-    'Har båten feil på lensepumper/ventiler?',
-    'Har båten problemer med tæring?',
-  ];
-  const DRIFT_QUESTIONS = [
-    'Siste service på motor, dato/timer?',
-    'Driftstimer motor?',
-    'Driftstimer generator?',
-  ];
+const DECL_SECTIONS_SPEC = [
+  {
+    title: 'Båt',
+    questions: [
+      'Ble båten kjøpt ny?',
+      'Har båten vært utleid eller yrkesbrukt?',
+      'Har båten vært skadet/reparert?',
+      'Har båten grunnstøtt?',
+      'Er båten omlakkert/malt?',
+      'Er båten selvbygget/selvinnredet?',
+      'Har båten feil/svakheter/lekkasjer i skrog?',
+      'Har båten feil/svakheter/lekkasjer i overbygg?',
+      'Har båten hatt råteskader/fuktskader?',
+      'Har båten blærer i gelcoat under vannlinjen?',
+      'Har båten skader/sår under vannlinjen?',
+      'Har motor/båt vært under vann?',
+      'Har båten feil på skroggjennomføringer?',
+      'Er båten CE-merket?',
+      'Er båten registrert i skipsregisteret?',
+      'Er båten registrert i småbåtregisteret?',
+      'Er det lån på båten?',
+      'Er båten Securemark-merket?',
+    ],
+  },
+  {
+    title: 'Motor & Teknisk',
+    questions: [
+      'Har båten feil på motor?',
+      'Har båten feil på dynamo eller batterier?',
+      'Har båten feil på drev/aksling/propell?',
+      'Har motoren unormalt oljeforbruk?',
+      'Har båten lekkasjer i vannsystemer/septik?',
+      'Har båten feil på elektrisk anlegg?',
+      'Har båten lekkasjer på drivstoffsystem?',
+      'Har båten feil på lensepumper/ventiler?',
+      'Har båten problemer med tæring?',
+      'Siste service på motor, dato/timer?',
+      'Driftstimer motor?',
+      'Driftstimer generator?',
+    ],
+  },
+];
 
-  // Prøv å mappe Oneflow-felter til spørsmål. Feltnavn varierer,
-  // så vi bruker fuzzy matching: normaliser og finn nærmeste match.
-  const allKeys = Object.keys(fields);
-  const normalize = s => s.toLowerCase().replace(/[^a-zæøå0-9]/g, '');
+const DECL_META_KEYS = [
+  'Selger',
+  'Båtens registreringsnummer',
+  'Merke',
+  'Årsmodell',
+  'HIN (CIN) nr.',
+  'Kjøpt år',
+  'Motornummer',
+  'Oppdragsnummer',
+];
 
-  function matchField(question) {
-    const qNorm = normalize(question);
-    // Prøv å finne en data-field som ligner på spørsmålet
-    for (const key of allKeys) {
-      if (normalize(key).includes(qNorm.slice(0, 20)) || qNorm.includes(normalize(key).slice(0, 20))) {
-        return fields[key];
-      }
-    }
-    return null;
+// Parse ett segment (tekst mellom spørsmål N og spørsmål N+1) til {answer, comment}
+function parseDeclSegment(segment) {
+  const lines = segment.split('\n').map(l => l.trim());
+  let answer = '';
+  let labelIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (!l) continue;
+    // Label-linje stopper søket etter svar
+    if (l === 'Kommentarer' || l === 'Kjenningsignal') { labelIdx = i; break; }
+    // Hopp over parenteser som (Osmose/plastpest) — de hører til spørsmålet
+    if (/^\(.*\)$/.test(l)) continue;
+    if (!answer) { answer = l; }
+  }
+  let comment = '';
+  if (labelIdx >= 0) {
+    comment = lines.slice(labelIdx + 1).map(l => l.trim()).filter(Boolean).join(' ').trim();
+  }
+  return { answer, comment };
+}
+
+function parseEgenerklaeringPdf(pdfText) {
+  // 1) Strip page footers: "Oneflow ID 11501012    Side 1 / 4  Signert 2025-08-07 13:56:10 UTC"
+  let text = (pdfText || '').replace(/Oneflow ID\s+\d+\s+Side\s+\d+\s*\/\s*\d+\s+Signert[^\n]*/g, '\n');
+
+  // 2) Strip bekreftelsesavsnittet og deltakerseksjonen (alt etter disse)
+  const trailerAnchors = [
+    'Det bekreftes at selger ikke har kjennskap',
+    '\nDeltakere\n',
+  ];
+  for (const a of trailerAnchors) {
+    const i = text.indexOf(a);
+    if (i > 0) text = text.slice(0, i);
   }
 
-  // Alternativ: prøv indeks-basert mapping (spm_1, spm_2, ...)
-  function mapByIndex(questions, startIdx) {
-    return questions.map((question, i) => {
-      const idx = startIdx + i;
-      const answer = fields[`spm_${idx}`] || fields[`q${idx}`] || matchField(question) || '';
-      const comment = fields[`kommentar_${idx}`] || fields[`comment_${idx}`] || fields[`k${idx}`] || '';
-      return { question, answer: answer || '', comment: comment || '' };
-    });
+  // 3) Ekstraher "Andre merknader/spesifikasjoner" (fritekst til slutt før trailer)
+  let otherNotes = '';
+  const ANDRE = 'Andre merknader/spesifikasjoner:';
+  const andreIdx = text.indexOf(ANDRE);
+  if (andreIdx >= 0) {
+    otherNotes = text.slice(andreIdx + ANDRE.length).trim();
+    text = text.slice(0, andreIdx);
   }
 
-  // Bygg seksjoner — prøv å hente data fra Oneflow-felter
-  const sections = [
-    { title: 'Båt', questions: mapByIndex(BOAT_QUESTIONS, 1) },
-    { title: 'Motor & Teknisk', questions: mapByIndex(MOTOR_QUESTIONS, BOAT_QUESTIONS.length + 1) },
-    { title: 'Driftsinfo', questions: mapByIndex(DRIFT_QUESTIONS, BOAT_QUESTIONS.length + MOTOR_QUESTIONS.length + 1) },
-  ];
+  // 4) Parse metadata-block fra topp (Selger, Båtens registreringsnummer, osv.)
+  const metadata = {};
+  for (let i = 0; i < DECL_META_KEYS.length; i++) {
+    const key = DECL_META_KEYS[i];
+    const nextKey = DECL_META_KEYS[i + 1];
+    // Fang verdien mellom "<Key>:" og enten "<NextKey>:" eller "I forbindelse med salg"
+    const pattern = nextKey
+      ? new RegExp(escapeRegex(key) + ':\\s*\\n([^\\n]*)\\n?\\s*' + escapeRegex(nextKey) + ':', 'i')
+      : new RegExp(escapeRegex(key) + ':\\s*\\n([^\\n]*?)\\n?\\s*(?:I forbindelse med salg|BÅT)', 'i');
+    const m = text.match(pattern);
+    if (m) metadata[key] = (m[1] || '').trim();
+  }
 
-  // Hent "andre merknader" om det finnes
-  const otherNotes = fields['andre_merknader'] || fields['other_notes'] || fields['merknader'] || '';
+  // 5) Finn posisjonen til hvert kjente spørsmål i teksten og splitt etter ankere
+  const allQuestions = [];
+  DECL_SECTIONS_SPEC.forEach((s, si) => {
+    s.questions.forEach(q => allQuestions.push({ question: q, sectionIdx: si }));
+  });
 
-  return { sections, otherNotes };
+  const positions = allQuestions
+    .map(q => ({ ...q, idx: text.indexOf(q.question) }))
+    .filter(q => q.idx >= 0)
+    .sort((a, b) => a.idx - b.idx);
+
+  const sections = DECL_SECTIONS_SPEC.map(s => ({ title: s.title, questions: [] }));
+
+  for (let i = 0; i < positions.length; i++) {
+    const cur = positions[i];
+    const next = positions[i + 1];
+    const segStart = cur.idx + cur.question.length;
+    const segEnd = next ? next.idx : text.length;
+    const segment = text.slice(segStart, segEnd);
+    const { answer, comment } = parseDeclSegment(segment);
+    sections[cur.sectionIdx].questions.push({ question: cur.question, answer, comment });
+  }
+
+  return { sections, otherNotes, metadata };
+}
+
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 // ── Handler ──────────────────────────────────────────────────────────────────
@@ -843,12 +903,11 @@ exports.handler = async (event) => {
         return ok(data);
       }
 
-      // ── Fetch declaration from Oneflow ──
+      // ── Fetch declaration from Oneflow (via PDF-parsing) ──
       if (action === 'fetch_declaration') {
         const { id } = body;
         if (!id) return err(400, 'id required');
 
-        // Hent prospekt for å finne deal_id og deal_name
         const { data: prospekt, error: pErr } = await supabase
           .from('prospekter')
           .select('deal_id, deal_name, boat_name')
@@ -856,49 +915,75 @@ exports.handler = async (event) => {
           .single();
         if (pErr) throw pErr;
 
-        // Søk i Oneflow etter egenerklæring-kontrakt
         const searchName = prospekt.deal_name || prospekt.boat_name;
-        console.log('fetch_declaration: searching Oneflow for deal_name:', searchName, 'deal_id:', prospekt.deal_id);
+        console.log('fetch_declaration: searching Oneflow for', searchName);
         const contract = await findEgenerklaering(searchName, prospekt.deal_id);
         if (!contract) {
           return ok({
             found: false,
-            message: `Fant ingen egenerklæring i Oneflow for "${searchName}". Sjekk at kontrakten er opprettet og at navnet inneholder dealnummer eller båtnavn.`,
+            message: `Fant ingen egenerklæring i Oneflow for "${searchName}". Sjekk at kontrakten finnes og at navnet inneholder dealnummer eller båtnavn.`,
           });
         }
-        console.log('fetch_declaration: found contract', contract.id, contract._private?.name, 'state:', contract.state);
 
-        const contractId = contract.id;
-        const contractState = contract.state; // 'signed', 'pending', 'draft', etc.
-        const contractName = contract._private?.name || '';
+        const contractId    = contract.id;
+        const contractState = contract.state; // 'signed', 'pending', 'draft'
+        const contractName  = contract._private?.name || '';
+        console.log('fetch_declaration: found', contractId, contractName, 'state:', contractState);
 
-        // Hent data-felter fra kontrakten
-        const fields = await getContractDataFields(contractId);
+        // Finn første PDF-fil på kontrakten
+        const files = await listContractFiles(contractId);
+        const pdfFile =
+          files.find(f => (f.extension || '').toLowerCase() === 'pdf') ||
+          files.find(f => (f.type || '').toLowerCase() === 'contract') ||
+          files[0];
+        if (!pdfFile) {
+          return ok({ found: false, message: 'Fant ingen PDF på Oneflow-kontrakten.' });
+        }
 
-        // Parse til strukturert format
-        const { sections, otherNotes } = parseEgenerklaeringFields(fields);
+        // Last ned PDF og ekstraher tekst
+        let sections = [];
+        let otherNotes = '';
+        let metadata = {};
+        let parseError = null;
+        let pdfText = '';
+        try {
+          const dl = await downloadContractFile(contractId, pdfFile.id);
+          const pdfRes = await extractPdfText(dl.buffer);
+          pdfText = pdfRes.text || '';
+          const parsed = parseEgenerklaeringPdf(pdfText);
+          sections   = parsed.sections;
+          otherNotes = parsed.otherNotes;
+          metadata   = parsed.metadata;
+        } catch (e) {
+          parseError = String(e?.message || e);
+          console.error('fetch_declaration parse error:', parseError);
+        }
 
-        // Lagre til prospekt
+        // Lagre til prospekt (best-effort)
         const updatePayload = {
-          declaration_sections: sections,
-          declaration_other_notes: otherNotes || null,
-          declaration_oneflow_id: contractId,
+          declaration_sections:     sections,
+          declaration_other_notes:  otherNotes || null,
+          declaration_oneflow_id:   String(contractId),
           declaration_oneflow_state: contractState,
         };
+        try {
+          await supabase.from('prospekter').update(updatePayload).eq('id', id);
+        } catch (e) {
+          console.error('fetch_declaration: Supabase update failed', e?.message || e);
+        }
 
-        await supabase
-          .from('prospekter')
-          .update(updatePayload)
-          .eq('id', id);
+        const answered = sections.reduce((sum, s) => sum + s.questions.filter(q => q.answer).length, 0);
 
         return ok({
           found: true,
-          contract_id: contractId,
+          contract_id:   contractId,
           contract_name: contractName,
           contract_state: contractState,
-          declaration_sections: sections,
+          declaration_sections:    sections,
           declaration_other_notes: otherNotes,
-          raw_fields: fields, // For debugging — kan fjernes senere
+          declaration_metadata:    metadata,
+          questions_answered:      answered,
+          parse_error:             parseError,
         });
       }
 
