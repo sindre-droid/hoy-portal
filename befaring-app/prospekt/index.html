@@ -243,6 +243,11 @@
   .btn-generate:hover{opacity:0.88}
   .btn-generate:disabled{opacity:0.4;cursor:not-allowed}
 
+  /* ── AI equipment panel ── */
+  .equip-ai-panel{background:#f8f7ff;border:1px solid #e0ddf5;border-radius:8px;padding:12px 14px;margin-bottom:16px}
+  .equip-ai-header{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;color:#5b4da0}
+  .equip-ai-header .sec-toggle{color:#5b4da0;font-size:16px}
+
   /* ── Toast ── */
   .toast{position:fixed;bottom:24px;right:24px;padding:14px 24px;border-radius:10px;font-size:14px;font-weight:600;z-index:999;transition:opacity 0.3s,transform 0.3s;opacity:0;transform:translateY(12px);pointer-events:none}
   .toast.show{opacity:1;transform:translateY(0)}
@@ -981,6 +986,24 @@ function renderEquipmentSection(p) {
   const totalItems = cats.reduce((sum, c) => sum + (c.items||[]).length, 0);
   const MAX_ITEMS = 40;
   return `
+    <div class="equip-ai-panel" id="equipAiPanel">
+      <div class="equip-ai-header" onclick="toggleEquipAiPanel()" style="cursor:pointer">
+        <span>✨ AI-assistert utstyrsliste</span>
+        <span class="sec-toggle" id="equipAiToggle">▾</span>
+      </div>
+      <div id="equipAiBody" style="display:none;padding:12px 0 0">
+        <div class="field-hint" style="margin-bottom:8px">
+          AI sorterer utstyr fra HubSpot, befaringsnotat og eventuell innlimt tekst i riktige kategorier.
+          Den legger aldri til utstyr på egenhånd — kun det som er eksplisitt nevnt i kildene.
+        </div>
+        <textarea id="equipExtraText" rows="4" placeholder="Lim inn utstyrsliste fra selger, gammel annonse, produsentliste e.l. (valgfritt)"
+          style="font-size:13px;width:100%;box-sizing:border-box;margin-bottom:10px"></textarea>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn-generate" onclick="generateEquipment()" id="equipGenBtn">✨ Generer utstyrsliste</button>
+          <span class="field-hint" id="equipGenStatus"></span>
+        </div>
+      </div>
+    </div>
     <div class="field-hint" style="margin-bottom:12px">Maks ${MAX_CATS} kategorier og ~${MAX_ITEMS} utstyrsrader totalt for å passe på én A4-side. <span class="limit-badge">${totalItems} / ${MAX_ITEMS} rader</span></div>
     <div id="equipEditor">
       ${cats.map((c, ci) => renderEquipCategory(c, ci)).join('')}
@@ -1423,6 +1446,91 @@ function removeSpecRow(field, idx) {
   currentProspekt[field] = arr;
   renderSectionBody('overview');
   $('sec-overview').classList.add('open');
+  scheduleAutoSave();
+}
+
+// ── Equipment AI ──
+function toggleEquipAiPanel() {
+  const body = $('equipAiBody');
+  const tog = $('equipAiToggle');
+  if (!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  if (tog) tog.classList.toggle('open', !open);
+}
+
+async function generateEquipment() {
+  if (!currentProspekt?.id) return toast('Ingen prospekt valgt', 'error');
+  const btn = $('equipGenBtn');
+  const status = $('equipGenStatus');
+  btn.disabled = true;
+  btn.textContent = '⏳ Genererer…';
+  if (status) status.textContent = 'Henter data fra HubSpot + befaringsnotat…';
+
+  try {
+    const extraText = ($('equipExtraText')?.value || '').trim();
+    const data = await api({ action: 'generate-equipment' }, 'POST', {
+      id: currentProspekt.id,
+      extra_text: extraText,
+    });
+
+    if (data.source === 'empty') {
+      toast('Ingen utstyrsdata funnet. Lim inn tekst fra selger og prøv igjen.', 'error');
+      btn.disabled = false;
+      btn.textContent = '✨ Generer utstyrsliste';
+      if (status) status.textContent = '';
+      return;
+    }
+
+    const aiCategories = data.categories || [];
+    mergeEquipmentCategories(aiCategories);
+    toast(`Utstyrsliste oppdatert (${aiCategories.reduce((s,c) => s + (c.items||[]).length, 0)} rader fordelt på ${aiCategories.length} kategorier)`, 'success');
+
+  } catch (e) {
+    console.error('generate-equipment error:', e);
+    toast('Feil ved generering: ' + e.message, 'error');
+  }
+
+  btn.disabled = false;
+  btn.textContent = '✨ Generer utstyrsliste';
+  if (status) status.textContent = '';
+}
+
+function mergeEquipmentCategories(aiCategories) {
+  const existing = currentProspekt.equipment_categories || [];
+
+  // Bygg lookup: lowercase navn → eksisterende kategori-indeks
+  const existingMap = {};
+  existing.forEach((c, i) => { existingMap[c.name.toLowerCase()] = i; });
+
+  for (const aiCat of aiCategories) {
+    const key = aiCat.name.toLowerCase();
+    const newItems = (aiCat.items || []).filter(i => i.text && i.text.trim());
+
+    if (key in existingMap) {
+      // Kategori finnes — flett inn nye items som ikke allerede er der
+      const cat = existing[existingMap[key]];
+      const existingTexts = new Set(
+        (cat.items || []).map(i => (i.text || '').toLowerCase().trim())
+      );
+      for (const item of newItems) {
+        if (!existingTexts.has(item.text.toLowerCase().trim())) {
+          cat.items = cat.items || [];
+          cat.items.push({ text: item.text.trim() });
+        }
+      }
+    } else {
+      // Ny kategori — legg til
+      existing.push({
+        name: aiCat.name,
+        items: newItems.map(i => ({ text: i.text.trim() })),
+      });
+    }
+  }
+
+  currentProspekt.equipment_categories = existing;
+  renderSectionBody('equipment');
+  $('sec-equipment').classList.add('open');
   scheduleAutoSave();
 }
 

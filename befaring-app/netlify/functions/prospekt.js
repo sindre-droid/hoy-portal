@@ -8,9 +8,12 @@
 // POST action=delete_image       → slett bilde fra Supabase Storage
 // POST action=publish            → sett status=published
 // POST action=unpublish          → sett status=draft
+// POST action=refresh-specs      → hent specs+capacities på nytt fra HubSpot
+// POST action=generate-equipment → AI-assistert utstyrsliste (sorterer, dikter ikke)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const { createClient } = require('@supabase/supabase-js');
+const EQUIPMENT_PROMPT = require('./equipment-prompt');
 
 const PIPELINE_B = process.env.PIPELINE_B || '3211644128';
 const BOAT_OBJ_TYPE = '2-145214665';
@@ -180,52 +183,101 @@ function buildCapacities(bp) {
 }
 
 // Standard utstyrskategorier for båtprospekter (5 kategorier)
-const DEFAULT_EQUIP_CATEGORIES = [
-  'Navigasjon & Elektronikk',
-  'Motor & Teknisk',
-  'Dekk & Eksteriør',
-  'Interiør & Komfort',
+const EQUIP_CATEGORIES_MOTOR = [
+  'Navigasjon og elektronikk',
+  'Motor og teknisk',
+  'Dekk og eksteriør',
+  'Interiør og komfort',
   'Sikkerhet',
 ];
 
+const EQUIP_CATEGORIES_SAIL = [
+  'Rigg og seil',
+  'Navigasjon og elektronikk',
+  'Dekk og eksteriør',
+  'Motor og teknisk',
+  'Interiør og komfort',
+  'Sikkerhet',
+];
+
+function isSailboat(bp) {
+  const bt = (bp?.boat_type || '').toLowerCase();
+  return bt.includes('seil') || bt.includes('sail');
+}
+
+function getDefaultCategories(bp) {
+  return isSailboat(bp) ? EQUIP_CATEGORIES_SAIL : EQUIP_CATEGORIES_MOTOR;
+}
+
 function buildEquipment(bp) {
-  // Start med ferdiglagde tomme kategorier
-  const categories = DEFAULT_EQUIP_CATEGORIES.map(name => ({ name, items: [] }));
-  // Indekser: 0=Nav, 1=Motor, 2=Dekk, 3=Interiør, 4=Sikkerhet
+  const sail = isSailboat(bp);
+  const catNames = sail ? EQUIP_CATEGORIES_SAIL : EQUIP_CATEGORIES_MOTOR;
+  const categories = catNames.map(name => ({ name, items: [] }));
+
+  // Indekser — seilbåt: 0=Rigg, 1=Nav, 2=Dekk, 3=Motor, 4=Interiør, 5=Sikkerhet
+  //            motorbåt: 0=Nav, 1=Motor, 2=Dekk, 3=Interiør, 4=Sikkerhet
+  const idx = sail
+    ? { rigg: 0, nav: 1, dekk: 2, motor: 3, interior: 4, safety: 5 }
+    : { nav: 0, motor: 1, dekk: 2, interior: 3, safety: 4 };
 
   if (bp?.utstyrsliste) {
     const raw = bp.utstyrsliste;
     const items = raw.split(/[;\n]+/).map(s => s.trim()).filter(Boolean);
     if (items.length > 0) {
-      const navKeywords = ['plotter','gps','radar','vhf','ekkolodd','ais','autopilot','kompass','instrument','dab','kartmaskin','skjerm'];
-      const techKeywords = ['generator','inverter','batteri','lader','solar','landstrøm','shore','power','thruster','baugpropell','trim','hydraul'];
-      const deckKeywords = ['bimini','kalesje','teak','anker','vinsj','fender','fortøy','belysning','led','badeplattform','bade','solseng','havnetrekk','sprayhood','davit','passer','cockpit','dekk'];
-      const safetyKeywords = ['redning','brannslukk','nødrakett','flåte','livbøy','førstehjelp','sikkerhet','mob','epirb','nødsender'];
-      // Interiør + Komfort + Bysse (sammenslått)
-      const interiorKeywords = ['toalett','dusj','stereo','lyd','tv','sofa','gardiner','oppbevaring','ac ','aircondition','klimaanlegg','varme','eberspächer','kjøle','frys','komfyr','ovn','mikro','koketopp','vask','oppvask','kaffemaskin','isbiter','is maskin'];
+      const navKw = ['plotter','gps','radar','vhf','ekkolodd','ais','autopilot','kompass','instrument','dab','kartmaskin','skjerm','simrad','raymarine','garmin','b&g'];
+      const motorKw = ['generator','inverter','batteri','lader','solar','landstrøm','shore','power','thruster','baugpropell','trim','hydraul','eberspächer','webasto','varme','varmtvanns'];
+      const dekkKw = ['bimini','kalesje','teak','anker','vinsj','fender','fortøy','belysning','led','badeplattform','bade','solseng','havnetrekk','sprayhood','davit','passer','cockpit','dekk'];
+      const safetyKw = ['redning','brannslukk','nødrakett','flåte','livbøy','førstehjelp','sikkerhet','mob','epirb','nødsender'];
+      const riggKw = sail ? ['seil','mast','rigg','genuafurl','furlex','vant','lazy','spinnaker','gennaker','code 0','batten','skjøt','falle','blokk','stag','boom','rull'] : [];
+      const interiorKw = ['toalett','dusj','stereo','lyd','tv','sofa','gardiner','oppbevaring','ac ','aircondition','klimaanlegg','kjøle','frys','komfyr','ovn','mikro','koketopp','vask','oppvask','kaffemaskin','isbiter','is maskin'];
 
       for (const text of items) {
         const lower = text.toLowerCase();
-        if (navKeywords.some(k => lower.includes(k))) categories[0].items.push({ text });
-        else if (techKeywords.some(k => lower.includes(k))) categories[1].items.push({ text });
-        else if (deckKeywords.some(k => lower.includes(k))) categories[2].items.push({ text });
-        else if (safetyKeywords.some(k => lower.includes(k))) categories[4].items.push({ text });
-        else if (interiorKeywords.some(k => lower.includes(k))) categories[3].items.push({ text });
-        else categories[3].items.push({ text }); // default: Interiør & Komfort
+        if (sail && riggKw.some(k => lower.includes(k)))         categories[idx.rigg].items.push({ text });
+        else if (navKw.some(k => lower.includes(k)))             categories[idx.nav].items.push({ text });
+        else if (motorKw.some(k => lower.includes(k)))           categories[idx.motor].items.push({ text });
+        else if (dekkKw.some(k => lower.includes(k)))            categories[idx.dekk].items.push({ text });
+        else if (safetyKw.some(k => lower.includes(k)))          categories[idx.safety].items.push({ text });
+        else if (interiorKw.some(k => lower.includes(k)))        categories[idx.interior].items.push({ text });
+        else categories[idx.interior].items.push({ text }); // default
       }
     }
   }
 
-  // Generator-info som egen rad under Motor & Teknisk
+  // Generator-info som egen rad under Motor og teknisk
   if (bp?.har_generator === 'true' || bp?.generator_fabrikant) {
     const genParts = [];
     if (bp.generator_fabrikant) genParts.push(bp.generator_fabrikant);
     if (bp.generator_kw) genParts.push(`${bp.generator_kw} kW`);
     if (bp.generator_driftstimer) genParts.push(`${bp.generator_driftstimer} t`);
-    if (genParts.length) categories[1].items.push({ text: `Generator: ${genParts.join(', ')}` });
+    if (genParts.length) categories[idx.motor].items.push({ text: `Generator: ${genParts.join(', ')}` });
   }
 
   return categories;
+}
+
+function stripHtml(s) {
+  return (s || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
+    .replace(/&nbsp;/g,' ').replace(/&#(\d+);/g,(_,c)=>String.fromCharCode(+c))
+    .replace(/\s+/g,' ').trim();
+}
+
+async function getBefaringNote(dealId) {
+  try {
+    const assoc = await hs(`/crm/v3/objects/deals/${dealId}/associations/notes`);
+    const ids = (assoc.data?.results || []).map(n => n.id);
+    if (!ids.length) return null;
+    const batch = await hs('/crm/v3/objects/notes/batch/read', 'POST', {
+      inputs: ids.slice(0, 30).map(id => ({ id })),
+      properties: ['hs_note_body','hs_timestamp'],
+    });
+    const notes = (batch.data?.results || [])
+      .filter(n => stripHtml(n.properties?.hs_note_body || '').includes('Befaringsnotat'))
+      .sort((a, b) => new Date(b.properties?.hs_timestamp||0) - new Date(a.properties?.hs_timestamp||0));
+    return notes.length ? stripHtml(notes[0].properties.hs_note_body) : null;
+  } catch { return null; }
 }
 
 function parseJwt(token) {
@@ -931,6 +983,119 @@ exports.handler = async (event) => {
         if (error) throw error;
 
         return ok(data);
+      }
+
+      // ── AI-assistert utstyrsliste ──
+      if (action === 'generate-equipment') {
+        const { id, extra_text } = body;
+        if (!id) return err(400, 'id required');
+
+        const apiKey = process.env.ANTHROPIC_API_KEY;
+        if (!apiKey) return err(500, 'AI not configured');
+
+        // Hent prospekt med deal_id
+        const { data: prospekt, error: pErr } = await supabase
+          .from('prospekter')
+          .select('deal_id, boat_name, equipment_categories')
+          .eq('id', id)
+          .maybeSingle();
+        if (pErr) throw pErr;
+        if (!prospekt) return err(404, 'Prospekt not found');
+
+        // Hent båtdata + befaringsnotat parallelt
+        const [boatProps, befaringNote] = await Promise.all([
+          fetchBoatData(prospekt.deal_id),
+          getBefaringNote(prospekt.deal_id),
+        ]);
+
+        // Bygg kontekst for AI
+        const sail = isSailboat(boatProps);
+        const contextParts = [];
+
+        contextParts.push(`BÅTTYPE: ${sail ? 'Seilbåt' : 'Motorbåt'}`);
+        if (boatProps?.batmerke) contextParts.push(`MERKE: ${boatProps.batmerke}`);
+        if (boatProps?.bat_modell) contextParts.push(`MODELL: ${boatProps.bat_modell}`);
+        if (boatProps?.arsmodell) contextParts.push(`ÅRSMODELL: ${boatProps.arsmodell}`);
+        if (boatProps?.lengde_i_fot) contextParts.push(`LENGDE: ${boatProps.lengde_i_fot} fot`);
+        else if (boatProps?.lengde_i_cm) contextParts.push(`LENGDE: ${boatProps.lengde_i_cm} cm`);
+
+        if (boatProps?.utstyrsliste) {
+          contextParts.push('\n--- UTSTYRSLISTE FRA HUBSPOT ---');
+          contextParts.push(boatProps.utstyrsliste);
+        }
+
+        if (befaringNote) {
+          contextParts.push('\n--- BEFARINGSNOTAT ---');
+          contextParts.push(befaringNote);
+        }
+
+        if (extra_text && extra_text.trim()) {
+          contextParts.push('\n--- EKSTRA INFO FRA MEGLER (innlimt fra selger/annonse) ---');
+          contextParts.push(extra_text.trim());
+        }
+
+        if (!boatProps?.utstyrsliste && !befaringNote && !extra_text?.trim()) {
+          // Ingen data — returner tomme kategorier uten å kalle AI
+          const emptyCategories = getDefaultCategories(boatProps).map(name => ({ name, items: [] }));
+          return ok({ categories: emptyCategories, source: 'empty' });
+        }
+
+        // Kall Anthropic API
+        const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 4096,
+            system: EQUIPMENT_PROMPT,
+            messages: [{ role: 'user', content: contextParts.join('\n') }],
+          }),
+        });
+
+        if (!aiRes.ok) {
+          const errBody = await aiRes.text();
+          console.error('Anthropic API error:', aiRes.status, errBody);
+          return err(502, 'AI-tjenesten svarte med feil');
+        }
+
+        const aiData = await aiRes.json();
+        const rawText = (aiData?.content?.[0]?.text || '').trim();
+
+        // Parse JSON fra AI-svaret
+        let aiCategories;
+        try {
+          // Tål at AI wrapper i markdown code block
+          const jsonStr = rawText.replace(/^```json?\s*/i, '').replace(/\s*```$/, '');
+          aiCategories = JSON.parse(jsonStr);
+        } catch (parseErr) {
+          console.error('AI JSON parse error:', parseErr.message, 'raw:', rawText.substring(0, 200));
+          return err(502, 'Kunne ikke tolke AI-svaret');
+        }
+
+        // Valider at vi fikk et array med riktig struktur
+        if (!Array.isArray(aiCategories)) {
+          return err(502, 'AI returnerte ugyldig format');
+        }
+
+        // Godkjente kategorinavn
+        const validNames = new Set([
+          ...EQUIP_CATEGORIES_MOTOR.map(n => n.toLowerCase()),
+          ...EQUIP_CATEGORIES_SAIL.map(n => n.toLowerCase()),
+        ]);
+
+        // Filtrer bort kategorier med ukjente navn, normaliser
+        aiCategories = aiCategories
+          .filter(c => c.name && validNames.has(c.name.toLowerCase()))
+          .map(c => ({
+            name: c.name,
+            items: (c.items || []).filter(i => i.text && i.text.trim()).map(i => ({ text: i.text.trim() })),
+          }));
+
+        return ok({ categories: aiCategories, source: 'ai' });
       }
 
       // ── Get signed upload URL (bilder lagres per deal_id) ──
