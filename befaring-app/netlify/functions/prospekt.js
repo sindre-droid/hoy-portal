@@ -905,6 +905,34 @@ exports.handler = async (event) => {
         return ok(data);
       }
 
+      // ── Refresh specs + capacities from HubSpot (overwriting) ──
+      if (action === 'refresh-specs') {
+        const { id } = body;
+        if (!id) return err(400, 'id required');
+
+        const { data: existing, error: existingErr } = await supabase
+          .from('prospekter')
+          .select('deal_id')
+          .eq('id', id)
+          .maybeSingle();
+        if (existingErr) throw existingErr;
+        if (!existing) return err(404, 'Prospekt not found');
+
+        const boatProps = await fetchBoatData(existing.deal_id);
+        const specs = buildSpecs(boatProps);
+        const capacities = buildCapacities(boatProps);
+
+        const { data, error } = await supabase
+          .from('prospekter')
+          .update({ specs, capacities })
+          .eq('id', id)
+          .select('id, specs, capacities')
+          .single();
+        if (error) throw error;
+
+        return ok(data);
+      }
+
       // ── Get signed upload URL (bilder lagres per deal_id) ──
       if (action === 'upload_url') {
         const { deal_id, file_name, content_type } = body;

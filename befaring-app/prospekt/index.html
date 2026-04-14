@@ -231,6 +231,13 @@
   .char-count.over{color:var(--red);font-weight:600}
   .limit-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;background:var(--yellow-bg);color:var(--yellow);margin-left:6px}
 
+  /* ── Suggested-row chips ── */
+  .suggested-chips{margin-top:12px;padding:10px 12px;background:#f9fafb;border:1px dashed var(--gray);border-radius:6px}
+  .suggested-chips-label{font-size:11px;color:var(--gray-dark);margin-bottom:6px;font-weight:500}
+  .suggested-chips-row{display:flex;flex-wrap:wrap;gap:6px}
+  .chip-suggest{background:white;border:1px solid var(--gray);color:var(--text);padding:4px 10px;border-radius:14px;font-size:12px;cursor:pointer;font-family:inherit;transition:all 0.12s}
+  .chip-suggest:hover{background:var(--blue);color:white;border-color:var(--blue)}
+
   /* ── Generate text button ── */
   .btn-generate{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity 0.15s}
   .btn-generate:hover{opacity:0.88}
@@ -664,6 +671,42 @@ function renderOverviewSection(p) {
   const MAX_SPECS = 18;
   const MAX_CAPS = 5;
 
+  // Fullt sett av foreslåtte rader — meglerne ser disse som forslag slik at
+  // de ikke glemmer felter som HubSpot mangler men de selv har info om.
+  const SUGGESTED_SPECS = [
+    'Merke','Modell','Årsmodell','Lengde','Bredde','Motor','Motortype',
+    'Effekt','Maks fart','Drivstoff','Materiale','Farge','Timer',
+    'CE-kategori','MVA','Beliggenhet'
+  ];
+  const SUGGESTED_CAPS = ['Kahytter','Soveplasser','Bad/WC','Ferskvann','Septik','Gråvann'];
+
+  const existingSpecLabels = new Set(
+    specs.filter(r => !r.divider && r.label).map(r => r.label.trim().toLowerCase())
+  );
+  const missingSpecs = SUGGESTED_SPECS.filter(l => !existingSpecLabels.has(l.toLowerCase()));
+  const existingCapLabels = new Set(
+    caps.filter(r => !r.divider && r.label).map(r => r.label.trim().toLowerCase())
+  );
+  const missingCaps = SUGGESTED_CAPS.filter(l => !existingCapLabels.has(l.toLowerCase()));
+
+  const suggestedSpecsHtml = missingSpecs.length && specs.length < MAX_SPECS
+    ? `<div class="suggested-chips">
+         <div class="suggested-chips-label">Foreslåtte rader (fyll inn manuelt):</div>
+         <div class="suggested-chips-row">
+           ${missingSpecs.map(l => `<button class="chip-suggest" onclick="addSuggestedRow('specs',${JSON.stringify(l).replace(/"/g,'&quot;')})">+ ${esc(l)}</button>`).join('')}
+         </div>
+       </div>`
+    : '';
+
+  const suggestedCapsHtml = missingCaps.length && caps.length < MAX_CAPS
+    ? `<div class="suggested-chips">
+         <div class="suggested-chips-label">Foreslåtte rader:</div>
+         <div class="suggested-chips-row">
+           ${missingCaps.map(l => `<button class="chip-suggest" onclick="addSuggestedRow('capacities',${JSON.stringify(l).replace(/"/g,'&quot;')})">+ ${esc(l)}</button>`).join('')}
+         </div>
+       </div>`
+    : '';
+
   const introLen = (p.description_intro||'').length;
   const bodyLen = (p.description_body||'').length;
   const introClass = introLen > MAX_INTRO ? 'over' : introLen > MAX_INTRO * 0.85 ? 'warn' : '';
@@ -707,14 +750,19 @@ function renderOverviewSection(p) {
     </div>
     <hr style="border:none;border-top:1px solid var(--gray);margin:20px 0">
     <div class="field">
-      <label>Spesifikasjoner <span class="limit-badge">${specs.length} / ${MAX_SPECS}</span></label>
+      <label style="display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap">
+        <span>Spesifikasjoner <span class="limit-badge">${specs.length} / ${MAX_SPECS}</span></span>
+        <button class="btn-outline" style="font-size:12px;padding:5px 10px" onclick="refreshSpecsFromHubSpot()" title="Hent ferske verdier fra HubSpot (overskriver manuelle endringer i Spesifikasjoner og Kapasiteter)">🔄 Hent fra HubSpot</button>
+      </label>
       <div id="specsEditor">${renderSpecRows(specs, 'specs')}</div>
       ${specs.length < MAX_SPECS ? `<div style="margin-top:8px;display:flex;gap:8px"><button class="btn-outline" style="font-size:13px;padding:6px 14px" onclick="addSpecRow('specs')">+ Rad</button><button class="btn-outline" style="font-size:13px;padding:6px 14px" onclick="addSpecDivider('specs')">— Skillelinje</button></div>` : `<div class="field-hint" style="color:var(--yellow)">Maks ${MAX_SPECS} rader — fjern en for å legge til ny</div>`}
+      ${suggestedSpecsHtml}
     </div>
     <div class="field">
       <label>Kapasiteter <span class="limit-badge">${caps.length} / ${MAX_CAPS}</span></label>
       <div id="capsEditor">${renderSpecRows(caps, 'capacities')}</div>
       ${caps.length < MAX_CAPS ? `<button class="btn-outline" style="margin-top:8px;font-size:13px;padding:6px 14px" onclick="addSpecRow('capacities')">+ Legg til rad</button>` : `<div class="field-hint" style="color:var(--yellow)">Maks ${MAX_CAPS} rader</div>`}
+      ${suggestedCapsHtml}
     </div>
   `;
 }
@@ -1338,6 +1386,35 @@ function addSpecDivider(field) {
   currentProspekt[field] = arr;
   renderSectionBody('overview');
   $('sec-overview').classList.add('open');
+}
+
+function addSuggestedRow(field, label) {
+  const arr = currentProspekt[field] || [];
+  arr.push({ label, value: '' });
+  currentProspekt[field] = arr;
+  renderSectionBody('overview');
+  $('sec-overview').classList.add('open');
+  scheduleAutoSave();
+}
+
+async function refreshSpecsFromHubSpot() {
+  if (!currentProspekt?.id) return;
+  const ok = confirm(
+    'Dette henter ferske verdier fra HubSpot og overskriver Spesifikasjoner og Kapasiteter.\n\n' +
+    'Manuelle endringer i disse feltene går tapt. Fortsette?'
+  );
+  if (!ok) return;
+  try {
+    const data = await api({ action: 'refresh-specs' }, 'POST', { id: currentProspekt.id });
+    currentProspekt.specs = data.specs || [];
+    currentProspekt.capacities = data.capacities || [];
+    renderSectionBody('overview');
+    $('sec-overview').classList.add('open');
+    toast('Spesifikasjoner oppdatert fra HubSpot', 'success');
+  } catch (e) {
+    console.error('refresh-specs error:', e);
+    toast('Feil ved henting fra HubSpot: ' + e.message, 'error');
+  }
 }
 
 function removeSpecRow(field, idx) {
