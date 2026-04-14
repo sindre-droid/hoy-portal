@@ -148,7 +148,10 @@
 
       <div class="images-header" id="imagesHeader" style="display:none">
         <h3>Opplastede bilder</h3>
-        <span class="images-count" id="imagesCount"></span>
+        <div style="display:flex;align-items:center;gap:14px">
+          <span class="images-count" id="imagesCount"></span>
+          <button id="deleteAllBtn" onclick="deleteAllImages()" style="background:transparent;border:1px solid #d0d0d0;color:#b02020;font-size:12px;padding:6px 12px;border-radius:4px;cursor:pointer">Slett alle</button>
+        </div>
       </div>
       <div class="images-grid" id="imagesGrid"></div>
     </div>
@@ -581,6 +584,59 @@ async function deleteImage(path, cardEl) {
     $('imagesCount').textContent = `${remaining} bilder`;
     if (remaining === 0) $('imagesHeader').style.display = 'none';
   } catch (e) { toast(e.message, 'error'); }
+}
+
+// Sletter samtlige bilder knyttet til aktiv deal. Brukes typisk ved
+// fotografbytte eller når man vil re-laste opp med ny komprimering.
+// Advarsel: Bildene fjernes fra Supabase Storage, men prospekt-galleriet
+// (prospekter.gallery_pages) peker fortsatt på gamle URL-er — de må
+// re-assignes i galleri-editoren etter ny upload.
+async function deleteAllImages() {
+  if (!currentDealId) return;
+  let images;
+  try {
+    images = await api({ images: currentDealId });
+  } catch (e) {
+    toast('Kunne ikke hente bildeliste: ' + e.message, 'error');
+    return;
+  }
+  if (!images || images.length === 0) {
+    toast('Ingen bilder å slette');
+    return;
+  }
+  const count = images.length;
+  const confirmMsg =
+    `Slett ALLE ${count} bilder for denne dealen?\n\n` +
+    `Dette kan ikke angres. Bildene fjernes fra Supabase, men hvis de\n` +
+    `allerede er brukt i prospekt-galleriet må du også velge nye bilder\n` +
+    `i galleri-editoren etterpå.`;
+  if (!confirm(confirmMsg)) return;
+
+  const btn = $('deleteAllBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Sletter…'; }
+
+  let done = 0, failed = 0;
+  // Slett sekvensielt for å unngå rate-limiting mot Supabase
+  for (const img of images) {
+    try {
+      await api({ action: 'delete_image' }, 'POST', { path: img.path });
+      done++;
+      if (btn) btn.textContent = `Sletter… ${done}/${count}`;
+    } catch (e) {
+      failed++;
+      console.error(`Slett ${img.path}:`, e);
+    }
+  }
+
+  if (btn) { btn.disabled = false; btn.textContent = 'Slett alle'; }
+  toast(failed === 0
+    ? `${done} bilder slettet`
+    : `${done} slettet, ${failed} feilet`,
+    failed === 0 ? 'success' : 'error'
+  );
+
+  // Refresh grid
+  await loadImages();
 }
 
 function esc(s) {
