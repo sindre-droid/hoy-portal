@@ -568,11 +568,68 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: 6% 7% 3%;
+    padding: 0 0 3%;
+  }
+
+  /* Tyngre seksjonsheader (full-bredde teal-bånd) — markerer tydelig skille
+     fra forrige seksjon (typisk utstyrsliste på hvit bakgrunn) */
+  .declaration-header-band {
+    background: var(--hoy-deep-teal);
+    color: var(--hoy-white);
+    padding: 28px 7% 24px;
+    position: relative;
+    margin-bottom: 5%;
+  }
+
+  .declaration-header-band::after {
+    content: '';
+    position: absolute;
+    left: 7%;
+    bottom: 14px;
+    width: 50px;
+    height: 2px;
+    background: var(--hoy-gold);
+  }
+
+  .declaration-header-band .declaration-eyebrow {
+    font-family: var(--font-body);
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--hoy-gold);
+    margin-bottom: 6px;
+  }
+
+  .declaration-header-band .declaration-title {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--hoy-white);
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+
+  .declaration-header-band .declaration-lede {
+    font-family: var(--font-body);
+    font-size: 10.5px;
+    color: rgba(255,255,255,0.75);
+    max-width: 480px;
+    line-height: 1.55;
+    padding-bottom: 10px;
+  }
+
+  /* Kompakt header for "fortsettelse"-sider (mindre visuell vekt) */
+  .declaration-header-compact {
+    padding: 5% 7% 0;
+    margin-bottom: 2%;
+  }
+  .declaration-header-compact .section-subtitle {
+    color: var(--hoy-mid-gray);
   }
 
   .declaration-header { margin-bottom: 4%; }
-  .declaration-body { flex: 1; }
+  .declaration-body { flex: 1; padding: 0 7%; }
   .decl-section { margin-bottom: 20px; }
 
   .decl-meta {
@@ -646,7 +703,7 @@
   }
 
   .declaration-notice {
-    margin-top: auto;
+    margin: auto 7% 0;
     padding: 14px 16px;
     background: var(--hoy-cream);
     border-radius: 4px;
@@ -977,7 +1034,7 @@
 <!-- Floating toolbar -->
 <div class="render-toolbar" id="toolbar" style="display:none">
   <button class="btn-back" onclick="history.back()">← Tilbake</button>
-  <button class="btn-pdf" onclick="window.print()">Last ned PDF</button>
+  <button class="btn-pdf" id="pdfBtn" onclick="exportPdf()" disabled>Forbereder…</button>
 </div>
 
 <script>
@@ -1296,9 +1353,10 @@ function buildDeclarationPages(p) {
       <div class="page-label">Egenerklæring</div>
       <div class="page">
         <div class="declaration">
-          <div class="declaration-header">
-            <h2 class="section-title">Selgers egenerklæring</h2>
-            <p class="section-subtitle">Utfylt og signert av eier. Opplysningene gis i god tro og etter beste evne.</p>
+          <div class="declaration-header-band">
+            <div class="declaration-eyebrow">Seksjon</div>
+            <h2 class="declaration-title">Selgers egenerklæring</h2>
+            <p class="declaration-lede">Utfylt og signert av eier. Opplysningene gis i god tro og etter beste evne.</p>
           </div>
           <div class="declaration-body">
             ${metaHtml}
@@ -1322,9 +1380,10 @@ function buildDeclarationPages(p) {
     <div class="page-label">Egenerklæring</div>
     <div class="page">
       <div class="declaration">
-        <div class="declaration-header">
-          <h2 class="section-title">Selgers egenerklæring</h2>
-          <p class="section-subtitle">Utfylt og signert av eier. Opplysningene gis i god tro og etter beste evne.</p>
+        <div class="declaration-header-band">
+          <div class="declaration-eyebrow">Seksjon</div>
+          <h2 class="declaration-title">Selgers egenerklæring</h2>
+          <p class="declaration-lede">Utfylt og signert av eier. Opplysningene gis i god tro og etter beste evne.</p>
         </div>
         <div class="declaration-body">
           ${metaHtml}
@@ -1339,7 +1398,7 @@ function buildDeclarationPages(p) {
     <div class="page-label">Egenerklæring (forts.)</div>
     <div class="page">
       <div class="declaration">
-        <div class="declaration-header" style="margin-bottom:2%">
+        <div class="declaration-header-compact">
           <p class="section-subtitle">Selgers egenerklæring, fortsettelse</p>
         </div>
         <div class="declaration-body">
@@ -1511,16 +1570,52 @@ async function init() {
     // Hide loading
     document.getElementById('loadingState').style.display = 'none';
 
+    // Vent til alle bilder har lastet ferdig før PDF-knappen aktiveres,
+    // og før evt. auto-print trigges. Tidligere ble print() kalt etter 600ms
+    // uavhengig av lastestatus — det forklarer at galleri-bilder av og til
+    // forsvant fra PDF-en mens de så korrekt ut i preview.
+    await waitForAllImages(wrapper);
+
+    const pdfBtn = document.getElementById('pdfBtn');
+    if (pdfBtn) {
+      pdfBtn.disabled = false;
+      pdfBtn.textContent = 'Last ned PDF';
+    }
+
     // Auto-print if ?print=1
     if (params.get('print') === '1') {
-      // Small delay to let images start loading
-      setTimeout(() => window.print(), 600);
+      exportPdf();
     }
 
   } catch (e) {
     console.error('Render error:', e);
     showError(e.message);
   }
+}
+
+// Vent til alle <img> inne i `root` har lastet (enten load eller error).
+// Returnerer Promise som alltid resolver — aldri rejecter — så én feilende
+// bilde-URL ikke blokkerer PDF-eksport.
+function waitForAllImages(root) {
+  const imgs = [...root.querySelectorAll('img')];
+  if (imgs.length === 0) return Promise.resolve();
+  return Promise.all(imgs.map(img => {
+    if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+    if (img.complete) return Promise.resolve(); // errored image — don't block
+    return new Promise(resolve => {
+      img.addEventListener('load', resolve, { once: true });
+      img.addEventListener('error', resolve, { once: true });
+      // Safety net: 15s timeout så én hengende bilde-URL aldri blokkerer evig
+      setTimeout(resolve, 15000);
+    });
+  }));
+}
+
+function exportPdf() {
+  // Bildene er allerede ventet på i init(). Men som ekstra garanti venter
+  // vi én gang til hvis brukeren trykket tidlig.
+  const wrapper = document.getElementById('pageWrapper');
+  waitForAllImages(wrapper).then(() => window.print());
 }
 
 function showError(msg) {

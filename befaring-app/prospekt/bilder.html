@@ -408,6 +408,77 @@ function sanitizeName(name) {
     .replace(/\s+/g, '-');
 }
 
+// ── IMAGE COMPRESSION ─────────────────────────────────────────────
+// Klient-side kompresjon FØR upload: resize + JPEG-re-encoding.
+// Rasjonale: fotografen leverer typisk 3-8 MB JPEG per bilde. Vi viser dem
+// i A4-prospekt som trenger maks ~1600-2000px på lengste side for god
+// print-kvalitet. Reduserer datamengden 70-85 % uten synlig kvalitetstap.
+// Grensen 500 KB unngår å komprimere allerede små/miniatyrbilder.
+const COMPRESS_MAX_DIM = 2000;     // lengste side i px (print-safe opp til ~200 DPI på A4)
+const COMPRESS_QUALITY = 0.82;     // JPEG-kvalitet (82 % er "godt synlig identisk")
+const COMPRESS_SKIP_UNDER = 500 * 1024; // < 500 KB hopper over kompresjon
+
+async function compressImage(file) {
+  // Bare JPEG/PNG komprimeres; andre typer returneres urørt
+  if (!/^image\/(jpe?g|png)$/i.test(file.type)) return file;
+  // Allerede små filer trenger ikke røres
+  if (file.size < COMPRESS_SKIP_UNDER) return file;
+
+  // Last inn bilde. createImageBitmap er raskt og offscreen — men fallback
+  // til <img>+blob-URL for eldre nettlesere.
+  let bitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    bitmap = await new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = (e) => { URL.revokeObjectURL(url); reject(e); };
+      img.src = url;
+    });
+  }
+
+  const srcW = bitmap.width, srcH = bitmap.height;
+  const longest = Math.max(srcW, srcH);
+  const scale = longest > COMPRESS_MAX_DIM ? COMPRESS_MAX_DIM / longest : 1;
+  const targetW = Math.round(srcW * scale);
+  const targetH = Math.round(srcH * scale);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = targetW;
+  canvas.height = targetH;
+  const ctx = canvas.getContext('2d');
+  // Kvalitets-glatting (viktig ved nedskalering)
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(bitmap, 0, 0, targetW, targetH);
+  if (bitmap.close) bitmap.close();
+
+  // Til JPEG (tvangskonvert PNG → JPEG for konsistent og mindre fil)
+  const blob = await new Promise(resolve =>
+    canvas.toBlob(resolve, 'image/jpeg', COMPRESS_QUALITY)
+  );
+  if (!blob) return file; // Fallback hvis toBlob feiler
+
+  // Hvis "komprimert" faktisk er større enn originalen (sjeldent, men mulig
+  // for små/ellerede optimaliserte filer), returner originalen.
+  if (blob.size >= file.size) return file;
+
+  // Nytt navn: tving .jpg-endelse siden vi alltid skriver JPEG
+  const newName = file.name.replace(/\.(png|jpe?g)$/i, '') + '.jpg';
+  return new File([blob], newName, {
+    type: 'image/jpeg',
+    lastModified: file.lastModified,
+  });
+}
+
+function formatBytes(n) {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
+
 async function uploadFiles(items) {
   const files = items;
   if (!files.length) return;
@@ -429,30 +500,51 @@ async function uploadFiles(items) {
 
   // Upload sequentially (to avoid overwhelming)
   let success = 0;
+  let savedBytes = 0;
   for (let i = 0; i < files.length; i++) {
-    const { file, folder } = files[i];
+    const { file: originalFile, folder } = files[i];
     const status = $(`up-${i}`);
-    status.textContent = 'Laster opp…';
+
+    // 1. Komprimer (resize + JPEG-re-encode) før upload
+    status.textContent = 'Komprimerer…';
     status.className = 'upload-progress-status uploading';
 
-    // Preserve folder structure, sanitize for storage
+    let uploadFile;
+    try {
+      uploadFile = await compressImage(originalFile);
+    } catch (e) {
+      // Hvis kompresjon feiler, bruk originalen — ikke blokker opplasting
+      console.warn(`Compression failed for ${originalFile.name}:`, e);
+      uploadFile = originalFile;
+    }
+
+    const wasCompressed = uploadFile !== originalFile;
+    if (wasCompressed) {
+      savedBytes += (originalFile.size - uploadFile.size);
+    }
+
+    // Navnet følger det komprimerte resultatet (mulig .jpg-endring)
     const safeFolder = folder ? sanitizeName(folder) : '';
-    const safeName = sanitizeName(file.name);
+    const safeName = sanitizeName(uploadFile.name);
     const storageName = safeFolder ? `${safeFolder}/${safeName}` : safeName;
 
+    status.textContent = wasCompressed
+      ? `Laster opp… (${formatBytes(originalFile.size)} → ${formatBytes(uploadFile.size)})`
+      : 'Laster opp…';
+
     try {
-      // 1. Get signed URL
+      // 2. Get signed URL
       const { upload_url } = await api({ action: 'upload_url' }, 'POST', {
         deal_id: currentDealId,
         file_name: storageName,
-        content_type: file.type,
+        content_type: uploadFile.type,
       });
 
-      // 2. Upload directly to Supabase
+      // 3. Upload directly to Supabase
       const r = await fetch(upload_url, {
         method: 'PUT',
-        headers: { 'Content-Type': file.type },
-        body: file,
+        headers: { 'Content-Type': uploadFile.type },
+        body: uploadFile,
       });
 
       if (!r.ok) throw new Error(`${r.status}`);
@@ -467,7 +559,8 @@ async function uploadFiles(items) {
     }
   }
 
-  toast(`${success} av ${files.length} bilder lastet opp`);
+  const savedNote = savedBytes > 0 ? ` (spart ${formatBytes(savedBytes)})` : '';
+  toast(`${success} av ${files.length} bilder lastet opp${savedNote}`);
 
   // Clear progress after a moment, refresh grid
   setTimeout(() => { progress.innerHTML = ''; }, 2000);
