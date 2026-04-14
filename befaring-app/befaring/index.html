@@ -233,7 +233,7 @@
 
 <script>
 'use strict';
-const PORTAL_ID='26753504',BOAT_OBJECT_TYPE='2-145214665',SELLER_PIPELINE='3205247197';
+const PORTAL_ID='26753504',BOAT_OBJECT_TYPE='2-145214665',SELLER_PIPELINE='3205247197',PIPELINE_B='3211644128';
 // Primary owner lookup table: login email → HubSpot owner ID + display name
 const KNOWN_OWNERS={
   'sindre@h-y.no': {id:'633479117', name:'Sindre Jacobsen'},
@@ -465,16 +465,39 @@ async function loadDeals(){
   $('loadingText').textContent='Henter aktive oppdrag…';
   showScreen('loadingScreen');
   try{
-    const pipelineFilter={propertyName:'pipeline',operator:'EQ',value:SELLER_PIPELINE};
-    let filterGroups;
+    // Hent Pipeline B-stages og identifiser "Prep / Listing Ready"
+    let prepStageIds=[];
+    try{
+      const stagesRes=await hs('GET',`/crm/v3/pipelines/deals/${PIPELINE_B}/stages`);
+      (stagesRes.results||[]).forEach(s=>{
+        const l=(s.label||'').toLowerCase();
+        if(l.includes('prep')||l.includes('listing ready')||l.includes('klar')){
+          prepStageIds.push(s.id);
+        }
+        // Lagre alle B-stage-labels så renderDealList kan vise dem
+        STAGE_LABELS[s.id]=s.label;
+      });
+    }catch(e){console.warn('Kunne ikke hente Pipeline B-stages:',e.message);}
+
+    const pipelineAFilter={propertyName:'pipeline',operator:'EQ',value:SELLER_PIPELINE};
+    const pipelineBFilter={propertyName:'pipeline',operator:'EQ',value:PIPELINE_B};
+    const stageBFilter=prepStageIds.length?{propertyName:'dealstage',operator:'IN',values:prepStageIds}:null;
+
+    let filterGroups=[];
     if(ownerRecord.id){
-      // OR: deals I own, OR deals where I'm a split owner
-      filterGroups=[
-        {filters:[pipelineFilter,{propertyName:'hubspot_owner_id',operator:'EQ',value:ownerRecord.id}]},
-        {filters:[pipelineFilter,{propertyName:'hs_all_deal_split_owner_ids',operator:'CONTAINS_TOKEN',value:ownerRecord.id}]}
-      ];
+      const ownerFilter={propertyName:'hubspot_owner_id',operator:'EQ',value:ownerRecord.id};
+      const splitFilter={propertyName:'hs_all_deal_split_owner_ids',operator:'CONTAINS_TOKEN',value:ownerRecord.id};
+      // Pipeline A: egne deals eller split
+      filterGroups.push({filters:[pipelineAFilter,ownerFilter]});
+      filterGroups.push({filters:[pipelineAFilter,splitFilter]});
+      // Pipeline B (kun Prep / Listing Ready): egne deals eller split
+      if(stageBFilter){
+        filterGroups.push({filters:[pipelineBFilter,stageBFilter,ownerFilter]});
+        filterGroups.push({filters:[pipelineBFilter,stageBFilter,splitFilter]});
+      }
     }else{
-      filterGroups=[{filters:[pipelineFilter]}];
+      filterGroups.push({filters:[pipelineAFilter]});
+      if(stageBFilter)filterGroups.push({filters:[pipelineBFilter,stageBFilter]});
     }
     const body={filterGroups,properties:['dealname','dealstage','boat_id','pipeline','hubspot_owner_id'],sorts:[{propertyName:'hs_lastmodifieddate',direction:'DESCENDING'}],limit:100};
     const res=await hs('POST','/crm/v3/objects/deals/search',body);
@@ -504,9 +527,15 @@ function renderDealList(deals){
     const p=d.properties,stage=STAGE_LABELS[p.dealstage]||p.dealstage||'—';
     const ownerName=ownersMap[String(p.hubspot_owner_id)]||'—';
     const isMyDeal=ownerRecord.id&&String(p.hubspot_owner_id)===String(ownerRecord.id);
+    const pipelineType=p.pipeline===PIPELINE_B?'B':'A';
+    const pipBadgeStyle=pipelineType==='B'
+      ?'background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe'
+      :'background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0';
+    const pipBadge=`<span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;${pipBadgeStyle}">Pipeline ${pipelineType}</span>`;
     return`<div class="deal-card" onclick="selectDeal('${d.id}')">
       <div class="deal-card-name">${escHtml(p.dealname||'Uten navn')}</div>
       <div class="deal-card-meta">
+        ${pipBadge}
         <span class="deal-stage-badge">${escHtml(stage)}</span>
         ${p.boat_id?'<span>🚤 Båt tilknyttet</span>':'<span style="color:#991b1b">⚠️ Ingen båt</span>'}
         <span style="color:${isMyDeal?'var(--green)':'var(--gray-dark)'}">👤 ${escHtml(ownerName)}${isMyDeal?'':' (split)'}</span>
@@ -1156,13 +1185,87 @@ async function saveBefaring(){
   }
   await Promise.all(tasks);
   saved=true;$('saveBtn').disabled=false;hide('navBar');
+
+  // Build PDF payload — used by "Generer PDF"-knappen på completion-screen
+  const pdfPayload={
+    dealId,
+    dealName:dealFieldData.dealname||selectedDeal?.properties?.dealname||'',
+    brokerName:ownerRecord?.name||'',
+    boat:bp,
+    deal:dp,
+    motivation:motivation||'',
+    brokerComment:brokerComment||'',
+    hinUrl:condState._hin_url||null,
+    ceUrl:condState._ce_url||null,
+    motortimer_url:condState._motortimer_url||null,
+    motortimer2_url:condState._motortimer2_url||null,
+    motortimer3_url:condState._motortimer3_url||null,
+    generator_url:condState._generator_url||null,
+    sections:allSecs.map(sec=>{
+      const s=condState[sec.key]||{};
+      return{
+        key:sec.key,
+        title:sec.title,
+        score:s.score||null,
+        scoreLabel:s.score?SCORE_LABELS[s.score]:null,
+        comment:s.comment||'',
+        flag:!!s.flag,
+        photoUrls:Array.isArray(s.photoUrls)?s.photoUrls.filter(Boolean):[],
+      };
+    }),
+  };
+  window.__lastPdfPayload=pdfPayload;
+
   $('formMain').innerHTML=`<div class="completion">
     <div class="completion-circle">${errors.length?'⚠️':'✓'}</div>
     <h2 class="completion-title">${errors.length?'Delvis lagret':'Befaring lagret!'}</h2>
     <p class="completion-sub">${errors.length?'Noen felt feilet:<br><small>'+errors.join('<br>')+'</small>':'Alle data er skrevet til HubSpot.'+(sendService?'<br>Serviceanmodning er opprettet.':'')}</p>
+    <div id="pdfBox" style="margin:16px 0;padding:14px;border:1px dashed #cbd5e1;border-radius:8px;background:#f8fafc">
+      <div style="font-weight:600;margin-bottom:6px">📄 Befaringsrapport (PDF)</div>
+      <div id="pdfStatus" style="font-size:13px;color:#475569;margin-bottom:10px">Generer en samlet PDF-rapport med bilder, tilstandsvurdering og kommentarer. Rapporten lagres også som note i HubSpot.</div>
+      <button id="pdfBtn" onclick="generateBefaringPdf()" class="completion-link" style="cursor:pointer;border:none;font:inherit">🧾 Generer PDF-rapport</button>
+    </div>
     <a href="https://app-eu1.hubspot.com/contacts/${PORTAL_ID}/record/0-3/${selectedDeal.id}" class="completion-link" target="_blank">🔗 Åpne deal i HubSpot</a>
     <a href="#" onclick="goToDealSelector()" class="completion-link secondary">← Velg ny befaring</a>
   </div>`;
+}
+
+async function generateBefaringPdf(){
+  const payload=window.__lastPdfPayload;
+  if(!payload){alert('Fant ingen data for PDF — lagre befaringen på nytt.');return;}
+  const btn=$('pdfBtn'),status=$('pdfStatus');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Genererer PDF…';}
+  if(status)status.textContent='Henter bilder og bygger rapport. Dette kan ta 5–20 sek avhengig av antall bilder.';
+  try{
+    const res=await fetch('/.netlify/functions/befaring-pdf',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload),
+    });
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok)throw new Error(data?.error||`HTTP ${res.status}`);
+    if(status){
+      const kb=Math.round((data.sizeBytes||0)/1024);
+      status.innerHTML=`✅ PDF klar (${kb} KB) — også lagret som note på dealen i HubSpot.`;
+    }
+    if(btn){
+      btn.outerHTML=`<a href="${data.pdfUrl}" target="_blank" rel="noopener" class="completion-link" style="display:inline-block">📥 Åpne / last ned rapport</a>
+        <a href="#" onclick="regenerateBefaringPdf(event)" class="completion-link secondary" style="display:inline-block;margin-left:8px">🔁 Generer på nytt</a>`;
+    }
+  }catch(err){
+    console.error('[PDF]',err);
+    if(status)status.innerHTML=`<span style="color:#991b1b">⚠️ PDF-generering feilet: ${err.message}</span>`;
+    if(btn){btn.disabled=false;btn.textContent='🔁 Prøv igjen';}
+  }
+}
+
+function regenerateBefaringPdf(ev){
+  if(ev)ev.preventDefault();
+  const box=$('pdfBox');
+  if(!box)return;
+  box.innerHTML=`<div style="font-weight:600;margin-bottom:6px">📄 Befaringsrapport (PDF)</div>
+    <div id="pdfStatus" style="font-size:13px;color:#475569;margin-bottom:10px">Klar til å regenerere.</div>
+    <button id="pdfBtn" onclick="generateBefaringPdf()" class="completion-link" style="cursor:pointer;border:none;font:inherit">🧾 Generer PDF-rapport</button>`;
 }
 
 function toLocalDT(iso){const d=new Date(iso);return new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,16);}

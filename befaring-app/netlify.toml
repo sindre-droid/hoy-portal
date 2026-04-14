@@ -3,6 +3,9 @@
 
 [functions]
   node_bundler = "esbuild"
+  # pdfkit inneholder .afm-fontfiler som esbuild ikke plukker opp — la Netlify inkludere
+  # hele pakken ubundlet slik at pdfkit finner data-filene sine i runtime.
+  external_node_modules = ["pdfkit"]
 
 # Serve subfolder routes cleanly
 [[redirects]]
