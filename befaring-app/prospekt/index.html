@@ -790,11 +790,17 @@ function renderSpecRows(rows, field) {
 function renderGallerySection(p) {
   const pages = p.gallery_pages || [];
 
+  // Layouts er sortert etter hvor godt de passer liggende bilder
+  // (nesten alle båtbilder er liggende). Høykant-varianter sist.
   const LAYOUTS = {
-    '5up': { label: '1+4', desc: '1 stort + 4 små', slots: 5 },
-    '4up': { label: '2×2', desc: '4 like store', slots: 4 },
-    '2up': { label: '1+1', desc: '2 side om side', slots: 2 },
-    '1up': { label: 'Full', desc: '1 fullside', slots: 1 },
+    '1up':    { label: 'Full',       desc: '1 fullside',                    slots: 1 },
+    '2up_h':  { label: '2 stablet',  desc: '2 liggende over hverandre',     slots: 2 },
+    '3up_h':  { label: '3 stablet',  desc: '3 liggende stablet',            slots: 3 },
+    '4up_h':  { label: '4 stablet',  desc: '4 liggende stablet',            slots: 4 },
+    '4up_sw': { label: 'Sandwich',   desc: '1 topp + 2 firkant + 1 bunn',   slots: 4 },
+    '5up':    { label: '1+4',        desc: '1 stort + 4 små',               slots: 5 },
+    '4up':    { label: '2×2',        desc: '4 i rutenett (for miks)',       slots: 4 },
+    '2up':    { label: '2 side',     desc: '2 side om side (for høykant)',  slots: 2 },
   };
 
   const pagesHtml = pages.map((page, pi) => {
@@ -811,7 +817,8 @@ function renderGallerySection(p) {
     const slots = [];
     for (let si = 0; si < slotCount; si++) {
       const img = images[si];
-      const isWide = layout === '5up' && si === 0;
+      const isWide = (layout === '5up' && si === 0)
+                  || (layout === '4up_sw' && (si === 0 || si === 3));
       const filled = img ? 'filled' : '';
       // imgTag built inline below with crop position styles
       const caption = img ? `<div class="slot-caption"><input type="text" value="${esc(img.caption||'')}" placeholder="Bildetekst…" onclick="event.stopPropagation()" onchange="updateGalleryCaption(${pi},${si},this.value)"></div>` : '';
@@ -824,15 +831,27 @@ function renderGallerySection(p) {
       const zoomStyle = img?.zoom && img.zoom > 1 ? `transform:scale(${img.zoom});` : '';
       const imgTagStyled = img ? `<img src="${esc(img.url)}" alt="" style="${posStyle}${zoomStyle}">` : '';
 
-      slots.push(`<div class="gallery-slot ${filled} ${isWide ? 'wide' : ''}" style="${isWide ? 'grid-column:1/-1' : ''}" onclick="pickGallerySlot(${pi},${si})">${imgTagStyled}${label}${removeBtn}${cropBtn}${caption}</div>`);
+      // Sandwich layout: slot 0 = full top, slot 3 = full bottom
+      let slotInline = '';
+      if (layout === '5up' && si === 0) slotInline = 'grid-column:1/-1';
+      else if (layout === '4up_sw' && si === 0) slotInline = 'grid-column:1/-1;grid-row:1';
+      else if (layout === '4up_sw' && si === 1) slotInline = 'grid-column:1;grid-row:2';
+      else if (layout === '4up_sw' && si === 2) slotInline = 'grid-column:2;grid-row:2';
+      else if (layout === '4up_sw' && si === 3) slotInline = 'grid-column:1/-1;grid-row:3';
+
+      slots.push(`<div class="gallery-slot ${filled} ${isWide ? 'wide' : ''}" style="${slotInline}" onclick="pickGallerySlot(${pi},${si})">${imgTagStyled}${label}${removeBtn}${cropBtn}${caption}</div>`);
     }
 
     // Grid style depends on layout
     let gridStyle;
-    if (layout === '5up') gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:140px 100px 100px';
-    else if (layout === '4up') gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:120px 120px';
-    else if (layout === '2up') gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:160px';
-    else gridStyle = 'grid-template-columns:1fr;grid-template-rows:200px';
+    if (layout === '5up')        gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:140px 100px 100px';
+    else if (layout === '4up_sw') gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:110px 85px 110px';
+    else if (layout === '4up_h')  gridStyle = 'grid-template-columns:1fr;grid-template-rows:72px 72px 72px 72px';
+    else if (layout === '3up_h')  gridStyle = 'grid-template-columns:1fr;grid-template-rows:95px 95px 95px';
+    else if (layout === '2up_h')  gridStyle = 'grid-template-columns:1fr;grid-template-rows:140px 140px';
+    else if (layout === '4up')    gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:120px 120px';
+    else if (layout === '2up')    gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:160px';
+    else                          gridStyle = 'grid-template-columns:1fr;grid-template-rows:260px';
 
     return `
       <div class="gallery-page-editor">
@@ -853,7 +872,7 @@ function renderGallerySection(p) {
   return `
     <div class="field-hint" style="margin-bottom:12px">
       Velg layout for hver side, klikk på en posisjon for å velge bilde. Maks 4 gallerisider.<br>
-      <strong>Tips:</strong> Bildene croppes til å fylle posisjonen. Liggende bilder (16:9) fungerer best i «1+4» og «2×2». For stående bilder, bruk «1+1» eller «Full».
+      <strong>Tips:</strong> De fleste båtbilder er liggende — bruk «2 stablet», «3 stablet», «4 stablet» eller «Sandwich» for best resultat. «2×2» og «1+4» passer for miks, «2 side» og «Full» for høykant.
     </div>
     <div id="galleryEditor">
       ${pages.length === 0 ? '<div class="empty-state" style="padding:20px">Ingen gallerisider lagt til</div>' : ''}
@@ -1538,18 +1557,25 @@ let cropState = {
 };
 
 // Aspect ratios matching the ACTUAL prospekt PDF layout (A4 = 210×297mm):
-// Cover: flex:1 minus ~60mm bottom = 210×237mm ≈ 89:100
-// Overview hero: height:36% = 210×107mm ≈ 2:1
-// Gallery page has 6% padding, header ~4%. Grid fills remaining ~85%.
-// 5up: rows 1.4fr+1fr+1fr, top slot full-width ~19:10, small slots ~13:10
-// 4up: 2×2, each slot ~4:5 (portrait)
-// 2up: side-by-side, each ~1:2
-// 1up: full grid, roughly matches page minus header ~88:100
+// Usable gallery area after 6% padding + header ~4% ≈ 185×235mm
+// Landscape-friendly layouts (stablet / sandwich) dominate — most boat photos are landscape.
+// 2up_h: 2 stacked rows ≈ 185×115mm each ≈ 16:10
+// 3up_h: 3 stacked rows ≈ 185×76mm each ≈ 24:10
+// 4up_h: 4 stacked rows ≈ 185×57mm each ≈ 32:10 (thin bands)
+// 4up_sw: sandwich — top/bottom full-width landscape ≈ 21:10, middle pair ≈ 1:1
+// 5up: top hero ≈ 19:10, bottom four ≈ 13:10
+// 4up: 2×2 grid ≈ 4:5 portrait-ish
+// 2up: side-by-side ≈ 1:2 portrait
+// 1up: full page ≈ 88:100
 function getGallerySlotAspectRatio(layout, slotIdx) {
-  if (layout === '5up') return slotIdx === 0 ? '19 / 10' : '13 / 10';
-  if (layout === '4up') return '4 / 5';
-  if (layout === '2up') return '1 / 2';
-  if (layout === '1up') return '88 / 100';
+  if (layout === '5up')    return slotIdx === 0 ? '19 / 10' : '13 / 10';
+  if (layout === '4up_sw') return (slotIdx === 0 || slotIdx === 3) ? '21 / 10' : '1 / 1';
+  if (layout === '4up_h')  return '32 / 10';
+  if (layout === '3up_h')  return '24 / 10';
+  if (layout === '2up_h')  return '16 / 10';
+  if (layout === '4up')    return '4 / 5';
+  if (layout === '2up')    return '1 / 2';
+  if (layout === '1up')    return '88 / 100';
   return '16 / 9';
 }
 

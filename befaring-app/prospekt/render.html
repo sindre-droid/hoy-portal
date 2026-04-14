@@ -415,6 +415,41 @@
     font-weight: 500;
   }
 
+  /* Liggende-dominerte layouts (foretrukket for båtbilder) */
+  .gallery-grid-2up_h {
+    /* 2 liggende stablet vertikalt */
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 8px;
+  }
+  .gallery-grid-3up_h {
+    /* 3 liggende stablet */
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+  .gallery-grid-4up_h {
+    /* 4 liggende stablet */
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr 1fr 1fr;
+    gap: 8px;
+  }
+  .gallery-grid-4up_sw {
+    /* Sandwich: liggende topp (full bredde) + to firkant-bilder + liggende bunn (full bredde) */
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1.2fr 1fr 1.2fr;
+    gap: 8px;
+  }
+
+  /* Originale layouts (beholdt for variasjon / høykant-bilder) */
   .gallery-grid-5up {
     flex: 1;
     display: grid;
@@ -460,7 +495,14 @@
     display: block;
   }
 
+  /* Wide-modifiers for full-bredde celler i gitter-layouts */
   .gi-wide { grid-column: 1 / -1; }
+
+  /* Sandwich-layout (4up_sw): slot 0 topp, 1+2 midt, 3 bunn */
+  .gallery-grid-4up_sw > .gi:nth-child(1) { grid-column: 1 / -1; grid-row: 1; }
+  .gallery-grid-4up_sw > .gi:nth-child(2) { grid-column: 1; grid-row: 2; }
+  .gallery-grid-4up_sw > .gi:nth-child(3) { grid-column: 2; grid-row: 2; }
+  .gallery-grid-4up_sw > .gi:nth-child(4) { grid-column: 1 / -1; grid-row: 3; }
 
   .gi-caption {
     position: absolute;
