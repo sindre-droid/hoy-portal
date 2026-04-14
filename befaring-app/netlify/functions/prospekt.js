@@ -40,9 +40,20 @@ const BOAT_PROPS = [
   'dekk_tilstand','dekk_kommentar',
   'lengde_i_cm','lengde_i_fot','bredde',
   'type_motor','pris','mva_status',
+  'maks_fart','drivstoff_type','materialer','farge',
   'antall_kahytter','antall_soveplasser','antall_bad',
   'utstyrsliste',
 ];
+
+// Dropdown-mappings for HubSpot enumeration-properties. HubSpot kan returnere
+// enten internal value (tall) eller label — mapDropdown håndterer begge.
+const FUEL_MAP = { '1': 'Annet', '2': 'Bensin', '3': 'Diesel', '4': 'Elektrisitet' };
+const MAT_MAP  = { '1': 'Glassfiber', '2': 'Aluminium', '3': 'Plast', '4': 'Tre', '5': 'Annet' };
+function mapDropdown(val, map) {
+  if (val === null || val === undefined || val === '') return null;
+  const s = String(val).trim();
+  return map[s] || s;
+}
 
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
@@ -81,16 +92,22 @@ function buildSpecs(bp) {
   if (!bp) return [];
   const specs = [];
   const add = (label, val) => { if (val) specs.push({ label, value: String(val) }); };
-  const divider = () => specs.push({ divider: true });
+  const divider = () => {
+    // Unngå flere dividere på rad hvis en gruppe ender opp tom
+    const last = specs[specs.length - 1];
+    if (last && last.divider) return;
+    if (specs.length === 0) return;
+    specs.push({ divider: true });
+  };
 
-  // Gruppe 1: Identifikasjon
+  // ── Gruppe 1: Identifikasjon ──
   add('Merke', bp.batmerke);
   add('Modell', bp.bat_modell);
   add('Årsmodell', bp.arsmodell);
 
   divider();
 
-  // Gruppe 2: Dimensjoner & Motor
+  // ── Gruppe 2: Dimensjoner, motor & ytelse ──
   if (bp.lengde_i_fot) add('Lengde', `${bp.lengde_i_fot} fot`);
   else if (bp.lengde_i_cm) add('Lengde', `${bp.lengde_i_cm} cm`);
   if (bp.bredde) add('Bredde', `${bp.bredde} cm`);
@@ -100,20 +117,12 @@ function buildSpecs(bp) {
   const motorParts = [];
   if (antallMotorer > 1) motorParts.push(`${antallMotorer} ×`);
   if (bp.motorfabrikant) motorParts.push(bp.motorfabrikant);
-  // motorstorrelse kan være "300", "300 HK", "V8 300HK", etc.
   if (bp.motorstorrelse) {
     const ms = String(bp.motorstorrelse).trim();
-    // Legg til "hk" bare hvis ikke allerede i strengen
-    if (/^\d+$/.test(ms)) {
-      motorParts.push(`${ms}hk`);
-    } else {
-      motorParts.push(ms);
-    }
+    if (/^\d+$/.test(ms)) motorParts.push(`${ms}hk`);
+    else motorParts.push(ms);
   }
   if (motorParts.length) add('Motor', motorParts.join(' '));
-
-  // Driftstimer rett etter Motor
-  if (bp.driftstimer_motor) add('Driftstimer', `ca. ${bp.driftstimer_motor} t`);
 
   // Motortype — kun vis hvis det faktisk er en type-streng, ikke et tall
   if (bp.type_motor && !/^\d+$/.test(String(bp.type_motor).trim())) {
@@ -130,12 +139,31 @@ function buildSpecs(bp) {
     }
   }
 
+  // Maks fart — verdien fra HubSpot er typisk et tall (knop)
+  if (bp.maks_fart) {
+    const v = String(bp.maks_fart).trim();
+    add('Maks fart', /^\d+(\.\d+)?$/.test(v) ? `${v} knop` : v);
+  }
+
+  // Drivstoff (dropdown)
+  add('Drivstoff', mapDropdown(bp.drivstoff_type, FUEL_MAP));
+
   divider();
 
-  // Gruppe 3: Øvrig
+  // ── Gruppe 3: Byggdetaljer & bruk ──
+  add('Materiale', mapDropdown(bp.materialer, MAT_MAP));
+  if (bp.farge) add('Farge', bp.farge);
+  if (bp.driftstimer_motor) add('Timer', `ca. ${bp.driftstimer_motor}`);
+
+  divider();
+
+  // ── Gruppe 4: Øvrig (skjules hvis alle er tomme via add-guarden) ──
   add('CE-kategori', bp.ce_konstruksjonskategori);
   add('MVA', bp.mva_status);
   add('Beliggenhet', bp.location);
+
+  // Fjern eventuell trailing divider
+  while (specs.length && specs[specs.length - 1].divider) specs.pop();
 
   return specs;
 }
