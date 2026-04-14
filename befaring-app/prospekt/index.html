@@ -960,6 +960,7 @@ function renderDeclarationSection(p) {
         <span style="font-size:13px;font-weight:600;color:${stateColor}">${stateLabel}</span>
         <span style="font-size:11px;color:var(--gray-dark)">Oneflow #${oneflowId}</span>
         <button class="btn-outline" style="margin-left:auto;font-size:12px;padding:6px 12px" onclick="fetchDeclaration()">↻ Oppdater</button>
+        <button class="btn-outline" style="font-size:12px;padding:6px 12px" onclick="debugParseDeclaration()" title="Hent signert PDF og vis rå tekst (debug)">🔍 Debug parse PDF</button>
       </div>
     `;
   }
@@ -1079,6 +1080,52 @@ async function fetchDeclaration() {
   } catch (e) {
     if (statusEl) statusEl.innerHTML = `<span style="color:var(--red)">Feil: ${esc(e.message)}</span>`;
     if (btn) { btn.disabled = false; btn.textContent = '📄 Hent egenerklæring fra Oneflow'; }
+  }
+}
+
+async function debugParseDeclaration() {
+  toast('Laster signert PDF og ekstraherer tekst — kan ta noen sekunder…');
+  try {
+    const res = await api({ action: 'debug_parse_declaration' }, 'POST', { id: currentProspekt.id });
+    console.log('DEBUG parse_declaration:', res);
+
+    // Bygg et modalt vindu med resultatet
+    const w = window.open('', '_blank', 'width=900,height=800,scrollbars=yes');
+    if (!w) { alert('Pop-up blokkert — tillat pop-ups og prøv igjen'); return; }
+
+    const safe = (s) => String(s == null ? '' : s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]);
+    const filesTable = (res.files || []).map(f =>
+      `<tr><td>${safe(f.id)}</td><td>${safe(f.type)}</td><td>${safe(f.name)}</td><td>${safe(f.extension)}</td></tr>`
+    ).join('');
+
+    w.document.write(`
+      <html><head><title>Debug: Egenerklæring PDF</title>
+      <style>
+        body { font-family: system-ui, sans-serif; padding: 20px; max-width: 860px; margin: 0 auto; line-height: 1.5; }
+        h2 { color: #0b2340; border-bottom: 2px solid #0b2340; padding-bottom: 8px; }
+        table { border-collapse: collapse; margin: 10px 0; font-size: 13px; }
+        th, td { padding: 6px 10px; border: 1px solid #ddd; text-align: left; }
+        th { background: #f5f5f5; }
+        pre { background: #f8f8f8; padding: 14px; border: 1px solid #ddd; border-radius: 4px;
+              white-space: pre-wrap; word-wrap: break-word; font-size: 12px; max-height: 500px; overflow: auto; }
+        .meta { font-size: 13px; color: #555; margin: 8px 0; }
+        .err { color: #c00; font-weight: bold; }
+        .ok  { color: #0a0; font-weight: bold; }
+      </style>
+      </head><body>
+      <h2>Debug: Oneflow egenerklæring → PDF parse</h2>
+      <div class="meta"><b>Kontrakt:</b> ${safe(res.contract_name)} (#${safe(res.contract_id)}) — state: <b>${safe(res.contract_state)}</b></div>
+      <h3>Filer på kontrakten (${(res.files || []).length})</h3>
+      <table><thead><tr><th>ID</th><th>Type</th><th>Navn</th><th>Ext</th></tr></thead><tbody>${filesTable || '<tr><td colspan=4>(ingen)</td></tr>'}</tbody></table>
+      <div class="meta"><b>Valgt fil:</b> ${safe(JSON.stringify(res.chosen_file || null))}</div>
+      ${res.pdf_error ? `<div class="err">PDF-feil: ${safe(res.pdf_error)}</div>` : `<div class="ok">✓ Ekstrahert ${safe(res.pdf_text_length)} tegn fra ${safe(res.pdf_numpages)} sider</div>`}
+      <h3>Rå tekst fra PDF</h3>
+      <pre>${safe(res.pdf_text || '(tom)')}</pre>
+      </body></html>
+    `);
+    w.document.close();
+  } catch (e) {
+    alert('Debug-feil: ' + e.message);
   }
 }
 

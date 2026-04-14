@@ -252,6 +252,42 @@ async function getContractDataFields(contractId) {
   }, {});
 }
 
+// List files on a contract (signed PDF, verified copy, etc)
+async function listContractFiles(contractId) {
+  const res = await ofApi(`/contracts/${contractId}/files`);
+  if (!res.ok) return [];
+  // Oneflow returns either { data: [...] } or array directly
+  return res.data?.data || res.data || [];
+}
+
+// Download a specific file as Buffer (binary)
+async function downloadContractFile(contractId, fileId) {
+  const res = await fetch(`https://api.oneflow.com/v1/contracts/${contractId}/files/${fileId}`, {
+    method: 'GET',
+    headers: {
+      'x-oneflow-api-token':  process.env.ONEFLOW_API_TOKEN,
+      'x-oneflow-user-email': process.env.ONEFLOW_USER_EMAIL,
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Download file ${fileId} failed: ${res.status} ${text.slice(0, 200)}`);
+  }
+  const arrayBuf = await res.arrayBuffer();
+  return Buffer.from(arrayBuf);
+}
+
+// Extract text from PDF buffer
+async function extractPdfText(pdfBuffer) {
+  const pdfParse = require('pdf-parse');
+  const result = await pdfParse(pdfBuffer);
+  return {
+    text: result.text || '',
+    numpages: result.numpages,
+    info: result.info,
+  };
+}
+
 // Finn egenerklæring-kontrakt i Oneflow for en gitt deal
 // dealName format: "25065 - Saxdor 320 GTC" → dealNum="25065", boatKey="saxdor 320 gtc"
 async function findEgenerklaering(dealName, dealId) {
@@ -792,6 +828,98 @@ exports.handler = async (event) => {
           declaration_sections: sections,
           declaration_other_notes: otherNotes,
           raw_fields: fields, // For debugging — kan fjernes senere
+        });
+      }
+
+      // ── DEBUG: parse signed PDF from Oneflow ──
+      // Henter signert egenerklæring-PDF, ekstraherer rå tekst,
+      // gjør et første parse-forsøk og returnerer alt for inspeksjon.
+      if (action === 'debug_parse_declaration') {
+        const { id } = body;
+        if (!id) return err(400, 'id required');
+
+        const { data: prospekt, error: pErr } = await supabase
+          .from('prospekter')
+          .select('deal_id, deal_name, boat_name')
+          .eq('id', id)
+          .single();
+        if (pErr) throw pErr;
+
+        const searchName = prospekt.deal_name || prospekt.boat_name;
+        const contract = await findEgenerklaering(searchName, prospekt.deal_id);
+        if (!contract) {
+          return ok({ found: false, message: `Fant ingen egenerklæring for "${searchName}"` });
+        }
+
+        const contractId = contract.id;
+        const contractName = contract._private?.name || '';
+        const contractState = contract.state;
+
+        // 1) List files på kontrakten
+        let files = [];
+        try {
+          files = await listContractFiles(contractId);
+        } catch (e) {
+          return ok({
+            found: true,
+            contract_id: contractId,
+            contract_name: contractName,
+            contract_state: contractState,
+            files_error: String(e?.message || e),
+          });
+        }
+
+        // 2) Velg filen som er mest sannsynlig signert PDF
+        //    Oneflow har typisk type: "contract_pdf" / "verified_copy" / "signed_copy" / "contract_file"
+        //    Prioriter verified_copy > signed > contract_pdf > første PDF
+        const filesMeta = files.map(f => ({
+          id: f.id,
+          type: f.type || f.file_type || null,
+          name: f.name || null,
+          extension: f.extension || null,
+        }));
+
+        const pick = (pred) => files.find(pred);
+        const chosen =
+          pick(f => (f.type || '').toLowerCase().includes('verified')) ||
+          pick(f => (f.type || '').toLowerCase().includes('signed')) ||
+          pick(f => (f.type || '').toLowerCase().includes('contract_pdf')) ||
+          pick(f => (f.extension || '').toLowerCase() === 'pdf') ||
+          files[0];
+
+        if (!chosen) {
+          return ok({
+            found: true,
+            contract_id: contractId,
+            contract_name: contractName,
+            contract_state: contractState,
+            files: filesMeta,
+            message: 'Ingen filer funnet på kontrakten',
+          });
+        }
+
+        // 3) Last ned og ekstraher tekst
+        let pdfResult = null;
+        let pdfError = null;
+        try {
+          const buf = await downloadContractFile(contractId, chosen.id);
+          pdfResult = await extractPdfText(buf);
+        } catch (e) {
+          pdfError = String(e?.message || e);
+        }
+
+        return ok({
+          found: true,
+          contract_id: contractId,
+          contract_name: contractName,
+          contract_state: contractState,
+          files: filesMeta,
+          chosen_file: { id: chosen.id, type: chosen.type || null, name: chosen.name || null },
+          pdf_error: pdfError,
+          pdf_numpages: pdfResult?.numpages || null,
+          pdf_info: pdfResult?.info || null,
+          pdf_text_length: pdfResult?.text?.length || 0,
+          pdf_text: pdfResult?.text || '',
         });
       }
 
