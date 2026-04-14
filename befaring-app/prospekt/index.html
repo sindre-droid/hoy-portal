@@ -961,6 +961,7 @@ function renderDeclarationSection(p) {
         <span style="font-size:11px;color:var(--gray-dark)">Oneflow #${oneflowId}</span>
         <button class="btn-outline" style="margin-left:auto;font-size:12px;padding:6px 12px" onclick="fetchDeclaration()">↻ Oppdater</button>
         <button class="btn-outline" style="font-size:12px;padding:6px 12px" onclick="debugParseDeclaration()" title="Hent signert PDF og vis rå tekst (debug)">🔍 Debug parse PDF</button>
+        <button class="btn-outline" style="font-size:12px;padding:6px 12px" onclick="probePdfUrls()" title="Test flere Oneflow-URL-varianter for PDF-nedlasting">🧪 Probe URLs</button>
       </div>
     `;
   }
@@ -1081,6 +1082,38 @@ async function fetchDeclaration() {
     if (statusEl) statusEl.innerHTML = `<span style="color:var(--red)">Feil: ${esc(e.message)}</span>`;
     if (btn) { btn.disabled = false; btn.textContent = '📄 Hent egenerklæring fra Oneflow'; }
   }
+}
+
+async function probePdfUrls() {
+  toast('Tester Oneflow URL-varianter (kan ta 10-20s)…');
+  try {
+    const res = await api({ action: 'probe_pdf_urls' }, 'POST', { id: currentProspekt.id });
+    const w = window.open('', '_blank', 'width=1100,height=800,scrollbars=yes');
+    if (!w) { alert('Pop-up blokkert'); return; }
+    const safe = (s) => String(s == null ? '' : s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]);
+    const rows = (res.probes || []).map(p =>
+      `<tr style="${p.isPdf ? 'background:#d4f4d4;font-weight:bold' : ''}">
+        <td>${safe(p.label)}</td>
+        <td>${safe(p.status || p.error || '')}</td>
+        <td>${safe(p.contentType || '')}</td>
+        <td>${safe(p.bytes)}</td>
+        <td>${p.isPdf ? '✅ PDF' : '❌'}</td>
+        <td><code style="font-size:11px">${safe(p.preview || '')}</code></td>
+      </tr>`
+    ).join('');
+    w.document.write(`<html><head><title>Probe PDF URLs</title><style>
+      body{font-family:system-ui;padding:20px}
+      table{border-collapse:collapse;width:100%;font-size:13px}
+      th,td{padding:6px 10px;border:1px solid #ddd;text-align:left;vertical-align:top}
+      th{background:#f5f5f5}
+      code{background:#f8f8f8;padding:2px 4px}
+    </style></head><body>
+      <h2>Oneflow URL probe — kontrakt #${safe(res.contract_id)}</h2>
+      <table><thead><tr><th>Endpoint</th><th>Status</th><th>Content-Type</th><th>Bytes</th><th>PDF?</th><th>Preview (første 120 tegn)</th></tr></thead>
+      <tbody>${rows}</tbody></table>
+    </body></html>`);
+    w.document.close();
+  } catch (e) { alert('Probe-feil: ' + e.message); }
 }
 
 async function debugParseDeclaration() {

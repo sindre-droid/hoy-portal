@@ -904,6 +904,72 @@ exports.handler = async (event) => {
         });
       }
 
+      // ── DEBUG: probe flere Oneflow-URL-varianter for PDF-nedlasting ──
+      if (action === 'probe_pdf_urls') {
+        const { id } = body;
+        if (!id) return err(400, 'id required');
+
+        const { data: prospekt } = await supabase
+          .from('prospekter').select('deal_id, deal_name, boat_name').eq('id', id).single();
+        const searchName = prospekt.deal_name || prospekt.boat_name;
+        const contract = await findEgenerklaering(searchName, prospekt.deal_id);
+        if (!contract) return ok({ found: false });
+
+        const cid = contract.id;
+        // Alle sannsynlige URL-varianter basert på Oneflow API-mønstre
+        const candidates = [
+          { label: 'files/{fid}.pdf',            url: `https://api.oneflow.com/v1/contracts/${cid}/files/1.pdf` },
+          { label: 'files/{fid}?download=1',     url: `https://api.oneflow.com/v1/contracts/${cid}/files/1?download=1` },
+          { label: 'files/{fid}?format=pdf',     url: `https://api.oneflow.com/v1/contracts/${cid}/files/1?format=pdf` },
+          { label: 'files/{fid}/content',        url: `https://api.oneflow.com/v1/contracts/${cid}/files/1/content` },
+          { label: 'files/{fid}/download',       url: `https://api.oneflow.com/v1/contracts/${cid}/files/1/download` },
+          { label: 'files/{fid}/binary',         url: `https://api.oneflow.com/v1/contracts/${cid}/files/1/binary` },
+          { label: 'contracts/{id}/pdf',         url: `https://api.oneflow.com/v1/contracts/${cid}/pdf` },
+          { label: 'contracts/{id}.pdf',         url: `https://api.oneflow.com/v1/contracts/${cid}.pdf` },
+          { label: 'contracts/{id}/file',        url: `https://api.oneflow.com/v1/contracts/${cid}/file` },
+          { label: 'contracts/{id}/document',    url: `https://api.oneflow.com/v1/contracts/${cid}/document` },
+          { label: 'contracts/{id}/export/pdf',  url: `https://api.oneflow.com/v1/contracts/${cid}/export/pdf` },
+          { label: 'contracts/{id}/generated_pdf', url: `https://api.oneflow.com/v1/contracts/${cid}/generated_pdf` },
+        ];
+
+        const probes = [];
+        for (const c of candidates) {
+          try {
+            const r = await fetch(c.url, {
+              method: 'GET',
+              headers: {
+                'x-oneflow-api-token':  process.env.ONEFLOW_API_TOKEN,
+                'x-oneflow-user-email': process.env.ONEFLOW_USER_EMAIL,
+                'Accept': 'application/pdf, application/json, */*',
+              },
+              redirect: 'follow',
+            });
+            const ct = r.headers.get('content-type') || '';
+            const ab = await r.arrayBuffer();
+            const buf = Buffer.from(ab);
+            const head4 = buf.slice(0, 4).toString();
+            const isPdf = head4 === '%PDF';
+            const preview = buf.slice(0, 120).toString('utf8').replace(/[^\x20-\x7e]/g, '·');
+            probes.push({
+              label: c.label,
+              status: r.status,
+              contentType: ct,
+              bytes: buf.length,
+              isPdf,
+              preview: isPdf ? '(PDF binary)' : preview,
+            });
+          } catch (e) {
+            probes.push({ label: c.label, error: String(e?.message || e) });
+          }
+        }
+
+        return ok({
+          contract_id: cid,
+          contract_name: contract._private?.name || '',
+          probes,
+        });
+      }
+
       // ── DEBUG: parse signed PDF from Oneflow ──
       // Henter signert egenerklæring-PDF, ekstraherer rå tekst,
       // gjør et første parse-forsøk og returnerer alt for inspeksjon.
