@@ -260,21 +260,69 @@ async function listContractFiles(contractId) {
   return res.data?.data || res.data || [];
 }
 
-// Download a specific file as Buffer (binary)
+// Download a specific file as Buffer (binary PDF).
+// Oneflow's /contracts/{id}/files/{fileId} endpoint may return either:
+//   (a) the raw PDF (application/pdf), or
+//   (b) a JSON envelope with a redirect/signed-URL in fields like `url` / `download_url` / `signed_url` / `content`.
+// We handle both, plus base64-encoded JSON payloads.
 async function downloadContractFile(contractId, fileId) {
+  const baseHeaders = {
+    'x-oneflow-api-token':  process.env.ONEFLOW_API_TOKEN,
+    'x-oneflow-user-email': process.env.ONEFLOW_USER_EMAIL,
+  };
+
   const res = await fetch(`https://api.oneflow.com/v1/contracts/${contractId}/files/${fileId}`, {
     method: 'GET',
-    headers: {
-      'x-oneflow-api-token':  process.env.ONEFLOW_API_TOKEN,
-      'x-oneflow-user-email': process.env.ONEFLOW_USER_EMAIL,
-    },
+    headers: { ...baseHeaders, 'Accept': 'application/pdf' },
+    redirect: 'follow',
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`Download file ${fileId} failed: ${res.status} ${text.slice(0, 200)}`);
   }
+
+  const contentType = (res.headers.get('content-type') || '').toLowerCase();
   const arrayBuf = await res.arrayBuffer();
-  return Buffer.from(arrayBuf);
+  const buf = Buffer.from(arrayBuf);
+
+  // Direct PDF response
+  if (contentType.includes('pdf') || (buf.length >= 4 && buf.slice(0, 4).toString() === '%PDF')) {
+    return { buffer: buf, contentType, via: 'direct-pdf' };
+  }
+
+  // JSON envelope — try to find a nested URL or base64 content
+  if (contentType.includes('json') || buf[0] === 0x7B /* { */) {
+    let envelope;
+    try { envelope = JSON.parse(buf.toString('utf8')); }
+    catch { throw new Error(`Ukjent responsformat (ikke PDF, ikke JSON). content-type=${contentType}, first=${buf.slice(0, 80).toString()}`); }
+
+    const urlCandidate =
+      envelope.url ||
+      envelope.download_url ||
+      envelope.signed_url ||
+      envelope.href ||
+      envelope.data?.url ||
+      envelope.data?.download_url ||
+      envelope._links?.self?.href ||
+      null;
+
+    if (urlCandidate) {
+      const r2 = await fetch(urlCandidate, { method: 'GET', redirect: 'follow' });
+      if (!r2.ok) throw new Error(`Signed-URL download failed: ${r2.status}`);
+      const ab2 = await r2.arrayBuffer();
+      return { buffer: Buffer.from(ab2), contentType: r2.headers.get('content-type') || '', via: `json-url (${urlCandidate.slice(0, 60)}…)` };
+    }
+
+    if (envelope.content && typeof envelope.content === 'string') {
+      // base64-encoded PDF
+      return { buffer: Buffer.from(envelope.content, 'base64'), contentType: 'application/pdf', via: 'json-base64' };
+    }
+
+    throw new Error(`JSON envelope uten url/content. Keys: ${Object.keys(envelope).join(', ')}`);
+  }
+
+  // Fallback — return what we got, let caller decide
+  return { buffer: buf, contentType, via: 'raw' };
 }
 
 // Extract text from PDF buffer
@@ -901,9 +949,15 @@ exports.handler = async (event) => {
         // 3) Last ned og ekstraher tekst
         let pdfResult = null;
         let pdfError = null;
+        let downloadMeta = null;
+        let firstBytesHex = null;
+        let firstBytesAscii = null;
         try {
-          const buf = await downloadContractFile(contractId, chosen.id);
-          pdfResult = await extractPdfText(buf);
+          const dl = await downloadContractFile(contractId, chosen.id);
+          downloadMeta = { contentType: dl.contentType, via: dl.via, bufferLength: dl.buffer.length };
+          firstBytesHex = dl.buffer.slice(0, 32).toString('hex');
+          firstBytesAscii = dl.buffer.slice(0, 64).toString('utf8').replace(/[^\x20-\x7e]/g, '·');
+          pdfResult = await extractPdfText(dl.buffer);
         } catch (e) {
           pdfError = String(e?.message || e);
         }
@@ -915,6 +969,9 @@ exports.handler = async (event) => {
           contract_state: contractState,
           files: filesMeta,
           chosen_file: { id: chosen.id, type: chosen.type || null, name: chosen.name || null },
+          download_meta: downloadMeta,
+          first_bytes_hex: firstBytesHex,
+          first_bytes_ascii: firstBytesAscii,
           pdf_error: pdfError,
           pdf_numpages: pdfResult?.numpages || null,
           pdf_info: pdfResult?.info || null,

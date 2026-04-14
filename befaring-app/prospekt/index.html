@@ -1118,6 +1118,9 @@ async function debugParseDeclaration() {
       <h3>Filer på kontrakten (${(res.files || []).length})</h3>
       <table><thead><tr><th>ID</th><th>Type</th><th>Navn</th><th>Ext</th></tr></thead><tbody>${filesTable || '<tr><td colspan=4>(ingen)</td></tr>'}</tbody></table>
       <div class="meta"><b>Valgt fil:</b> ${safe(JSON.stringify(res.chosen_file || null))}</div>
+      <div class="meta"><b>Nedlasting:</b> ${safe(JSON.stringify(res.download_meta || null))}</div>
+      <div class="meta"><b>Første bytes (hex):</b> <code>${safe(res.first_bytes_hex || '')}</code></div>
+      <div class="meta"><b>Første bytes (ascii):</b> <code>${safe(res.first_bytes_ascii || '')}</code></div>
       ${res.pdf_error ? `<div class="err">PDF-feil: ${safe(res.pdf_error)}</div>` : `<div class="ok">✓ Ekstrahert ${safe(res.pdf_text_length)} tegn fra ${safe(res.pdf_numpages)} sider</div>`}
       <h3>Rå tekst fra PDF</h3>
       <pre>${safe(res.pdf_text || '(tom)')}</pre>
