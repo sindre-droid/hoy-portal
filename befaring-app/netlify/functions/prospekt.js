@@ -25,9 +25,18 @@ const KNOWN_OWNERS = {
 };
 
 const KNOWN_MEGLERS = {
-  '633479117': { name: 'Sindre Jacobsen', email: 'sindre@h-y.no', phone: '+47 938 40 189', role: 'Båtmegler' },
-  '29136352':  { name: 'Daniel Ruud',     email: 'daniel@h-y.no', phone: '+47 479 61 918', role: 'Båtmegler' },
-  '77221549':  { name: 'Henrik Bratz',    email: 'henrik@h-y.no', phone: '+47 478 75 838', role: 'Båtmegler' },
+  '633479117': {
+    name: 'Sindre Jacobsen', email: 'sindre@h-y.no', phone: '+47 938 40 189', role: 'Båtmegler',
+    photo: 'https://static.wixstatic.com/media/b99d91_560cf4f52223421f9345d8cf7c439fb4~mv2.jpg/v1/crop/x_0,y_656,w_3648,h_4161/fill/w_400,h_456,al_c,q_85,usm_0.66_1.00_0.01,enc_auto,quality_auto/DI8A4549%20(2).jpg',
+  },
+  '29136352': {
+    name: 'Daniel Ruud', email: 'daniel@h-y.no', phone: '+47 479 61 918', role: 'Båtmegler',
+    photo: 'https://static.wixstatic.com/media/ad1ced_72a4b3d9000a4dfb845264953bca0a7c~mv2.jpg/v1/crop/x_0,y_46,w_800,h_909/fill/w_400,h_455,al_c,q_85,enc_auto,quality_auto/DSC03302-Edit.jpg',
+  },
+  '77221549': {
+    name: 'Henrik Bratz', email: 'henrik@h-y.no', phone: '+47 478 75 838', role: 'Båtmegler',
+    photo: 'https://static.wixstatic.com/media/ad1ced_e70fc725a33c45919eafc579a2814a4b~mv2.jpg/v1/crop/x_0,y_4,w_972,h_1096/fill/w_400,h_451,al_c,q_85,enc_auto,quality_auto/IMG_8286.jpg',
+  },
 };
 
 const BOAT_PROPS = [
@@ -889,6 +898,7 @@ exports.handler = async (event) => {
         const brokerEmail = megler.email || jwt.email;
         const brokerPhone = megler.phone || '';
         const brokerRole  = megler.role  || 'Megler';
+        const brokerPhoto = megler.photo || '';
 
         // Bygg specs, kapasiteter og utstyr fra båtdata
         const specs = buildSpecs(boatProps);
@@ -907,6 +917,7 @@ exports.handler = async (event) => {
             broker_email: brokerEmail,
             broker_phone: brokerPhone,
             broker_role: brokerRole,
+            broker_photo_url: brokerPhoto,
             specs,
             capacities,
             equipment_categories,
