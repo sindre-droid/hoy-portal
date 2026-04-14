@@ -659,7 +659,9 @@ function renderOverviewSection(p) {
   const caps = p.capacities || [];
   const MAX_INTRO = 400;
   const MAX_BODY = 1500;
-  const MAX_SPECS = 12;
+  // 18 er grensen for at spec-kolonnen holder seg luftig på A4. Teller også
+  // skillelinjer. Høyere tall gir overflow-risiko mot Kapasiteter-blokken.
+  const MAX_SPECS = 18;
   const MAX_CAPS = 5;
 
   const introLen = (p.description_intro||'').length;
