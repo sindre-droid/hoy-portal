@@ -960,8 +960,6 @@ function renderDeclarationSection(p) {
         <span style="font-size:13px;font-weight:600;color:${stateColor}">${stateLabel}</span>
         <span style="font-size:11px;color:var(--gray-dark)">Oneflow #${oneflowId}</span>
         <button class="btn-outline" style="margin-left:auto;font-size:12px;padding:6px 12px" onclick="fetchDeclaration()">↻ Oppdater</button>
-        <button class="btn-outline" style="font-size:12px;padding:6px 12px" onclick="debugParseDeclaration()" title="Hent signert PDF og vis rå tekst (debug)">🔍 Debug parse PDF</button>
-        <button class="btn-outline" style="font-size:12px;padding:6px 12px" onclick="probePdfUrls()" title="Test flere Oneflow-URL-varianter for PDF-nedlasting">🧪 Probe URLs</button>
       </div>
     `;
   }
@@ -972,7 +970,16 @@ function renderDeclarationSection(p) {
         Egenerklæringen hentes fra selgers signerte Oneflow-skjema. Klikk knappen under for å importere.
       </div>
       ${statusHtml}
-      <div style="text-align:center;padding:30px 20px">
+      <div style="background:#fff8e6;border:1px solid #f5c65a;border-radius:6px;padding:12px 14px;margin:14px 0;font-size:12.5px;line-height:1.55;color:#5a4300">
+        <b>OBS — for at automatisk henting skal fungere:</b>
+        <ul style="margin:6px 0 0 18px;padding:0">
+          <li>Oneflow-kontrakten må bruke <b>Egenerklæring-malen</b> (template #5128144)</li>
+          <li>Kontraktnavnet i Oneflow må inneholde <b>dealnummer</b> (f.eks. <code>25065</code>) <b>eller</b> båtnavnet</li>
+          <li>Anbefalt navn: <code>25065 - Saxdor 320 GTC - Egenerklæring</code></li>
+          <li>Skjemaet bør være <b>signert</b> av selger før du henter (ellers blir svarfelt tomme)</li>
+        </ul>
+      </div>
+      <div style="text-align:center;padding:20px 20px 30px">
         <button class="btn-primary" onclick="fetchDeclaration()" id="fetchDeclBtn" style="font-size:15px;padding:14px 28px">
           📄 Hent egenerklæring fra Oneflow
         </button>
@@ -1055,113 +1062,71 @@ async function fetchDeclaration() {
   if (statusEl) statusEl.innerHTML = '<span style="color:var(--navy)">Søker i Oneflow…</span>';
   if (btn) { btn.disabled = true; btn.textContent = 'Henter…'; }
 
+  const showError = (msg, hint) => {
+    const hintHtml = hint ? `<div style="margin-top:6px;font-size:12px;color:#5a4300">${esc(hint)}</div>` : '';
+    if (statusEl) {
+      statusEl.innerHTML = `
+        <div style="background:#fdecea;border:1px solid #f5a5a0;border-radius:6px;padding:10px 14px;text-align:left">
+          <div style="color:#8a1c14;font-weight:600;font-size:13px">❌ ${esc(msg)}</div>
+          ${hintHtml}
+        </div>`;
+    }
+    if (btn) { btn.disabled = false; btn.textContent = '📄 Hent egenerklæring fra Oneflow'; }
+  };
+
   try {
     const res = await api({ action: 'fetch_declaration' }, 'POST', { id: currentProspekt.id });
     if (!res.found) {
-      if (statusEl) statusEl.innerHTML = `<span style="color:var(--red)">${esc(res.message || 'Fant ingen egenerklæring.')}</span>`;
-      if (btn) { btn.disabled = false; btn.textContent = '📄 Hent egenerklæring fra Oneflow'; }
+      showError(
+        res.message || 'Fant ingen egenerklæring i Oneflow.',
+        'Sjekk at kontraktnavnet i Oneflow inneholder dealnummer (f.eks. 25065) eller båtnavnet, og at malen er Egenerklæring (#5128144).'
+      );
       return;
     }
 
-    // Debug: vis raw_fields fra Oneflow
-    console.log('Oneflow raw_fields:', res.raw_fields);
-    console.log('Parsed sections:', res.declaration_sections);
+    // Sjekk at parser faktisk fant svar
+    const parsedSections = res.declaration_sections || [];
+    const answered = parsedSections.reduce((sum, s) => sum + (s.questions || []).filter(q => q.answer).length, 0);
+    const missing = res.missing_questions || [];
+
+    if (res.parse_error) {
+      showError(
+        'Kunne ikke tolke PDF-innholdet: ' + res.parse_error,
+        'PDF-en ble hentet, men tekstekstraksjon feilet. Kontakt utvikler.'
+      );
+      return;
+    }
+
+    if (answered === 0) {
+      const stateTxt = res.contract_state === 'signed' ? '' :
+        ` Kontrakten har status "${res.contract_state}" — vent til selger har signert før du henter igjen.`;
+      showError(
+        'Fant kontrakten, men ingen svar kunne leses.',
+        'Sjekk at Oneflow-skjemaet er fylt ut.' + stateTxt
+      );
+      return;
+    }
+
+    if (missing.length > 0) {
+      console.warn('Missing questions after parse:', missing);
+      toast(`Hentet ${answered} svar, men ${missing.length} spørsmål kunne ikke mappes — se konsollen`);
+    } else {
+      toast(`Egenerklæring hentet (${answered} svar)`);
+    }
+
+    console.log('Parsed sections:', parsedSections);
 
     // Oppdater currentProspekt med hentet data
-    currentProspekt.declaration_sections = res.declaration_sections;
+    currentProspekt.declaration_sections = parsedSections;
     currentProspekt.declaration_other_notes = res.declaration_other_notes || '';
     currentProspekt.declaration_oneflow_id = res.contract_id;
     currentProspekt.declaration_oneflow_state = res.contract_state;
-    currentProspekt._raw_fields = res.raw_fields; // For debugging
 
     // Re-render seksjonen
     renderSectionBody('declaration');
     $('sec-declaration').classList.add('open');
-    toast('Egenerklæring hentet fra Oneflow');
   } catch (e) {
-    if (statusEl) statusEl.innerHTML = `<span style="color:var(--red)">Feil: ${esc(e.message)}</span>`;
-    if (btn) { btn.disabled = false; btn.textContent = '📄 Hent egenerklæring fra Oneflow'; }
-  }
-}
-
-async function probePdfUrls() {
-  toast('Tester Oneflow URL-varianter (kan ta 10-20s)…');
-  try {
-    const res = await api({ action: 'probe_pdf_urls' }, 'POST', { id: currentProspekt.id });
-    const w = window.open('', '_blank', 'width=1100,height=800,scrollbars=yes');
-    if (!w) { alert('Pop-up blokkert'); return; }
-    const safe = (s) => String(s == null ? '' : s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]);
-    const rows = (res.probes || []).map(p =>
-      `<tr style="${p.isPdf ? 'background:#d4f4d4;font-weight:bold' : ''}">
-        <td>${safe(p.label)}</td>
-        <td>${safe(p.status || p.error || '')}</td>
-        <td>${safe(p.contentType || '')}</td>
-        <td>${safe(p.bytes)}</td>
-        <td>${p.isPdf ? '✅ PDF' : '❌'}</td>
-        <td><code style="font-size:11px">${safe(p.preview || '')}</code></td>
-      </tr>`
-    ).join('');
-    w.document.write(`<html><head><title>Probe PDF URLs</title><style>
-      body{font-family:system-ui;padding:20px}
-      table{border-collapse:collapse;width:100%;font-size:13px}
-      th,td{padding:6px 10px;border:1px solid #ddd;text-align:left;vertical-align:top}
-      th{background:#f5f5f5}
-      code{background:#f8f8f8;padding:2px 4px}
-    </style></head><body>
-      <h2>Oneflow URL probe — kontrakt #${safe(res.contract_id)}</h2>
-      <table><thead><tr><th>Endpoint</th><th>Status</th><th>Content-Type</th><th>Bytes</th><th>PDF?</th><th>Preview (første 120 tegn)</th></tr></thead>
-      <tbody>${rows}</tbody></table>
-    </body></html>`);
-    w.document.close();
-  } catch (e) { alert('Probe-feil: ' + e.message); }
-}
-
-async function debugParseDeclaration() {
-  toast('Laster signert PDF og ekstraherer tekst — kan ta noen sekunder…');
-  try {
-    const res = await api({ action: 'debug_parse_declaration' }, 'POST', { id: currentProspekt.id });
-    console.log('DEBUG parse_declaration:', res);
-
-    // Bygg et modalt vindu med resultatet
-    const w = window.open('', '_blank', 'width=900,height=800,scrollbars=yes');
-    if (!w) { alert('Pop-up blokkert — tillat pop-ups og prøv igjen'); return; }
-
-    const safe = (s) => String(s == null ? '' : s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]);
-    const filesTable = (res.files || []).map(f =>
-      `<tr><td>${safe(f.id)}</td><td>${safe(f.type)}</td><td>${safe(f.name)}</td><td>${safe(f.extension)}</td></tr>`
-    ).join('');
-
-    w.document.write(`
-      <html><head><title>Debug: Egenerklæring PDF</title>
-      <style>
-        body { font-family: system-ui, sans-serif; padding: 20px; max-width: 860px; margin: 0 auto; line-height: 1.5; }
-        h2 { color: #0b2340; border-bottom: 2px solid #0b2340; padding-bottom: 8px; }
-        table { border-collapse: collapse; margin: 10px 0; font-size: 13px; }
-        th, td { padding: 6px 10px; border: 1px solid #ddd; text-align: left; }
-        th { background: #f5f5f5; }
-        pre { background: #f8f8f8; padding: 14px; border: 1px solid #ddd; border-radius: 4px;
-              white-space: pre-wrap; word-wrap: break-word; font-size: 12px; max-height: 500px; overflow: auto; }
-        .meta { font-size: 13px; color: #555; margin: 8px 0; }
-        .err { color: #c00; font-weight: bold; }
-        .ok  { color: #0a0; font-weight: bold; }
-      </style>
-      </head><body>
-      <h2>Debug: Oneflow egenerklæring → PDF parse</h2>
-      <div class="meta"><b>Kontrakt:</b> ${safe(res.contract_name)} (#${safe(res.contract_id)}) — state: <b>${safe(res.contract_state)}</b></div>
-      <h3>Filer på kontrakten (${(res.files || []).length})</h3>
-      <table><thead><tr><th>ID</th><th>Type</th><th>Navn</th><th>Ext</th></tr></thead><tbody>${filesTable || '<tr><td colspan=4>(ingen)</td></tr>'}</tbody></table>
-      <div class="meta"><b>Valgt fil:</b> ${safe(JSON.stringify(res.chosen_file || null))}</div>
-      <div class="meta"><b>Nedlasting:</b> ${safe(JSON.stringify(res.download_meta || null))}</div>
-      <div class="meta"><b>Første bytes (hex):</b> <code>${safe(res.first_bytes_hex || '')}</code></div>
-      <div class="meta"><b>Første bytes (ascii):</b> <code>${safe(res.first_bytes_ascii || '')}</code></div>
-      ${res.pdf_error ? `<div class="err">PDF-feil: ${safe(res.pdf_error)}</div>` : `<div class="ok">✓ Ekstrahert ${safe(res.pdf_text_length)} tegn fra ${safe(res.pdf_numpages)} sider</div>`}
-      <h3>Rå tekst fra PDF</h3>
-      <pre>${safe(res.pdf_text || '(tom)')}</pre>
-      </body></html>
-    `);
-    w.document.close();
-  } catch (e) {
-    alert('Debug-feil: ' + e.message);
+    showError('Teknisk feil: ' + e.message, 'Prøv igjen om et par sekunder, eller kontakt utvikler hvis problemet vedvarer.');
   }
 }
 
