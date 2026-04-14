@@ -180,18 +180,18 @@
      PAGE: COVER
      ══════════════════════════════════════════ */
   .cover {
-    display: flex;
-    flex-direction: column;
+    position: relative;
+    width: 100%;
     height: 100%;
     overflow: hidden;
-    break-inside: avoid;
-    page-break-inside: avoid;
   }
 
   .cover-image-area {
-    flex: 1 1 auto;
-    min-height: 0;
-    position: relative;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 48mm; /* reserve for .cover-bottom (38mm) + .cover-footer (10mm) */
     overflow: hidden;
     background: var(--hoy-deep-teal);
   }
@@ -230,12 +230,15 @@
   }
 
   .cover-bottom {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 10mm; /* sits directly above footer */
+    height: 38mm;
     background: var(--hoy-white);
-    padding: 4.5% 8% 3.5%;
+    padding: 6mm 8% 4mm;
     text-align: center;
-    flex-shrink: 0;
-    break-inside: avoid;
-    page-break-inside: avoid;
+    box-sizing: border-box;
   }
 
   .cover-year {
@@ -274,18 +277,21 @@
   }
 
   .cover-footer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 10mm;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 8%;
+    padding: 0 8%;
     background: var(--hoy-deep-teal);
     font-family: var(--font-body);
     font-size: 9px;
     color: rgba(255,255,255,0.7);
     letter-spacing: 0.5px;
-    flex-shrink: 0;
-    break-inside: avoid;
-    page-break-inside: avoid;
+    box-sizing: border-box;
   }
 
   .cover-footer strong {
@@ -592,39 +598,47 @@
   .decl-section { margin-bottom: 20px; }
 
   .decl-meta {
-    margin-bottom: 18px;
-    padding: 12px 14px;
-    background: var(--hoy-cream);
-    border-left: 3px solid var(--hoy-gold);
-    border-radius: 2px;
+    margin-bottom: 22px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--hoy-warm-gray);
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+
+  .decl-meta-title {
+    font-family: var(--font-body);
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--hoy-mid-gray);
+    margin-bottom: 10px;
   }
 
   .decl-meta-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 6px 24px;
+    column-gap: 32px;
+    row-gap: 0;
   }
 
-  .decl-meta-item {
+  .decl-meta-row {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    gap: 8px;
+    gap: 10px;
     font-size: 10px;
+    line-height: 1.6;
     padding: 3px 0;
-    border-bottom: 1px dotted rgba(0,0,0,0.08);
   }
 
   .decl-meta-label {
     color: var(--hoy-mid-gray);
-    font-weight: 300;
-    letter-spacing: 0.3px;
+    font-weight: 400;
   }
 
   .decl-meta-value {
-    color: var(--hoy-black);
+    color: var(--hoy-dark-gray);
     font-weight: 500;
     text-align: right;
   }
@@ -1210,13 +1224,13 @@ function buildDeclarationPages(p) {
   })).filter(sec => sec.questions.length > 0);
 
   // Metadata-blokk (fra toppen av Oneflow-skjemaet) — vises øverst på side 1
+  // Selger anonymiseres (vises ikke) — resten av feltene er faktaopplysninger om båten
   const meta = p.declaration_metadata || {};
   const metaOrder = [
-    ['Selger',                    'Selger'],
     ['Merke',                     'Merke'],
     ['Årsmodell',                 'Årsmodell'],
     ['Kjøpt år',                  'Kjøpt år'],
-    ['HIN (CIN) nr.',             'HIN/CIN-nr.'],
+    ['HIN (CIN) nr.',             'HIN / CIN-nr.'],
     ['Motornummer',               'Motornummer'],
     ['Båtens registreringsnummer','Registreringsnr.'],
     ['Oppdragsnummer',            'Oppdragsnr.'],
@@ -1224,11 +1238,11 @@ function buildDeclarationPages(p) {
   const metaRows = metaOrder
     .filter(([key]) => (meta[key] || '').toString().trim())
     .map(([key, label]) =>
-      `<div class="decl-meta-item"><span class="decl-meta-label">${esc(label)}</span><span class="decl-meta-value">${esc(meta[key])}</span></div>`
+      `<div class="decl-meta-row"><span class="decl-meta-label">${esc(label)}</span><span class="decl-meta-value">${esc(meta[key])}</span></div>`
     ).join('');
   const metaHtml = metaRows ? `
     <div class="decl-meta">
-      <div class="category-label" style="margin-bottom:8px">Opplysninger fra selger</div>
+      <div class="decl-meta-title">Opplysninger om båten</div>
       <div class="decl-meta-grid">${metaRows}</div>
     </div>
   ` : '';
