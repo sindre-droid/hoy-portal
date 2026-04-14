@@ -41,18 +41,25 @@
   }
 
   @media print {
-    body { background: white; }
-    .page-wrapper { gap: 0; padding: 0; max-width: none; }
+    body { background: white; margin: 0; }
+    .page-wrapper { gap: 0; padding: 0; max-width: none; display: block; }
     .page-label { display: none; }
     .page {
       box-shadow: none;
       border-radius: 0;
       page-break-after: always;
       page-break-inside: avoid;
-      width: var(--page-w);
-      height: var(--page-h);
+      break-after: page;
+      break-inside: avoid;
+      width: 210mm;
+      /* Slightly under 297mm to avoid Chrome's extra-blank-page bug
+         when content height == page height exactly */
+      height: 296mm;
+      aspect-ratio: auto;
+      margin: 0;
+      padding: 0;
     }
-    .page:last-child { page-break-after: auto; }
+    .page:last-child { page-break-after: auto; break-after: auto; }
     .render-toolbar { display: none !important; }
     .render-loading { display: none !important; }
   }
@@ -183,15 +190,14 @@
     position: relative;
     width: 100%;
     height: 100%;
+    display: grid;
+    grid-template-rows: 1fr 38mm 10mm; /* image fills rest, bottom 38mm, footer 10mm */
     overflow: hidden;
   }
 
   .cover-image-area {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 48mm; /* reserve for .cover-bottom (38mm) + .cover-footer (10mm) */
+    position: relative;
+    min-height: 0;
     overflow: hidden;
     background: var(--hoy-deep-teal);
   }
@@ -230,15 +236,12 @@
   }
 
   .cover-bottom {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 10mm; /* sits directly above footer */
-    height: 38mm;
     background: var(--hoy-white);
     padding: 6mm 8% 4mm;
     text-align: center;
     box-sizing: border-box;
+    min-height: 0;
+    overflow: hidden;
   }
 
   .cover-year {
@@ -277,11 +280,6 @@
   }
 
   .cover-footer {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 10mm;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -292,6 +290,8 @@
     color: rgba(255,255,255,0.7);
     letter-spacing: 0.5px;
     box-sizing: border-box;
+    min-height: 0;
+    overflow: hidden;
   }
 
   .cover-footer strong {
