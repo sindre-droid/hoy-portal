@@ -495,10 +495,29 @@ function parseDeclSegment(segment) {
   return { answer, comment };
 }
 
+// Normaliser Unicode (NFD→NFC så å/æ/ø blir precomposed) og
+// erstatt "usynlige" whitespace-varianter med vanlige mellomrom.
+// pdf-parse kan plassere NBSP, zero-width space eller decomposed diakritikk
+// mellom ord — det ødelegger regex-matching uten å synes i en tekstkopi.
+function normalizeDeclText(raw) {
+  if (!raw) return '';
+  let t = raw;
+  // Unicode-normalisering
+  try { t = t.normalize('NFC'); } catch (_) {}
+  // Fjern zero-width og bidi-kontrolltegn
+  t = t.replace(/[\u200B-\u200F\u2028\u2029\u202A-\u202E\u2060\uFEFF\u00AD]/g, '');
+  // Erstatt NBSP, thin-space og andre unicode-spaces med vanlig mellomrom
+  t = t.replace(/[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]/g, ' ');
+  return t;
+}
+
 function parseEgenerklaeringPdf(pdfText) {
+  // 0) Normaliser tegn (NFC + fjern NBSP/ZWS)
+  const normalized = normalizeDeclText(pdfText);
+
   // 1) Strip page footers — aksepter fleksibel whitespace mellom elementene
   //    "Oneflow ID 11501012    Side 1 / 4  Signert 2025-08-07 13:56:10 UTC"
-  let text = (pdfText || '').replace(
+  let text = normalized.replace(
     /Oneflow\s+ID\s+\d+\s+Side\s+\d+\s*\/\s*\d+\s+Signert[^\n\r]*/gi,
     '\n'
   );
@@ -543,8 +562,10 @@ function parseEgenerklaeringPdf(pdfText) {
   const missingQuestions = [];
   const positions = [];
   for (const q of allQuestions) {
-    // Tolerere varierende whitespace mellom ord i spørsmålet
-    const pattern = new RegExp(escapeRegex(q.question).replace(/\s+/g, '\\s+'), 'i');
+    // Normaliser spørsmålet (NFC) og tolerere varierende whitespace
+    let qNorm = q.question;
+    try { qNorm = qNorm.normalize('NFC'); } catch (_) {}
+    const pattern = new RegExp(escapeRegex(qNorm).replace(/\s+/g, '\\s+'), 'i');
     const m = text.match(pattern);
     if (m) {
       positions.push({ ...q, idx: m.index, matchedText: m[0] });
