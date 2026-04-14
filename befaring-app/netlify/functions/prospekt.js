@@ -296,29 +296,54 @@ async function downloadContractFile(contractId, fileId) {
     try { envelope = JSON.parse(buf.toString('utf8')); }
     catch { throw new Error(`Ukjent responsformat (ikke PDF, ikke JSON). content-type=${contentType}, first=${buf.slice(0, 80).toString()}`); }
 
+    // Capture envelope preview for debugging
+    const envelopeJson = JSON.stringify(envelope).slice(0, 800);
+
     const urlCandidate =
       envelope.url ||
       envelope.download_url ||
       envelope.signed_url ||
       envelope.href ||
+      envelope.link ||
       envelope.data?.url ||
       envelope.data?.download_url ||
+      envelope.data?.link ||
       envelope._links?.self?.href ||
+      envelope._links?.download?.href ||
       null;
 
     if (urlCandidate) {
-      const r2 = await fetch(urlCandidate, { method: 'GET', redirect: 'follow' });
-      if (!r2.ok) throw new Error(`Signed-URL download failed: ${r2.status}`);
+      // Try 1: follow URL with Oneflow auth (some links are to API endpoints)
+      let r2 = await fetch(urlCandidate, {
+        method: 'GET',
+        headers: { ...baseHeaders, 'Accept': 'application/pdf' },
+        redirect: 'follow',
+      });
+      // Try 2: if that fails, try without auth (pre-signed CDN URL)
+      if (!r2.ok) {
+        r2 = await fetch(urlCandidate, { method: 'GET', redirect: 'follow' });
+      }
+      if (!r2.ok) {
+        const errText = await r2.text().catch(() => '');
+        throw new Error(`Signed-URL download failed: ${r2.status} ${errText.slice(0, 200)} | envelope=${envelopeJson}`);
+      }
       const ab2 = await r2.arrayBuffer();
-      return { buffer: Buffer.from(ab2), contentType: r2.headers.get('content-type') || '', via: `json-url (${urlCandidate.slice(0, 60)}…)` };
+      return {
+        buffer: Buffer.from(ab2),
+        contentType: r2.headers.get('content-type') || '',
+        via: `json-url`,
+        envelope: envelopeJson,
+        url: urlCandidate,
+      };
     }
 
     if (envelope.content && typeof envelope.content === 'string') {
       // base64-encoded PDF
-      return { buffer: Buffer.from(envelope.content, 'base64'), contentType: 'application/pdf', via: 'json-base64' };
+      return { buffer: Buffer.from(envelope.content, 'base64'), contentType: 'application/pdf', via: 'json-base64', envelope: envelopeJson };
     }
 
-    throw new Error(`JSON envelope uten url/content. Keys: ${Object.keys(envelope).join(', ')}`);
+    // No URL and no content — return envelope so debug can see it
+    throw new Error(`JSON envelope uten url/content. Keys: ${Object.keys(envelope).join(', ')}. Envelope: ${envelopeJson}`);
   }
 
   // Fallback — return what we got, let caller decide
@@ -954,7 +979,13 @@ exports.handler = async (event) => {
         let firstBytesAscii = null;
         try {
           const dl = await downloadContractFile(contractId, chosen.id);
-          downloadMeta = { contentType: dl.contentType, via: dl.via, bufferLength: dl.buffer.length };
+          downloadMeta = {
+            contentType: dl.contentType,
+            via: dl.via,
+            bufferLength: dl.buffer.length,
+            url: dl.url || null,
+            envelope: dl.envelope || null,
+          };
           firstBytesHex = dl.buffer.slice(0, 32).toString('hex');
           firstBytesAscii = dl.buffer.slice(0, 64).toString('utf8').replace(/[^\x20-\x7e]/g, '·');
           pdfResult = await extractPdfText(dl.buffer);
