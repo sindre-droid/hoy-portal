@@ -261,17 +261,15 @@ async function listContractFiles(contractId) {
 }
 
 // Download a specific file as Buffer (binary PDF).
-// Oneflow's /contracts/{id}/files/{fileId} endpoint may return either:
-//   (a) the raw PDF (application/pdf), or
-//   (b) a JSON envelope with a redirect/signed-URL in fields like `url` / `download_url` / `signed_url` / `content`.
-// We handle both, plus base64-encoded JSON payloads.
+// Oneflow krever ?download=true på /contracts/{id}/files/{fileId} for å få selve binæren.
+// Uten den returneres bare JSON-metadata (self-link peker tilbake til seg selv).
 async function downloadContractFile(contractId, fileId) {
   const baseHeaders = {
     'x-oneflow-api-token':  process.env.ONEFLOW_API_TOKEN,
     'x-oneflow-user-email': process.env.ONEFLOW_USER_EMAIL,
   };
 
-  const res = await fetch(`https://api.oneflow.com/v1/contracts/${contractId}/files/${fileId}`, {
+  const res = await fetch(`https://api.oneflow.com/v1/contracts/${contractId}/files/${fileId}?download=true`, {
     method: 'GET',
     headers: { ...baseHeaders, 'Accept': 'application/pdf' },
     redirect: 'follow',
