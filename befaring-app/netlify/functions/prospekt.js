@@ -464,42 +464,56 @@ const DECL_META_KEYS = [
   'Oppdragsnummer',
 ];
 
+// Linjer vi IKKE vil ha med i verken svar eller kommentar
+const DECL_NOISE_LINES = new Set([
+  'BÅT', 'MOTOR & TEKNISK', 'MOTOR OG TEKNISK',
+]);
+function isDeclNoise(line) {
+  if (!line) return true;
+  if (DECL_NOISE_LINES.has(line)) return true;
+  // Oneflow-sidefot ("Oneflow ID ... Side X / Y ... Signert ...")
+  if (/^Oneflow ID\b/i.test(line)) return true;
+  return false;
+}
+
 // Parse ett segment (tekst mellom spørsmål N og spørsmål N+1) til {answer, comment}
 function parseDeclSegment(segment) {
-  const lines = segment.split('\n').map(l => l.trim());
+  const lines = segment.split('\n').map(l => l.trim()).filter(l => !isDeclNoise(l));
   let answer = '';
   let labelIdx = -1;
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i];
     if (!l) continue;
-    // Label-linje stopper søket etter svar
     if (l === 'Kommentarer' || l === 'Kjenningsignal') { labelIdx = i; break; }
-    // Hopp over parenteser som (Osmose/plastpest) — de hører til spørsmålet
-    if (/^\(.*\)$/.test(l)) continue;
+    if (/^\(.*\)$/.test(l)) continue; // parentes-undertitler tilhører spørsmålet
     if (!answer) { answer = l; }
   }
   let comment = '';
   if (labelIdx >= 0) {
-    comment = lines.slice(labelIdx + 1).map(l => l.trim()).filter(Boolean).join(' ').trim();
+    comment = lines.slice(labelIdx + 1).filter(Boolean).join(' ').trim();
   }
   return { answer, comment };
 }
 
 function parseEgenerklaeringPdf(pdfText) {
-  // 1) Strip page footers: "Oneflow ID 11501012    Side 1 / 4  Signert 2025-08-07 13:56:10 UTC"
-  let text = (pdfText || '').replace(/Oneflow ID\s+\d+\s+Side\s+\d+\s*\/\s*\d+\s+Signert[^\n]*/g, '\n');
+  // 1) Strip page footers — aksepter fleksibel whitespace mellom elementene
+  //    "Oneflow ID 11501012    Side 1 / 4  Signert 2025-08-07 13:56:10 UTC"
+  let text = (pdfText || '').replace(
+    /Oneflow\s+ID\s+\d+\s+Side\s+\d+\s*\/\s*\d+\s+Signert[^\n\r]*/gi,
+    '\n'
+  );
 
-  // 2) Strip bekreftelsesavsnittet og deltakerseksjonen (alt etter disse)
+  // 2) Strip bekreftelsesavsnitt og deltakerseksjon
   const trailerAnchors = [
     'Det bekreftes at selger ikke har kjennskap',
-    '\nDeltakere\n',
+    'Deltakere\n',
   ];
   for (const a of trailerAnchors) {
     const i = text.indexOf(a);
     if (i > 0) text = text.slice(0, i);
   }
 
-  // 3) Ekstraher "Andre merknader/spesifikasjoner" (fritekst til slutt før trailer)
+  // 3) Ekstraher "Andre merknader/spesifikasjoner"
   let otherNotes = '';
   const ANDRE = 'Andre merknader/spesifikasjoner:';
   const andreIdx = text.indexOf(ANDRE);
@@ -508,12 +522,11 @@ function parseEgenerklaeringPdf(pdfText) {
     text = text.slice(0, andreIdx);
   }
 
-  // 4) Parse metadata-block fra topp (Selger, Båtens registreringsnummer, osv.)
+  // 4) Parse metadata-block
   const metadata = {};
   for (let i = 0; i < DECL_META_KEYS.length; i++) {
     const key = DECL_META_KEYS[i];
     const nextKey = DECL_META_KEYS[i + 1];
-    // Fang verdien mellom "<Key>:" og enten "<NextKey>:" eller "I forbindelse med salg"
     const pattern = nextKey
       ? new RegExp(escapeRegex(key) + ':\\s*\\n([^\\n]*)\\n?\\s*' + escapeRegex(nextKey) + ':', 'i')
       : new RegExp(escapeRegex(key) + ':\\s*\\n([^\\n]*?)\\n?\\s*(?:I forbindelse med salg|BÅT)', 'i');
@@ -521,30 +534,39 @@ function parseEgenerklaeringPdf(pdfText) {
     if (m) metadata[key] = (m[1] || '').trim();
   }
 
-  // 5) Finn posisjonen til hvert kjente spørsmål i teksten og splitt etter ankere
+  // 5) Finn posisjonen til hvert kjente spørsmål — bruk whitespace-tolerant regex
   const allQuestions = [];
   DECL_SECTIONS_SPEC.forEach((s, si) => {
     s.questions.forEach(q => allQuestions.push({ question: q, sectionIdx: si }));
   });
 
-  const positions = allQuestions
-    .map(q => ({ ...q, idx: text.indexOf(q.question) }))
-    .filter(q => q.idx >= 0)
-    .sort((a, b) => a.idx - b.idx);
+  const missingQuestions = [];
+  const positions = [];
+  for (const q of allQuestions) {
+    // Tolerere varierende whitespace mellom ord i spørsmålet
+    const pattern = new RegExp(escapeRegex(q.question).replace(/\s+/g, '\\s+'), 'i');
+    const m = text.match(pattern);
+    if (m) {
+      positions.push({ ...q, idx: m.index, matchedText: m[0] });
+    } else {
+      missingQuestions.push(q.question);
+    }
+  }
+  positions.sort((a, b) => a.idx - b.idx);
 
   const sections = DECL_SECTIONS_SPEC.map(s => ({ title: s.title, questions: [] }));
 
   for (let i = 0; i < positions.length; i++) {
     const cur = positions[i];
     const next = positions[i + 1];
-    const segStart = cur.idx + cur.question.length;
+    const segStart = cur.idx + cur.matchedText.length;
     const segEnd = next ? next.idx : text.length;
     const segment = text.slice(segStart, segEnd);
     const { answer, comment } = parseDeclSegment(segment);
     sections[cur.sectionIdx].questions.push({ question: cur.question, answer, comment });
   }
 
-  return { sections, otherNotes, metadata };
+  return { sections, otherNotes, metadata, missingQuestions };
 }
 
 function escapeRegex(s) {
@@ -944,6 +966,7 @@ exports.handler = async (event) => {
         let sections = [];
         let otherNotes = '';
         let metadata = {};
+        let missingQuestions = [];
         let parseError = null;
         let pdfText = '';
         try {
@@ -951,9 +974,13 @@ exports.handler = async (event) => {
           const pdfRes = await extractPdfText(dl.buffer);
           pdfText = pdfRes.text || '';
           const parsed = parseEgenerklaeringPdf(pdfText);
-          sections   = parsed.sections;
-          otherNotes = parsed.otherNotes;
-          metadata   = parsed.metadata;
+          sections         = parsed.sections;
+          otherNotes       = parsed.otherNotes;
+          metadata         = parsed.metadata;
+          missingQuestions = parsed.missingQuestions || [];
+          if (missingQuestions.length) {
+            console.warn('fetch_declaration: missing questions:', missingQuestions);
+          }
         } catch (e) {
           parseError = String(e?.message || e);
           console.error('fetch_declaration parse error:', parseError);
@@ -983,6 +1010,7 @@ exports.handler = async (event) => {
           declaration_other_notes: otherNotes,
           declaration_metadata:    metadata,
           questions_answered:      answered,
+          missing_questions:       missingQuestions,
           parse_error:             parseError,
         });
       }
