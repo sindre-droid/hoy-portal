@@ -793,14 +793,14 @@ function renderGallerySection(p) {
   // Layouts er sortert etter hvor godt de passer liggende bilder
   // (nesten alle båtbilder er liggende). Høykant-varianter sist.
   const LAYOUTS = {
-    '1up':    { label: 'Full',       desc: '1 fullside',                    slots: 1 },
-    '2up_h':  { label: '2 stablet',  desc: '2 liggende over hverandre',     slots: 2 },
-    '3up_h':  { label: '3 stablet',  desc: '3 liggende stablet',            slots: 3 },
-    '4up_h':  { label: '4 stablet',  desc: '4 liggende stablet',            slots: 4 },
-    '4up_sw': { label: 'Sandwich',   desc: '1 topp + 2 firkant + 1 bunn',   slots: 4 },
-    '5up':    { label: '1+4',        desc: '1 stort + 4 små',               slots: 5 },
-    '4up':    { label: '2×2',        desc: '4 i rutenett (for miks)',       slots: 4 },
-    '2up':    { label: '2 side',     desc: '2 side om side (for høykant)',  slots: 2 },
+    '1up':    { label: 'Full',         desc: '1 fullside',                    slots: 1 },
+    '2up_h':  { label: '2 stablet',    desc: '2 liggende over hverandre',     slots: 2 },
+    '3up_h':  { label: '3 stablet',    desc: '3 liggende stablet',            slots: 3 },
+    '4up_h':  { label: '4 stablet',    desc: '4 liggende stablet',            slots: 4 },
+    '4up_sw': { label: 'Sandwich',     desc: '1 topp + 2 firkant + 1 bunn',   slots: 4 },
+    '5up':    { label: '1+4',          desc: '1 stort + 4 små',               slots: 5 },
+    '4up':    { label: '2×2',          desc: '4 i rutenett (for miks)',       slots: 4 },
+    '2up':    { label: '2 høykant',    desc: '2 høykantbilder side om side',  slots: 2 },
   };
 
   const pagesHtml = pages.map((page, pi) => {
@@ -842,16 +842,20 @@ function renderGallerySection(p) {
       slots.push(`<div class="gallery-slot ${filled} ${isWide ? 'wide' : ''}" style="${slotInline}" onclick="pickGallerySlot(${pi},${si})">${imgTagStyled}${label}${removeBtn}${cropBtn}${caption}</div>`);
     }
 
-    // Grid style depends on layout
+    // Grid style depends on layout.
+    // Container får fast aspect-ratio (76:100) som matcher faktisk brukbar A4-gallery-flate
+    // i PDF-output, slik at forhåndsvisningen i editor = PDF.
+    // Rader bruker proporsjonale enheter (fr) som i render.html.
+    const baseAR = 'aspect-ratio:76/100;';
     let gridStyle;
-    if (layout === '5up')        gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:140px 100px 100px';
-    else if (layout === '4up_sw') gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:110px 85px 110px';
-    else if (layout === '4up_h')  gridStyle = 'grid-template-columns:1fr;grid-template-rows:72px 72px 72px 72px';
-    else if (layout === '3up_h')  gridStyle = 'grid-template-columns:1fr;grid-template-rows:95px 95px 95px';
-    else if (layout === '2up_h')  gridStyle = 'grid-template-columns:1fr;grid-template-rows:140px 140px';
-    else if (layout === '4up')    gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:120px 120px';
-    else if (layout === '2up')    gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:160px';
-    else                          gridStyle = 'grid-template-columns:1fr;grid-template-rows:260px';
+    if (layout === '5up')        gridStyle = baseAR + 'grid-template-columns:1fr 1fr;grid-template-rows:1.4fr 1fr 1fr;';
+    else if (layout === '4up_sw') gridStyle = baseAR + 'grid-template-columns:1fr 1fr;grid-template-rows:1.2fr 1fr 1.2fr;';
+    else if (layout === '4up_h')  gridStyle = baseAR + 'grid-template-columns:1fr;grid-template-rows:1fr 1fr 1fr 1fr;';
+    else if (layout === '3up_h')  gridStyle = baseAR + 'grid-template-columns:1fr;grid-template-rows:1fr 1fr 1fr;';
+    else if (layout === '2up_h')  gridStyle = baseAR + 'grid-template-columns:1fr;grid-template-rows:1fr 1fr;';
+    else if (layout === '4up')    gridStyle = baseAR + 'grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;';
+    else if (layout === '2up')    gridStyle = baseAR + 'grid-template-columns:1fr 1fr;grid-template-rows:1fr;';
+    else                          gridStyle = baseAR + 'grid-template-columns:1fr;grid-template-rows:1fr;';
 
     return `
       <div class="gallery-page-editor">

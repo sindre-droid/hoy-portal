@@ -415,77 +415,63 @@
     font-weight: 500;
   }
 
+  /* Alle gallery-grids skal flex:1 og min-height:0 for å unngå at
+     intrinsic content-høyde presser grid ut av page-overflow */
+  [class^="gallery-grid-"] {
+    flex: 1 1 0;
+    min-height: 0;
+    display: grid;
+    gap: 8px;
+  }
+
   /* Liggende-dominerte layouts (foretrukket for båtbilder) */
   .gallery-grid-2up_h {
-    /* 2 liggende stablet vertikalt */
-    flex: 1;
-    display: grid;
     grid-template-columns: 1fr;
     grid-template-rows: 1fr 1fr;
-    gap: 8px;
   }
   .gallery-grid-3up_h {
-    /* 3 liggende stablet */
-    flex: 1;
-    display: grid;
     grid-template-columns: 1fr;
     grid-template-rows: 1fr 1fr 1fr;
-    gap: 8px;
   }
   .gallery-grid-4up_h {
-    /* 4 liggende stablet */
-    flex: 1;
-    display: grid;
     grid-template-columns: 1fr;
     grid-template-rows: 1fr 1fr 1fr 1fr;
-    gap: 8px;
   }
   .gallery-grid-4up_sw {
     /* Sandwich: liggende topp (full bredde) + to firkant-bilder + liggende bunn (full bredde) */
-    flex: 1;
-    display: grid;
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1.2fr 1fr 1.2fr;
-    gap: 8px;
   }
 
   /* Originale layouts (beholdt for variasjon / høykant-bilder) */
   .gallery-grid-5up {
-    flex: 1;
-    display: grid;
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1.4fr 1fr 1fr;
-    gap: 8px;
   }
 
   .gallery-grid-4up {
-    flex: 1;
-    display: grid;
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr 1fr;
-    gap: 8px;
   }
 
   .gallery-grid-2up {
-    flex: 1;
-    display: grid;
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr;
-    gap: 8px;
   }
 
   .gallery-grid-1up {
-    flex: 1;
-    display: grid;
     grid-template-columns: 1fr;
     grid-template-rows: 1fr;
     gap: 0;
   }
 
+  /* Hver grid-celle må også kunne krympe under sin intrinsic-innhold */
   .gi {
     overflow: hidden;
     border-radius: 2px;
     position: relative;
+    min-height: 0;
+    min-width: 0;
   }
 
   .gi img {
