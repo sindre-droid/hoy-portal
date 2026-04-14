@@ -854,6 +854,7 @@ exports.handler = async (event) => {
           'cta_label', 'cta_address',
           'specs', 'capacities', 'gallery_pages', 'equipment_categories',
           'declaration_sections', 'declaration_other_notes', 'declaration_oneflow_id', 'declaration_oneflow_state',
+          'declaration_metadata',
           'freetext_pages', 'sections_order',
         ];
         const updates = {};
@@ -1011,6 +1012,7 @@ exports.handler = async (event) => {
         const updatePayload = {
           declaration_sections:     sections,
           declaration_other_notes:  otherNotes || null,
+          declaration_metadata:     (metadata && Object.keys(metadata).length > 0) ? metadata : null,
           declaration_oneflow_id:   String(contractId),
           declaration_oneflow_state: contractState,
         };

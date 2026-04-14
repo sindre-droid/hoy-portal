@@ -183,10 +183,14 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+    overflow: hidden;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .cover-image-area {
-    flex: 1;
+    flex: 1 1 auto;
+    min-height: 0;
     position: relative;
     overflow: hidden;
     background: var(--hoy-deep-teal);
@@ -229,6 +233,9 @@
     background: var(--hoy-white);
     padding: 4.5% 8% 3.5%;
     text-align: center;
+    flex-shrink: 0;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .cover-year {
@@ -276,6 +283,9 @@
     font-size: 9px;
     color: rgba(255,255,255,0.7);
     letter-spacing: 0.5px;
+    flex-shrink: 0;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .cover-footer strong {
@@ -580,6 +590,44 @@
   .declaration-header { margin-bottom: 4%; }
   .declaration-body { flex: 1; }
   .decl-section { margin-bottom: 20px; }
+
+  .decl-meta {
+    margin-bottom: 18px;
+    padding: 12px 14px;
+    background: var(--hoy-cream);
+    border-left: 3px solid var(--hoy-gold);
+    border-radius: 2px;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .decl-meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 24px;
+  }
+
+  .decl-meta-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 10px;
+    padding: 3px 0;
+    border-bottom: 1px dotted rgba(0,0,0,0.08);
+  }
+
+  .decl-meta-label {
+    color: var(--hoy-mid-gray);
+    font-weight: 300;
+    letter-spacing: 0.3px;
+  }
+
+  .decl-meta-value {
+    color: var(--hoy-black);
+    font-weight: 500;
+    text-align: right;
+  }
 
   .decl-row {
     display: grid;
@@ -1161,6 +1209,30 @@ function buildDeclarationPages(p) {
     questions: (sec.questions || []).filter(q => q.answer)
   })).filter(sec => sec.questions.length > 0);
 
+  // Metadata-blokk (fra toppen av Oneflow-skjemaet) — vises øverst på side 1
+  const meta = p.declaration_metadata || {};
+  const metaOrder = [
+    ['Selger',                    'Selger'],
+    ['Merke',                     'Merke'],
+    ['Årsmodell',                 'Årsmodell'],
+    ['Kjøpt år',                  'Kjøpt år'],
+    ['HIN (CIN) nr.',             'HIN/CIN-nr.'],
+    ['Motornummer',               'Motornummer'],
+    ['Båtens registreringsnummer','Registreringsnr.'],
+    ['Oppdragsnummer',            'Oppdragsnr.'],
+  ];
+  const metaRows = metaOrder
+    .filter(([key]) => (meta[key] || '').toString().trim())
+    .map(([key, label]) =>
+      `<div class="decl-meta-item"><span class="decl-meta-label">${esc(label)}</span><span class="decl-meta-value">${esc(meta[key])}</span></div>`
+    ).join('');
+  const metaHtml = metaRows ? `
+    <div class="decl-meta">
+      <div class="category-label" style="margin-bottom:8px">Opplysninger fra selger</div>
+      <div class="decl-meta-grid">${metaRows}</div>
+    </div>
+  ` : '';
+
   // Build section HTML blocks
   const sectionBlocks = filteredSections.map(sec => `
     <div class="decl-section">
@@ -1201,6 +1273,7 @@ function buildDeclarationPages(p) {
             <p class="section-subtitle">Utfylt og signert av eier. Opplysningene gis i god tro og etter beste evne.</p>
           </div>
           <div class="declaration-body">
+            ${metaHtml}
             ${sectionBlocks.join('')}
             ${notesHtml}
           </div>
@@ -1226,6 +1299,7 @@ function buildDeclarationPages(p) {
           <p class="section-subtitle">Utfylt og signert av eier. Opplysningene gis i god tro og etter beste evne.</p>
         </div>
         <div class="declaration-body">
+          ${metaHtml}
           ${page1Blocks.join('')}
         </div>
         <div class="page-footer-light">

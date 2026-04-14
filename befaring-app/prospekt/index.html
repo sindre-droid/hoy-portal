@@ -1115,10 +1115,12 @@ async function fetchDeclaration() {
     }
 
     console.log('Parsed sections:', parsedSections);
+    console.log('Parsed metadata:', res.declaration_metadata);
 
     // Oppdater currentProspekt med hentet data
     currentProspekt.declaration_sections = parsedSections;
     currentProspekt.declaration_other_notes = res.declaration_other_notes || '';
+    currentProspekt.declaration_metadata = res.declaration_metadata || {};
     currentProspekt.declaration_oneflow_id = res.contract_id;
     currentProspekt.declaration_oneflow_state = res.contract_state;
 
