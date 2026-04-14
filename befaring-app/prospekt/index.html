@@ -180,6 +180,40 @@
   .crop-btn-inline{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;background:white;border:2px solid var(--gray);border-radius:6px;font-size:12px;font-weight:600;color:var(--navy);cursor:pointer;font-family:inherit;margin-top:4px}
   .crop-btn-inline:hover{border-color:var(--navy)}
 
+  /* ── Gallery page preview modal (eksakt PDF-utseende) ──
+     CSS-klasser nedenfor speiler render.html for å gi WYSIWYG-preview. */
+  .gpp-overlay{position:fixed;inset:0;background:rgba(10,33,64,0.7);z-index:600;display:flex;align-items:center;justify-content:center;padding:24px}
+  .gpp-modal{background:white;border-radius:12px;max-width:540px;width:100%;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.4);overflow:hidden}
+  .gpp-header{padding:14px 20px;border-bottom:1px solid var(--gray);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+  .gpp-header h3{font-size:15px;font-weight:700;color:var(--navy);margin:0}
+  .gpp-header .gpp-close{background:none;border:none;font-size:22px;color:var(--gray-dark);cursor:pointer;padding:4px 8px;line-height:1}
+  .gpp-body{flex:1;overflow:auto;padding:20px;background:#D6D1CA;display:flex;justify-content:center;align-items:flex-start}
+  /* A4-side: fast aspect-ratio 210/297, max bredde fyller modal */
+  .gpp-page{width:100%;aspect-ratio:210/297;background:#fff;box-shadow:0 4px 30px rgba(0,0,0,0.15);overflow:hidden;position:relative;display:flex;flex-direction:column}
+  .gpp-gallery{display:flex;flex-direction:column;height:100%;padding:6% 6% 3%;font-family:'Inter',sans-serif}
+  .gpp-gallery-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:4%}
+  .gpp-gallery-header h2{font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;font-weight:400;color:#0A0A0A;margin:0}
+  .gpp-gallery-subtitle{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#9A9590;font-weight:500}
+  .gpp-grid{flex:1 1 0;min-height:0;display:grid;gap:6px}
+  .gpp-grid-2up_h{grid-template-columns:1fr;grid-template-rows:1fr 1fr}
+  .gpp-grid-3up_h{grid-template-columns:1fr;grid-template-rows:1fr 1fr 1fr}
+  .gpp-grid-4up_h{grid-template-columns:1fr;grid-template-rows:1fr 1fr 1fr 1fr}
+  .gpp-grid-4up_sw{grid-template-columns:1fr 1fr;grid-template-rows:1.2fr 1fr 1.2fr}
+  .gpp-grid-5up{grid-template-columns:1fr 1fr;grid-template-rows:1.4fr 1fr 1fr}
+  .gpp-grid-4up{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+  .gpp-grid-2up{grid-template-columns:1fr 1fr;grid-template-rows:1fr}
+  .gpp-grid-1up{grid-template-columns:1fr;grid-template-rows:1fr;gap:0}
+  .gpp-gi{overflow:hidden;border-radius:1px;position:relative;min-height:0;min-width:0}
+  .gpp-gi img{width:100%;height:100%;object-fit:cover;display:block}
+  .gpp-gi-wide{grid-column:1/-1}
+  .gpp-grid-4up_sw > .gpp-gi:nth-child(1){grid-column:1/-1;grid-row:1}
+  .gpp-grid-4up_sw > .gpp-gi:nth-child(2){grid-column:1;grid-row:2}
+  .gpp-grid-4up_sw > .gpp-gi:nth-child(3){grid-column:2;grid-row:2}
+  .gpp-grid-4up_sw > .gpp-gi:nth-child(4){grid-column:1/-1;grid-row:3}
+  .gpp-gi-caption{position:absolute;bottom:0;left:0;right:0;padding:14px 10px 6px;background:linear-gradient(to top,rgba(0,0,0,0.5),transparent);font-size:7px;color:#fff;letter-spacing:0.5px}
+  .gpp-page-indicator{text-align:center;padding-top:3%;font-size:7px;letter-spacing:1px;color:#9A9590}
+  .gpp-footer{padding:10px 20px;border-top:1px solid var(--gray);font-size:11px;color:var(--gray-dark);text-align:center;flex-shrink:0}
+
   /* ── Rich text editor ── */
   .rte-toolbar{display:flex;gap:2px;padding:6px 8px;background:var(--surface);border:2px solid var(--gray);border-bottom:none;border-radius:8px 8px 0 0;flex-wrap:wrap}
   .rte-toolbar button{background:white;border:1px solid var(--gray);border-radius:4px;padding:4px 10px;font-size:12px;font-family:inherit;cursor:pointer;color:var(--navy)}
@@ -842,27 +876,29 @@ function renderGallerySection(p) {
       slots.push(`<div class="gallery-slot ${filled} ${isWide ? 'wide' : ''}" style="${slotInline}" onclick="pickGallerySlot(${pi},${si})">${imgTagStyled}${label}${removeBtn}${cropBtn}${caption}</div>`);
     }
 
-    // Grid style depends on layout.
-    // Container får fast aspect-ratio (76:100) som matcher faktisk brukbar A4-gallery-flate
-    // i PDF-output, slik at forhåndsvisningen i editor = PDF.
-    // Rader bruker proporsjonale enheter (fr) som i render.html.
-    const baseAR = 'aspect-ratio:76/100;';
+    // Kompakt editor-grid med pixel-høyder (preview-knapp viser eksakt PDF-utseende).
     let gridStyle;
-    if (layout === '5up')        gridStyle = baseAR + 'grid-template-columns:1fr 1fr;grid-template-rows:1.4fr 1fr 1fr;';
-    else if (layout === '4up_sw') gridStyle = baseAR + 'grid-template-columns:1fr 1fr;grid-template-rows:1.2fr 1fr 1.2fr;';
-    else if (layout === '4up_h')  gridStyle = baseAR + 'grid-template-columns:1fr;grid-template-rows:1fr 1fr 1fr 1fr;';
-    else if (layout === '3up_h')  gridStyle = baseAR + 'grid-template-columns:1fr;grid-template-rows:1fr 1fr 1fr;';
-    else if (layout === '2up_h')  gridStyle = baseAR + 'grid-template-columns:1fr;grid-template-rows:1fr 1fr;';
-    else if (layout === '4up')    gridStyle = baseAR + 'grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;';
-    else if (layout === '2up')    gridStyle = baseAR + 'grid-template-columns:1fr 1fr;grid-template-rows:1fr;';
-    else                          gridStyle = baseAR + 'grid-template-columns:1fr;grid-template-rows:1fr;';
+    if (layout === '5up')         gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:140px 100px 100px';
+    else if (layout === '4up_sw') gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:110px 85px 110px';
+    else if (layout === '4up_h')  gridStyle = 'grid-template-columns:1fr;grid-template-rows:72px 72px 72px 72px';
+    else if (layout === '3up_h')  gridStyle = 'grid-template-columns:1fr;grid-template-rows:95px 95px 95px';
+    else if (layout === '2up_h')  gridStyle = 'grid-template-columns:1fr;grid-template-rows:140px 140px';
+    else if (layout === '4up')    gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:120px 120px';
+    else if (layout === '2up')    gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:160px';
+    else                          gridStyle = 'grid-template-columns:1fr;grid-template-rows:260px';
+
+    const filledCount = images.filter(im => im && im.url).length;
+    const previewBtn = filledCount > 0
+      ? `<button class="btn-outline" style="font-size:11px;padding:5px 10px" onclick="openGalleryPagePreview(${pi})" title="Forhåndsvis hvordan siden blir i PDF">👁 Forhåndsvis</button>`
+      : '';
 
     return `
       <div class="gallery-page-editor">
         <div class="gallery-page-header">
           <h4>Side ${pi + 1}</h4>
-          <div style="display:flex;align-items:center;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <div class="layout-options">${layoutBtns}</div>
+            ${previewBtn}
             ${pages.length > 1 ? `<button class="btn-icon btn-icon-del" onclick="removeGalleryPage(${pi})" title="Fjern side">×</button>` : ''}
           </div>
         </div>
@@ -1509,7 +1545,10 @@ function addGalleryPage() {
 function changeGalleryLayout(pageIdx, newLayout) {
   const pages = currentProspekt.gallery_pages || [];
   if (!pages[pageIdx]) return;
-  const SLOT_COUNTS = { '5up': 5, '4up': 4, '2up': 2, '1up': 1 };
+  const SLOT_COUNTS = {
+    '1up': 1, '2up': 2, '2up_h': 2, '3up_h': 3,
+    '4up': 4, '4up_h': 4, '4up_sw': 4, '5up': 5,
+  };
   pages[pageIdx].layout = newLayout;
   // Trim excess images if new layout has fewer slots
   const maxSlots = SLOT_COUNTS[newLayout] || 5;
@@ -1520,6 +1559,76 @@ function changeGalleryLayout(pageIdx, newLayout) {
   renderSectionBody('gallery');
   $('sec-gallery').classList.add('open');
   scheduleAutoSave();
+}
+
+// ── Gallery page preview modal ────────────────────────────────────────────────
+// Viser én gallery-side i eksakt PDF-utseende (A4-aspect-ratio, samme grid-CSS).
+// Leser direkte fra currentProspekt.gallery_pages, så ingen lagring kreves —
+// megler kan eksperimentere med layout og crop og se resultatet umiddelbart.
+function openGalleryPagePreview(pageIdx) {
+  const pages = currentProspekt.gallery_pages || [];
+  const page = pages[pageIdx];
+  if (!page) return;
+
+  // Lukk eksisterende preview-modal hvis åpen
+  document.querySelectorAll('.gpp-overlay').forEach(el => el.remove());
+
+  const layout = page.layout || '5up';
+  const images = (page.images || []).filter(img => img && img.url);
+
+  const giHtml = images.map((img, ii) => {
+    const wide = (layout === '5up' && ii === 0) ? ' gpp-gi-wide' : '';
+    const posStyle = img.posX !== undefined ? `object-position:${img.posX}% ${img.posY}%;` : '';
+    const zoomStyle = img.zoom && img.zoom > 1 ? `transform:scale(${img.zoom});` : '';
+    const imgStyle = (posStyle || zoomStyle) ? ` style="${posStyle}${zoomStyle}"` : '';
+    const cap = img.caption ? `<div class="gpp-gi-caption">${esc(img.caption)}</div>` : '';
+    return `<div class="gpp-gi${wide}"><img src="${esc(img.url)}" alt=""${imgStyle}>${cap}</div>`;
+  }).join('');
+
+  const boatName = currentProspekt.boat_name || '';
+  const modelYear = currentProspekt.model_year || '';
+  const totalPages = pages.filter(p => (p.images || []).some(im => im && im.url)).length;
+  const visibleIdx = pages.slice(0, pageIdx + 1).filter(p => (p.images || []).some(im => im && im.url)).length;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'gpp-overlay';
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+  overlay.innerHTML = `
+    <div class="gpp-modal">
+      <div class="gpp-header">
+        <h3>Forhåndsvisning — Galleriside ${pageIdx + 1}</h3>
+        <button class="gpp-close" onclick="this.closest('.gpp-overlay').remove()" title="Lukk">×</button>
+      </div>
+      <div class="gpp-body">
+        <div class="gpp-page">
+          <div class="gpp-gallery">
+            <div class="gpp-gallery-header">
+              <h2>Bildegalleri</h2>
+              <span class="gpp-gallery-subtitle">${esc(boatName)}${modelYear ? ' &middot; ' + esc(String(modelYear)) : ''}</span>
+            </div>
+            <div class="gpp-grid gpp-grid-${layout}">
+              ${giHtml || '<div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;color:#9A9590;font-size:10px">Ingen bilder lagt til</div>'}
+            </div>
+            <div class="gpp-page-indicator">${visibleIdx} / ${totalPages || 1}</div>
+          </div>
+        </div>
+      </div>
+      <div class="gpp-footer">
+        Endringer lagres automatisk — denne forhåndsvisningen oppdateres neste gang du åpner den.
+      </div>
+    </div>
+  `;
+
+  // ESC for å lukke
+  const escHandler = (e) => {
+    if (e.key === 'Escape') {
+      overlay.remove();
+      document.removeEventListener('keydown', escHandler);
+    }
+  };
+  document.addEventListener('keydown', escHandler);
+
+  document.body.appendChild(overlay);
 }
 
 function pickGallerySlot(pageIdx, slotIdx) {
