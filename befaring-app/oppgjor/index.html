@@ -296,8 +296,7 @@ let currentYear = 2026;
 
 // ── Auth ──
 function getToken() {
-  const c = document.cookie.split(';').find(c => c.trim().startsWith('hoy_token='));
-  return c ? c.trim().slice(10) : null;
+  return localStorage.getItem('hoy_access_token');
 }
 
 async function apiFetch(url, opts = {}) {
