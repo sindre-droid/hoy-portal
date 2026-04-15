@@ -37,7 +37,7 @@ exports.handler = async (event) => {
   const userId = jwt.email;
   const isAdmin = jwt?.app_metadata?.roles?.includes('admin') || false;
 
-  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 
   // ── POST: Log event ───────────────────────────────────────────────────────
   if (event.httpMethod === 'POST') {
