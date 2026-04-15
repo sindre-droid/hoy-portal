@@ -69,3 +69,39 @@ create index if not exists idx_offer_events_deal   on offer_events(deal_id);
 -- Ingen andre roles skal ha tilgang direkte til tabellene.
 alter table offers       enable row level security;
 alter table offer_events enable row level security;
+
+
+-- ── assignment_numbers (oppdragsnummer) ──────────────────────────────────────
+-- Erstatter Notion-liste. Én rad per tildelt oppdragsnummer.
+-- Format: YYNNN (f.eks. "26014" = år 2026, løpenummer 14)
+-- ─────────────────────────────────────────────────────────────────────────────
+create table if not exists assignment_numbers (
+  id                     uuid        primary key default gen_random_uuid(),
+  number                 text        unique not null,       -- "26014"
+  year                   smallint    not null,              -- 2026
+  sequence               smallint    not null,              -- 14
+  deal_id                text        unique not null,       -- HubSpot deal ID (én deal = ett nummer)
+  deal_name              text,                              -- "Princess V50"
+  vessel_name            text,                              -- Båtnavn
+  broker_email           text,                              -- Ansvarlig megler
+  assigned_at            timestamptz not null default now(),
+  assigned_by            text        not null,              -- jwt.email (admin som tildelte)
+
+  -- Sync-status mot eksterne systemer
+  hubspot_synced         boolean     not null default false,
+  hubspot_synced_at      timestamptz,
+  oneflow_synced         boolean     not null default false,
+  oneflow_synced_at      timestamptz,
+  poweroffice_synced     boolean     not null default false,
+  poweroffice_synced_at  timestamptz,
+  poweroffice_project_id text,                              -- ID returnert fra PowerOffice API
+
+  constraint assignment_numbers_positive_seq check (sequence > 0),
+  constraint assignment_numbers_unique_year_seq unique (year, sequence)
+);
+
+create index if not exists idx_assignment_numbers_deal   on assignment_numbers(deal_id);
+create index if not exists idx_assignment_numbers_year   on assignment_numbers(year);
+create index if not exists idx_assignment_numbers_number on assignment_numbers(number);
+
+alter table assignment_numbers enable row level security;

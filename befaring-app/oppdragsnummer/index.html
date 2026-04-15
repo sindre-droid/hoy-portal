@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Oppdragsnummer — House of Yachts</title>
+  <style>
+    :root {
+      --navy:#0a2140;--gold:#c9a84c;--white:#fff;--surface:#f5f7fa;
+      --gray:#dde3ec;--gray-dark:#6b7a8d;--text:#12233a;
+      --green:#166534;--green-bg:#dcfce7;
+      --red:#991b1b;--red-bg:#fee2e2;
+      --yellow:#92400e;--yellow-bg:#fef3c7;
+      --blue:#1e40af;--blue-bg:#dbeafe;
+      --radius:12px;--shadow:0 2px 16px rgba(10,33,64,0.10);
+    }
+    *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--surface);color:var(--text);margin:0;padding:0;min-height:100vh}
+
+    /* ── Loading / Auth ── */
+    .loading-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy)}
+    .loading-text{color:rgba(255,255,255,0.5);font-size:15px}
+    .auth-error{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy)}
+    .auth-error-box{background:white;border-radius:16px;padding:40px;text-align:center;max-width:400px}
+    .auth-error-box h2{color:var(--red);margin:0 0 12px}
+    .auth-error-box p{color:var(--gray-dark);margin:0 0 20px}
+    .auth-error-box a{color:var(--navy);font-weight:600}
+
+    /* ── Header ── */
+    .header{background:var(--navy);color:white;padding:14px 20px;position:sticky;top:0;z-index:200;box-shadow:0 2px 16px rgba(0,0,0,0.35)}
+    .header-inner{max-width:960px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .brand{display:flex;flex-direction:column}
+    .brand-name{font-size:14px;font-weight:800;letter-spacing:0.8px}
+    .brand-sub{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--gold)}
+    .header-title{font-size:16px;font-weight:700;color:rgba(255,255,255,0.9)}
+    .header-right{display:flex;align-items:center;gap:12px}
+    .btn-nav{background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.18);border-radius:20px;color:rgba(255,255,255,0.85);padding:6px 14px;font-size:12px;font-family:inherit;cursor:pointer;text-decoration:none}
+    .btn-nav:hover{background:rgba(255,255,255,0.2)}
+
+    /* ── Main ── */
+    .main{max-width:960px;margin:0 auto;padding:24px 16px 80px}
+
+    /* ── Tabs ── */
+    .tabs{display:flex;gap:4px;margin-bottom:24px;background:white;border-radius:12px;padding:4px;box-shadow:var(--shadow)}
+    .tab{flex:1;padding:12px 16px;border:none;background:transparent;border-radius:10px;font-size:14px;font-weight:600;color:var(--gray-dark);cursor:pointer;font-family:inherit;transition:all 0.2s}
+    .tab.active{background:var(--navy);color:white}
+    .tab:hover:not(.active){background:var(--surface)}
+    .tab-badge{display:inline-block;background:var(--gold);color:var(--navy);font-size:11px;font-weight:800;padding:2px 7px;border-radius:10px;margin-left:6px}
+    .tab.active .tab-badge{background:rgba(255,255,255,0.25);color:white}
+
+    /* ── Next number banner ── */
+    .next-banner{background:white;border-radius:14px;padding:20px 24px;box-shadow:var(--shadow);margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+    .next-label{font-size:13px;color:var(--gray-dark);font-weight:600}
+    .next-number{font-size:28px;font-weight:800;color:var(--navy);letter-spacing:1px}
+    .next-year{font-size:13px;color:var(--gray-dark)}
+
+    /* ── Queue cards ── */
+    .queue-empty{text-align:center;padding:60px 20px;color:var(--gray-dark)}
+    .queue-empty-icon{font-size:40px;margin-bottom:12px}
+    .queue-empty-text{font-size:15px}
+
+    .deal-card{background:white;border-radius:14px;box-shadow:var(--shadow);padding:20px 24px;margin-bottom:14px;transition:border-color 0.2s;border:2px solid transparent}
+    .deal-card.ready{border-color:var(--green)}
+    .deal-card-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+    .deal-card-name{font-size:17px;font-weight:700;color:var(--navy)}
+    .deal-card-date{font-size:12px;color:var(--gray-dark)}
+    .deal-card-checks{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+    .check-item{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600}
+    .check-icon{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px}
+    .check-ok{background:var(--green-bg);color:var(--green)}
+    .check-missing{background:#f1f5f9;color:#94a3b8}
+    .check-label{color:var(--text)}
+    .check-label.missing{color:var(--gray-dark)}
+
+    .btn-assign{background:var(--navy);color:white;border:none;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.2s}
+    .btn-assign:hover{opacity:0.88}
+    .btn-assign:disabled{opacity:0.4;cursor:not-allowed}
+    .btn-assign.success{background:var(--green)}
+
+    .assign-result{margin-top:12px;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600;display:none}
+    .assign-result.ok{display:block;background:var(--green-bg);color:var(--green)}
+    .assign-result.error{display:block;background:var(--red-bg);color:var(--red)}
+
+    /* ── Sync indicators ── */
+    .sync-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+    .sync-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px}
+    .sync-ok{background:var(--green-bg);color:var(--green)}
+    .sync-fail{background:var(--red-bg);color:var(--red)}
+    .sync-pending{background:#f1f5f9;color:#94a3b8}
+
+    /* ── List table ── */
+    .list-card{background:white;border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+    .list-card-header{padding:16px 20px;border-bottom:1px solid var(--gray);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+    .list-card-title{font-size:15px;font-weight:700;color:var(--navy)}
+    .filter-select{padding:8px 12px;border:2px solid var(--gray);border-radius:8px;font-size:13px;font-family:inherit;color:var(--text)}
+    table{width:100%;border-collapse:collapse}
+    th{font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--gray-dark);padding:12px 16px;text-align:left;border-bottom:2px solid var(--gray)}
+    td{padding:14px 16px;border-bottom:1px solid var(--gray);font-size:14px}
+    tr:last-child td{border-bottom:none}
+    .num-cell{font-weight:800;color:var(--navy);font-size:15px;letter-spacing:0.5px}
+    .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+    .pill-ok{background:var(--green-bg);color:var(--green)}
+    .pill-no{background:#f1f5f9;color:#94a3b8}
+    .list-empty{text-align:center;padding:40px;color:var(--gray-dark);font-size:14px}
+
+    /* ── Responsive ── */
+    @media(max-width:600px){
+      .deal-card-top{flex-direction:column;align-items:flex-start}
+      th,td{padding:10px 12px;font-size:13px}
+      .next-banner{flex-direction:column;align-items:flex-start}
+    }
+  </style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loadingScreen" class="loading-screen">
+  <div class="loading-text">Laster...</div>
+</div>
+
+<!-- Auth error -->
+<div id="authError" class="auth-error" style="display:none">
+  <div class="auth-error-box">
+    <h2>Ingen tilgang</h2>
+    <p>Denne modulen krever administratortilgang.</p>
+    <a href="/">Tilbake til portalen</a>
+  </div>
+</div>
+
+<!-- Main app -->
+<div id="app" style="display:none">
+
+  <div class="header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-name">HOUSE OF YACHTS</div>
+        <div class="brand-sub">Intern portal</div>
+      </div>
+      <div class="header-title">Oppdragsnummer</div>
+      <div class="header-right">
+        <a class="btn-nav" href="/">Portal</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- Bootstrap banner (shown only when table is empty) -->
+    <div class="next-banner" id="bootstrapBanner" style="display:none;border:2px solid var(--gold)">
+      <div>
+        <div class="next-label">Første gangs oppsett</div>
+        <div style="font-size:14px;color:var(--text);margin-top:4px">Importer eksisterende oppdragsnummer fra HubSpot slik at systemet vet hvor nummerserien er.</div>
+      </div>
+      <button class="btn-assign" id="bootstrapBtn" onclick="runBootstrap()">Importer fra HubSpot</button>
+      <div class="assign-result" id="bootstrapResult"></div>
+    </div>
+
+    <!-- Next number banner -->
+    <div class="next-banner">
+      <div>
+        <div class="next-label">Neste ledige nummer</div>
+        <div class="next-number" id="nextNumber">—</div>
+      </div>
+      <div>
+        <div class="next-year" id="nextYear"></div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" data-tab="queue" onclick="switchTab('queue')">
+        Kø <span class="tab-badge" id="queueBadge">0</span>
+      </button>
+      <button class="tab" data-tab="list" onclick="switchTab('list')">
+        Tildelte numre
+      </button>
+    </div>
+
+    <!-- Queue view -->
+    <div id="queueView">
+      <div id="queueLoading" style="text-align:center;padding:40px;color:var(--gray-dark)">
+        Sjekker Oneflow-status for ventende deals...
+      </div>
+      <div id="queueContent"></div>
+    </div>
+
+    <!-- List view -->
+    <div id="listView" style="display:none">
+      <div class="list-card">
+        <div class="list-card-header">
+          <div class="list-card-title">Alle oppdragsnummer</div>
+          <select class="filter-select" id="yearFilter" onchange="loadList()">
+            <option value="">Alle år</option>
+          </select>
+        </div>
+        <div id="listContent">
+          <div class="list-empty">Laster...</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+'use strict';
+
+const API = `${window.location.origin}/.netlify/functions/oppdragsnummer`;
+const IDENTITY = `${window.location.origin}/.netlify/identity`;
+let accessToken = null;
+
+// ── Auth ─────────────────────────────────────────────────────────────────────
+
+function parseJwt(token) {
+  try {
+    const b = token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+    return JSON.parse(atob(b));
+  } catch { return null; }
+}
+
+async function init() {
+  const tok = localStorage.getItem('hoy_access_token');
+  if (!tok) { window.location.href = '/'; return; }
+
+  try {
+    const r = await fetch(`${IDENTITY}/user`, { headers: { Authorization: `Bearer ${tok}` } });
+    if (!r.ok) throw new Error('Session expired');
+  } catch {
+    localStorage.removeItem('hoy_access_token');
+    window.location.href = '/';
+    return;
+  }
+
+  const jwt = parseJwt(tok);
+  const roles = jwt?.app_metadata?.roles || [];
+  if (!roles.includes('admin')) {
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('authError').style.display = 'flex';
+    return;
+  }
+
+  accessToken = tok;
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('app').style.display = '';
+
+  // Populate year filter
+  const currentYear = new Date().getFullYear();
+  const select = document.getElementById('yearFilter');
+  for (let y = currentYear; y >= currentYear - 3; y--) {
+    const opt = document.createElement('option');
+    opt.value = y;
+    opt.textContent = y;
+    select.appendChild(opt);
+  }
+
+  await loadNext();
+  await checkBootstrap();
+  loadQueue();
+}
+
+// ── API helpers ──────────────────────────────────────────────────────────────
+
+async function api(path, method = 'GET', body = null) {
+  const opts = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`,
+    },
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(`${API}${path}`, opts);
+  return res.json();
+}
+
+// ── Bootstrap (first-time import) ────────────────────────────────────────────
+
+async function checkBootstrap() {
+  // Show bootstrap banner if no numbers exist yet
+  const data = await api('?list=1');
+  const list = data.assignments || [];
+  if (list.length === 0) {
+    document.getElementById('bootstrapBanner').style.display = '';
+  }
+}
+
+async function runBootstrap() {
+  const btn = document.getElementById('bootstrapBtn');
+  const result = document.getElementById('bootstrapResult');
+  btn.disabled = true;
+  btn.textContent = 'Importerer...';
+  result.className = 'assign-result';
+  result.style.display = 'none';
+
+  try {
+    const data = await api('?action=bootstrap', 'POST', {});
+
+    if (data.ok) {
+      btn.textContent = `✓ ${data.imported} importert`;
+      btn.classList.add('success');
+
+      let msg = `Skannet ${data.total_deals_scanned} deals. Importert: ${data.imported}. Hoppet over: ${data.skipped}.`;
+      if (data.errors > 0) msg += ` Feil: ${data.errors}.`;
+      result.textContent = msg;
+      result.className = 'assign-result ok';
+
+      // Refresh everything
+      await loadNext();
+      loadQueue();
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Importer fra HubSpot';
+      result.textContent = data.error || 'Ukjent feil';
+      result.className = 'assign-result error';
+    }
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = 'Importer fra HubSpot';
+    result.textContent = `Feil: ${e.message}`;
+    result.className = 'assign-result error';
+  }
+}
+
+// ── Next number ──────────────────────────────────────────────────────────────
+
+async function loadNext() {
+  const data = await api('?next=1');
+  document.getElementById('nextNumber').textContent = data.number || '—';
+  document.getElementById('nextYear').textContent = data.year ? `År ${data.year}, løpenr. ${data.sequence}` : '';
+}
+
+// ── Tab switching ────────────────────────────────────────────────────────────
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === tab);
+  });
+  document.getElementById('queueView').style.display = tab === 'queue' ? '' : 'none';
+  document.getElementById('listView').style.display = tab === 'list' ? '' : 'none';
+
+  if (tab === 'list') loadList();
+}
+
+// ── Queue ────────────────────────────────────────────────────────────────────
+
+async function loadQueue() {
+  const loading = document.getElementById('queueLoading');
+  const content = document.getElementById('queueContent');
+  loading.style.display = '';
+  content.innerHTML = '';
+
+  const data = await api('?queue=1');
+  loading.style.display = 'none';
+
+  const queue = data.queue || [];
+  const readyCount = queue.filter(d => d.ready).length;
+  document.getElementById('queueBadge').textContent = readyCount;
+
+  if (!queue.length) {
+    content.innerHTML = `
+      <div class="queue-empty">
+        <div class="queue-empty-icon">✅</div>
+        <div class="queue-empty-text">Ingen deals venter på oppdragsnummer</div>
+      </div>`;
+    return;
+  }
+
+  // Sort: ready first, then by created date
+  queue.sort((a, b) => {
+    if (a.ready !== b.ready) return a.ready ? -1 : 1;
+    return new Date(b.created_date || 0) - new Date(a.created_date || 0);
+  });
+
+  content.innerHTML = queue.map(deal => {
+    const dateStr = deal.created_date
+      ? new Date(deal.created_date).toLocaleDateString('no-NO', { day: '2-digit', month: 'short', year: 'numeric' })
+      : '';
+    return `
+    <div class="deal-card ${deal.ready ? 'ready' : ''}" id="card-${deal.deal_id}">
+      <div class="deal-card-top">
+        <div>
+          <div class="deal-card-name">${esc(deal.boat_name || deal.deal_name)}</div>
+          <div class="deal-card-date">${dateStr ? `Opprettet i Pipeline B: ${dateStr}` : ''}</div>
+        </div>
+        ${deal.ready ? `
+          <button class="btn-assign" id="btn-${deal.deal_id}" onclick="assignNumber('${deal.deal_id}', this)">
+            Tildel oppdragsnummer
+          </button>
+        ` : ''}
+      </div>
+      <div class="deal-card-checks">
+        <div class="check-item">
+          <div class="check-icon ${deal.egenerklaring ? 'check-ok' : 'check-missing'}">${deal.egenerklaring ? '✓' : '—'}</div>
+          <span class="check-label ${deal.egenerklaring ? '' : 'missing'}">Egenerklæring</span>
+        </div>
+        <div class="check-item">
+          <div class="check-icon ${deal.oppdragsavtale ? 'check-ok' : 'check-missing'}">${deal.oppdragsavtale ? '✓' : '—'}</div>
+          <span class="check-label ${deal.oppdragsavtale ? '' : 'missing'}">Oppdragsavtale</span>
+        </div>
+      </div>
+      <div class="assign-result" id="result-${deal.deal_id}"></div>
+    </div>`;
+  }).join('');
+}
+
+// ── Assign ───────────────────────────────────────────────────────────────────
+
+async function assignNumber(dealId, btn) {
+  if (btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = 'Tildeler...';
+
+  const resultEl = document.getElementById(`result-${dealId}`);
+  resultEl.className = 'assign-result';
+  resultEl.style.display = 'none';
+
+  try {
+    const data = await api(`?action=assign`, 'POST', { deal_id: dealId });
+
+    if (data.ok) {
+      btn.textContent = `✓ ${data.assignment.number}`;
+      btn.classList.add('success');
+
+      let msg = `Oppdragsnummer <strong>${data.assignment.number}</strong> tildelt. Deal omdøpt til "${esc(data.new_deal_name)}".`;
+
+      // Sync status
+      const syncs = [];
+      if (data.sync.hubspot)     syncs.push('<span class="sync-badge sync-ok">HubSpot ✓</span>');
+      else                       syncs.push('<span class="sync-badge sync-fail">HubSpot ✗</span>');
+      if (data.sync.oneflow)     syncs.push('<span class="sync-badge sync-ok">Oneflow ✓</span>');
+      else                       syncs.push('<span class="sync-badge sync-fail">Oneflow ✗</span>');
+      syncs.push('<span class="sync-badge sync-pending">PowerOffice (ikke tilkoblet)</span>');
+
+      msg += `<div class="sync-row">${syncs.join('')}</div>`;
+
+      resultEl.innerHTML = msg;
+      resultEl.className = 'assign-result ok';
+
+      // Refresh the next number
+      loadNext();
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Tildel oppdragsnummer';
+      resultEl.textContent = data.error || 'Ukjent feil';
+      resultEl.className = 'assign-result error';
+    }
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = 'Tildel oppdragsnummer';
+    resultEl.textContent = `Feil: ${e.message}`;
+    resultEl.className = 'assign-result error';
+  }
+}
+
+// ── List ─────────────────────────────────────────────────────────────────────
+
+async function loadList() {
+  const content = document.getElementById('listContent');
+  content.innerHTML = '<div class="list-empty">Laster...</div>';
+
+  const year = document.getElementById('yearFilter').value;
+  const qs = year ? `?list=1&year=${year}` : '?list=1';
+  const data = await api(qs);
+  const list = data.assignments || [];
+
+  if (!list.length) {
+    content.innerHTML = '<div class="list-empty">Ingen oppdragsnummer funnet</div>';
+    return;
+  }
+
+  content.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Nummer</th>
+          <th>Deal / Fartøy</th>
+          <th>Megler</th>
+          <th>Tildelt</th>
+          <th>HubSpot</th>
+          <th>Oneflow</th>
+          <th>PowerOffice</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${list.map(a => `
+          <tr>
+            <td class="num-cell">${esc(a.number)}</td>
+            <td>${esc(a.vessel_name || a.deal_name || '—')}</td>
+            <td>${esc(a.broker_email ? a.broker_email.split('@')[0] : '—')}</td>
+            <td>${a.assigned_at ? new Date(a.assigned_at).toLocaleDateString('no-NO', { day: '2-digit', month: 'short' }) : '—'}</td>
+            <td>${syncPill(a.hubspot_synced)}</td>
+            <td>${syncPill(a.oneflow_synced)}</td>
+            <td>${syncPill(a.poweroffice_synced)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>`;
+}
+
+function syncPill(ok) {
+  return ok
+    ? '<span class="pill pill-ok">Synket</span>'
+    : '<span class="pill pill-no">Venter</span>';
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

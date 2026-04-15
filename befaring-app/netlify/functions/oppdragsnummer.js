@@ -1,0 +1,620 @@
+// ── oppdragsnummer.js ──────────────────────────────────────────────────────────
+// Oppdragsnummer-tildeling: erstatter manuell Notion-liste + 7-stegs prosess.
+//
+// GET  ?queue=1           → Deals i Pipeline A (Closed Won) som mangler oppdragsnummer
+//                           og har begge Oneflow-docs (egenerklæring + oppdragsavtale) signert.
+// GET  ?list=1            → Alle tildelte oppdragsnummer (erstatter Notion)
+// GET  ?next=1            → Neste ledige nummer for inneværende år
+// POST action=assign      → Tildel neste oppdragsnummer til deal. Synker til HubSpot + Oneflow.
+//
+// Kun admin-tilgang.
+// ──────────────────────────────────────────────────────────────────────────────
+
+const { createClient } = require('@supabase/supabase-js');
+
+const PIPELINE_A = '3205247197';
+const PIPELINE_B = '3211644128';
+const STAGE_CLOSED_WON = '4400020706';  // "Vunnet" in Pipeline A
+
+// Oneflow template IDs — same source as sjekkliste.js
+const OF_TEMPLATES = {
+  egenerklaring:  [5128144],
+  oppdragsavtale: [5130587],
+};
+
+const CORS = {
+  'Access-Control-Allow-Origin':  '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+function supabase() {
+  return createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
+}
+
+function parseJwt(token) {
+  try {
+    const b = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(Buffer.from(b, 'base64').toString('utf8'));
+  } catch { return null; }
+}
+
+async function hs(path, method = 'GET', body = null) {
+  const res = await fetch(`https://api.hubapi.com${path}`, {
+    method,
+    headers: {
+      Authorization:  `Bearer ${process.env.HUBSPOT_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  const text = await res.text();
+  try { return { ok: res.ok, status: res.status, data: JSON.parse(text) }; }
+  catch { return { ok: false, status: res.status, data: { raw: text } }; }
+}
+
+async function ofApi(path, method = 'GET', body = null) {
+  const res = await fetch(`https://api.oneflow.com/v1${path}`, {
+    method,
+    headers: {
+      'x-oneflow-api-token':  process.env.ONEFLOW_API_TOKEN,
+      'x-oneflow-user-email': process.env.ONEFLOW_USER_EMAIL,
+      'Content-Type': 'application/json',
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  const text = await res.text();
+  try { return { ok: res.ok, status: res.status, data: JSON.parse(text) }; }
+  catch { return { ok: false, status: res.status, data: { raw: text } }; }
+}
+
+// ── Auth: verify Netlify Identity JWT and check admin role ─────────────────
+function verifyAdmin(event) {
+  const auth = (event.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  if (!auth) return { ok: false, error: 'Ikke autentisert', status: 401 };
+  const jwt = parseJwt(auth);
+  if (!jwt) return { ok: false, error: 'Ugyldig token', status: 401 };
+  const roles = jwt.app_metadata?.roles || [];
+  if (!roles.includes('admin')) return { ok: false, error: 'Kun admin', status: 403 };
+  return { ok: true, email: jwt.email, jwt };
+}
+
+// ── Get next assignment number ─────────────────────────────────────────────
+async function getNextNumber(sb) {
+  const now = new Date();
+  const year = now.getFullYear();
+  const yearPrefix = String(year).slice(-2); // "26"
+
+  const { data, error } = await sb
+    .from('assignment_numbers')
+    .select('sequence')
+    .eq('year', year)
+    .order('sequence', { ascending: false })
+    .limit(1);
+
+  const nextSeq = (data && data.length > 0) ? data[0].sequence + 1 : 1;
+  const number = `${yearPrefix}${String(nextSeq).padStart(3, '0')}`;
+
+  return { year, sequence: nextSeq, number };
+}
+
+// ── Check Oneflow contract status for a deal ───────────────────────────────
+// Searches all Oneflow contracts matching deal name/number and checks if
+// both egenerklæring and oppdragsavtale are signed.
+async function checkOneflowStatus(dealName, boatName) {
+  const status = { egenerklaring: null, oppdragsavtale: null };
+
+  try {
+    // Search Oneflow contracts by boat name or deal name
+    const searchTerms = [boatName, dealName].filter(Boolean);
+    if (!searchTerms.length) return status;
+
+    // Fetch recent contracts from Oneflow (last 500)
+    const res = await ofApi('/contracts?count=500&sort_by=-updated_time');
+    if (!res.ok) {
+      console.error('Oneflow contract list feil:', res.status);
+      return status;
+    }
+
+    const contracts = res.data?.data || res.data?._embedded?.contracts || res.data || [];
+    if (!Array.isArray(contracts)) return status;
+
+    const normalise = s => (s || '').toLowerCase().replace(/[^a-zæøå0-9]/g, '');
+    const searchKeys = searchTerms.map(normalise).filter(k => k.length > 2);
+
+    for (const c of contracts) {
+      const cName = normalise(c._private?.name || c.name || '');
+      const matches = searchKeys.some(k => cName.includes(k));
+      if (!matches) continue;
+
+      const tid = parseInt(c._private_ownerside?.template_id || c.template?._id || c.template?.id || 0);
+      // state: 0=draft, 1=pending, 2=overdue, 3=signed, 4=declined, 5=cancelled
+      const isSigned = c.state === 3 || c.state === 'signed';
+
+      if (tid) {
+        if (OF_TEMPLATES.egenerklaring.includes(tid) && isSigned)  status.egenerklaring  = 'signed';
+        if (OF_TEMPLATES.oppdragsavtale.includes(tid) && isSigned) status.oppdragsavtale = 'signed';
+      } else {
+        // Fallback: match by name
+        const name = cName;
+        if ((name.includes('egenerklær') || name.includes('egenerklaring')) && isSigned)
+          status.egenerklaring = 'signed';
+        if ((name.includes('salgsavtale') || name.includes('oppdragsavtale')) && isSigned)
+          status.oppdragsavtale = 'signed';
+      }
+    }
+  } catch (e) {
+    console.error('checkOneflowStatus feil:', e.message);
+  }
+
+  return status;
+}
+
+// ── Find Oneflow contract IDs for a deal (to rename them) ──────────────────
+async function findOneflowContracts(dealName, boatName) {
+  const found = [];
+  try {
+    const res = await ofApi('/contracts?count=500&sort_by=-updated_time');
+    if (!res.ok) return found;
+
+    const contracts = res.data?.data || res.data?._embedded?.contracts || res.data || [];
+    if (!Array.isArray(contracts)) return found;
+
+    const normalise = s => (s || '').toLowerCase().replace(/[^a-zæøå0-9]/g, '');
+    const searchKeys = [boatName, dealName].filter(Boolean).map(normalise).filter(k => k.length > 2);
+
+    for (const c of contracts) {
+      const cName = normalise(c._private?.name || c.name || '');
+      const matches = searchKeys.some(k => cName.includes(k));
+      if (!matches) continue;
+
+      const tid = parseInt(c._private_ownerside?.template_id || c.template?._id || c.template?.id || 0);
+      const isRelevant = OF_TEMPLATES.egenerklaring.includes(tid) || OF_TEMPLATES.oppdragsavtale.includes(tid);
+      if (isRelevant || (!tid && (cName.includes('egenerklær') || cName.includes('salgsavtale') || cName.includes('oppdragsavtale')))) {
+        found.push({
+          id: c.id,
+          name: c._private?.name || c.name || '',
+          template_id: tid,
+        });
+      }
+    }
+  } catch (e) {
+    console.error('findOneflowContracts feil:', e.message);
+  }
+  return found;
+}
+
+// ── GET ?queue=1 — Pipeline B deals awaiting assignment number ─────────────
+// When a Pipeline A deal reaches Closed Won, HubSpot workflow creates a copy
+// in Pipeline B (stage "Prep/Listing Ready") with name "Listing: Boat Name".
+// This queue shows those Pipeline B deals that don't have a number yet.
+async function handleQueue(sb) {
+  // 1. Search Pipeline B deals without oppdragsnummer
+  const searchBody = {
+    filterGroups: [{
+      filters: [
+        { propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_B },
+        { propertyName: 'oppdragsnummer', operator: 'NOT_HAS_PROPERTY' },
+      ],
+    }],
+    properties: ['dealname', 'oppdragsnummer', 'hubspot_owner_id', 'pipeline', 'dealstage', 'createdate'],
+    sorts: [{ propertyName: 'createdate', direction: 'DESCENDING' }],
+    limit: 100,
+  };
+
+  const hsRes = await hs('/crm/v3/objects/deals/search', 'POST', searchBody);
+  if (!hsRes.ok) {
+    console.error('HubSpot search feil:', JSON.stringify(hsRes.data));
+    return { statusCode: 502, headers: CORS, body: JSON.stringify({ error: 'HubSpot-feil' }) };
+  }
+
+  const deals = hsRes.data?.results || [];
+  if (!deals.length) {
+    return { statusCode: 200, headers: CORS, body: JSON.stringify({ queue: [] }) };
+  }
+
+  // 2. Exclude deals that already have a number in Supabase (belt and suspenders)
+  const dealIds = deals.map(d => d.id);
+  const { data: existing } = await sb
+    .from('assignment_numbers')
+    .select('deal_id')
+    .in('deal_id', dealIds);
+  const alreadyAssigned = new Set((existing || []).map(e => e.deal_id));
+
+  // 3. Check Oneflow status for each deal
+  const queue = [];
+  for (const deal of deals) {
+    if (alreadyAssigned.has(deal.id)) continue;
+
+    const dealName = deal.properties.dealname || '';
+    // Extract boat name: strip "Listing: " prefix and any existing number prefix
+    const boatName = dealName
+      .replace(/^listing\s*:\s*/i, '')
+      .replace(/^\d{4,5}\s*[-–]\s*/, '')
+      .trim();
+
+    const oneflow = await checkOneflowStatus(dealName, boatName);
+
+    queue.push({
+      deal_id:        deal.id,
+      deal_name:      dealName,
+      boat_name:      boatName,
+      owner_id:       deal.properties.hubspot_owner_id,
+      stage:          deal.properties.dealstage,
+      created_date:   deal.properties.createdate,
+      egenerklaring:  oneflow.egenerklaring === 'signed',
+      oppdragsavtale: oneflow.oppdragsavtale === 'signed',
+      ready:          oneflow.egenerklaring === 'signed' && oneflow.oppdragsavtale === 'signed',
+    });
+  }
+
+  return {
+    statusCode: 200,
+    headers: CORS,
+    body: JSON.stringify({ queue }),
+  };
+}
+
+// ── GET ?list=1 — All assigned numbers ─────────────────────────────────────
+async function handleList(sb, params) {
+  const year = params.year ? parseInt(params.year) : null;
+
+  let query = sb
+    .from('assignment_numbers')
+    .select('*')
+    .order('year', { ascending: false })
+    .order('sequence', { ascending: false });
+
+  if (year) query = query.eq('year', year);
+
+  const { data, error } = await query.limit(200);
+  if (error) {
+    return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: error.message }) };
+  }
+
+  return {
+    statusCode: 200,
+    headers: CORS,
+    body: JSON.stringify({ assignments: data || [] }),
+  };
+}
+
+// ── POST action=assign — Assign number to deal ────────────────────────────
+async function handleAssign(sb, body, adminEmail) {
+  const { deal_id } = body;
+  if (!deal_id) {
+    return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'deal_id påkrevd' }) };
+  }
+
+  // 1. Check deal isn't already assigned
+  const { data: existingDeal } = await sb
+    .from('assignment_numbers')
+    .select('number')
+    .eq('deal_id', deal_id)
+    .maybeSingle();
+
+  if (existingDeal) {
+    return { statusCode: 409, headers: CORS, body: JSON.stringify({ error: `Deal har allerede nummer ${existingDeal.number}` }) };
+  }
+
+  // 2. Get deal info from HubSpot
+  const dealRes = await hs(`/crm/v3/objects/deals/${deal_id}?properties=dealname,hubspot_owner_id`);
+  if (!dealRes.ok) {
+    return { statusCode: 502, headers: CORS, body: JSON.stringify({ error: 'Kunne ikke hente deal fra HubSpot' }) };
+  }
+  const dealName = dealRes.data.properties.dealname || '';
+  // Strip "Listing: " prefix and any existing number prefix to get pure boat name
+  const boatName = dealName
+    .replace(/^listing\s*:\s*/i, '')
+    .replace(/^\d{4,5}\s*[-–]\s*/, '')
+    .trim();
+  const ownerId  = dealRes.data.properties.hubspot_owner_id;
+
+  // Resolve owner email
+  let brokerEmail = null;
+  if (ownerId) {
+    try {
+      const ownerRes = await hs(`/crm/v3/owners/${ownerId}`);
+      if (ownerRes.ok) brokerEmail = ownerRes.data.email;
+    } catch { /* best-effort */ }
+  }
+
+  // 3. Generate next number (with retry for race conditions)
+  const { year, sequence, number } = await getNextNumber(sb);
+  const newDealName = `${number} - ${boatName}`;
+
+  // 4. Insert into Supabase
+  const { data: assignment, error: insertErr } = await sb
+    .from('assignment_numbers')
+    .insert({
+      number,
+      year,
+      sequence,
+      deal_id,
+      deal_name: boatName,
+      vessel_name: boatName,
+      broker_email: brokerEmail,
+      assigned_by: adminEmail,
+    })
+    .select()
+    .single();
+
+  if (insertErr) {
+    // Likely unique constraint violation from race condition
+    console.error('Insert assignment_numbers feil:', insertErr.message);
+    return { statusCode: 409, headers: CORS, body: JSON.stringify({ error: 'Nummer allerede tildelt — prøv igjen' }) };
+  }
+
+  // 5. Sync to HubSpot (deal name + property)
+  const syncResults = { hubspot: false, oneflow: false, poweroffice: false };
+
+  try {
+    const updateRes = await hs(`/crm/v3/objects/deals/${deal_id}`, 'PATCH', {
+      properties: {
+        dealname: newDealName,
+        oppdragsnummer: number,
+      },
+    });
+
+    if (updateRes.ok) {
+      syncResults.hubspot = true;
+      await sb.from('assignment_numbers')
+        .update({ hubspot_synced: true, hubspot_synced_at: new Date().toISOString() })
+        .eq('id', assignment.id);
+    } else {
+      console.error('HubSpot sync feil:', JSON.stringify(updateRes.data));
+    }
+  } catch (e) {
+    console.error('HubSpot sync exception:', e.message);
+  }
+
+  // 6. Sync to Oneflow (rename contracts)
+  try {
+    const contracts = await findOneflowContracts(dealName, boatName);
+    let oneflowOk = contracts.length === 0; // vacuously true if no contracts
+
+    for (const c of contracts) {
+      // Rename: prepend assignment number to existing name
+      const currentName = c.name;
+      const newName = currentName.match(/^\d{5}\s*[-–]/)
+        ? currentName  // Already has a number prefix
+        : `${number} - ${currentName}`;
+
+      const renameRes = await ofApi(`/contracts/${c.id}`, 'PATCH', {
+        _private: { name: newName },
+      });
+
+      if (renameRes.ok) {
+        oneflowOk = true;
+      } else {
+        console.error(`Oneflow rename feil for ${c.id}:`, JSON.stringify(renameRes.data));
+      }
+    }
+
+    if (oneflowOk) {
+      syncResults.oneflow = true;
+      await sb.from('assignment_numbers')
+        .update({ oneflow_synced: true, oneflow_synced_at: new Date().toISOString() })
+        .eq('id', assignment.id);
+    }
+  } catch (e) {
+    console.error('Oneflow sync exception:', e.message);
+  }
+
+  // 7. PowerOffice — TODO: add when API key is ready
+  // syncResults.poweroffice = await syncToPowerOffice(number, boatName, ...);
+
+  // 8. Log HubSpot note (best-effort)
+  try {
+    await hs('/crm/v3/objects/notes', 'POST', {
+      properties: {
+        hs_note_body: `📋 Oppdragsnummer ${number} tildelt.\nDeal omdøpt til "${newDealName}".\nTildelt av: ${adminEmail}`,
+        hs_timestamp: new Date().toISOString(),
+      },
+      associations: [{
+        to:    { id: deal_id },
+        types: [{ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: 214 }],
+      }],
+    });
+  } catch (e) {
+    console.error('HubSpot note exception:', e.message);
+  }
+
+  return {
+    statusCode: 200,
+    headers: CORS,
+    body: JSON.stringify({
+      ok: true,
+      assignment: {
+        ...assignment,
+        hubspot_synced:  syncResults.hubspot,
+        oneflow_synced:  syncResults.oneflow,
+        poweroffice_synced: syncResults.poweroffice,
+      },
+      new_deal_name: newDealName,
+      sync: syncResults,
+    }),
+  };
+}
+
+
+// ── POST action=bootstrap — Import existing numbers from HubSpot ───────────
+// Searches HubSpot for all deals with oppdragsnummer property set,
+// and inserts them into assignment_numbers if not already present.
+// Safe to run multiple times (idempotent).
+async function handleBootstrap(sb, adminEmail) {
+  const imported = [];
+  const skipped = [];
+  const errors  = [];
+  let after = undefined;
+  let totalDeals = 0;
+
+  // Paginate through all deals with oppdragsnummer set
+  do {
+    const searchBody = {
+      filterGroups: [{
+        filters: [
+          { propertyName: 'oppdragsnummer', operator: 'HAS_PROPERTY' },
+        ],
+      }],
+      properties: ['dealname', 'oppdragsnummer', 'hubspot_owner_id', 'pipeline', 'dealstage', 'closedate'],
+      sorts: [{ propertyName: 'oppdragsnummer', direction: 'ASCENDING' }],
+      limit: 100,
+      ...(after ? { after } : {}),
+    };
+
+    const hsRes = await hs('/crm/v3/objects/deals/search', 'POST', searchBody);
+    if (!hsRes.ok) {
+      console.error('Bootstrap HubSpot search feil:', JSON.stringify(hsRes.data));
+      return { statusCode: 502, headers: CORS, body: JSON.stringify({ error: 'HubSpot-søk feilet' }) };
+    }
+
+    const deals = hsRes.data?.results || [];
+    totalDeals += deals.length;
+
+    for (const deal of deals) {
+      const num = (deal.properties.oppdragsnummer || '').trim();
+      if (!num) { skipped.push({ deal_id: deal.id, reason: 'tomt nummer' }); continue; }
+
+      // Parse number format: expect YYNNN (e.g. "26014")
+      const match = num.match(/^(\d{2})(\d{3})$/);
+      if (!match) {
+        // Try YYNN format (e.g. "2614" for year 26, seq 14) or other formats
+        const match4 = num.match(/^(\d{2})(\d{2})$/);
+        if (match4) {
+          // Ambiguous — could be YYNN. Treat as YYNN.
+          var year = 2000 + parseInt(match4[1]);
+          var sequence = parseInt(match4[2]);
+        } else {
+          skipped.push({ deal_id: deal.id, number: num, reason: 'ukjent format' });
+          continue;
+        }
+      } else {
+        var year = 2000 + parseInt(match[1]);
+        var sequence = parseInt(match[2]);
+      }
+
+      // Check if already in Supabase
+      const { data: existing } = await sb
+        .from('assignment_numbers')
+        .select('id')
+        .eq('number', num)
+        .maybeSingle();
+
+      if (existing) {
+        skipped.push({ deal_id: deal.id, number: num, reason: 'allerede importert' });
+        continue;
+      }
+
+      // Also check if this deal_id already has a number
+      const { data: existingDeal } = await sb
+        .from('assignment_numbers')
+        .select('number')
+        .eq('deal_id', deal.id)
+        .maybeSingle();
+
+      if (existingDeal) {
+        skipped.push({ deal_id: deal.id, number: num, reason: `deal har allerede ${existingDeal.number}` });
+        continue;
+      }
+
+      const dealName = deal.properties.dealname || '';
+      // Extract boat name by removing number prefix
+      const boatName = dealName.replace(/^\d{4,5}\s*[-–]\s*/, '').trim() || dealName;
+
+      // Resolve owner email
+      let brokerEmail = null;
+      const ownerId = deal.properties.hubspot_owner_id;
+      if (ownerId) {
+        try {
+          const ownerRes = await hs(`/crm/v3/owners/${ownerId}`);
+          if (ownerRes.ok) brokerEmail = ownerRes.data.email;
+        } catch { /* best-effort */ }
+      }
+
+      const { error: insertErr } = await sb
+        .from('assignment_numbers')
+        .insert({
+          number:          num,
+          year,
+          sequence,
+          deal_id:         deal.id,
+          deal_name:       boatName,
+          vessel_name:     boatName,
+          broker_email:    brokerEmail,
+          assigned_by:     adminEmail,
+          assigned_at:     deal.properties.closedate || new Date().toISOString(),
+          hubspot_synced:  true,   // came from HubSpot
+          hubspot_synced_at: new Date().toISOString(),
+        });
+
+      if (insertErr) {
+        console.error(`Bootstrap insert feil for ${num}:`, insertErr.message);
+        errors.push({ deal_id: deal.id, number: num, error: insertErr.message });
+      } else {
+        imported.push({ deal_id: deal.id, number: num, deal_name: boatName });
+      }
+    }
+
+    // HubSpot pagination
+    after = hsRes.data?.paging?.next?.after || null;
+  } while (after);
+
+  return {
+    statusCode: 200,
+    headers: CORS,
+    body: JSON.stringify({
+      ok: true,
+      total_deals_scanned: totalDeals,
+      imported: imported.length,
+      skipped: skipped.length,
+      errors: errors.length,
+      details: { imported, skipped, errors },
+    }),
+  };
+}
+
+
+// ── Handler ────────────────────────────────────────────────────────────────
+exports.handler = async (event) => {
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: CORS, body: '' };
+
+  // Auth — all endpoints require admin
+  const auth = verifyAdmin(event);
+  if (!auth.ok) {
+    return { statusCode: auth.status, headers: CORS, body: JSON.stringify({ error: auth.error }) };
+  }
+
+  const params = event.queryStringParameters || {};
+  const sb = supabase();
+
+  // ── GET endpoints ──────────────────────────────────────────────────────────
+  if (event.httpMethod === 'GET') {
+    if (params.queue)  return handleQueue(sb);
+    if (params.list)   return handleList(sb, params);
+    if (params.next) {
+      const next = await getNextNumber(sb);
+      return { statusCode: 200, headers: CORS, body: JSON.stringify(next) };
+    }
+    return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Ukjent forespørsel' }) };
+  }
+
+  // ── POST endpoints ─────────────────────────────────────────────────────────
+  if (event.httpMethod === 'POST') {
+    let body;
+    try { body = JSON.parse(event.body || '{}'); } catch {
+      return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Ugyldig JSON' }) };
+    }
+
+    const action = params.action || body.action;
+    if (action === 'assign')    return handleAssign(sb, body, auth.email);
+    if (action === 'bootstrap') return handleBootstrap(sb, auth.email);
+
+    return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: `Ukjent action: ${action}` }) };
+  }
+
+  return { statusCode: 405, headers: CORS, body: 'Method Not Allowed' };
+};
