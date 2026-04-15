@@ -1126,6 +1126,10 @@ function spaceYear(y) {
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 function getToken() {
+  // Primary: token stored by portal login
+  const t = localStorage.getItem('hoy_access_token');
+  if (t) return t;
+  // Fallback: GoTrue widget (legacy)
   try {
     const u = JSON.parse(localStorage.getItem('gotrue.user'));
     if (u?.token?.access_token) return u.token.access_token;
