@@ -204,10 +204,56 @@ async function findOneflowContracts(dealName, boatName) {
   return found;
 }
 
+// ── Fetch all Oneflow contracts once (cached per request) ──────────────────
+async function fetchAllOneflowContracts() {
+  const MAX_PAGES = 5;
+  let contracts = [];
+  let offset = 0;
+  let totalCount = Infinity;
+
+  while (offset < totalCount && offset < MAX_PAGES * 100) {
+    const res = await ofApi(`/contracts?limit=100&offset=${offset}`);
+    if (!res.ok) {
+      console.error('Oneflow fetch feil:', res.status);
+      break;
+    }
+    totalCount = res.data?.count || 0;
+    const page = res.data?.data || [];
+    contracts = [...contracts, ...page];
+    offset += 100;
+  }
+  console.log(`Oneflow: hentet ${contracts.length} av ${totalCount} kontrakter`);
+  return contracts;
+}
+
+// Match a deal against pre-fetched Oneflow contracts
+function matchOneflowForDeal(allContracts, dealName, boatName) {
+  const status = { egenerklaring: null, oppdragsavtale: null };
+  const searchKeys = [boatName, dealName].filter(Boolean).map(s => s.toLowerCase()).filter(k => k.length > 2);
+  if (!searchKeys.length) return status;
+
+  for (const c of allContracts) {
+    const name = (c._private?.name || c.name || '').toLowerCase();
+    const matches = searchKeys.some(k => name.includes(k));
+    if (!matches) continue;
+
+    const tid = parseInt(c._private_ownerside?.template_id || c.template?._id || c.template?.id || 0);
+    const isSigned = c.state === 3 || c.state === 'signed';
+
+    if (tid) {
+      if (OF_TEMPLATES.egenerklaring.includes(tid) && isSigned)  status.egenerklaring  = 'signed';
+      if (OF_TEMPLATES.oppdragsavtale.includes(tid) && isSigned) status.oppdragsavtale = 'signed';
+    } else {
+      if ((name.includes('egenerklær') || name.includes('egenerklaring')) && isSigned)
+        status.egenerklaring = 'signed';
+      if ((name.includes('salgsavtale') || name.includes('oppdragsavtale')) && isSigned)
+        status.oppdragsavtale = 'signed';
+    }
+  }
+  return status;
+}
+
 // ── GET ?queue=1 — Pipeline B deals awaiting assignment number ─────────────
-// When a Pipeline A deal reaches Closed Won, HubSpot workflow creates a copy
-// in Pipeline B (stage "Prep/Listing Ready") with name "Listing: Boat Name".
-// This queue shows those Pipeline B deals that don't have a number yet.
 async function handleQueue(sb) {
   // 1. Search Pipeline B deals without oppdragsnummer
   const searchBody = {
@@ -241,19 +287,20 @@ async function handleQueue(sb) {
     .in('deal_id', dealIds);
   const alreadyAssigned = new Set((existing || []).map(e => e.deal_id));
 
-  // 3. Check Oneflow status for each deal
+  // 3. Fetch Oneflow contracts ONCE, then match each deal against the list
+  const allContracts = await fetchAllOneflowContracts();
+
   const queue = [];
   for (const deal of deals) {
     if (alreadyAssigned.has(deal.id)) continue;
 
     const dealName = deal.properties.dealname || '';
-    // Extract boat name: strip "Listing: " prefix and any existing number prefix
     const boatName = dealName
       .replace(/^listing\s*:\s*/i, '')
       .replace(/^\d{4,5}\s*[-–]\s*/, '')
       .trim();
 
-    const oneflow = await checkOneflowStatus(dealName, boatName);
+    const oneflow = matchOneflowForDeal(allContracts, dealName, boatName);
 
     queue.push({
       deal_id:        deal.id,
