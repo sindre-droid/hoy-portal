@@ -113,7 +113,7 @@ async function checkOneflowStatus(dealName, boatName) {
     if (!searchTerms.length) return status;
 
     // Fetch recent contracts from Oneflow (last 500)
-    const res = await ofApi('/contracts?count=500&sort_by=-updated_time');
+    const res = await ofApi('/contracts?limit=100&offset=0&sort_by=-updated_time');
     if (!res.ok) {
       console.error('Oneflow contract list feil:', res.status);
       return status;
@@ -157,7 +157,7 @@ async function checkOneflowStatus(dealName, boatName) {
 async function findOneflowContracts(dealName, boatName) {
   const found = [];
   try {
-    const res = await ofApi('/contracts?count=500&sort_by=-updated_time');
+    const res = await ofApi('/contracts?limit=100&offset=0&sort_by=-updated_time');
     if (!res.ok) return found;
 
     const contracts = res.data?.data || res.data?._embedded?.contracts || res.data || [];
@@ -522,19 +522,13 @@ async function handleBootstrap(sb, adminEmail) {
       }
 
       const dealName = deal.properties.dealname || '';
-      // Extract boat name by removing number prefix
-      const boatName = dealName.replace(/^\d{4,5}\s*[-–]\s*/, '').trim() || dealName;
+      // Extract boat name by removing number prefix and "Listing:" prefix
+      const boatName = dealName
+        .replace(/^listing\s*:\s*/i, '')
+        .replace(/^\d{4,5}\s*[-–]\s*/, '')
+        .trim() || dealName;
 
-      // Resolve owner email
-      let brokerEmail = null;
-      const ownerId = deal.properties.hubspot_owner_id;
-      if (ownerId) {
-        try {
-          const ownerRes = await hs(`/crm/v3/owners/${ownerId}`);
-          if (ownerRes.ok) brokerEmail = ownerRes.data.email;
-        } catch { /* best-effort */ }
-      }
-
+      // Skip owner lookup during bootstrap for speed — can be enriched later
       const { error: insertErr } = await sb
         .from('assignment_numbers')
         .insert({
@@ -544,7 +538,7 @@ async function handleBootstrap(sb, adminEmail) {
           deal_id:         deal.id,
           deal_name:       boatName,
           vessel_name:     boatName,
-          broker_email:    brokerEmail,
+          broker_email:    null,  // enriched later to avoid timeout
           assigned_by:     adminEmail,
           assigned_at:     deal.properties.closedate || new Date().toISOString(),
           hubspot_synced:  true,   // came from HubSpot
