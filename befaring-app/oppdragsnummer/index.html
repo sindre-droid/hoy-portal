@@ -81,8 +81,6 @@
     .btn-assign-force:hover{opacity:0.85}
     .btn-assign-force:disabled{opacity:0.4;cursor:not-allowed}
     .btn-assign-force.success{background:var(--green);color:white;border-color:var(--green)}
-    .btn-link{background:transparent;color:var(--blue);border:2px solid var(--blue);border-radius:10px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.2s}
-    .btn-link:hover{background:var(--blue-bg)}
 
     .assign-result{margin-top:12px;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600;display:none}
     .assign-result.ok{display:block;background:var(--green-bg);color:var(--green)}
@@ -202,7 +200,7 @@
     <!-- Queue view -->
     <div id="queueView">
       <div id="queueLoading" style="text-align:center;padding:40px;color:var(--gray-dark)">
-        Sjekker Oneflow-status for ventende deals...
+        Henter deals...
       </div>
       <div id="queueContent"></div>
     </div>
@@ -382,9 +380,12 @@ function switchTab(tab) {
 
 // ── Queue ────────────────────────────────────────────────────────────────────
 
+let currentQueue = []; // store queue for Oneflow enrichment
+
 async function loadQueue() {
   const loading = document.getElementById('queueLoading');
   const content = document.getElementById('queueContent');
+  loading.textContent = 'Henter deals fra HubSpot...';
   loading.style.display = '';
   content.innerHTML = '';
 
@@ -392,8 +393,8 @@ async function loadQueue() {
   loading.style.display = 'none';
 
   const queue = data.queue || [];
-  const readyCount = queue.filter(d => d.ready).length;
-  document.getElementById('queueBadge').textContent = readyCount;
+  currentQueue = queue;
+  document.getElementById('queueBadge').textContent = queue.length;
 
   if (!queue.length) {
     content.innerHTML = `
@@ -404,25 +405,32 @@ async function loadQueue() {
     return;
   }
 
-  // Sort: ready first, then by created date
-  queue.sort((a, b) => {
-    if (a.ready !== b.ready) return a.ready ? -1 : 1;
-    return new Date(b.created_date || 0) - new Date(a.created_date || 0);
-  });
+  // Sort by created date (newest first)
+  queue.sort((a, b) => new Date(b.created_date || 0) - new Date(a.created_date || 0));
 
+  renderQueue(queue, data.filtered);
+
+  // Lazy-load Oneflow status in background
+  loadOneflowStatus(queue);
+}
+
+function renderQueue(queue, filteredCount) {
+  const content = document.getElementById('queueContent');
   content.innerHTML = queue.map(deal => {
     const dateStr = deal.created_date
       ? new Date(deal.created_date).toLocaleDateString('no-NO', { day: '2-digit', month: 'short', year: 'numeric' })
       : '';
+    const isReady = deal.ready === true;
+    const isLoading = deal.ready === null;  // Oneflow not loaded yet
     return `
-    <div class="deal-card ${deal.ready ? 'ready' : ''}" id="card-${deal.deal_id}">
+    <div class="deal-card ${isReady ? 'ready' : ''}" id="card-${deal.deal_id}">
       <div class="deal-card-top">
         <div>
           <div class="deal-card-name">${esc(deal.boat_name || deal.deal_name)}</div>
           <div class="deal-card-date">${dateStr ? `Opprettet i Pipeline B: ${dateStr}` : ''}</div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          ${deal.ready ? `
+          ${isReady ? `
             <button class="btn-assign" id="btn-${deal.deal_id}" onclick="assignNumber('${deal.deal_id}', this)">
               Tildel oppdragsnummer
             </button>
@@ -431,28 +439,71 @@ async function loadQueue() {
               Tildel (overstyr)
             </button>
           `}
-          <button class="btn-link" onclick="openLinkModal('${deal.deal_id}', '${esc(deal.boat_name || deal.deal_name)}')">
-            Koble nummer
-          </button>
         </div>
       </div>
       <div class="deal-card-checks">
-        <div class="check-item">
-          <div class="check-icon ${deal.egenerklaring ? 'check-ok' : 'check-missing'}">${deal.egenerklaring ? '✓' : '—'}</div>
-          <span class="check-label ${deal.egenerklaring ? '' : 'missing'}">Egenerklæring</span>
+        <div class="check-item" id="check-eg-${deal.deal_id}">
+          ${isLoading
+            ? '<div class="check-icon check-missing">⏳</div><span class="check-label missing">Egenerklæring — sjekker...</span>'
+            : `<div class="check-icon ${deal.egenerklaring ? 'check-ok' : 'check-missing'}">${deal.egenerklaring ? '✓' : '—'}</div>
+               <span class="check-label ${deal.egenerklaring ? '' : 'missing'}">Egenerklæring</span>`
+          }
         </div>
-        <div class="check-item">
-          <div class="check-icon ${deal.oppdragsavtale ? 'check-ok' : 'check-missing'}">${deal.oppdragsavtale ? '✓' : '—'}</div>
-          <span class="check-label ${deal.oppdragsavtale ? '' : 'missing'}">Oppdragsavtale</span>
+        <div class="check-item" id="check-oa-${deal.deal_id}">
+          ${isLoading
+            ? '<div class="check-icon check-missing">⏳</div><span class="check-label missing">Oppdragsavtale — sjekker...</span>'
+            : `<div class="check-icon ${deal.oppdragsavtale ? 'check-ok' : 'check-missing'}">${deal.oppdragsavtale ? '✓' : '—'}</div>
+               <span class="check-label ${deal.oppdragsavtale ? '' : 'missing'}">Oppdragsavtale</span>`
+          }
         </div>
       </div>
       <div class="assign-result" id="result-${deal.deal_id}"></div>
     </div>`;
   }).join('');
 
-  // Show filtered count if any
-  if (data.filtered > 0) {
-    content.innerHTML += `<div class="filtered-info">${data.filtered} deal(s) skjult (kjøper-deals o.l.)</div>`;
+  if (filteredCount > 0) {
+    content.innerHTML += `<div class="filtered-info">${filteredCount} deal(s) skjult (kjøper-deals o.l.)</div>`;
+  }
+}
+
+async function loadOneflowStatus(queue) {
+  try {
+    const dealData = queue.map(d => ({ deal_id: d.deal_id, deal_name: d.deal_name, boat_name: d.boat_name }));
+    const encoded = encodeURIComponent(JSON.stringify(dealData));
+    const data = await api(`?oneflow_status=1&deals=${encoded}`);
+    const statuses = data.statuses || {};
+
+    let readyCount = 0;
+    for (const deal of queue) {
+      const s = statuses[deal.deal_id];
+      if (s) {
+        deal.egenerklaring = s.egenerklaring;
+        deal.oppdragsavtale = s.oppdragsavtale;
+        deal.ready = s.ready;
+        if (s.ready) readyCount++;
+
+        // Update checkmarks in DOM
+        const egEl = document.getElementById(`check-eg-${deal.deal_id}`);
+        if (egEl) egEl.innerHTML = `<div class="check-icon ${s.egenerklaring ? 'check-ok' : 'check-missing'}">${s.egenerklaring ? '✓' : '—'}</div><span class="check-label ${s.egenerklaring ? '' : 'missing'}">Egenerklæring</span>`;
+
+        const oaEl = document.getElementById(`check-oa-${deal.deal_id}`);
+        if (oaEl) oaEl.innerHTML = `<div class="check-icon ${s.oppdragsavtale ? 'check-ok' : 'check-missing'}">${s.oppdragsavtale ? '✓' : '—'}</div><span class="check-label ${s.oppdragsavtale ? '' : 'missing'}">Oppdragsavtale</span>`;
+
+        // Update card border and button
+        const card = document.getElementById(`card-${deal.deal_id}`);
+        const btn = document.getElementById(`btn-${deal.deal_id}`);
+        if (s.ready && card && btn && !btn.classList.contains('success')) {
+          card.classList.add('ready');
+          btn.className = 'btn-assign';
+          btn.textContent = 'Tildel oppdragsnummer';
+          btn.onclick = function() { assignNumber(deal.deal_id, this); };
+        }
+      }
+    }
+
+    document.getElementById('queueBadge').textContent = readyCount;
+  } catch (e) {
+    console.error('Oneflow status feil:', e);
   }
 }
 

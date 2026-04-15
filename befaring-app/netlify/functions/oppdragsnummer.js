@@ -254,8 +254,8 @@ function isJunkDeal(dealName) {
 }
 
 // ── GET ?queue=1 — Pipeline B deals awaiting assignment number ─────────────
+// Fast: returns deals from HubSpot only. Oneflow status loaded separately.
 async function handleQueue(sb) {
-  // 1. Search Pipeline B deals without oppdragsnummer
   const searchBody = {
     filterGroups: [{
       filters: [
@@ -276,10 +276,10 @@ async function handleQueue(sb) {
 
   const deals = hsRes.data?.results || [];
   if (!deals.length) {
-    return { statusCode: 200, headers: CORS, body: JSON.stringify({ queue: [] }) };
+    return { statusCode: 200, headers: CORS, body: JSON.stringify({ queue: [], filtered: 0 }) };
   }
 
-  // 2. Exclude deals that already have a number in Supabase (belt and suspenders)
+  // Exclude deals that already have a number in Supabase (belt and suspenders)
   const dealIds = deals.map(d => d.id);
   const { data: existing } = await sb
     .from('assignment_numbers')
@@ -287,25 +287,18 @@ async function handleQueue(sb) {
     .in('deal_id', dealIds);
   const alreadyAssigned = new Set((existing || []).map(e => e.deal_id));
 
-  // 3. Fetch Oneflow contracts ONCE, then match each deal against the list
-  const allContracts = await fetchAllOneflowContracts();
-
   const queue = [];
   let filteredCount = 0;
   for (const deal of deals) {
     if (alreadyAssigned.has(deal.id)) continue;
 
     const dealName = deal.properties.dealname || '';
-
-    // Skip junk deals (e.g. "New Buyer Initiated Daal")
     if (isJunkDeal(dealName)) { filteredCount++; continue; }
 
     const boatName = dealName
       .replace(/^listing\s*:\s*/i, '')
       .replace(/^\d{4,5}\s*[-–]\s*/, '')
       .trim();
-
-    const oneflow = matchOneflowForDeal(allContracts, dealName, boatName);
 
     queue.push({
       deal_id:        deal.id,
@@ -314,9 +307,10 @@ async function handleQueue(sb) {
       owner_id:       deal.properties.hubspot_owner_id,
       stage:          deal.properties.dealstage,
       created_date:   deal.properties.createdate,
-      egenerklaring:  oneflow.egenerklaring === 'signed',
-      oppdragsavtale: oneflow.oppdragsavtale === 'signed',
-      ready:          oneflow.egenerklaring === 'signed' && oneflow.oppdragsavtale === 'signed',
+      // Oneflow status loaded separately via ?oneflow_status=1
+      egenerklaring:  null,
+      oppdragsavtale: null,
+      ready:          null,
     });
   }
 
@@ -324,6 +318,33 @@ async function handleQueue(sb) {
     statusCode: 200,
     headers: CORS,
     body: JSON.stringify({ queue, filtered: filteredCount }),
+  };
+}
+
+// ── GET ?oneflow_status=1 — Oneflow doc status for queued deals ───────────
+// Called separately after queue loads, so the UI appears fast.
+async function handleOneflowStatus(params) {
+  const dealNames = params.deals ? JSON.parse(decodeURIComponent(params.deals)) : [];
+  if (!dealNames.length) {
+    return { statusCode: 200, headers: CORS, body: JSON.stringify({ statuses: {} }) };
+  }
+
+  const allContracts = await fetchAllOneflowContracts();
+  const statuses = {};
+
+  for (const { deal_id, deal_name, boat_name } of dealNames) {
+    const oneflow = matchOneflowForDeal(allContracts, deal_name, boat_name);
+    statuses[deal_id] = {
+      egenerklaring:  oneflow.egenerklaring === 'signed',
+      oppdragsavtale: oneflow.oppdragsavtale === 'signed',
+      ready:          oneflow.egenerklaring === 'signed' && oneflow.oppdragsavtale === 'signed',
+    };
+  }
+
+  return {
+    statusCode: 200,
+    headers: CORS,
+    body: JSON.stringify({ statuses }),
   };
 }
 
@@ -482,14 +503,16 @@ async function handleAssign(sb, body, adminEmail) {
         ? currentName  // Already has a number prefix
         : `${number} - ${currentName}`;
 
+      console.log(`Oneflow rename: "${currentName}" → "${newName}" (contract ${c.id})`);
       const renameRes = await ofApi(`/contracts/${c.id}`, 'PATCH', {
         _private: { name: newName },
       });
+      console.log(`Oneflow rename resultat: ok=${renameRes.ok} status=${renameRes.status}`, JSON.stringify(renameRes.data).substring(0, 300));
 
       if (renameRes.ok) {
         oneflowOk = true;
       } else {
-        console.error(`Oneflow rename feil for ${c.id}:`, JSON.stringify(renameRes.data));
+        console.error(`Oneflow rename feil for ${c.id}:`, renameRes.status, JSON.stringify(renameRes.data));
       }
     }
 
@@ -710,14 +733,16 @@ async function handleRetryOneflow(sb, body, adminEmail) {
 
     if (newName === currentName) { renamed++; continue; }
 
+    console.log(`Retry rename: "${currentName}" → "${newName}" (contract ${c.id})`);
     const renameRes = await ofApi(`/contracts/${c.id}`, 'PATCH', {
       _private: { name: newName },
     });
+    console.log(`Retry rename resultat: ok=${renameRes.ok} status=${renameRes.status}`, JSON.stringify(renameRes.data).substring(0, 300));
+
     if (renameRes.ok) {
       renamed++;
-      console.log(`Renamed: "${currentName}" → "${newName}"`);
     } else {
-      console.error(`Rename feil for ${c.id}:`, JSON.stringify(renameRes.data));
+      console.error(`Retry rename feil for ${c.id}:`, renameRes.status, JSON.stringify(renameRes.data));
     }
   }
 
@@ -754,8 +779,9 @@ exports.handler = async (event) => {
 
   // ── GET endpoints ──────────────────────────────────────────────────────────
   if (event.httpMethod === 'GET') {
-    if (params.queue)  return handleQueue(sb);
-    if (params.list)   return handleList(sb, params);
+    if (params.queue)           return handleQueue(sb);
+    if (params.oneflow_status)  return handleOneflowStatus(params);
+    if (params.list)            return handleList(sb, params);
     if (params.next) {
       const next = await getNextNumber(sb);
       return { statusCode: 200, headers: CORS, body: JSON.stringify(next) };
