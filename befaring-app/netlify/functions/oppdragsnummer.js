@@ -108,44 +108,61 @@ async function checkOneflowStatus(dealName, boatName) {
   const status = { egenerklaring: null, oppdragsavtale: null };
 
   try {
-    // Search Oneflow contracts by boat name or deal name
     const searchTerms = [boatName, dealName].filter(Boolean);
     if (!searchTerms.length) return status;
 
-    // Fetch recent contracts from Oneflow (last 500)
-    const res = await ofApi('/contracts?limit=100&offset=0&sort_by=-updated_time');
-    if (!res.ok) {
-      console.error('Oneflow contract list feil:', res.status);
-      return status;
+    // Fetch contracts from Oneflow, paginated (same approach as sjekkliste.js)
+    const MAX_PAGES = 3;
+    let contracts = [];
+    let offset = 0;
+    let totalCount = Infinity;
+    let foundMatch = false;
+
+    const cNameLower = c => (c._private?.name || c.name || '').toLowerCase();
+    const searchKeys = searchTerms.map(s => s.toLowerCase()).filter(k => k.length > 2);
+
+    while (offset < totalCount && offset < MAX_PAGES * 100 && !foundMatch) {
+      const res = await ofApi(`/contracts?limit=100&offset=${offset}`);
+      if (!res.ok) {
+        console.error('Oneflow contract list feil:', res.status, JSON.stringify(res.data).substring(0, 200));
+        break;
+      }
+      totalCount = res.data?.count || 0;
+      const pageContracts = res.data?.data || [];
+      contracts = [...contracts, ...pageContracts];
+
+      // Check if this page has a match
+      foundMatch = pageContracts.some(c => {
+        const n = cNameLower(c);
+        return searchKeys.some(k => n.includes(k));
+      });
+      offset += 100;
     }
 
-    const contracts = res.data?.data || res.data?._embedded?.contracts || res.data || [];
-    if (!Array.isArray(contracts)) return status;
-
-    const normalise = s => (s || '').toLowerCase().replace(/[^a-zæøå0-9]/g, '');
-    const searchKeys = searchTerms.map(normalise).filter(k => k.length > 2);
+    console.log(`Oneflow: ${contracts.length} kontrakter hentet, søker etter: ${JSON.stringify(searchKeys)}`);
 
     for (const c of contracts) {
-      const cName = normalise(c._private?.name || c.name || '');
-      const matches = searchKeys.some(k => cName.includes(k));
+      const name = cNameLower(c);
+      const matches = searchKeys.some(k => name.includes(k));
       if (!matches) continue;
 
       const tid = parseInt(c._private_ownerside?.template_id || c.template?._id || c.template?.id || 0);
-      // state: 0=draft, 1=pending, 2=overdue, 3=signed, 4=declined, 5=cancelled
       const isSigned = c.state === 3 || c.state === 'signed';
+
+      console.log(`Oneflow match: "${c._private?.name || c.name}" tid=${tid} state=${c.state} signed=${isSigned}`);
 
       if (tid) {
         if (OF_TEMPLATES.egenerklaring.includes(tid) && isSigned)  status.egenerklaring  = 'signed';
         if (OF_TEMPLATES.oppdragsavtale.includes(tid) && isSigned) status.oppdragsavtale = 'signed';
       } else {
-        // Fallback: match by name
-        const name = cName;
         if ((name.includes('egenerklær') || name.includes('egenerklaring')) && isSigned)
           status.egenerklaring = 'signed';
         if ((name.includes('salgsavtale') || name.includes('oppdragsavtale')) && isSigned)
           status.oppdragsavtale = 'signed';
       }
     }
+
+    console.log(`Oneflow resultat for "${boatName}":`, JSON.stringify(status));
   } catch (e) {
     console.error('checkOneflowStatus feil:', e.message);
   }
