@@ -77,9 +77,32 @@
     .btn-assign:disabled{opacity:0.4;cursor:not-allowed}
     .btn-assign.success{background:var(--green)}
 
+    .btn-assign-force{background:var(--yellow-bg);color:var(--yellow);border:2px solid currentColor;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.2s}
+    .btn-assign-force:hover{opacity:0.85}
+    .btn-assign-force:disabled{opacity:0.4;cursor:not-allowed}
+    .btn-assign-force.success{background:var(--green);color:white;border-color:var(--green)}
+    .btn-link{background:transparent;color:var(--blue);border:2px solid var(--blue);border-radius:10px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.2s}
+    .btn-link:hover{background:var(--blue-bg)}
+
     .assign-result{margin-top:12px;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600;display:none}
     .assign-result.ok{display:block;background:var(--green-bg);color:var(--green)}
     .assign-result.error{display:block;background:var(--red-bg);color:var(--red)}
+
+    /* ── Modal ── */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px}
+    .modal{background:white;border-radius:16px;padding:28px;max-width:440px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,0.25)}
+    .modal h3{margin:0 0 16px;color:var(--navy);font-size:17px}
+    .modal label{display:block;font-size:13px;font-weight:600;color:var(--gray-dark);margin-bottom:4px}
+    .modal input{width:100%;padding:10px 14px;border:2px solid var(--gray);border-radius:8px;font-size:15px;font-family:inherit;margin-bottom:16px}
+    .modal input:focus{outline:none;border-color:var(--navy)}
+    .modal-actions{display:flex;gap:10px;justify-content:flex-end}
+    .btn-modal-cancel{background:var(--surface);border:none;border-radius:8px;padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;color:var(--gray-dark);font-family:inherit}
+    .btn-modal-ok{background:var(--navy);color:white;border:none;border-radius:8px;padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+    .btn-modal-ok:disabled{opacity:0.4;cursor:not-allowed}
+    .modal-error{color:var(--red);font-size:13px;font-weight:600;margin-bottom:12px;display:none}
+
+    /* ── Filtered info ── */
+    .filtered-info{text-align:center;padding:8px;color:var(--gray-dark);font-size:12px;margin-top:8px}
 
     /* ── Sync indicators ── */
     .sync-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
@@ -199,6 +222,22 @@
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- Link number modal -->
+<div class="modal-overlay" id="linkModal" style="display:none" onclick="if(event.target===this)closeLinkModal()">
+  <div class="modal">
+    <h3>Koble eksisterende nummer</h3>
+    <div class="modal-error" id="linkError"></div>
+    <label>Oppdragsnummer (YYNNN)</label>
+    <input type="text" id="linkNumberInput" placeholder="F.eks. 26007" maxlength="5" pattern="\d{5}">
+    <input type="hidden" id="linkDealId">
+    <div id="linkDealInfo" style="font-size:13px;color:var(--gray-dark);margin-bottom:16px"></div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeLinkModal()">Avbryt</button>
+      <button class="btn-modal-ok" id="linkSubmitBtn" onclick="submitLink()">Koble nummer</button>
+    </div>
   </div>
 </div>
 
@@ -382,11 +421,20 @@ async function loadQueue() {
           <div class="deal-card-name">${esc(deal.boat_name || deal.deal_name)}</div>
           <div class="deal-card-date">${dateStr ? `Opprettet i Pipeline B: ${dateStr}` : ''}</div>
         </div>
-        ${deal.ready ? `
-          <button class="btn-assign" id="btn-${deal.deal_id}" onclick="assignNumber('${deal.deal_id}', this)">
-            Tildel oppdragsnummer
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          ${deal.ready ? `
+            <button class="btn-assign" id="btn-${deal.deal_id}" onclick="assignNumber('${deal.deal_id}', this)">
+              Tildel oppdragsnummer
+            </button>
+          ` : `
+            <button class="btn-assign-force" id="btn-${deal.deal_id}" onclick="assignNumber('${deal.deal_id}', this, true)">
+              Tildel (overstyr)
+            </button>
+          `}
+          <button class="btn-link" onclick="openLinkModal('${deal.deal_id}', '${esc(deal.boat_name || deal.deal_name)}')">
+            Koble nummer
           </button>
-        ` : ''}
+        </div>
       </div>
       <div class="deal-card-checks">
         <div class="check-item">
@@ -401,12 +449,21 @@ async function loadQueue() {
       <div class="assign-result" id="result-${deal.deal_id}"></div>
     </div>`;
   }).join('');
+
+  // Show filtered count if any
+  if (data.filtered > 0) {
+    content.innerHTML += `<div class="filtered-info">${data.filtered} deal(s) skjult (kjøper-deals o.l.)</div>`;
+  }
 }
 
 // ── Assign ───────────────────────────────────────────────────────────────────
 
-async function assignNumber(dealId, btn) {
+async function assignNumber(dealId, btn, force = false) {
   if (btn.disabled) return;
+
+  // Confirm override
+  if (force && !confirm('Begge Oneflow-dokumenter er ikke signert. Tildel likevel?')) return;
+
   btn.disabled = true;
   btn.textContent = 'Tildeler...';
 
@@ -415,20 +472,19 @@ async function assignNumber(dealId, btn) {
   resultEl.style.display = 'none';
 
   try {
-    const data = await api(`?action=assign`, 'POST', { deal_id: dealId });
+    const data = await api(`?action=assign`, 'POST', { deal_id: dealId, force });
 
     if (data.ok) {
       btn.textContent = `✓ ${data.assignment.number}`;
-      btn.classList.add('success');
+      btn.className = 'btn-assign success';
 
       let msg = `Oppdragsnummer <strong>${data.assignment.number}</strong> tildelt. Deal omdøpt til "${esc(data.new_deal_name)}".`;
 
-      // Sync status
       const syncs = [];
       if (data.sync.hubspot)     syncs.push('<span class="sync-badge sync-ok">HubSpot ✓</span>');
       else                       syncs.push('<span class="sync-badge sync-fail">HubSpot ✗</span>');
       if (data.sync.oneflow)     syncs.push('<span class="sync-badge sync-ok">Oneflow ✓</span>');
-      else                       syncs.push('<span class="sync-badge sync-fail">Oneflow ✗</span>');
+      else                       syncs.push(`<span class="sync-badge sync-fail" style="cursor:pointer" onclick="retryOneflow('${dealId}',this)">Oneflow ✗ — klikk for å prøve igjen</span>`);
       syncs.push('<span class="sync-badge sync-pending">PowerOffice (ikke tilkoblet)</span>');
 
       msg += `<div class="sync-row">${syncs.join('')}</div>`;
@@ -436,19 +492,122 @@ async function assignNumber(dealId, btn) {
       resultEl.innerHTML = msg;
       resultEl.className = 'assign-result ok';
 
-      // Refresh the next number
       loadNext();
     } else {
       btn.disabled = false;
-      btn.textContent = 'Tildel oppdragsnummer';
+      btn.textContent = force ? 'Tildel (overstyr)' : 'Tildel oppdragsnummer';
       resultEl.textContent = data.error || 'Ukjent feil';
       resultEl.className = 'assign-result error';
     }
   } catch (e) {
     btn.disabled = false;
-    btn.textContent = 'Tildel oppdragsnummer';
+    btn.textContent = force ? 'Tildel (overstyr)' : 'Tildel oppdragsnummer';
     resultEl.textContent = `Feil: ${e.message}`;
     resultEl.className = 'assign-result error';
+  }
+}
+
+// ── Retry Oneflow sync ──────────────────────────────────────────────────────
+
+async function retryOneflow(dealId, badge) {
+  badge.textContent = 'Synker Oneflow...';
+  badge.style.cursor = 'default';
+  try {
+    const data = await api('?action=retry_oneflow', 'POST', { deal_id: dealId });
+    if (data.ok && data.contracts_renamed > 0) {
+      badge.className = 'sync-badge sync-ok';
+      badge.textContent = 'Oneflow ✓';
+      badge.onclick = null;
+    } else if (data.ok) {
+      badge.textContent = `Oneflow — ${data.contracts_found} funnet, 0 omdøpt`;
+      badge.style.cursor = 'pointer';
+    } else {
+      badge.textContent = 'Oneflow ✗ — feilet';
+      badge.style.cursor = 'pointer';
+    }
+  } catch (e) {
+    badge.textContent = 'Oneflow ✗ — feil';
+    badge.style.cursor = 'pointer';
+  }
+}
+
+// ── Link number modal ───────────────────────────────────────────────────────
+
+function openLinkModal(dealId, dealName) {
+  document.getElementById('linkDealId').value = dealId;
+  document.getElementById('linkDealInfo').textContent = `Deal: ${dealName}`;
+  document.getElementById('linkNumberInput').value = '';
+  document.getElementById('linkError').style.display = 'none';
+  document.getElementById('linkSubmitBtn').disabled = false;
+  document.getElementById('linkSubmitBtn').textContent = 'Koble nummer';
+  document.getElementById('linkModal').style.display = 'flex';
+  document.getElementById('linkNumberInput').focus();
+}
+
+function closeLinkModal() {
+  document.getElementById('linkModal').style.display = 'none';
+}
+
+async function submitLink() {
+  const dealId = document.getElementById('linkDealId').value;
+  const num = document.getElementById('linkNumberInput').value.trim();
+  const errEl = document.getElementById('linkError');
+  const btn = document.getElementById('linkSubmitBtn');
+
+  if (!/^\d{5}$/.test(num)) {
+    errEl.textContent = 'Nummeret må være 5 siffer (f.eks. 26007)';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Kobler...';
+
+  try {
+    const data = await api('?action=assign', 'POST', {
+      deal_id: dealId,
+      custom_number: num,
+      force: true,
+    });
+
+    if (data.ok) {
+      closeLinkModal();
+      // Update the card
+      const resultEl = document.getElementById(`result-${dealId}`);
+      if (resultEl) {
+        let msg = `Nummer <strong>${num}</strong> koblet. Deal omdøpt til "${esc(data.new_deal_name)}".`;
+        const syncs = [];
+        if (data.sync.hubspot) syncs.push('<span class="sync-badge sync-ok">HubSpot ✓</span>');
+        else syncs.push('<span class="sync-badge sync-fail">HubSpot ✗</span>');
+        if (data.sync.oneflow) syncs.push('<span class="sync-badge sync-ok">Oneflow ✓</span>');
+        else syncs.push(`<span class="sync-badge sync-fail" style="cursor:pointer" onclick="retryOneflow('${dealId}',this)">Oneflow ✗ — klikk for å prøve igjen</span>`);
+        syncs.push('<span class="sync-badge sync-pending">PowerOffice (ikke tilkoblet)</span>');
+        msg += `<div class="sync-row">${syncs.join('')}</div>`;
+        resultEl.innerHTML = msg;
+        resultEl.className = 'assign-result ok';
+      }
+
+      // Disable the buttons for this card
+      const assignBtn = document.getElementById(`btn-${dealId}`);
+      if (assignBtn) {
+        assignBtn.textContent = `✓ ${num}`;
+        assignBtn.className = 'btn-assign success';
+        assignBtn.disabled = true;
+      }
+
+      loadNext();
+    } else {
+      errEl.textContent = data.error || 'Ukjent feil';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Koble nummer';
+    }
+  } catch (e) {
+    errEl.textContent = `Feil: ${e.message}`;
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Koble nummer';
   }
 }
 
@@ -489,7 +648,7 @@ async function loadList() {
             <td>${esc(a.broker_email ? a.broker_email.split('@')[0] : '—')}</td>
             <td>${a.assigned_at ? new Date(a.assigned_at).toLocaleDateString('no-NO', { day: '2-digit', month: 'short' }) : '—'}</td>
             <td>${syncPill(a.hubspot_synced)}</td>
-            <td>${syncPill(a.oneflow_synced)}</td>
+            <td>${a.oneflow_synced ? syncPill(true) : `<span class="pill pill-no" style="cursor:pointer" onclick="retryOneflow('${esc(a.deal_id)}',this)">Prøv igjen</span>`}</td>
             <td>${syncPill(a.poweroffice_synced)}</td>
           </tr>
         `).join('')}

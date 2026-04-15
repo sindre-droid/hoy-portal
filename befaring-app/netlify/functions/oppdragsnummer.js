@@ -171,35 +171,27 @@ async function checkOneflowStatus(dealName, boatName) {
 }
 
 // ── Find Oneflow contract IDs for a deal (to rename them) ──────────────────
-async function findOneflowContracts(dealName, boatName) {
+// Uses fetchAllOneflowContracts() for full coverage (up to 500 contracts)
+function findOneflowContractsInList(allContracts, dealName, boatName) {
   const found = [];
-  try {
-    const res = await ofApi('/contracts?limit=100&offset=0&sort_by=-updated_time');
-    if (!res.ok) return found;
+  const normalise = s => (s || '').toLowerCase().replace(/[^a-zæøå0-9]/g, '');
+  const searchKeys = [boatName, dealName].filter(Boolean).map(normalise).filter(k => k.length > 2);
+  if (!searchKeys.length) return found;
 
-    const contracts = res.data?.data || res.data?._embedded?.contracts || res.data || [];
-    if (!Array.isArray(contracts)) return found;
+  for (const c of allContracts) {
+    const cName = normalise(c._private?.name || c.name || '');
+    const matches = searchKeys.some(k => cName.includes(k));
+    if (!matches) continue;
 
-    const normalise = s => (s || '').toLowerCase().replace(/[^a-zæøå0-9]/g, '');
-    const searchKeys = [boatName, dealName].filter(Boolean).map(normalise).filter(k => k.length > 2);
-
-    for (const c of contracts) {
-      const cName = normalise(c._private?.name || c.name || '');
-      const matches = searchKeys.some(k => cName.includes(k));
-      if (!matches) continue;
-
-      const tid = parseInt(c._private_ownerside?.template_id || c.template?._id || c.template?.id || 0);
-      const isRelevant = OF_TEMPLATES.egenerklaring.includes(tid) || OF_TEMPLATES.oppdragsavtale.includes(tid);
-      if (isRelevant || (!tid && (cName.includes('egenerklær') || cName.includes('salgsavtale') || cName.includes('oppdragsavtale')))) {
-        found.push({
-          id: c.id,
-          name: c._private?.name || c.name || '',
-          template_id: tid,
-        });
-      }
+    const tid = parseInt(c._private_ownerside?.template_id || c.template?._id || c.template?.id || 0);
+    const isRelevant = OF_TEMPLATES.egenerklaring.includes(tid) || OF_TEMPLATES.oppdragsavtale.includes(tid);
+    if (isRelevant || (!tid && (cName.includes('egenerklær') || cName.includes('salgsavtale') || cName.includes('oppdragsavtale')))) {
+      found.push({
+        id: c.id,
+        name: c._private?.name || c.name || '',
+        template_id: tid,
+      });
     }
-  } catch (e) {
-    console.error('findOneflowContracts feil:', e.message);
   }
   return found;
 }
@@ -253,6 +245,14 @@ function matchOneflowForDeal(allContracts, dealName, boatName) {
   return status;
 }
 
+// ── Junk deal filter — deals that should not appear in the queue ──────────
+const JUNK_PATTERNS = [
+  /new\s+buyer\s+initiated\s+d[ea]+l/i,   // "New Buyer Initiated Daal/Deal"
+];
+function isJunkDeal(dealName) {
+  return JUNK_PATTERNS.some(p => p.test(dealName));
+}
+
 // ── GET ?queue=1 — Pipeline B deals awaiting assignment number ─────────────
 async function handleQueue(sb) {
   // 1. Search Pipeline B deals without oppdragsnummer
@@ -291,10 +291,15 @@ async function handleQueue(sb) {
   const allContracts = await fetchAllOneflowContracts();
 
   const queue = [];
+  let filteredCount = 0;
   for (const deal of deals) {
     if (alreadyAssigned.has(deal.id)) continue;
 
     const dealName = deal.properties.dealname || '';
+
+    // Skip junk deals (e.g. "New Buyer Initiated Daal")
+    if (isJunkDeal(dealName)) { filteredCount++; continue; }
+
     const boatName = dealName
       .replace(/^listing\s*:\s*/i, '')
       .replace(/^\d{4,5}\s*[-–]\s*/, '')
@@ -318,7 +323,7 @@ async function handleQueue(sb) {
   return {
     statusCode: 200,
     headers: CORS,
-    body: JSON.stringify({ queue }),
+    body: JSON.stringify({ queue, filtered: filteredCount }),
   };
 }
 
@@ -347,8 +352,11 @@ async function handleList(sb, params) {
 }
 
 // ── POST action=assign — Assign number to deal ────────────────────────────
+// Accepts: { deal_id, force?: boolean, custom_number?: string }
+// force=true allows admin to assign even without both Oneflow docs signed.
+// custom_number="26007" allows linking an existing number to a deal.
 async function handleAssign(sb, body, adminEmail) {
-  const { deal_id } = body;
+  const { deal_id, force, custom_number } = body;
   if (!deal_id) {
     return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'deal_id påkrevd' }) };
   }
@@ -386,8 +394,33 @@ async function handleAssign(sb, body, adminEmail) {
     } catch { /* best-effort */ }
   }
 
-  // 3. Generate next number (with retry for race conditions)
-  const { year, sequence, number } = await getNextNumber(sb);
+  // 3. Determine number: use custom_number if provided, otherwise generate next
+  let year, sequence, number;
+
+  if (custom_number) {
+    // Validate format: YYNNN
+    const match = custom_number.match(/^(\d{2})(\d{3})$/);
+    if (!match) {
+      return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: `Ugyldig nummerformat "${custom_number}". Forventet YYNNN (f.eks. 26007).` }) };
+    }
+    year = 2000 + parseInt(match[1]);
+    sequence = parseInt(match[2]);
+    number = custom_number;
+
+    // Check if this number already exists in Supabase
+    const { data: existingNum } = await sb
+      .from('assignment_numbers')
+      .select('deal_id, deal_name')
+      .eq('number', custom_number)
+      .maybeSingle();
+
+    if (existingNum) {
+      return { statusCode: 409, headers: CORS, body: JSON.stringify({ error: `Nummer ${custom_number} er allerede tildelt deal "${existingNum.deal_name}" (${existingNum.deal_id})` }) };
+    }
+  } else {
+    ({ year, sequence, number } = await getNextNumber(sb));
+  }
+
   const newDealName = `${number} - ${boatName}`;
 
   // 4. Insert into Supabase
@@ -435,9 +468,11 @@ async function handleAssign(sb, body, adminEmail) {
     console.error('HubSpot sync exception:', e.message);
   }
 
-  // 6. Sync to Oneflow (rename contracts)
+  // 6. Sync to Oneflow (rename contracts) — fetch ALL contracts for full coverage
   try {
-    const contracts = await findOneflowContracts(dealName, boatName);
+    const allContracts = await fetchAllOneflowContracts();
+    const contracts = findOneflowContractsInList(allContracts, dealName, boatName);
+    console.log(`Oneflow rename: fant ${contracts.length} kontrakter for "${boatName}"`);
     let oneflowOk = contracts.length === 0; // vacuously true if no contracts
 
     for (const c of contracts) {
@@ -636,6 +671,74 @@ async function handleBootstrap(sb, adminEmail) {
 }
 
 
+// ── POST action=retry_oneflow — Re-sync Oneflow names for an assignment ───
+async function handleRetryOneflow(sb, body, adminEmail) {
+  const { deal_id } = body;
+  if (!deal_id) {
+    return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'deal_id påkrevd' }) };
+  }
+
+  // Look up assignment
+  const { data: assignment } = await sb
+    .from('assignment_numbers')
+    .select('*')
+    .eq('deal_id', deal_id)
+    .maybeSingle();
+
+  if (!assignment) {
+    return { statusCode: 404, headers: CORS, body: JSON.stringify({ error: 'Ingen tildeling funnet for denne dealen' }) };
+  }
+
+  const number = assignment.number;
+  const boatName = assignment.vessel_name || assignment.deal_name;
+
+  // Fetch deal name from HubSpot for matching
+  const dealRes = await hs(`/crm/v3/objects/deals/${deal_id}?properties=dealname`);
+  const dealName = dealRes.ok ? (dealRes.data.properties.dealname || '') : '';
+
+  // Search all Oneflow contracts and rename matching ones
+  const allContracts = await fetchAllOneflowContracts();
+  const contracts = findOneflowContractsInList(allContracts, dealName, boatName);
+  console.log(`Retry Oneflow: fant ${contracts.length} kontrakter for "${boatName}" (number=${number})`);
+
+  let renamed = 0;
+  for (const c of contracts) {
+    const currentName = c.name;
+    const newName = currentName.match(/^\d{5}\s*[-–]/)
+      ? currentName
+      : `${number} - ${currentName}`;
+
+    if (newName === currentName) { renamed++; continue; }
+
+    const renameRes = await ofApi(`/contracts/${c.id}`, 'PATCH', {
+      _private: { name: newName },
+    });
+    if (renameRes.ok) {
+      renamed++;
+      console.log(`Renamed: "${currentName}" → "${newName}"`);
+    } else {
+      console.error(`Rename feil for ${c.id}:`, JSON.stringify(renameRes.data));
+    }
+  }
+
+  if (renamed > 0) {
+    await sb.from('assignment_numbers')
+      .update({ oneflow_synced: true, oneflow_synced_at: new Date().toISOString() })
+      .eq('id', assignment.id);
+  }
+
+  return {
+    statusCode: 200,
+    headers: CORS,
+    body: JSON.stringify({
+      ok: true,
+      contracts_found: contracts.length,
+      contracts_renamed: renamed,
+    }),
+  };
+}
+
+
 // ── Handler ────────────────────────────────────────────────────────────────
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: CORS, body: '' };
@@ -668,8 +771,9 @@ exports.handler = async (event) => {
     }
 
     const action = params.action || body.action;
-    if (action === 'assign')    return handleAssign(sb, body, auth.email);
-    if (action === 'bootstrap') return handleBootstrap(sb, auth.email);
+    if (action === 'assign')         return handleAssign(sb, body, auth.email);
+    if (action === 'bootstrap')      return handleBootstrap(sb, auth.email);
+    if (action === 'retry_oneflow')  return handleRetryOneflow(sb, body, auth.email);
 
     return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: `Ukjent action: ${action}` }) };
   }
