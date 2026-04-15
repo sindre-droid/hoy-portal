@@ -149,7 +149,26 @@ exports.handler = async (event) => {
         };
       }
 
-      return { statusCode: 400, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'Use ?stats=daily or ?stats=summary' }) };
+      if (qs.stats === 'errors') {
+        // Recent errors with details
+        const { data, error } = await supabase
+          .from('portal_events')
+          .select('id, user_email, module, payload, created_at')
+          .eq('event_type', 'error')
+          .gte('created_at', since)
+          .order('created_at', { ascending: false })
+          .limit(100);
+
+        if (error) throw error;
+
+        return {
+          statusCode: 200,
+          headers: { ...CORS, ...JSON_H },
+          body: JSON.stringify({ days, errors: data }),
+        };
+      }
+
+      return { statusCode: 400, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'Use ?stats=daily, ?stats=summary or ?stats=errors' }) };
     } catch (e) {
       console.error('tracking GET error:', e);
       return { statusCode: 500, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: e.message }) };

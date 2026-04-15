@@ -215,8 +215,8 @@
 
         <a class="tool-card active" href="/admin/">
           <div class="tool-icon">📊</div>
-          <div class="tool-title">Bruksdashboard</div>
-          <div class="tool-desc">Se hvem som bruker portalen, hvilke moduler de besøker, og daglig aktivitet.</div>
+          <div class="tool-title">Portal-dashboard</div>
+          <div class="tool-desc">Portalaktivitet, modulbruk og feilrapporter — alt på ett sted.</div>
           <div class="tool-footer">
             <span class="badge badge-admin">Admin</span>
             <span class="card-arrow">→</span>
@@ -249,6 +249,19 @@ function trackEvent(event_type, module, payload){
     headers:{'Content-Type':'application/json','Authorization':'Bearer '+accessToken},
     body:JSON.stringify({event_type, module, payload})
   }).catch(()=>{});
+}
+
+// ── Global error tracking ──
+window.onerror=function(msg,src,line,col){
+  trackEvent('error',guessModule(src),{message:String(msg),source:src,line,col});
+};
+window.addEventListener('unhandledrejection',function(e){
+  trackEvent('error',guessModule(),{message:String(e.reason),type:'unhandledrejection'});
+});
+function guessModule(src){
+  if(!src) src=window.location.pathname;
+  const m=src.match(/\/(befaring|budmodul|prospekt|annonsegenerator|sjekkliste|handbok|soper|admin)\//);
+  return m?m[1]:'portal';
 }
 
 const $=id=>document.getElementById(id);

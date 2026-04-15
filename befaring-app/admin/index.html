@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Bruksdashboard — House of Yachts</title>
+  <title>Portal-dashboard — House of Yachts</title>
   <style>
     :root{--navy:#0a2140;--gold:#c9a84c;--gold-light:#f0d88a;--white:#ffffff;--surface:#f5f7fa;--gray:#dde3ec;--gray-dark:#6b7a8d;--text:#12233a;--green:#166534;--green-bg:#dcfce7;--red:#991b1b;--red-bg:#fee2e2;--blue:#1d4ed8;--blue-bg:#dbeafe;--radius:12px;--shadow:0 2px 16px rgba(10,33,64,0.10)}
     *,*::before,*::after{box-sizing:border-box}
@@ -62,6 +62,15 @@
     /* ── Empty state ── */
     .empty{text-align:center;padding:40px 20px;color:var(--gray-dark);font-size:14px}
 
+    /* ── Error cards ── */
+    .error-list{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
+    .error-card{background:white;border-left:4px solid #dc2626;border-radius:var(--radius);padding:14px 18px;box-shadow:var(--shadow)}
+    .error-card .error-msg{font-size:13px;font-weight:600;color:var(--red);word-break:break-word;margin-bottom:6px}
+    .error-card .error-meta{font-size:11px;color:var(--gray-dark);display:flex;gap:12px;flex-wrap:wrap}
+    .error-card .error-meta span{display:inline-flex;align-items:center;gap:4px}
+    .error-count-badge{background:var(--red-bg);color:var(--red);font-size:12px;font-weight:700;padding:2px 8px;border-radius:12px;margin-left:8px}
+    .no-errors{background:var(--green-bg);color:var(--green);border-radius:var(--radius);padding:16px 20px;font-size:14px;font-weight:600;text-align:center}
+
     @media(max-width:600px){
       .summary-row{grid-template-columns:1fr 1fr}
       .bar-label{width:70px;font-size:11px}
@@ -74,7 +83,7 @@
   <div class="header-left">
     <div>
       <div class="header-brand">House of Yachts</div>
-      <div class="header-sub">Bruksdashboard</div>
+      <div class="header-sub">Portal-dashboard</div>
     </div>
   </div>
   <a href="/" class="header-back">← Tilbake til portal</a>
@@ -129,24 +138,27 @@ async function loadDashboard(days) {
   $('main').innerHTML = '<div class="loading">Laster bruksdata…</div>';
 
   try {
-    const [summaryRes, dailyRes] = await Promise.all([
-      fetch(`${API}?stats=summary&days=${days}`, { headers: { Authorization: `Bearer ${accessToken}` } }),
-      fetch(`${API}?stats=daily&days=${days}`, { headers: { Authorization: `Bearer ${accessToken}` } }),
+    const hdrs = { Authorization: `Bearer ${accessToken}` };
+    const [summaryRes, dailyRes, errorsRes] = await Promise.all([
+      fetch(`${API}?stats=summary&days=${days}`, { headers: hdrs }),
+      fetch(`${API}?stats=daily&days=${days}`, { headers: hdrs }),
+      fetch(`${API}?stats=errors&days=${days}`, { headers: hdrs }),
     ]);
 
     if (!summaryRes.ok || !dailyRes.ok) throw new Error('Kunne ikke hente data');
 
     const summary = await summaryRes.json();
     const daily = await dailyRes.json();
+    const errorsData = errorsRes.ok ? await errorsRes.json() : { errors: [] };
 
-    render(summary, daily, days);
+    render(summary, daily, errorsData, days);
   } catch (e) {
     $('main').innerHTML = `<div class="auth-error">Feil ved lasting av data: ${e.message}</div>`;
   }
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
-function render(summary, daily, days) {
+function render(summary, daily, errorsData, days) {
   const moduleLabels = {
     befaring: 'Befaringsskjema',
     sjekkliste: 'Sjekkliste',
@@ -190,6 +202,11 @@ function render(summary, daily, days) {
         <div class="value">${summary.total_page_views}</div>
         <div class="sub">Totalt</div>
       </div>
+      <div class="summary-card" style="${errorCount > 0 ? 'border-left:4px solid #dc2626' : 'border-left:4px solid #16a34a'}">
+        <div class="label">Feil</div>
+        <div class="value">${errorCount}</div>
+        <div class="sub">${errorCount === 0 ? 'Alt OK' : 'Krever oppmerksomhet'}</div>
+      </div>
     </div>`;
 
   // ── Module usage bar chart
@@ -207,6 +224,46 @@ function render(summary, daily, days) {
           <div class="bar-label">${moduleLabels[mod] || mod}</div>
           <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
           <div class="bar-count">${count}</div>
+        </div>`;
+    }
+    html += `</div>`;
+  }
+
+  // ── Errors section
+  const errors = errorsData.errors || [];
+  const errorCount = errors.length;
+  html += `<div class="section-title">Feil <span class="error-count-badge">${errorCount}</span></div>`;
+
+  if (errorCount === 0) {
+    html += `<div class="no-errors">Ingen feil registrert siste ${days} dager</div>`;
+  } else {
+    // Group duplicate errors
+    const grouped = {};
+    for (const e of errors) {
+      const msg = e.payload?.message || 'Ukjent feil';
+      const key = msg + '|' + (e.module || '');
+      if (!grouped[key]) grouped[key] = { ...e, count: 1 };
+      else grouped[key].count++;
+    }
+    const sorted = Object.values(grouped).sort((a, b) => b.count - a.count);
+
+    html += `<div class="error-list">`;
+    for (const e of sorted.slice(0, 20)) {
+      const msg = e.payload?.message || 'Ukjent feil';
+      const mod = moduleLabels[e.module] || e.module || '—';
+      const time = formatDateTime(e.created_at);
+      const src = e.payload?.source ? e.payload.source.split('/').pop() : '';
+      const line = e.payload?.line ? `:${e.payload.line}` : '';
+
+      html += `
+        <div class="error-card">
+          <div class="error-msg">${escHtml(msg)}${e.count > 1 ? ` <span class="error-count-badge">×${e.count}</span>` : ''}</div>
+          <div class="error-meta">
+            <span>📍 ${mod}</span>
+            ${src ? `<span>📄 ${src}${line}</span>` : ''}
+            <span>🕐 ${time}</span>
+            <span>👤 ${userName(e.user_email)}</span>
+          </div>
         </div>`;
     }
     html += `</div>`;
@@ -252,6 +309,16 @@ function render(summary, daily, days) {
   $('main').innerHTML = html;
 }
 
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function formatDateTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return formatDate(iso.slice(0, 10)) + ' ' + d.toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
+}
+
 function formatDate(iso) {
   const d = new Date(iso + 'T12:00:00');
   const days = ['søn', 'man', 'tir', 'ons', 'tor', 'fre', 'lør'];
@@ -259,5 +326,6 @@ function formatDate(iso) {
   return `${days[d.getDay()]} ${d.getDate()}. ${months[d.getMonth()]}`;
 }
 </script>
+<script src="/tracker.js"></script>
 </body>
 </html>
