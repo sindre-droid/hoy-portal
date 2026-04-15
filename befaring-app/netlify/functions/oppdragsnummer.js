@@ -504,7 +504,7 @@ async function handleAssign(sb, body, adminEmail) {
         : `${number} - ${currentName}`;
 
       console.log(`Oneflow rename: "${currentName}" → "${newName}" (contract ${c.id})`);
-      const renameRes = await ofApi(`/contracts/${c.id}`, 'PATCH', {
+      const renameRes = await ofApi(`/contracts/${c.id}`, 'PUT', {
         _private: { name: newName },
       });
       console.log(`Oneflow rename resultat: ok=${renameRes.ok} status=${renameRes.status}`, JSON.stringify(renameRes.data).substring(0, 300));
