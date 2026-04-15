@@ -145,7 +145,14 @@ async function loadDashboard(days) {
       fetch(`${API}?stats=errors&days=${days}`, { headers: hdrs }),
     ]);
 
-    if (!summaryRes.ok || !dailyRes.ok) throw new Error('Kunne ikke hente data');
+    if (!summaryRes.ok) {
+      const t = await summaryRes.text();
+      throw new Error(`Summary ${summaryRes.status}: ${t}`);
+    }
+    if (!dailyRes.ok) {
+      const t = await dailyRes.text();
+      throw new Error(`Daily ${dailyRes.status}: ${t}`);
+    }
 
     const summary = await summaryRes.json();
     const daily = await dailyRes.json();
