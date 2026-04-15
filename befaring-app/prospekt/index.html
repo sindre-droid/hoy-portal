@@ -677,7 +677,7 @@ function renderOverviewSection(p) {
   const specs = p.specs || [];
   const caps = p.capacities || [];
   const MAX_INTRO = 400;
-  const MAX_BODY = 1500;
+  const MAX_BODY = 2500;
   // 18 er grensen for at spec-kolonnen holder seg luftig på A4. Teller også
   // skillelinjer. Høyere tall gir overflow-risiko mot Kapasiteter-blokken.
   const MAX_SPECS = 18;
@@ -793,7 +793,7 @@ function handleRteInput() {
   currentProspekt.description_body = html;
   // Update char count based on text content
   const textLen = el.textContent.length;
-  const MAX_BODY = 1500;
+  const MAX_BODY = 2500;
   const countEl = document.getElementById('bodyCount');
   if (countEl) {
     countEl.textContent = `${textLen} / ${MAX_BODY} tegn`;
