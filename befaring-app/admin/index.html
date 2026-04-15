@@ -190,6 +190,10 @@ function render(summary, daily, errorsData, days) {
   });
   html += `</div>`;
 
+  // ── Error count (needed in summary cards)
+  const errors = errorsData.errors || [];
+  const errorCount = errors.length;
+
   // ── Summary cards
   const avgDaily = days > 0 ? (summary.total_logins / Math.min(days, Object.keys(daily.daily || {}).length || 1)).toFixed(1) : 0;
   html += `
@@ -237,8 +241,6 @@ function render(summary, daily, errorsData, days) {
   }
 
   // ── Errors section
-  const errors = errorsData.errors || [];
-  const errorCount = errors.length;
   html += `<div class="section-title">Feil <span class="error-count-badge">${errorCount}</span></div>`;
 
   if (errorCount === 0) {
