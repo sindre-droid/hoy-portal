@@ -504,8 +504,9 @@ async function handleAssign(sb, body, adminEmail) {
         ? currentName  // Already has a number prefix
         : `${number} - ${currentName}`;
 
-      console.log(`Oneflow rename: "${currentName}" → "${newName}" (contract ${c.id})`);
-      const renameRes = await ofApi(`/contracts/${c.id}`, 'PUT', {
+      const contractId = c._id || c.id;
+      console.log(`Oneflow rename: "${currentName}" → "${newName}" (id=${c.id}, _id=${c._id}, using=${contractId})`);
+      const renameRes = await ofApi(`/contracts/${contractId}`, 'PUT', {
         _private: { name: newName },
       });
       console.log(`Oneflow rename resultat: ok=${renameRes.ok} status=${renameRes.status}`, JSON.stringify(renameRes.data).substring(0, 300));
@@ -737,8 +738,9 @@ async function handleRetryOneflow(sb, body, adminEmail) {
 
     if (newName === currentName) { renamed++; continue; }
 
-    console.log(`Retry rename: "${currentName}" → "${newName}" (contract ${c.id})`);
-    const renameRes = await ofApi(`/contracts/${c.id}`, 'PATCH', {
+    const contractId = c._id || c.id;
+    console.log(`Retry rename: "${currentName}" → "${newName}" (id=${c.id}, _id=${c._id}, using=${contractId})`);
+    const renameRes = await ofApi(`/contracts/${contractId}`, 'PUT', {
       _private: { name: newName },
     });
     console.log(`Retry rename resultat: ok=${renameRes.ok} status=${renameRes.status}`, JSON.stringify(renameRes.data).substring(0, 300));
