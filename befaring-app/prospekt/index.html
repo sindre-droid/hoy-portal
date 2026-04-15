@@ -355,6 +355,13 @@
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
+<!-- PDF-generering for HubSpot-opplasting -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+
+<!-- Hidden iframe for PDF rendering -->
+<iframe id="pdfFrame" style="position:absolute;left:-9999px;top:0;width:900px;height:1272px;border:none;visibility:hidden"></iframe>
+
 <script>
 // ── Constants ────────────────────────────────────────────────────────────────
 const IDENTITY = `${window.location.origin}/.netlify/identity`;
@@ -2198,13 +2205,151 @@ async function saveProspekt(isAuto = false) {
 
 async function togglePublish() {
   const isPublished = currentProspekt.status === 'published';
-  const action = isPublished ? 'unpublish' : 'publish';
+
+  // ── Avpubliser (enkel) ──
+  if (isPublished) {
+    try {
+      await api({ action: 'unpublish' }, 'POST', { id: currentProspekt.id });
+      currentProspekt.status = 'draft';
+      $('publishBtn').textContent = 'Publiser';
+      toast('Avpublisert');
+    } catch (e) { toast(e.message, 'error'); }
+    return;
+  }
+
+  // ── Publiser: lagre → generer PDF → last opp til HubSpot ──
+  const btn = $('publishBtn');
+  btn.disabled = true;
+  btn.textContent = 'Lagrer…';
+
   try {
-    await api({ action }, 'POST', { id: currentProspekt.id });
-    currentProspekt.status = isPublished ? 'draft' : 'published';
-    $('publishBtn').textContent = currentProspekt.status === 'published' ? 'Avpubliser' : 'Publiser';
-    toast(isPublished ? 'Avpublisert' : 'Publisert');
-  } catch (e) { toast(e.message, 'error'); }
+    // 1. Lagre først
+    await saveProspekt(false);
+
+    // 2. Generer PDF fra render.html i skjult iframe → Supabase Storage
+    btn.textContent = 'Genererer PDF…';
+    const storagePath = await generateAndUploadPdf();
+
+    // 3. Publiser + last opp til HubSpot (backend henter fra Supabase)
+    btn.textContent = 'Laster opp til HubSpot…';
+    const res = await api({ action: 'publish' }, 'POST', {
+      id: currentProspekt.id,
+      pdf_storage_path: storagePath,
+    });
+
+    currentProspekt.status = 'published';
+    btn.textContent = 'Avpubliser';
+
+    if (res.hubspot?.fileUrl) {
+      toast('Publisert og lastet opp til HubSpot ✓');
+    } else if (res.hubspot?.error) {
+      toast('Publisert, men HubSpot-opplasting feilet: ' + res.hubspot.error, 'error');
+    } else {
+      toast('Publisert (uten PDF)');
+    }
+  } catch (e) {
+    toast(e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    if (currentProspekt.status !== 'published') btn.textContent = 'Publiser';
+  }
+}
+
+/**
+ * Genererer PDF fra render.html i en skjult iframe.
+ * Bruker html2canvas til å fange hvert .page-element, deretter jsPDF for A4-sider.
+ * Laster opp til Supabase Storage, returnerer storage-path.
+ */
+async function generateAndUploadPdf() {
+  const iframe = $('pdfFrame');
+  const renderUrl = `/prospekt/render.html?id=${currentProspekt.id}`;
+
+  // Last render.html i iframen
+  await new Promise((resolve, reject) => {
+    iframe.onload = resolve;
+    iframe.onerror = reject;
+    iframe.src = renderUrl;
+  });
+
+  // Vent på at render-motoren i iframen er ferdig (maks 20 sek)
+  const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+  await new Promise((resolve, reject) => {
+    let elapsed = 0;
+    const check = () => {
+      const wrapper = iframeDoc.getElementById('pageWrapper');
+      if (wrapper && wrapper.style.display !== 'none' && wrapper.children.length > 0) {
+        resolve();
+      } else if (elapsed > 20000) {
+        reject(new Error('Tidsavbrudd: prospektet ble ikke ferdig rendret'));
+      } else {
+        elapsed += 200;
+        setTimeout(check, 200);
+      }
+    };
+    check();
+  });
+
+  // Vent på at alle bilder er lastet i iframen
+  const imgs = iframeDoc.querySelectorAll('img');
+  await Promise.all(Array.from(imgs).map(img => {
+    if (img.complete) return Promise.resolve();
+    return new Promise(r => { img.onload = r; img.onerror = r; });
+  }));
+  await new Promise(r => setTimeout(r, 800));
+
+  // Hent alle .page-elementer
+  const pages = iframeDoc.querySelectorAll('.page');
+  if (!pages.length) throw new Error('Ingen sider funnet i prospektet');
+
+  // A4 dimensjoner i mm
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const a4W = 210;
+  const a4H = 297;
+
+  for (let i = 0; i < pages.length; i++) {
+    if (i > 0) pdf.addPage();
+
+    const canvas = await html2canvas(pages[i], {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+      width: pages[i].scrollWidth,
+      height: pages[i].scrollHeight,
+    });
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.85);
+    pdf.addImage(imgData, 'JPEG', 0, 0, a4W, a4H);
+  }
+
+  // Konverter til blob
+  const pdfBlob = pdf.output('blob');
+  console.log(`[prospekt] PDF generated: ${(pdfBlob.size / 1024).toFixed(0)} KB, ${pages.length} sider`);
+
+  // Last opp til Supabase Storage via signert URL
+  const safeName = (currentProspekt.boat_name || currentProspekt.deal_name || currentProspekt.id)
+    .replace(/[^a-zA-ZæøåÆØÅ0-9_\- ]/g, '_').trim().slice(0, 60);
+  const fileName = `Prospekt-${safeName}.pdf`;
+
+  const uploadRes = await api({ action: 'upload_prospekt_pdf' }, 'POST', {
+    id: currentProspekt.id,
+    file_name: fileName,
+  });
+
+  // Last opp med signert URL
+  const putRes = await fetch(uploadRes.upload_url, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/pdf' },
+    body: pdfBlob,
+  });
+  if (!putRes.ok) throw new Error('Kunne ikke laste opp PDF til lagring');
+
+  // Rydd opp iframen
+  iframe.src = 'about:blank';
+
+  return uploadRes.storage_path;
 }
 
 // ════════════════════════════════════════════════════════════════════════════════

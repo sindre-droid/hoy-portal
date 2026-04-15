@@ -6,13 +6,14 @@
 // POST action=update             → oppdater prospekt-felter
 // POST action=upload_image       → last opp bilde til Supabase Storage, returner URL
 // POST action=delete_image       → slett bilde fra Supabase Storage
-// POST action=publish            → sett status=published
+// POST action=publish            → generer PDF, last opp til HubSpot, sett status=published
 // POST action=unpublish          → sett status=draft
 // POST action=refresh-specs      → hent specs+capacities på nytt fra HubSpot
 // POST action=generate-equipment → AI-assistert utstyrsliste (sorterer, dikter ikke)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const { createClient } = require('@supabase/supabase-js');
+const https = require('https');
 const EQUIPMENT_PROMPT = require('./equipment-prompt');
 
 const PIPELINE_B = process.env.PIPELINE_B || '3211644128';
@@ -308,6 +309,59 @@ async function hs(path, method = 'GET', body = null) {
   const text = await res.text();
   try { return { ok: res.ok, status: res.status, data: JSON.parse(text) }; }
   catch { return { ok: false, status: res.status, data: { raw: text } }; }
+}
+
+// ── HubSpot File Upload ─────────────────────────────────────────────────────
+
+function uploadPdfToHubSpot(buffer, filename) {
+  return new Promise((resolve, reject) => {
+    const boundary = '----FormBoundary' + Date.now().toString(16);
+    const parts = [];
+    parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: application/pdf\r\n\r\n`, 'utf8'));
+    parts.push(buffer);
+    parts.push(Buffer.from('\r\n', 'utf8'));
+    const options = JSON.stringify({ access: 'PUBLIC_NOT_INDEXABLE', overwrite: true, duplicateValidationStrategy: 'REJECT', duplicateValidationScope: 'EXACT_FOLDER' });
+    parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="options"\r\n\r\n${options}\r\n`, 'utf8'));
+    parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="folderPath"\r\n\r\n/prospekter\r\n`, 'utf8'));
+    parts.push(Buffer.from(`--${boundary}--\r\n`, 'utf8'));
+    const body = Buffer.concat(parts);
+
+    const req = https.request({
+      hostname: 'api.hubapi.com',
+      path: '/files/v3/files',
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.HUBSPOT_TOKEN}`,
+        'Content-Type': `multipart/form-data; boundary=${boundary}`,
+        'Content-Length': body.length,
+      },
+    }, (res) => {
+      const chunks = [];
+      res.on('data', (c) => chunks.push(c));
+      res.on('end', () => {
+        const txt = Buffer.concat(chunks).toString('utf8');
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          try {
+            const data = JSON.parse(txt);
+            resolve({ fileUrl: data.url, fileId: data.id });
+          } catch (e) { reject(new Error(`Parse error: ${txt}`)); }
+        } else {
+          reject(new Error(`Upload failed ${res.statusCode}: ${txt}`));
+        }
+      });
+    });
+    req.on('error', reject);
+    req.setTimeout(30000, () => { req.destroy(new Error('HubSpot file upload timeout')); });
+    req.write(body);
+    req.end();
+  });
+}
+
+async function getBoatIdForDeal(dealId) {
+  const boatTypeId = await getBoatTypeId();
+  if (!boatTypeId) return null;
+  const assoc = await hs(`/crm/v3/objects/deals/${dealId}/associations/${boatTypeId}`);
+  return assoc.data?.results?.[0]?.id || null;
 }
 
 // ── Oneflow API ─────────────────────────────────────────────────────────────
@@ -1147,20 +1201,106 @@ exports.handler = async (event) => {
         return ok({ deleted: path });
       }
 
-      // ── Publish ──
+      // ── Upload prospekt PDF to Supabase Storage (signert URL for klient) ──
+      if (action === 'upload_prospekt_pdf') {
+        const { id, file_name } = body;
+        if (!id || !file_name) return err(400, 'id and file_name required');
+
+        const { data: prospekt, error: pErr } = await supabase
+          .from('prospekter')
+          .select('deal_id')
+          .eq('id', id)
+          .single();
+        if (pErr) throw pErr;
+
+        const storagePath = `${prospekt.deal_id}/${file_name}`;
+
+        // Slett eksisterende fil hvis den finnes (overskriv)
+        try { await supabase.storage.from('prospekt-bilder').remove([storagePath]); } catch {}
+
+        const { data: signedData, error: signErr } = await supabase.storage
+          .from('prospekt-bilder')
+          .createSignedUploadUrl(storagePath, { upsert: true });
+        if (signErr) throw signErr;
+
+        return ok({
+          upload_url: signedData.signedUrl,
+          token: signedData.token,
+          storage_path: storagePath,
+        });
+      }
+
+      // ── Publish (+ upload PDF til HubSpot fra Supabase Storage) ──
       if (action === 'publish') {
-        const { id } = body;
+        const { id, pdf_storage_path } = body;
         if (!id) return err(400, 'id required');
 
+        // Hent prospekt for deal_id og båtnavn
+        const { data: prospekt, error: pErr } = await supabase
+          .from('prospekter')
+          .select('deal_id, boat_name, deal_name')
+          .eq('id', id)
+          .single();
+        if (pErr) throw pErr;
+
+        let hubspotResult = null;
+
+        // Last opp PDF til HubSpot fra Supabase Storage
+        if (pdf_storage_path) {
+          try {
+            // Hent PDF fra Supabase Storage
+            const { data: fileData, error: dlErr } = await supabase.storage
+              .from('prospekt-bilder')
+              .download(pdf_storage_path);
+            if (dlErr) throw dlErr;
+
+            const pdfBuffer = Buffer.from(await fileData.arrayBuffer());
+            const safeName = (prospekt.boat_name || prospekt.deal_name || id)
+              .replace(/[^a-zA-ZæøåÆØÅ0-9_\- ]/g, '_').trim().slice(0, 80);
+            const filename = `Prospekt-${safeName}.pdf`;
+
+            console.log(`[prospekt] Uploading PDF (${pdfBuffer.length} bytes) to HubSpot: ${filename}`);
+            const { fileUrl, fileId } = await uploadPdfToHubSpot(pdfBuffer, filename);
+            console.log(`[prospekt] PDF uploaded: ${fileUrl} (id: ${fileId})`);
+
+            // Sett prospectus_pdf på boat-objektet
+            const boatId = await getBoatIdForDeal(prospekt.deal_id);
+            if (boatId) {
+              const patchRes = await hs(
+                `/crm/v3/objects/${BOAT_OBJ_TYPE}/${boatId}`,
+                'PATCH',
+                { properties: { prospectus_pdf: fileUrl } }
+              );
+              if (patchRes.ok) {
+                console.log(`[prospekt] Set prospectus_pdf on boat ${boatId}`);
+              } else {
+                console.warn(`[prospekt] Failed to set property on boat: ${patchRes.status}`, patchRes.data);
+              }
+              hubspotResult = { fileUrl, fileId, boatId, propertySet: patchRes.ok };
+            } else {
+              console.warn('[prospekt] No boat object found for deal', prospekt.deal_id);
+              hubspotResult = { fileUrl, fileId, boatId: null, propertySet: false };
+            }
+
+            // Rydd opp temp-fil i Supabase Storage
+            try { await supabase.storage.from('prospekt-bilder').remove([pdf_storage_path]); } catch {}
+          } catch (uploadErr) {
+            // Best-effort: PDF-opplasting feiler ikke hele publiseringen
+            console.error('[prospekt] HubSpot PDF upload failed:', uploadErr.message);
+            hubspotResult = { error: uploadErr.message };
+          }
+        }
+
+        // Sett status=published uansett
         const { data, error } = await supabase
           .from('prospekter')
-          .update({ status: 'published' })
+          .update({ status: 'published', pdf_url: hubspotResult?.fileUrl || null })
           .eq('id', id)
           .select('id, status')
           .single();
         if (error) throw error;
 
-        return ok(data);
+        return ok({ ...data, hubspot: hubspotResult });
       }
 
       // ── Unpublish ──

@@ -7,6 +7,10 @@
   # hele pakken ubundlet slik at pdfkit finner data-filene sine i runtime.
   external_node_modules = ["pdfkit"]
 
+# Prospekt-publisering og AI-generering trenger mer tid
+[functions."prospekt"]
+  timeout = 26
+
 # Serve subfolder routes cleanly
 [[redirects]]
   from = "/befaring"
