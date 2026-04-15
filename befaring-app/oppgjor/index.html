@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Oppgjør — House of Yachts</title>
+  <style>
+    :root {
+      --navy:#0a2140;--gold:#c9a84c;--white:#fff;--surface:#f5f7fa;
+      --gray:#dde3ec;--gray-dark:#6b7a8d;--text:#12233a;
+      --green:#166534;--green-bg:#dcfce7;
+      --red:#991b1b;--red-bg:#fee2e2;
+      --yellow:#92400e;--yellow-bg:#fef3c7;
+      --blue:#1e40af;--blue-bg:#dbeafe;
+      --radius:12px;--shadow:0 2px 16px rgba(10,33,64,0.10);
+    }
+    *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--surface);color:var(--text);margin:0;padding:0;min-height:100vh}
+
+    .loading-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy)}
+    .loading-text{color:rgba(255,255,255,0.5);font-size:15px}
+    .auth-error{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy);display:none}
+    .auth-error-box{background:white;border-radius:16px;padding:40px;text-align:center;max-width:400px}
+    .auth-error-box h2{color:var(--red);margin:0 0 12px}
+    .auth-error-box p{color:var(--gray-dark);margin:0 0 20px}
+
+    .header{background:var(--navy);color:white;padding:14px 20px;position:sticky;top:0;z-index:200;box-shadow:0 2px 16px rgba(0,0,0,0.35)}
+    .header-inner{max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .brand{display:flex;flex-direction:column}
+    .brand-name{font-size:14px;font-weight:800;letter-spacing:0.8px}
+    .brand-sub{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--gold)}
+    .header-title{font-size:16px;font-weight:700;color:rgba(255,255,255,0.9)}
+    .header-right{display:flex;align-items:center;gap:12px}
+    .btn-nav{background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.18);border-radius:20px;color:rgba(255,255,255,0.85);padding:6px 14px;font-size:12px;font-family:inherit;cursor:pointer;text-decoration:none}
+    .btn-nav:hover{background:rgba(255,255,255,0.2)}
+
+    .main{max-width:1100px;margin:0 auto;padding:24px 16px 80px}
+
+    /* ── Summary cards ── */
+    .summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:24px}
+    .summary-card{background:white;border-radius:14px;padding:20px;box-shadow:var(--shadow)}
+    .summary-label{font-size:12px;font-weight:600;color:var(--gray-dark);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+    .summary-value{font-size:24px;font-weight:800;color:var(--navy)}
+    .summary-sub{font-size:12px;color:var(--gray-dark);margin-top:4px}
+
+    /* ── Toolbar ── */
+    .toolbar{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
+    .year-select{background:white;border:2px solid var(--gray);border-radius:10px;padding:10px 16px;font-size:14px;font-weight:600;font-family:inherit;color:var(--navy);cursor:pointer}
+    .btn-primary{background:var(--navy);color:white;border:none;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+    .btn-primary:hover{opacity:0.88}
+    .btn-secondary{background:white;color:var(--navy);border:2px solid var(--gray);border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+    .btn-secondary:hover{background:var(--surface)}
+    .toolbar-spacer{flex:1}
+    .search-input{background:white;border:2px solid var(--gray);border-radius:10px;padding:10px 16px;font-size:13px;font-family:inherit;min-width:200px}
+
+    /* ── Table ── */
+    .table-wrap{background:white;border-radius:14px;box-shadow:var(--shadow);overflow-x:auto}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th{background:var(--surface);font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:0.5px;color:var(--gray-dark);padding:12px 14px;text-align:left;white-space:nowrap;position:sticky;top:0}
+    td{padding:12px 14px;border-top:1px solid var(--gray);vertical-align:middle;white-space:nowrap}
+    tr:hover td{background:rgba(10,33,64,0.02)}
+    tr.row-settled td{opacity:0.6}
+    .text-right{text-align:right}
+    .text-center{text-align:center}
+
+    .badge{display:inline-block;padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700}
+    .badge-green{background:var(--green-bg);color:var(--green)}
+    .badge-yellow{background:var(--yellow-bg);color:var(--yellow)}
+    .badge-blue{background:var(--blue-bg);color:var(--blue)}
+    .badge-red{background:var(--red-bg);color:var(--red)}
+
+    .btn-sm{background:transparent;border:1px solid var(--gray);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--text)}
+    .btn-sm:hover{background:var(--surface)}
+    .btn-expand{background:none;border:none;cursor:pointer;font-size:16px;padding:2px 6px;transition:transform 0.2s}
+    .btn-expand.open{transform:rotate(90deg)}
+
+    /* ── Detail panel (inline expand) ── */
+    .detail-row{display:none}
+    .detail-row.open{display:table-row}
+    .detail-cell{padding:0 14px 20px;background:var(--surface)}
+    .detail-inner{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:16px 0}
+    .detail-section h4{font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:var(--gray-dark);margin:0 0 10px}
+    .detail-field{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--gray)}
+    .detail-field-label{color:var(--gray-dark);font-weight:600}
+    .detail-field-value{font-weight:600;color:var(--text)}
+
+    .payments-list{margin-top:10px}
+    .payment-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:12px;border-bottom:1px solid var(--gray)}
+    .payment-row .amount{font-weight:700}
+    .payment-row .delete-btn{color:var(--red);cursor:pointer;font-size:11px;border:none;background:none;font-weight:600}
+
+    .btn-add-payment{background:var(--green-bg);color:var(--green);border:1px solid var(--green);border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px}
+
+    /* ── Modal ── */
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center}
+    .modal-overlay.open{display:flex}
+    .modal{background:white;border-radius:16px;padding:28px;max-width:560px;width:calc(100% - 32px);max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
+    .modal h3{margin:0 0 20px;font-size:18px;color:var(--navy)}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .form-group{display:flex;flex-direction:column;gap:4px}
+    .form-group.full{grid-column:1/-1}
+    .form-group label{font-size:12px;font-weight:700;color:var(--gray-dark);text-transform:uppercase;letter-spacing:0.3px}
+    .form-group input,.form-group select,.form-group textarea{border:2px solid var(--gray);border-radius:10px;padding:10px 14px;font-size:14px;font-family:inherit;color:var(--text)}
+    .form-group input:focus,.form-group select:focus{border-color:var(--navy);outline:none}
+    .form-group textarea{resize:vertical;min-height:60px}
+    .modal-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end}
+
+    /* ── Broker summary cards ── */
+    .broker-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:20px}
+    .broker-card{background:white;border-radius:14px;padding:20px;box-shadow:var(--shadow)}
+    .broker-name{font-size:16px;font-weight:800;color:var(--navy);margin-bottom:12px}
+    .broker-stat{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--gray)}
+    .broker-stat-label{color:var(--gray-dark)}
+    .broker-stat-value{font-weight:700}
+
+    /* ── Import panel ── */
+    .import-panel{background:white;border-radius:14px;box-shadow:var(--shadow);padding:24px;margin-bottom:20px;display:none}
+    .import-panel.open{display:block}
+    .import-list{max-height:300px;overflow-y:auto}
+    .import-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--gray)}
+    .import-item-info{display:flex;flex-direction:column;gap:2px}
+    .import-item-name{font-weight:700;font-size:14px}
+    .import-item-meta{font-size:12px;color:var(--gray-dark)}
+    .btn-import-deal{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue);border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+    .btn-import-deal:disabled{opacity:0.4;cursor:not-allowed}
+
+    .empty-state{text-align:center;padding:60px 20px;color:var(--gray-dark)}
+    .empty-icon{font-size:40px;margin-bottom:12px}
+
+    @media(max-width:700px){
+      .form-grid{grid-template-columns:1fr}
+      .detail-inner{grid-template-columns:1fr}
+      .summary-grid{grid-template-columns:1fr 1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="loading-screen" id="loadingScreen">
+    <div class="loading-text">Laster oppgjør…</div>
+  </div>
+  <div class="auth-error" id="authError">
+    <div class="auth-error-box">
+      <h2>Ingen tilgang</h2>
+      <p>Du må være logget inn for å se oppgjør.</p>
+      <a href="/">← Tilbake til portal</a>
+    </div>
+  </div>
+
+  <div id="app" style="display:none">
+    <header class="header">
+      <div class="header-inner">
+        <div class="brand">
+          <span class="brand-name">HOUSE OF YACHTS</span>
+          <span class="brand-sub">Internportal</span>
+        </div>
+        <div class="header-title">Oppgjør</div>
+        <div class="header-right">
+          <a href="/budmodul/" class="btn-nav">Budmodul</a>
+          <a href="/oppdragsnummer/" class="btn-nav">Oppdragsnr</a>
+          <a href="/" class="btn-nav">Hjem</a>
+        </div>
+      </div>
+    </header>
+
+    <div class="main">
+      <!-- Summary -->
+      <div class="summary-grid" id="summaryGrid"></div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <select class="year-select" id="yearSelect" onchange="loadYear()">
+          <option value="2026">2026</option>
+          <option value="2025">2025</option>
+          <option value="2024">2024</option>
+          <option value="2023">2023</option>
+        </select>
+        <input type="text" class="search-input" id="searchInput" placeholder="Søk båt, selger, kjøper…" oninput="filterTable()">
+        <div class="toolbar-spacer"></div>
+        <button class="btn-secondary" onclick="toggleImport()">⬇ Importer fra HubSpot</button>
+        <button class="btn-primary" onclick="openCreateModal()">+ Nytt oppgjør</button>
+      </div>
+
+      <!-- Import panel -->
+      <div class="import-panel" id="importPanel">
+        <h3 style="margin:0 0 14px;font-size:15px;color:var(--navy)">Solgte deals i HubSpot uten oppgjør</h3>
+        <div id="importList" class="import-list">
+          <div style="color:var(--gray-dark);font-size:13px">Laster…</div>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th>Nr</th>
+              <th>Båttype</th>
+              <th>Solgt dato</th>
+              <th class="text-right">Salgssum</th>
+              <th class="text-right">Provisjon</th>
+              <th class="text-right">Omsetning</th>
+              <th>Oppdrag inn</th>
+              <th>Solgt av</th>
+              <th>Splitt</th>
+              <th class="text-right">Meglerlønn</th>
+              <th class="text-right">Utbetalt</th>
+              <th class="text-right">Utestående</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Broker summary -->
+      <div class="broker-grid" id="brokerGrid"></div>
+    </div>
+  </div>
+
+  <!-- Create/Edit modal -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <h3 id="modalTitle">Nytt oppgjør</h3>
+      <div class="form-grid">
+        <div class="form-group"><label>Oppdragsnr</label><input id="f_oppdragsnr"></div>
+        <div class="form-group"><label>Båttype</label><input id="f_boat_type" required></div>
+        <div class="form-group"><label>Selger</label><input id="f_seller_name"></div>
+        <div class="form-group"><label>Kjøper</label><input id="f_buyer_name"></div>
+        <div class="form-group"><label>Solgt dato</label><input id="f_sold_date" type="date"></div>
+        <div class="form-group"><label>Salgssum</label><input id="f_sale_amount" type="number"></div>
+        <div class="form-group"><label>Provisjon (inkl. mva)</label><input id="f_commission" type="number" oninput="calcPreview()"></div>
+        <div class="form-group"><label>Omsetning ex. mva</label><input id="f_revenue_ex_vat" type="number" placeholder="Auto: provisjon ÷ 1.25"></div>
+        <div class="form-group"><label>Oppdrag inn</label>
+          <select id="f_assigned_by" onchange="calcPreview()"><option value="">Velg…</option><option>Sindre</option><option>Henrik</option><option>Daniel</option><option>Jeanette</option></select>
+        </div>
+        <div class="form-group"><label>Solgt av</label>
+          <select id="f_sold_by" onchange="calcPreview()"><option value="">Velg…</option><option>Sindre</option><option>Henrik</option><option>Daniel</option><option>Jeanette</option></select>
+        </div>
+        <div class="form-group"><label>Splitt-modell</label>
+          <select id="f_split_model" onchange="calcPreview()">
+            <option value="">Auto (basert på meglere)</option>
+            <option value="solo_45">Sindre alene (45%)</option>
+            <option value="solo_40">Megler alene (40%)</option>
+            <option value="split_50_50">50/50 splitt (2×20%)</option>
+            <option value="vip_10">VIP/Visning (45%+10%)</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Visningsmegler / Splittpartner</label><input id="f_split_broker" placeholder="Kun ved splitt"></div>
+        <div class="form-group"><label>Meglerlønn (beregnet)</label><input id="f_broker_share" type="number" placeholder="Auto"></div>
+        <div class="form-group"><label>Megler 2 lønn</label><input id="f_broker2_share" type="number" placeholder="Auto"></div>
+        <div class="form-group"><label>Ekstra +/-</label><input id="f_extra" type="number" value="0"></div>
+        <div class="form-group"><label>Ekstra notat</label><input id="f_extra_note"></div>
+        <div class="form-group"><label>Oppdragskilde</label><input id="f_source" placeholder="Cold Outreach, Finn.no, etc."></div>
+        <div class="form-group"><label>Status</label>
+          <select id="f_status"><option value="pending">Uoppgjort</option><option value="settled">Oppgjort</option></select>
+        </div>
+        <div class="form-group full"><label>Notater</label><textarea id="f_notes"></textarea></div>
+      </div>
+      <div id="calcPreviewBox" style="margin-top:14px;padding:12px 16px;background:var(--surface);border-radius:10px;font-size:13px;display:none">
+        <strong>Forhåndsvisning:</strong> <span id="calcPreviewText"></span>
+      </div>
+      <input type="hidden" id="f_id">
+      <input type="hidden" id="f_deal_id">
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal()">Avbryt</button>
+        <button class="btn-primary" id="modalSaveBtn" onclick="saveSettlement()">Lagre</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment modal -->
+  <div class="modal-overlay" id="paymentModal">
+    <div class="modal" style="max-width:400px">
+      <h3>Registrer utbetaling</h3>
+      <div class="form-grid" style="grid-template-columns:1fr">
+        <div class="form-group"><label>Til (megler)</label><input id="p_payee"></div>
+        <div class="form-group"><label>Beløp</label><input id="p_amount" type="number"></div>
+        <div class="form-group"><label>Dato</label><input id="p_paid_at" type="date"></div>
+        <div class="form-group"><label>Notat</label><input id="p_note" placeholder="Valgfritt"></div>
+      </div>
+      <input type="hidden" id="p_settlement_id">
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closePaymentModal()">Avbryt</button>
+        <button class="btn-primary" onclick="savePayment()">Registrer</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+const API = '/.netlify/functions/oppgjor';
+let TOKEN = null;
+let settlements = [];
+let currentYear = 2026;
+
+// ── Auth ──
+function getToken() {
+  const c = document.cookie.split(';').find(c => c.trim().startsWith('hoy_token='));
+  return c ? c.trim().slice(10) : null;
+}
+
+async function apiFetch(url, opts = {}) {
+  const res = await fetch(url, {
+    ...opts,
+    headers: { ...opts.headers, Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || res.statusText);
+  }
+  return res.json();
+}
+
+// ── Format helpers ──
+function nok(n) {
+  if (n == null || isNaN(n)) return '—';
+  return Number(n).toLocaleString('nb-NO', { maximumFractionDigits: 0 });
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('nb-NO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+function splitLabel(model) {
+  const map = { solo_45: '45%', solo_40: '40%', split_50_50: '50/50', vip_10: 'VIP 10%' };
+  return map[model] || model || '—';
+}
+
+// ── Load data ──
+async function loadYear() {
+  currentYear = parseInt(document.getElementById('yearSelect').value, 10);
+  try {
+    const data = await apiFetch(`${API}?list=${currentYear}`);
+    settlements = data.settlements || [];
+    renderTable();
+    renderSummary();
+    loadBrokerSummary();
+  } catch (e) {
+    console.error('loadYear error:', e);
+  }
+}
+
+async function loadBrokerSummary() {
+  try {
+    const data = await apiFetch(`${API}?summary=${currentYear}`);
+    renderBrokerCards(data);
+  } catch (e) {
+    console.error('broker summary error:', e);
+  }
+}
+
+// ── Render ──
+function renderSummary() {
+  const total = settlements.length;
+  const salgssum = settlements.reduce((s, r) => s + Number(r.sale_amount || 0), 0);
+  const revenue = settlements.reduce((s, r) => s + Number(r.revenue_ex_vat || 0), 0);
+  const settled = settlements.filter(s => s.settlement_status === 'settled').length;
+  const outstanding = settlements.reduce((s, r) => s + Math.max(0, r.outstanding || 0), 0);
+
+  document.getElementById('summaryGrid').innerHTML = `
+    <div class="summary-card"><div class="summary-label">Solgte båter</div><div class="summary-value">${total}</div></div>
+    <div class="summary-card"><div class="summary-label">Total salgssum</div><div class="summary-value">${nok(salgssum)}</div><div class="summary-sub">NOK</div></div>
+    <div class="summary-card"><div class="summary-label">Omsetning ex. mva</div><div class="summary-value">${nok(revenue)}</div><div class="summary-sub">NOK</div></div>
+    <div class="summary-card"><div class="summary-label">Oppgjort</div><div class="summary-value">${settled} / ${total}</div></div>
+    <div class="summary-card"><div class="summary-label">Utestående meglerlønn</div><div class="summary-value">${nok(outstanding)}</div><div class="summary-sub">NOK</div></div>
+  `;
+}
+
+function renderTable() {
+  const q = (document.getElementById('searchInput').value || '').toLowerCase();
+  const filtered = settlements.filter(s => {
+    if (!q) return true;
+    return [s.boat_type, s.seller_name, s.buyer_name, s.oppdragsnr, s.assigned_by, s.sold_by]
+      .filter(Boolean).some(v => v.toLowerCase().includes(q));
+  });
+
+  if (!filtered.length) {
+    document.getElementById('tableBody').innerHTML = `<tr><td colspan="15" class="empty-state"><div class="empty-icon">📋</div>Ingen oppgjør for ${currentYear}</td></tr>`;
+    return;
+  }
+
+  document.getElementById('tableBody').innerHTML = filtered.map(s => {
+    const statusBadge = s.settlement_status === 'settled'
+      ? '<span class="badge badge-green">Oppgjort</span>'
+      : '<span class="badge badge-yellow">Uoppgjort</span>';
+    const rowClass = s.settlement_status === 'settled' ? 'row-settled' : '';
+    const totalBroker = Number(s.broker_share || 0) + Number(s.broker2_share || 0);
+    const outstandingClass = s.outstanding > 0 ? 'style="color:var(--red);font-weight:700"' : '';
+
+    return `
+      <tr class="${rowClass}" data-id="${s.id}">
+        <td><button class="btn-expand" onclick="toggleDetail('${s.id}',this)">▶</button></td>
+        <td><strong>${s.oppdragsnr || '—'}</strong></td>
+        <td>${s.boat_type || '—'}</td>
+        <td>${fmtDate(s.sold_date)}</td>
+        <td class="text-right">${nok(s.sale_amount)}</td>
+        <td class="text-right">${nok(s.commission)}</td>
+        <td class="text-right">${nok(s.revenue_ex_vat)}</td>
+        <td>${s.assigned_by || '—'}</td>
+        <td>${s.sold_by || '—'}</td>
+        <td><span class="badge badge-blue">${splitLabel(s.split_model)}</span></td>
+        <td class="text-right">${nok(totalBroker)}</td>
+        <td class="text-right">${nok(s.total_paid)}</td>
+        <td class="text-right" ${outstandingClass}>${nok(s.outstanding)}</td>
+        <td>${statusBadge}</td>
+        <td><button class="btn-sm" onclick="openEditModal('${s.id}')">Rediger</button></td>
+      </tr>
+      <tr class="detail-row" id="detail-${s.id}">
+        <td colspan="15" class="detail-cell" id="detail-cell-${s.id}"></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function toggleDetail(id, btn) {
+  const row = document.getElementById(`detail-${id}`);
+  const isOpen = row.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.detail-row.open').forEach(r => r.classList.remove('open'));
+  document.querySelectorAll('.btn-expand.open').forEach(b => b.classList.remove('open'));
+
+  if (!isOpen) {
+    row.classList.add('open');
+    btn.classList.add('open');
+    renderDetail(id);
+  }
+}
+
+function renderDetail(id) {
+  const s = settlements.find(x => x.id === id);
+  if (!s) return;
+  const cell = document.getElementById(`detail-cell-${id}`);
+  const payments = s.payments || [];
+
+  cell.innerHTML = `
+    <div class="detail-inner">
+      <div class="detail-section">
+        <h4>Detaljer</h4>
+        <div class="detail-field"><span class="detail-field-label">Selger</span><span class="detail-field-value">${s.seller_name || '—'}</span></div>
+        <div class="detail-field"><span class="detail-field-label">Kjøper</span><span class="detail-field-value">${s.buyer_name || '—'}</span></div>
+        <div class="detail-field"><span class="detail-field-label">Firmaandel</span><span class="detail-field-value">${nok(s.company_share)} kr</span></div>
+        <div class="detail-field"><span class="detail-field-label">Ekstra</span><span class="detail-field-value">${s.extra ? nok(s.extra) + ' kr' : '—'}${s.extra_note ? ' (' + s.extra_note + ')' : ''}</span></div>
+        <div class="detail-field"><span class="detail-field-label">Splittpartner</span><span class="detail-field-value">${s.split_broker || '—'}</span></div>
+        <div class="detail-field"><span class="detail-field-label">Megler 2 lønn</span><span class="detail-field-value">${s.broker2_share ? nok(s.broker2_share) + ' kr' : '—'}</span></div>
+        <div class="detail-field"><span class="detail-field-label">Oppdragskilde</span><span class="detail-field-value">${s.source || '—'}</span></div>
+        ${s.notes ? `<div class="detail-field"><span class="detail-field-label">Notater</span><span class="detail-field-value">${s.notes}</span></div>` : ''}
+      </div>
+      <div class="detail-section">
+        <h4>Utbetalinger</h4>
+        <div class="payments-list">
+          ${payments.length ? payments.map(p => `
+            <div class="payment-row">
+              <span>${p.payee} — ${fmtDate(p.paid_at)}${p.note ? ' (' + p.note + ')' : ''}</span>
+              <span><span class="amount">${nok(p.amount)} kr</span> <button class="delete-btn" onclick="deletePayment('${p.id}','${id}')">✕</button></span>
+            </div>
+          `).join('') : '<div style="color:var(--gray-dark);font-size:12px;padding:8px 0">Ingen utbetalinger registrert</div>'}
+        </div>
+        <button class="btn-add-payment" onclick="openPaymentModal('${id}')">+ Registrer utbetaling</button>
+      </div>
+    </div>
+  `;
+}
+
+function filterTable() { renderTable(); }
+
+function renderBrokerCards(data) {
+  const grid = document.getElementById('brokerGrid');
+  if (!data.brokers || !Object.keys(data.brokers).length) { grid.innerHTML = ''; return; }
+
+  grid.innerHTML = '<h3 style="grid-column:1/-1;margin:10px 0 0;font-size:16px;color:var(--navy)">Per megler — ' + currentYear + '</h3>' +
+    Object.entries(data.brokers).map(([name, b]) => `
+      <div class="broker-card">
+        <div class="broker-name">${name}</div>
+        <div class="broker-stat"><span class="broker-stat-label">Deals</span><span class="broker-stat-value">${b.deals}</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Omsetning</span><span class="broker-stat-value">${nok(b.revenue)} kr</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Meglerlønn</span><span class="broker-stat-value">${nok(b.broker_share)} kr</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Utbetalt</span><span class="broker-stat-value">${nok(b.paid)} kr</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Utestående</span><span class="broker-stat-value" style="${b.outstanding > 0 ? 'color:var(--red)' : ''}">${nok(b.outstanding)} kr</span></div>
+      </div>
+    `).join('');
+}
+
+// ── Create / Edit modal ──
+function openCreateModal() {
+  document.getElementById('modalTitle').textContent = 'Nytt oppgjør';
+  document.getElementById('f_id').value = '';
+  document.getElementById('f_deal_id').value = '';
+  ['oppdragsnr','boat_type','seller_name','buyer_name','sold_date','sale_amount','commission',
+   'revenue_ex_vat','split_broker','broker_share','broker2_share','extra_note','source','notes']
+    .forEach(f => document.getElementById('f_' + f).value = '');
+  document.getElementById('f_extra').value = '0';
+  document.getElementById('f_assigned_by').value = '';
+  document.getElementById('f_sold_by').value = '';
+  document.getElementById('f_split_model').value = '';
+  document.getElementById('f_status').value = 'pending';
+  document.getElementById('calcPreviewBox').style.display = 'none';
+  document.getElementById('modal').classList.add('open');
+}
+
+function openEditModal(id) {
+  const s = settlements.find(x => x.id === id);
+  if (!s) return;
+  document.getElementById('modalTitle').textContent = 'Rediger oppgjør';
+  document.getElementById('f_id').value = s.id;
+  document.getElementById('f_deal_id').value = s.deal_id || '';
+  document.getElementById('f_oppdragsnr').value = s.oppdragsnr || '';
+  document.getElementById('f_boat_type').value = s.boat_type || '';
+  document.getElementById('f_seller_name').value = s.seller_name || '';
+  document.getElementById('f_buyer_name').value = s.buyer_name || '';
+  document.getElementById('f_sold_date').value = s.sold_date || '';
+  document.getElementById('f_sale_amount').value = s.sale_amount || '';
+  document.getElementById('f_commission').value = s.commission || '';
+  document.getElementById('f_revenue_ex_vat').value = s.revenue_ex_vat || '';
+  document.getElementById('f_assigned_by').value = s.assigned_by || '';
+  document.getElementById('f_sold_by').value = s.sold_by || '';
+  document.getElementById('f_split_model').value = s.split_model || '';
+  document.getElementById('f_split_broker').value = s.split_broker || '';
+  document.getElementById('f_broker_share').value = s.broker_share || '';
+  document.getElementById('f_broker2_share').value = s.broker2_share || '';
+  document.getElementById('f_extra').value = s.extra || 0;
+  document.getElementById('f_extra_note').value = s.extra_note || '';
+  document.getElementById('f_source').value = s.source || '';
+  document.getElementById('f_status').value = s.settlement_status || 'pending';
+  document.getElementById('f_notes').value = s.notes || '';
+  calcPreview();
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+function calcPreview() {
+  const commission = Number(document.getElementById('f_commission').value) || 0;
+  if (!commission) { document.getElementById('calcPreviewBox').style.display = 'none'; return; }
+  const rev = commission / 1.25;
+  const a = document.getElementById('f_assigned_by').value;
+  const s = document.getElementById('f_sold_by').value;
+  let model = document.getElementById('f_split_model').value;
+  if (!model) {
+    if (a && s && a === s) model = a === 'Sindre' ? 'solo_45' : 'solo_40';
+    else if (a === 'Sindre' || s === 'Sindre') model = 'vip_10';
+    else if (a && s) model = 'split_50_50';
+    else model = 'solo_40';
+  }
+  const pct = { solo_45: 0.45, solo_40: 0.40, split_50_50: 0.20, vip_10: 0.45 };
+  const broker = rev * (pct[model] || 0.40);
+  const broker2 = model === 'split_50_50' ? rev * 0.20 : model === 'vip_10' ? rev * 0.10 : 0;
+  const company = rev - broker - broker2;
+
+  document.getElementById('calcPreviewBox').style.display = 'block';
+  document.getElementById('calcPreviewText').innerHTML =
+    `Omsetning: <strong>${nok(rev)}</strong> · Megler: <strong>${nok(broker)}</strong> (${splitLabel(model)})` +
+    (broker2 ? ` · Megler 2: <strong>${nok(broker2)}</strong>` : '') +
+    ` · Firma: <strong>${nok(company)}</strong>`;
+}
+
+async function saveSettlement() {
+  const id = document.getElementById('f_id').value;
+  const action = id ? 'update' : 'create';
+
+  const body = {
+    boat_type: document.getElementById('f_boat_type').value,
+    seller_name: document.getElementById('f_seller_name').value || null,
+    buyer_name: document.getElementById('f_buyer_name').value || null,
+    sold_date: document.getElementById('f_sold_date').value || null,
+    sale_amount: Number(document.getElementById('f_sale_amount').value) || null,
+    commission: Number(document.getElementById('f_commission').value) || null,
+    assigned_by: document.getElementById('f_assigned_by').value || null,
+    sold_by: document.getElementById('f_sold_by').value || null,
+    split_model: document.getElementById('f_split_model').value || undefined,
+    split_broker: document.getElementById('f_split_broker').value || null,
+    extra: Number(document.getElementById('f_extra').value) || 0,
+    extra_note: document.getElementById('f_extra_note').value || null,
+    source: document.getElementById('f_source').value || null,
+    settlement_status: document.getElementById('f_status').value,
+    notes: document.getElementById('f_notes').value || null,
+  };
+
+  const revOverride = document.getElementById('f_revenue_ex_vat').value;
+  if (revOverride) body.revenue_ex_vat = Number(revOverride);
+  const bs = document.getElementById('f_broker_share').value;
+  if (bs) body.broker_share = Number(bs);
+  const b2s = document.getElementById('f_broker2_share').value;
+  if (b2s) body.broker2_share = Number(b2s);
+
+  if (id) body.id = id;
+  else {
+    body.oppdragsnr = document.getElementById('f_oppdragsnr').value || null;
+    body.deal_id = document.getElementById('f_deal_id').value || null;
+    body.year = currentYear;
+  }
+
+  try {
+    await apiFetch(`${API}?action=${action}`, { method: 'POST', body: JSON.stringify(body) });
+    closeModal();
+    await loadYear();
+  } catch (e) {
+    alert('Feil: ' + e.message);
+  }
+}
+
+// ── Payments ──
+function openPaymentModal(settlementId) {
+  const s = settlements.find(x => x.id === settlementId);
+  document.getElementById('p_settlement_id').value = settlementId;
+  document.getElementById('p_payee').value = s?.sold_by || s?.assigned_by || '';
+  document.getElementById('p_amount').value = '';
+  document.getElementById('p_paid_at').value = new Date().toISOString().split('T')[0];
+  document.getElementById('p_note').value = '';
+  document.getElementById('paymentModal').classList.add('open');
+}
+function closePaymentModal() { document.getElementById('paymentModal').classList.remove('open'); }
+
+async function savePayment() {
+  const body = {
+    action: 'add_payment',
+    settlement_id: document.getElementById('p_settlement_id').value,
+    payee: document.getElementById('p_payee').value,
+    amount: Number(document.getElementById('p_amount').value),
+    paid_at: document.getElementById('p_paid_at').value || null,
+    note: document.getElementById('p_note').value || null,
+  };
+  try {
+    await apiFetch(`${API}?action=add_payment`, { method: 'POST', body: JSON.stringify(body) });
+    closePaymentModal();
+    await loadYear();
+  } catch (e) {
+    alert('Feil: ' + e.message);
+  }
+}
+
+async function deletePayment(paymentId, settlementId) {
+  if (!confirm('Slett utbetaling?')) return;
+  try {
+    await apiFetch(`${API}?action=delete_payment`, { method: 'POST', body: JSON.stringify({ payment_id: paymentId }) });
+    await loadYear();
+    // Re-open detail
+    const btn = document.querySelector(`tr[data-id="${settlementId}"] .btn-expand`);
+    if (btn) toggleDetail(settlementId, btn);
+  } catch (e) {
+    alert('Feil: ' + e.message);
+  }
+}
+
+// ── Import from HubSpot ──
+async function toggleImport() {
+  const panel = document.getElementById('importPanel');
+  const isOpen = panel.classList.contains('open');
+  if (isOpen) { panel.classList.remove('open'); return; }
+  panel.classList.add('open');
+  document.getElementById('importList').innerHTML = '<div style="color:var(--gray-dark);font-size:13px">Laster fra HubSpot…</div>';
+  try {
+    const data = await apiFetch(`${API}?hubspot_deals=1`);
+    if (!data.deals?.length) {
+      document.getElementById('importList').innerHTML = '<div style="color:var(--gray-dark);font-size:13px;padding:8px 0">Ingen nye deals å importere</div>';
+      return;
+    }
+    document.getElementById('importList').innerHTML = data.deals.map(d => `
+      <div class="import-item">
+        <div class="import-item-info">
+          <span class="import-item-name">${d.deal_name}</span>
+          <span class="import-item-meta">${fmtDate(d.close_date)} · ${d.amount ? nok(d.amount) + ' kr' : 'Ingen sum'} · ${d.owner || 'Ukjent megler'}</span>
+        </div>
+        <button class="btn-import-deal" onclick="importDeal('${d.deal_id}', this)">Importer</button>
+      </div>
+    `).join('');
+  } catch (e) {
+    document.getElementById('importList').innerHTML = `<div style="color:var(--red);font-size:13px">${e.message}</div>`;
+  }
+}
+
+async function importDeal(dealId, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Importerer…';
+  try {
+    await apiFetch(`${API}?action=import_from_hubspot`, { method: 'POST', body: JSON.stringify({ deal_id: dealId }) });
+    btn.textContent = '✓ Importert';
+    btn.style.background = 'var(--green-bg)';
+    btn.style.color = 'var(--green)';
+    btn.style.borderColor = 'var(--green)';
+    await loadYear();
+  } catch (e) {
+    btn.textContent = 'Feil';
+    btn.style.color = 'var(--red)';
+    alert('Import feilet: ' + e.message);
+  }
+}
+
+// ── Init ──
+async function init() {
+  TOKEN = getToken();
+  if (!TOKEN) {
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('authError').style.display = 'flex';
+    return;
+  }
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  await loadYear();
+}
+init();
+</script>
+</body>
+</html>
