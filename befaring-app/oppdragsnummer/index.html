@@ -699,7 +699,12 @@ async function loadList() {
             <td>${esc(a.broker_email ? a.broker_email.split('@')[0] : '—')}</td>
             <td>${a.assigned_at ? new Date(a.assigned_at).toLocaleDateString('no-NO', { day: '2-digit', month: 'short' }) : '—'}</td>
             <td>${syncPill(a.hubspot_synced)}</td>
-            <td>${a.oneflow_synced ? syncPill(true) : `<span class="pill pill-no" style="cursor:pointer" onclick="retryOneflow('${esc(a.deal_id)}',this)">Prøv igjen</span>`}</td>
+            <td>${a.oneflow_synced
+              ? syncPill(true)
+              : a.oneflow_synced_at
+                ? `<span class="pill pill-no" style="cursor:pointer" onclick="retryOneflow('${esc(a.deal_id)}',this)">Prøv igjen</span>`
+                : '<span class="pill pill-no">—</span>'
+            }</td>
             <td>${syncPill(a.poweroffice_synced)}</td>
           </tr>
         `).join('')}

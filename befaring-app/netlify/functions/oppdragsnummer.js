@@ -494,7 +494,7 @@ async function handleAssign(sb, body, adminEmail) {
     const allContracts = await fetchAllOneflowContracts();
     const contracts = findOneflowContractsInList(allContracts, dealName, boatName);
     console.log(`Oneflow rename: fant ${contracts.length} kontrakter for "${boatName}"`);
-    let oneflowOk = contracts.length === 0; // vacuously true if no contracts
+    let oneflowOk = false;
 
     for (const c of contracts) {
       // Rename: prepend assignment number to existing name
@@ -516,14 +516,17 @@ async function handleAssign(sb, body, adminEmail) {
       }
     }
 
+    // Always mark that we attempted Oneflow sync
+    const oneflowUpdate = { oneflow_synced_at: new Date().toISOString() };
     if (oneflowOk) {
       syncResults.oneflow = true;
-      await sb.from('assignment_numbers')
-        .update({ oneflow_synced: true, oneflow_synced_at: new Date().toISOString() })
-        .eq('id', assignment.id);
+      oneflowUpdate.oneflow_synced = true;
     }
+    await sb.from('assignment_numbers').update(oneflowUpdate).eq('id', assignment.id);
   } catch (e) {
     console.error('Oneflow sync exception:', e.message);
+    // Still mark attempt time so UI shows "Prøv igjen" instead of "—"
+    try { await sb.from('assignment_numbers').update({ oneflow_synced_at: new Date().toISOString() }).eq('id', assignment.id); } catch {}
   }
 
   // 7. PowerOffice — TODO: add when API key is ready
