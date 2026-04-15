@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Bruksdashboard — House of Yachts</title>
+  <style>
+    :root{--navy:#0a2140;--gold:#c9a84c;--gold-light:#f0d88a;--white:#ffffff;--surface:#f5f7fa;--gray:#dde3ec;--gray-dark:#6b7a8d;--text:#12233a;--green:#166534;--green-bg:#dcfce7;--red:#991b1b;--red-bg:#fee2e2;--blue:#1d4ed8;--blue-bg:#dbeafe;--radius:12px;--shadow:0 2px 16px rgba(10,33,64,0.10)}
+    *,*::before,*::after{box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--surface);color:var(--text);margin:0;padding:0;min-height:100vh;-webkit-font-smoothing:antialiased}
+
+    /* ── Header ── */
+    .header{background:var(--navy);padding:18px 24px;display:flex;align-items:center;justify-content:space-between}
+    .header-left{display:flex;align-items:center;gap:16px}
+    .header-brand{color:white;font-size:18px;font-weight:800;letter-spacing:0.5px}
+    .header-sub{color:var(--gold);font-size:11px;letter-spacing:2px;text-transform:uppercase}
+    .header-back{color:rgba(255,255,255,0.6);text-decoration:none;font-size:13px;font-weight:600;transition:color 0.2s}
+    .header-back:hover{color:white}
+
+    /* ── Loading / Auth ── */
+    .loading{text-align:center;padding:80px 20px;color:var(--gray-dark);font-size:15px}
+    .auth-error{text-align:center;padding:80px 20px;color:var(--red);font-size:15px;font-weight:600}
+
+    /* ── Main ── */
+    .main{max-width:960px;margin:0 auto;padding:24px 16px}
+
+    /* ── Summary cards ── */
+    .summary-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:28px}
+    .summary-card{background:white;border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+    .summary-card .label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gray-dark);margin-bottom:6px}
+    .summary-card .value{font-size:32px;font-weight:800;color:var(--navy)}
+    .summary-card .sub{font-size:12px;color:var(--gray-dark);margin-top:4px}
+
+    /* ── Section ── */
+    .section-title{font-size:16px;font-weight:800;color:var(--navy);margin:28px 0 12px}
+
+    /* ── Table ── */
+    .table-wrap{background:white;border-radius:var(--radius);box-shadow:var(--shadow);overflow-x:auto;margin-bottom:24px}
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    th{background:var(--navy);color:white;padding:12px 16px;text-align:left;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap}
+    td{padding:11px 16px;border-bottom:1px solid var(--gray)}
+    tr:last-child td{border-bottom:none}
+    tr:hover td{background:var(--surface)}
+    .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+    .pill-blue{background:var(--blue-bg);color:var(--blue)}
+    .pill-green{background:var(--green-bg);color:var(--green)}
+    .pill-gold{background:#fef9c3;color:#92400e}
+
+    /* ── Bar chart (CSS-only) ── */
+    .bar-chart{display:flex;flex-direction:column;gap:6px;margin-bottom:24px}
+    .bar-row{display:flex;align-items:center;gap:10px}
+    .bar-label{width:100px;font-size:12px;font-weight:600;color:var(--gray-dark);text-align:right;flex-shrink:0}
+    .bar-track{flex:1;height:24px;background:var(--gray);border-radius:6px;overflow:hidden;position:relative}
+    .bar-fill{height:100%;background:var(--navy);border-radius:6px;transition:width 0.4s ease;min-width:2px}
+    .bar-count{font-size:12px;font-weight:700;color:var(--navy);width:36px;flex-shrink:0}
+
+    /* ── Period picker ── */
+    .period-row{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+    .period-btn{padding:7px 16px;border:2px solid var(--gray);border-radius:8px;background:white;font-size:13px;font-weight:600;cursor:pointer;color:var(--gray-dark);transition:all 0.15s}
+    .period-btn.active{border-color:var(--navy);color:var(--navy);background:var(--surface)}
+
+    /* ── Empty state ── */
+    .empty{text-align:center;padding:40px 20px;color:var(--gray-dark);font-size:14px}
+
+    @media(max-width:600px){
+      .summary-row{grid-template-columns:1fr 1fr}
+      .bar-label{width:70px;font-size:11px}
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div>
+      <div class="header-brand">House of Yachts</div>
+      <div class="header-sub">Bruksdashboard</div>
+    </div>
+  </div>
+  <a href="/" class="header-back">← Tilbake til portal</a>
+</div>
+
+<div class="main" id="main">
+  <div class="loading" id="loadingMsg">Laster bruksdata…</div>
+</div>
+
+<script>
+'use strict';
+const IDENTITY = `${window.location.origin}/.netlify/identity`;
+const API = `${window.location.origin}/.netlify/functions/tracking`;
+const $ = id => document.getElementById(id);
+
+let accessToken = null;
+
+function parseJwt(token) {
+  try { const b = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'); return JSON.parse(atob(b)); }
+  catch { return {}; }
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  const tok = localStorage.getItem('hoy_access_token');
+  if (!tok) { showError('Du er ikke innlogget. <a href="/">Logg inn</a>'); return; }
+
+  try {
+    const r = await fetch(`${IDENTITY}/user`, { headers: { Authorization: `Bearer ${tok}` } });
+    if (!r.ok) throw new Error();
+  } catch { showError('Sesjonen har utløpt. <a href="/">Logg inn på nytt</a>'); return; }
+
+  const claims = parseJwt(tok);
+  if (!claims?.app_metadata?.roles?.includes('admin')) {
+    showError('Kun admin har tilgang til dette dashboardet.');
+    return;
+  }
+
+  accessToken = tok;
+  loadDashboard(30);
+});
+
+function showError(msg) {
+  $('main').innerHTML = `<div class="auth-error">${msg}</div>`;
+}
+
+// ── Data ──────────────────────────────────────────────────────────────────────
+let currentDays = 30;
+
+async function loadDashboard(days) {
+  currentDays = days;
+  $('main').innerHTML = '<div class="loading">Laster bruksdata…</div>';
+
+  try {
+    const [summaryRes, dailyRes] = await Promise.all([
+      fetch(`${API}?stats=summary&days=${days}`, { headers: { Authorization: `Bearer ${accessToken}` } }),
+      fetch(`${API}?stats=daily&days=${days}`, { headers: { Authorization: `Bearer ${accessToken}` } }),
+    ]);
+
+    if (!summaryRes.ok || !dailyRes.ok) throw new Error('Kunne ikke hente data');
+
+    const summary = await summaryRes.json();
+    const daily = await dailyRes.json();
+
+    render(summary, daily, days);
+  } catch (e) {
+    $('main').innerHTML = `<div class="auth-error">Feil ved lasting av data: ${e.message}</div>`;
+  }
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render(summary, daily, days) {
+  const moduleLabels = {
+    befaring: 'Befaringsskjema',
+    sjekkliste: 'Sjekkliste',
+    annonsegenerator: 'Annonsegenerator',
+    budmodul: 'Budmodul',
+    prospekt: 'Prospekt-editor',
+    handbok: 'Håndbok',
+    soper: 'SOPer',
+    admin: 'Admin-dashboard',
+    portal: 'Portal',
+  };
+
+  const userName = (email) => {
+    const name = email.split('@')[0];
+    return name.charAt(0).toUpperCase() + name.slice(1);
+  };
+
+  // ── Period picker
+  let html = `<div class="period-row">`;
+  [7, 14, 30, 60].forEach(d => {
+    html += `<button class="period-btn ${d === days ? 'active' : ''}" onclick="loadDashboard(${d})">${d} dager</button>`;
+  });
+  html += `</div>`;
+
+  // ── Summary cards
+  const avgDaily = days > 0 ? (summary.total_logins / Math.min(days, Object.keys(daily.daily || {}).length || 1)).toFixed(1) : 0;
+  html += `
+    <div class="summary-row">
+      <div class="summary-card">
+        <div class="label">Aktive brukere</div>
+        <div class="value">${summary.unique_users}</div>
+        <div class="sub">Siste ${days} dager</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Innlogginger</div>
+        <div class="value">${summary.total_logins}</div>
+        <div class="sub">~${avgDaily} per dag</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Modulbesøk</div>
+        <div class="value">${summary.total_page_views}</div>
+        <div class="sub">Totalt</div>
+      </div>
+    </div>`;
+
+  // ── Module usage bar chart
+  const modules = summary.modules || {};
+  const sorted = Object.entries(modules).sort((a, b) => b[1] - a[1]);
+  const maxVal = sorted.length ? sorted[0][1] : 1;
+
+  if (sorted.length) {
+    html += `<div class="section-title">Modulbruk</div>`;
+    html += `<div class="bar-chart">`;
+    for (const [mod, count] of sorted) {
+      const pct = Math.max((count / maxVal) * 100, 2);
+      html += `
+        <div class="bar-row">
+          <div class="bar-label">${moduleLabels[mod] || mod}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+          <div class="bar-count">${count}</div>
+        </div>`;
+    }
+    html += `</div>`;
+  }
+
+  // ── Daily activity table
+  const dates = Object.keys(daily.daily || {}).sort().reverse();
+
+  if (dates.length) {
+    html += `<div class="section-title">Daglig aktivitet</div>`;
+    html += `<div class="table-wrap"><table>
+      <thead><tr><th>Dato</th><th>Bruker</th><th>Innlogginger</th><th>Modulbesøk</th><th>Moduler brukt</th></tr></thead>
+      <tbody>`;
+
+    for (const date of dates) {
+      const users = daily.daily[date];
+      const userKeys = Object.keys(users).sort();
+      const fmtDate = formatDate(date);
+
+      for (let i = 0; i < userKeys.length; i++) {
+        const email = userKeys[i];
+        const u = users[email];
+        const modList = Object.entries(u.modules || {})
+          .sort((a, b) => b[1] - a[1])
+          .map(([m, c]) => `<span class="pill pill-blue">${moduleLabels[m] || m} (${c})</span>`)
+          .join(' ');
+
+        html += `<tr>
+          <td>${i === 0 ? `<strong>${fmtDate}</strong>` : ''}</td>
+          <td>${userName(email)}</td>
+          <td>${u.logins || 0}</td>
+          <td>${u.page_views || 0}</td>
+          <td>${modList || '<span style="color:var(--gray-dark)">—</span>'}</td>
+        </tr>`;
+      }
+    }
+
+    html += `</tbody></table></div>`;
+  } else {
+    html += `<div class="empty">Ingen aktivitet registrert i denne perioden ennå.</div>`;
+  }
+
+  $('main').innerHTML = html;
+}
+
+function formatDate(iso) {
+  const d = new Date(iso + 'T12:00:00');
+  const days = ['søn', 'man', 'tir', 'ons', 'tor', 'fre', 'lør'];
+  const months = ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des'];
+  return `${days[d.getDay()]} ${d.getDate()}. ${months[d.getMonth()]}`;
+}
+</script>
+</body>
+</html>

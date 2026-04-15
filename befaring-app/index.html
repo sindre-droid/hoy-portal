@@ -213,6 +213,16 @@
       <div class="section-label">Administrasjon</div>
       <div class="tools-grid">
 
+        <a class="tool-card active" href="/admin/">
+          <div class="tool-icon">📊</div>
+          <div class="tool-title">Bruksdashboard</div>
+          <div class="tool-desc">Se hvem som bruker portalen, hvilke moduler de besøker, og daglig aktivitet.</div>
+          <div class="tool-footer">
+            <span class="badge badge-admin">Admin</span>
+            <span class="card-arrow">→</span>
+          </div>
+        </a>
+
         <div class="tool-card soon">
           <div class="tool-icon">🗂️</div>
           <div class="tool-title">Back-office</div>
@@ -229,7 +239,17 @@
 <script>
 'use strict';
 const IDENTITY=`${window.location.origin}/.netlify/identity`;
+const TRACKING=`${window.location.origin}/.netlify/functions/tracking`;
 let accessToken=null;
+
+function trackEvent(event_type, module, payload){
+  if(!accessToken) return;
+  fetch(TRACKING,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+accessToken},
+    body:JSON.stringify({event_type, module, payload})
+  }).catch(()=>{});
+}
 
 const $=id=>document.getElementById(id);
 const show=id=>{const e=$(id);if(e)e.style.display=''};
@@ -314,7 +334,16 @@ function onLogin(user){
   const claims=parseJwt(accessToken||'');
   const roles=claims.app_metadata?.roles||[];
   if(roles.includes('admin'))show('adminSection');
+  trackEvent('login','portal');
   showScreen('dashboardScreen');
+
+  // Track module clicks
+  document.querySelectorAll('a.tool-card[href]').forEach(a=>{
+    a.addEventListener('click',()=>{
+      const mod=a.getAttribute('href').replace(/\//g,'');
+      trackEvent('page_view',mod);
+    });
+  });
 }
 
 async function doForgot(){
