@@ -63,6 +63,7 @@ async function ofApi(path, method = 'GET', body = null) {
       'x-oneflow-api-token':  process.env.ONEFLOW_API_TOKEN,
       'x-oneflow-user-email': process.env.ONEFLOW_USER_EMAIL,
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
     },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
