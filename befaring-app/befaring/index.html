@@ -272,7 +272,9 @@ async function saveDraftNow(){
   if(!selectedDeal)return;
   const dealId=selectedDeal.id;
   const data={
-    isSailboat,motorCount,hasGenerator,
+    isSailboat,motorCount,hasGenerator,isOnLand,
+    dealName:dealFieldData?.dealname||selectedDeal?.properties?.dealname||'',
+    brokerName:ownerRecord?.name||'',
     condState:Object.fromEntries(Object.entries(condState).map(([k,v])=>[k,{score:v.score,comment:v.comment,flag:v.flag,photoUrls:v.photoUrls||[]}])),
     fields:captureDraftFields(),
   };
@@ -293,11 +295,13 @@ async function loadDraft(dealId){
     if(d.isSailboat!==undefined)isSailboat=d.isSailboat;
     if(d.motorCount!==undefined)motorCount=d.motorCount;
     if(d.hasGenerator!==undefined)hasGenerator=d.hasGenerator;
+    if(d.isOnLand!==undefined)isOnLand=d.isOnLand;
     if(d.condState)Object.assign(condState,d.condState);
     draftFieldValues=d.fields||null;
     const ts=new Date(json.updated_at);
     const label=ts.toLocaleDateString('no-NO',{day:'numeric',month:'short'})+' kl. '+ts.toLocaleTimeString('no-NO',{hour:'2-digit',minute:'2-digit'});
-    showDraftStatus('📋 Utkast gjenopprettet fra '+label);
+    const wasSaved=d.saved_at;
+    showDraftStatus(wasSaved?'📋 Forrige befaring lagret '+label:'📋 Utkast gjenopprettet fra '+label);
   }catch(e){console.error('Draft load error:',e);}
 }
 
@@ -1258,7 +1262,8 @@ async function saveBefaring(){
   }
   await Promise.all(tasks);
   saved=true;$('saveBtn').disabled=false;hide('navBar');
-  clearDraft(dealId).catch(()=>{});  // slett utkast — befaring er nå permanent lagret i HubSpot
+  // Merk utkastet som ferdig lagret (sletter ikke — nyttig referanse ved neste befaring på samme deal)
+  fetch(DRAFT_BASE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deal_id:dealId,data:{...JSON.parse(JSON.stringify({isSailboat,motorCount,hasGenerator,isOnLand,condState})),dealName:dealFieldData?.dealname||selectedDeal?.properties?.dealname||'',brokerName:ownerRecord?.name||'',saved_at:new Date().toISOString()}})}).catch(()=>{});
 
   // Build PDF payload — used by "Generer PDF"-knappen på completion-screen
   const pdfPayload={

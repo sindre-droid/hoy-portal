@@ -24,8 +24,18 @@ exports.handler = async (event) => {
   );
   const q = event.queryStringParameters || {};
 
-  // ── GET: hent utkast for en deal ────────────────────────────────────────────
+  // ── GET: hent utkast for en deal, eller list alle ────────────────────────────
   if (event.httpMethod === 'GET') {
+    // ?list=true → returner alle utkast (kun for admin-dashboard)
+    if (q.list === 'true') {
+      const { data, error } = await supabase
+        .from('befaring_drafts')
+        .select('deal_id, data, updated_at')
+        .order('updated_at', { ascending: false });
+      if (error) return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: error.message }) };
+      return { statusCode: 200, headers: CORS, body: JSON.stringify({ drafts: data || [] }) };
+    }
+
     const { deal_id } = q;
     if (!deal_id) return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'deal_id påkrevd' }) };
 
