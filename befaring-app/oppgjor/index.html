@@ -79,7 +79,7 @@
     .detail-row{display:none}
     .detail-row.open{display:table-row}
     .detail-cell{padding:0 14px 20px;background:var(--surface);white-space:normal}
-    .detail-inner{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:16px 0;min-width:0}
+    .detail-inner{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:16px 0;min-width:0;max-width:min(1068px, calc(100vw - 64px));overflow:hidden}
     .detail-section h4{font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:var(--gray-dark);margin:0 0 10px}
     .detail-field{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--gray)}
     .detail-field-label{color:var(--gray-dark);font-weight:600}
@@ -132,8 +132,8 @@
     .avregning-line{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--gray);gap:12px}
     .avregning-line.total{border-top:2px solid var(--navy);border-bottom:none;padding-top:10px;margin-top:4px;font-weight:800;font-size:14px;color:var(--navy)}
     .avregning-line.subtotal{font-weight:700;color:var(--gray-dark)}
-    .avregning-label{color:var(--gray-dark)}
-    .avregning-value{font-weight:700}
+    .avregning-label{color:var(--gray-dark);min-width:0}
+    .avregning-value{font-weight:700;white-space:nowrap;text-align:right}
     .avregning-value.negative{color:var(--red)}
     .avregning-value.positive{color:var(--green)}
 
