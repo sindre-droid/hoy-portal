@@ -58,7 +58,6 @@
     table{width:100%;border-collapse:collapse;font-size:13px}
     th{background:var(--surface);font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:0.5px;color:var(--gray-dark);padding:12px 14px;text-align:left;white-space:nowrap;position:sticky;top:0}
     td{padding:12px 14px;border-top:1px solid var(--gray);vertical-align:middle;white-space:nowrap}
-    td.detail-cell{white-space:normal;overflow:hidden}
     tr:hover td{background:rgba(10,33,64,0.02)}
     tr.row-settled td{opacity:0.6}
     .text-right{text-align:right}
@@ -75,11 +74,9 @@
     .btn-expand{background:none;border:none;cursor:pointer;font-size:16px;padding:2px 6px;transition:transform 0.2s}
     .btn-expand.open{transform:rotate(90deg)}
 
-    /* ── Detail panel (inline expand) ── */
-    .detail-row{display:none}
-    .detail-row.open{display:table-row}
-    .detail-cell{padding:0 14px 20px;background:var(--surface);white-space:normal}
-    .detail-inner{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:16px 0;min-width:0;max-width:min(1068px, calc(100vw - 64px));overflow:hidden}
+    /* ── Detail panel (utenfor tabellen) ── */
+    .detail-panel{background:white;border-radius:14px;box-shadow:var(--shadow);padding:24px;margin-top:-4px;margin-bottom:16px;border-top:3px solid var(--gold)}
+    .detail-inner{display:grid;grid-template-columns:1fr 1fr;gap:24px}
     .detail-section h4{font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:var(--gray-dark);margin:0 0 10px}
     .detail-field{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--gray)}
     .detail-field-label{color:var(--gray-dark);font-weight:600}
@@ -126,7 +123,6 @@
     .btn-import-deal:disabled{opacity:0.4;cursor:not-allowed}
 
     /* ── Seller settlement panel ── */
-    .detail-section{min-width:0;overflow:hidden}
     .seller-panel{background:white;border-radius:12px;border:2px solid var(--gray);padding:16px}
     .seller-panel h4{font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:var(--gold);margin:0 0 12px;font-weight:800}
     .avregning-line{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--gray);gap:12px}
@@ -234,6 +230,9 @@
           <tbody id="tableBody"></tbody>
         </table>
       </div>
+
+      <!-- Detail panel (utenfor tabellen) -->
+      <div id="detailPanel" class="detail-panel" style="display:none"></div>
 
       <!-- Broker summary -->
       <div class="broker-grid" id="brokerGrid"></div>
@@ -451,31 +450,40 @@ function renderTable() {
         <td>${statusBadge}</td>
         <td><button class="btn-sm" onclick="openEditModal('${s.id}')">Rediger</button></td>
       </tr>
-      <tr class="detail-row" id="detail-${s.id}">
-        <td colspan="12" class="detail-cell" id="detail-cell-${s.id}"></td>
-      </tr>
     `;
   }).join('');
+  // Skjul detail-panel når tabellen re-rendres
+  document.getElementById('detailPanel').style.display = 'none';
+  document.querySelectorAll('.btn-expand.open').forEach(b => b.classList.remove('open'));
 }
 
+let openDetailId = null;
 function toggleDetail(id, btn) {
-  const row = document.getElementById(`detail-${id}`);
-  const isOpen = row.classList.contains('open');
-  // Close all
-  document.querySelectorAll('.detail-row.open').forEach(r => r.classList.remove('open'));
+  const panel = document.getElementById('detailPanel');
+  const wasOpen = openDetailId === id;
+
+  // Lukk alle expand-knapper
   document.querySelectorAll('.btn-expand.open').forEach(b => b.classList.remove('open'));
 
-  if (!isOpen) {
-    row.classList.add('open');
-    btn.classList.add('open');
-    renderDetail(id);
+  if (wasOpen) {
+    panel.style.display = 'none';
+    openDetailId = null;
+    return;
   }
+
+  openDetailId = id;
+  btn.classList.add('open');
+  renderDetail(id);
+  panel.style.display = 'block';
+
+  // Scroll panelet synlig
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 function renderDetail(id) {
   const s = settlements.find(x => x.id === id);
   if (!s) return;
-  const cell = document.getElementById(`detail-cell-${id}`);
+  const cell = document.getElementById('detailPanel');
   const payments = s.payments || [];
   const adjustments = s.adjustments || [];
 
@@ -763,9 +771,7 @@ async function deletePayment(paymentId, settlementId) {
   try {
     await apiFetch(`${API}?action=delete_payment`, { method: 'POST', body: JSON.stringify({ payment_id: paymentId }) });
     await loadYear();
-    // Re-open detail
-    const btn = document.querySelector(`tr[data-id="${settlementId}"] .btn-expand`);
-    if (btn) toggleDetail(settlementId, btn);
+    reopenDetail(settlementId);
   } catch (e) {
     alert('Feil: ' + e.message);
   }
@@ -795,9 +801,7 @@ async function saveAdjustment() {
     await apiFetch(`${API}?action=add_adjustment`, { method: 'POST', body: JSON.stringify(body) });
     closeAdjModal();
     await loadYear();
-    // Re-open detail panel
-    const btn = document.querySelector(`tr[data-id="${body.settlement_id}"] .btn-expand`);
-    if (btn) toggleDetail(body.settlement_id, btn);
+    reopenDetail(body.settlement_id);
   } catch (e) {
     alert('Feil: ' + e.message);
   }
@@ -808,11 +812,19 @@ async function deleteAdjustment(adjustmentId, settlementId) {
   try {
     await apiFetch(`${API}?action=delete_adjustment`, { method: 'POST', body: JSON.stringify({ adjustment_id: adjustmentId }) });
     await loadYear();
-    const btn = document.querySelector(`tr[data-id="${settlementId}"] .btn-expand`);
-    if (btn) toggleDetail(settlementId, btn);
+    reopenDetail(settlementId);
   } catch (e) {
     alert('Feil: ' + e.message);
   }
+}
+
+// Hjelpefunksjon: gjenåpne detail-panel etter data-reload
+function reopenDetail(settlementId) {
+  openDetailId = settlementId;
+  const btn = document.querySelector(`tr[data-id="${settlementId}"] .btn-expand`);
+  if (btn) btn.classList.add('open');
+  renderDetail(settlementId);
+  document.getElementById('detailPanel').style.display = 'block';
 }
 
 // ── Import from HubSpot ──
