@@ -2,7 +2,7 @@
 // Oppgjørsmodul: erstatter "Oppgjør lønn solgte båter"-regnearket.
 //
 // GET  ?list=YEAR              → Alle oppgjør for gitt år
-// GET  ?detail=SETTLEMENT_ID   → Enkelt oppgjør med utbetalinger
+// GET  ?detail=SETTLEMENT_ID   → Enkelt oppgjør med utbetalinger + justeringer
 // GET  ?summary=YEAR           → Aggregert per megler (lønn, utbetalt, utestående)
 // GET  ?hubspot_deals=1        → Pipeline B closed deals uten oppgjør (for import)
 // POST action=sync_amount      → Webhook: les provisjon_ex_mva, sett amount = provisjon_ex_mva × 1.25
@@ -10,6 +10,9 @@
 // POST action=update           → Oppdater oppgjørsfelt
 // POST action=add_payment      → Registrer utbetaling
 // POST action=delete_payment   → Slett utbetaling
+// POST action=add_adjustment   → Legg til justeringslinje (fradrag, tillegg, tilbakehold, retur kjøper)
+// POST action=delete_adjustment→ Slett justeringslinje
+// POST action=recalc_payout    → Rekalkuler selgeroppgjør basert på justeringslinjer
 // POST action=import_from_hubspot → Auto-opprett oppgjør fra HubSpot closed-won deal
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -63,6 +66,32 @@ function calculateShares(revenueExVat, splitModel) {
     default:
       return { broker_share: 0, broker2_share: 0, company_share: rev };
   }
+}
+
+// ── Selgeroppgjør-beregning ─────────────────────────────────────────────────
+// Beregner utbetaling til selger basert på justeringslinjer
+// Kjøpesum - provisjon inkl.mva - fradrag + tillegg - tilbakehold = selger_payout
+// buyer_return beregnes separat (retur til kjøper)
+function calculateSellerPayout(saleAmount, commission, adjustments) {
+  const sale = Number(saleAmount) || 0;
+  const comm = Number(commission) || 0;
+  let deductions = 0;
+  let additions = 0;
+  let withheld = 0;
+  let buyerReturn = 0;
+
+  for (const adj of (adjustments || [])) {
+    const amt = Number(adj.amount) || 0;
+    switch (adj.category) {
+      case 'deduction':   deductions += amt; break;
+      case 'addition':    additions += amt; break;
+      case 'withheld':    withheld += amt; break;
+      case 'buyer_return': buyerReturn += amt; break;
+    }
+  }
+
+  const sellerPayout = sale - comm - deductions + additions - withheld - buyerReturn;
+  return { seller_payout: sellerPayout, withheld_amount: withheld, buyer_return: buyerReturn, deductions, additions };
 }
 
 // Bestem split_model automatisk fra assigned_by / sold_by
@@ -176,33 +205,49 @@ exports.handler = async (event) => {
         .order('sold_date', { ascending: true });
       if (error) throw error;
 
-      // Hent utbetalinger for alle settlements
+      // Hent utbetalinger og justeringer for alle settlements
       const ids = data.map(s => s.id);
       let payments = [];
+      let adjustments = [];
       if (ids.length) {
-        const pr = await supabase
-          .from('settlement_payments')
-          .select('*')
-          .in('settlement_id', ids)
-          .order('paid_at', { ascending: true });
+        const [pr, ar] = await Promise.all([
+          supabase.from('settlement_payments').select('*').in('settlement_id', ids).order('paid_at', { ascending: true }),
+          supabase.from('settlement_adjustments').select('*').in('settlement_id', ids).order('created_at', { ascending: true }),
+        ]);
         if (pr.error) throw pr.error;
+        if (ar.error) throw ar.error;
         payments = pr.data;
+        adjustments = ar.data;
       }
 
-      // Grupper utbetalinger per settlement
+      // Grupper per settlement
       const payMap = {};
       for (const p of payments) {
         if (!payMap[p.settlement_id]) payMap[p.settlement_id] = [];
         payMap[p.settlement_id].push(p);
       }
+      const adjMap = {};
+      for (const a of adjustments) {
+        if (!adjMap[a.settlement_id]) adjMap[a.settlement_id] = [];
+        adjMap[a.settlement_id].push(a);
+      }
 
-      const enriched = data.map(s => ({
-        ...s,
-        payments: payMap[s.id] || [],
-        total_paid: (payMap[s.id] || []).reduce((sum, p) => sum + Number(p.amount), 0),
-        outstanding: Number(s.broker_share || 0) + Number(s.broker2_share || 0)
-          - (payMap[s.id] || []).reduce((sum, p) => sum + Number(p.amount), 0),
-      }));
+      const enriched = data.map(s => {
+        const sAdj = adjMap[s.id] || [];
+        const sPay = payMap[s.id] || [];
+        const payout = calculateSellerPayout(s.sale_amount, s.commission, sAdj);
+        return {
+          ...s,
+          payments: sPay,
+          adjustments: sAdj,
+          total_paid: sPay.reduce((sum, p) => sum + Number(p.amount), 0),
+          outstanding: Number(s.broker_share || 0) + Number(s.broker2_share || 0)
+            - sPay.reduce((sum, p) => sum + Number(p.amount), 0),
+          calc_seller_payout: payout.seller_payout,
+          calc_withheld: payout.withheld_amount,
+          calc_buyer_return: payout.buyer_return,
+        };
+      });
 
       return { statusCode: 200, headers: h, body: JSON.stringify({ settlements: enriched }) };
     }
@@ -218,16 +263,25 @@ exports.handler = async (event) => {
         .single();
       if (error) throw error;
 
-      const pr = await supabase
-        .from('settlement_payments')
-        .select('*')
-        .eq('settlement_id', q.detail)
-        .order('paid_at', { ascending: true });
+      const [pr, ar] = await Promise.all([
+        supabase.from('settlement_payments').select('*').eq('settlement_id', q.detail).order('paid_at', { ascending: true }),
+        supabase.from('settlement_adjustments').select('*').eq('settlement_id', q.detail).order('created_at', { ascending: true }),
+      ]);
+
+      const adjs = ar.data || [];
+      const pays = pr.data || [];
+      const payout = calculateSellerPayout(data.sale_amount, data.commission, adjs);
 
       return { statusCode: 200, headers: h, body: JSON.stringify({
         ...data,
-        payments: pr.data || [],
-        total_paid: (pr.data || []).reduce((sum, p) => sum + Number(p.amount), 0),
+        payments: pays,
+        adjustments: adjs,
+        total_paid: pays.reduce((sum, p) => sum + Number(p.amount), 0),
+        calc_seller_payout: payout.seller_payout,
+        calc_withheld: payout.withheld_amount,
+        calc_buyer_return: payout.buyer_return,
+        calc_deductions: payout.deductions,
+        calc_additions: payout.additions,
       }) };
     }
 
@@ -439,6 +493,88 @@ exports.handler = async (event) => {
         const { error } = await supabase.from('settlement_payments').delete().eq('id', payment_id);
         if (error) throw error;
         return { statusCode: 200, headers: h, body: JSON.stringify({ ok: true }) };
+      }
+
+      // ── add_adjustment ─────────────────────────────────────────────────
+      if (action === 'add_adjustment') {
+        const { settlement_id, description, amount, includes_vat, category } = body;
+        if (!settlement_id || !description || amount === undefined || amount === null) {
+          return { statusCode: 400, headers: h, body: JSON.stringify({ error: 'Missing required fields (settlement_id, description, amount)' }) };
+        }
+        const validCategories = ['deduction', 'addition', 'withheld', 'buyer_return'];
+        const cat = validCategories.includes(category) ? category : 'deduction';
+
+        const { data: adj, error: adjErr } = await supabase.from('settlement_adjustments').insert({
+          settlement_id,
+          description,
+          amount: Number(amount),
+          includes_vat: includes_vat || false,
+          category: cat,
+          created_by: userId,
+        }).select().single();
+        if (adjErr) throw adjErr;
+
+        // Rekalkuler og oppdater settlement
+        const { data: allAdj } = await supabase.from('settlement_adjustments').select('*').eq('settlement_id', settlement_id);
+        const { data: settlement } = await supabase.from('settlements').select('sale_amount, commission').eq('id', settlement_id).single();
+        const payout = calculateSellerPayout(settlement.sale_amount, settlement.commission, allAdj);
+
+        await supabase.from('settlements').update({
+          seller_payout: payout.seller_payout,
+          withheld_amount: payout.withheld_amount,
+          buyer_return: payout.buyer_return,
+        }).eq('id', settlement_id);
+
+        return { statusCode: 201, headers: h, body: JSON.stringify({ adjustment: adj, payout }) };
+      }
+
+      // ── delete_adjustment ───────────────────────────────────────────────
+      if (action === 'delete_adjustment') {
+        const { adjustment_id } = body;
+        if (!adjustment_id) return { statusCode: 400, headers: h, body: JSON.stringify({ error: 'Missing adjustment_id' }) };
+
+        // Hent settlement_id før sletting
+        const { data: adj } = await supabase.from('settlement_adjustments').select('settlement_id').eq('id', adjustment_id).single();
+        if (!adj) return { statusCode: 404, headers: h, body: JSON.stringify({ error: 'Adjustment not found' }) };
+
+        const { error } = await supabase.from('settlement_adjustments').delete().eq('id', adjustment_id);
+        if (error) throw error;
+
+        // Rekalkuler
+        const { data: allAdj } = await supabase.from('settlement_adjustments').select('*').eq('settlement_id', adj.settlement_id);
+        const { data: settlement } = await supabase.from('settlements').select('sale_amount, commission').eq('id', adj.settlement_id).single();
+        const payout = calculateSellerPayout(settlement.sale_amount, settlement.commission, allAdj);
+
+        await supabase.from('settlements').update({
+          seller_payout: payout.seller_payout,
+          withheld_amount: payout.withheld_amount,
+          buyer_return: payout.buyer_return,
+        }).eq('id', adj.settlement_id);
+
+        return { statusCode: 200, headers: h, body: JSON.stringify({ ok: true, payout }) };
+      }
+
+      // ── recalc_payout ───────────────────────────────────────────────────
+      // Manuell rekalkulering av selgeroppgjør
+      if (action === 'recalc_payout') {
+        const { settlement_id } = body;
+        if (!settlement_id) return { statusCode: 400, headers: h, body: JSON.stringify({ error: 'Missing settlement_id' }) };
+
+        const [settR, adjR] = await Promise.all([
+          supabase.from('settlements').select('sale_amount, commission').eq('id', settlement_id).single(),
+          supabase.from('settlement_adjustments').select('*').eq('settlement_id', settlement_id),
+        ]);
+        if (settR.error) throw settR.error;
+        const payout = calculateSellerPayout(settR.data.sale_amount, settR.data.commission, adjR.data || []);
+
+        const { data, error } = await supabase.from('settlements').update({
+          seller_payout: payout.seller_payout,
+          withheld_amount: payout.withheld_amount,
+          buyer_return: payout.buyer_return,
+        }).eq('id', settlement_id).select().single();
+        if (error) throw error;
+
+        return { statusCode: 200, headers: h, body: JSON.stringify({ ...data, calc_deductions: payout.deductions, calc_additions: payout.additions }) };
       }
 
       // ── import_from_hubspot ─────────────────────────────────────────────

@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Back-office — House of Yachts (Mockup v2)</title>
+  <style>
+    :root {
+      --navy:#0a2140;--gold:#c9a84c;--white:#fff;--surface:#f5f7fa;
+      --gray:#dde3ec;--gray-dark:#6b7a8d;--text:#12233a;
+      --green:#166534;--green-bg:#dcfce7;
+      --red:#991b1b;--red-bg:#fee2e2;
+      --yellow:#92400e;--yellow-bg:#fef3c7;
+      --blue:#1e40af;--blue-bg:#dbeafe;
+      --purple:#6d28d9;--purple-bg:#ede9fe;
+      --radius:12px;--shadow:0 2px 16px rgba(10,33,64,0.10);
+    }
+    *,*::before,*::after{box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--surface);color:var(--text);margin:0;padding:0}
+
+    .header{background:var(--navy);color:white;padding:14px 20px;position:sticky;top:0;z-index:200;box-shadow:0 2px 16px rgba(0,0,0,0.35)}
+    .header-inner{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .brand{display:flex;flex-direction:column}
+    .brand-name{font-size:14px;font-weight:800;letter-spacing:0.8px}
+    .brand-sub{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--gold)}
+    .header-title{font-size:16px;font-weight:700;color:rgba(255,255,255,0.9)}
+    .btn-nav{background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.18);border-radius:20px;color:rgba(255,255,255,0.85);padding:6px 14px;font-size:12px;cursor:pointer;text-decoration:none}
+
+    .main{max-width:1200px;margin:0 auto;padding:24px 16px 80px}
+
+    .tabs{display:flex;gap:4px;margin-bottom:24px;background:white;border-radius:12px;padding:4px;box-shadow:var(--shadow)}
+    .tab{flex:1;padding:12px 16px;border:none;background:transparent;border-radius:10px;font-size:13px;font-weight:600;color:var(--gray-dark);cursor:pointer;font-family:inherit;transition:all 0.2s;text-align:center}
+    .tab.active{background:var(--navy);color:white}
+    .tab:hover:not(.active){background:var(--surface)}
+    .tab-badge{display:inline-block;background:var(--gold);color:var(--navy);font-size:10px;font-weight:800;padding:2px 6px;border-radius:10px;margin-left:4px}
+    .tab.active .tab-badge{background:rgba(255,255,255,0.25);color:white}
+
+    .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:24px}
+    .kpi{background:white;border-radius:14px;padding:18px;box-shadow:var(--shadow)}
+    .kpi-label{font-size:11px;font-weight:600;color:var(--gray-dark);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+    .kpi-value{font-size:24px;font-weight:800;color:var(--navy)}
+    .kpi-sub{font-size:11px;color:var(--gray-dark);margin-top:4px}
+    .progress-bar{height:6px;background:var(--gray);border-radius:3px;margin-top:8px;overflow:hidden}
+    .progress-fill{height:100%;border-radius:3px;background:var(--gold);transition:width 0.5s}
+
+    .card{background:white;border-radius:14px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:20px}
+    .card-header{padding:14px 20px;border-bottom:1px solid var(--gray);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+    .card-title{font-size:15px;font-weight:700;color:var(--navy)}
+    .card-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+    table{width:100%;border-collapse:collapse}
+    th{font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--gray-dark);padding:10px 12px;text-align:left;border-bottom:2px solid var(--gray);white-space:nowrap}
+    td{padding:10px 12px;border-bottom:1px solid var(--gray);font-size:12.5px;white-space:nowrap}
+    tr:last-child td{border-bottom:none}
+    tr:hover td{background:rgba(10,33,64,0.02)}
+    .num{font-weight:700;color:var(--navy)}
+    .money{font-variant-numeric:tabular-nums;text-align:right}
+    .text-right{text-align:right}
+    .text-center{text-align:center}
+
+    .status{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:600}
+    .status-paid{background:var(--green-bg);color:var(--green)}
+    .status-partial{background:var(--yellow-bg);color:var(--yellow)}
+    .status-pending{background:var(--blue-bg);color:var(--blue)}
+    .status-hold{background:var(--red-bg);color:var(--red)}
+    .status-invoiced{background:var(--purple-bg);color:var(--purple)}
+    .status-not-invoiced{background:#f1f5f9;color:#64748b}
+
+    .broker{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600}
+    .broker-sindre{background:#dbeafe;color:#1e40af}
+    .broker-henrik{background:#dcfce7;color:#166534}
+    .broker-daniel{background:#fef3c7;color:#92400e}
+
+    .editable{cursor:pointer;border-bottom:1px dashed var(--gray-dark)}
+    .editable:hover{background:var(--yellow-bg)}
+    .edit-icon{font-size:10px;color:var(--gray-dark);margin-left:3px;opacity:0}
+    tr:hover .edit-icon{opacity:1}
+
+    .broker-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:24px}
+    .broker-card{background:white;border-radius:14px;padding:20px;box-shadow:var(--shadow);border-top:3px solid var(--navy)}
+    .broker-card-name{font-size:16px;font-weight:800;color:var(--navy);margin-bottom:12px}
+    .broker-stat{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--surface)}
+    .broker-stat:last-child{border-bottom:none}
+    .broker-stat-label{font-size:13px;color:var(--gray-dark)}
+    .broker-stat-value{font-size:13px;font-weight:700;color:var(--text)}
+
+    .filter-select{padding:7px 10px;border:2px solid var(--gray);border-radius:8px;font-size:12px;font-family:inherit;color:var(--text)}
+    .btn-primary{background:var(--navy);color:white;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+    .btn-secondary{background:white;color:var(--navy);border:2px solid var(--gray);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+
+    .mockup-banner{background:linear-gradient(135deg,#fef3c7,#fde68a);border:2px solid var(--gold);border-radius:12px;padding:12px 20px;margin-bottom:20px;font-size:13px;color:var(--yellow)}
+    .mockup-banner strong{color:var(--navy)}
+
+    .tab-content{display:none}
+    .tab-content.active{display:block}
+    .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+    .progress-mini{height:4px;background:var(--gray);border-radius:2px;overflow:hidden;margin-top:3px}
+    .progress-mini-fill{height:100%;border-radius:2px}
+    .progress-good{background:var(--green)}
+    .progress-ok{background:var(--gold)}
+    .progress-behind{background:var(--red)}
+
+    /* Cashflow pipeline */
+    .cf-pipeline{display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+    .cf-step{flex:1;min-width:160px;background:white;border-radius:14px;padding:16px;box-shadow:var(--shadow);text-align:center;position:relative}
+    .cf-step::after{content:'→';position:absolute;right:-12px;top:50%;transform:translateY(-50%);color:var(--gray-dark);font-size:18px;font-weight:700}
+    .cf-step:last-child::after{display:none}
+    .cf-step-label{font-size:11px;font-weight:600;color:var(--gray-dark);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+    .cf-step-value{font-size:22px;font-weight:800;color:var(--navy)}
+    .cf-step-count{font-size:11px;color:var(--gray-dark);margin-top:2px}
+    .cf-step.highlight{border:2px solid var(--gold)}
+
+    /* Withheld badge */
+    .hold-badge{display:inline-flex;align-items:center;gap:4px;background:var(--red-bg);color:var(--red);padding:3px 8px;border-radius:6px;font-size:10px;font-weight:600}
+
+    /* YoY row */
+    .yoy-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+    .yoy-card{background:white;border-radius:14px;padding:18px;box-shadow:var(--shadow)}
+    .yoy-title{font-size:12px;font-weight:600;color:var(--gray-dark);text-transform:uppercase;margin-bottom:10px}
+    .yoy-grid{display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:0;font-size:12px}
+    .yoy-grid>div{padding:6px 10px;border-bottom:1px solid var(--surface)}
+    .yoy-header{font-weight:700;color:var(--gray-dark);font-size:11px;text-transform:uppercase}
+    .yoy-change-up{color:var(--green);font-weight:600}
+    .yoy-change-down{color:var(--red);font-weight:600}
+
+    /* Detail panel */
+    .detail-panel{background:var(--surface);border-top:2px solid var(--gray);padding:16px 20px}
+    .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .detail-section{font-size:12px}
+    .detail-section-title{font-weight:700;color:var(--navy);margin-bottom:8px;font-size:13px}
+    .detail-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--gray)}
+    .detail-row:last-child{border-bottom:none}
+
+    @media(max-width:768px){
+      .kpi-row{grid-template-columns:1fr 1fr}
+      .cf-pipeline{flex-direction:column}
+      .cf-step::after{display:none}
+      .yoy-row{grid-template-columns:1fr}
+      .detail-grid{grid-template-columns:1fr}
+      th,td{padding:8px;font-size:11px}
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-name">HOUSE OF YACHTS</div>
+      <div class="brand-sub">Intern portal</div>
+    </div>
+    <div class="header-title">Back-office</div>
+    <div><a class="btn-nav" href="/">Portal</a></div>
+  </div>
+</div>
+
+<div class="main">
+
+  <div class="mockup-banner">
+    <strong>DESIGNFORSLAG v2</strong> — Oppdatert med cashflow-pipeline, tilbakeholdt beløp, innbetalingssporing, YoY-sammenligning. Ekte 2026-data.
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('dashboard')">Dashboard</button>
+    <button class="tab" onclick="showTab('oppgjor')">Oppgjør</button>
+    <button class="tab" onclick="showTab('cashflow')">Cashflow <span class="tab-badge">3</span></button>
+    <button class="tab" onclick="showTab('budsjett')">Budsjett</button>
+  </div>
+
+  <!-- ═══════════════════ DASHBOARD ═══════════════════ -->
+  <div class="tab-content active" id="tab-dashboard">
+
+    <!-- Cashflow pipeline overview -->
+    <div class="cf-pipeline">
+      <div class="cf-step">
+        <div class="cf-step-label">Solgt</div>
+        <div class="cf-step-value">832 040</div>
+        <div class="cf-step-count">13 deals</div>
+      </div>
+      <div class="cf-step">
+        <div class="cf-step-label">Fakturert</div>
+        <div class="cf-step-value">682 040</div>
+        <div class="cf-step-count">10 deals</div>
+      </div>
+      <div class="cf-step">
+        <div class="cf-step-label">Innbetalt klient</div>
+        <div class="cf-step-value">538 040</div>
+        <div class="cf-step-count">8 deals</div>
+      </div>
+      <div class="cf-step">
+        <div class="cf-step-label">Oppgjort selger</div>
+        <div class="cf-step-value">389 040</div>
+        <div class="cf-step-count">6 deals</div>
+      </div>
+      <div class="cf-step highlight">
+        <div class="cf-step-label">Tilbakeholdt</div>
+        <div class="cf-step-value" style="color:var(--red)">150 000</div>
+        <div class="cf-step-count">2 deals</div>
+      </div>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="kpi-label">Omsetning ex. mva</div>
+        <div class="kpi-value">832 040</div>
+        <div class="kpi-sub">Budsjett: 9 150 000</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:9.1%"></div></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Ikke fakturert</div>
+        <div class="kpi-value" style="color:var(--yellow)">150 000</div>
+        <div class="kpi-sub">3 deals venter på faktura</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Venter innbetaling</div>
+        <div class="kpi-value" style="color:var(--blue)">144 000</div>
+        <div class="kpi-sub">2 deals fakturert, ikke betalt</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Meglerlønn utestående</div>
+        <div class="kpi-value" style="color:var(--red)">308 482</div>
+        <div class="kpi-sub">3 meglere</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Antall salg</div>
+        <div class="kpi-value">13</div>
+        <div class="kpi-sub">Snitt: 1 112 000 / salg</div>
+      </div>
+    </div>
+
+    <!-- YoY comparison -->
+    <div class="yoy-row">
+      <div class="yoy-card">
+        <div class="yoy-title">Q1 sammenligning — Omsetning ex. mva</div>
+        <div class="yoy-grid">
+          <div class="yoy-header"></div><div class="yoy-header" style="text-align:right">Q1 2025</div><div class="yoy-header" style="text-align:right">Q1 2026</div><div class="yoy-header" style="text-align:right">Endring</div>
+          <div>Omsetning</div><div style="text-align:right">647 520</div><div style="text-align:right;font-weight:700">832 040</div><div style="text-align:right" class="yoy-change-up">+28,5%</div>
+          <div>Antall salg</div><div style="text-align:right">8</div><div style="text-align:right;font-weight:700">13</div><div style="text-align:right" class="yoy-change-up">+62,5%</div>
+          <div>Snitt / salg</div><div style="text-align:right">80 940</div><div style="text-align:right;font-weight:700">64 003</div><div style="text-align:right" class="yoy-change-down">-20,9%</div>
+        </div>
+      </div>
+      <div class="yoy-card">
+        <div class="yoy-title">Q1 sammenligning — Per megler</div>
+        <div class="yoy-grid">
+          <div class="yoy-header"></div><div class="yoy-header" style="text-align:right">Q1 2025</div><div class="yoy-header" style="text-align:right">Q1 2026</div><div class="yoy-header" style="text-align:right">Endring</div>
+          <div><span class="broker broker-sindre">Sindre</span></div><div style="text-align:right">395 520</div><div style="text-align:right;font-weight:700">350 440</div><div style="text-align:right" class="yoy-change-down">-11,4%</div>
+          <div><span class="broker broker-henrik">Henrik</span></div><div style="text-align:right">216 000</div><div style="text-align:right;font-weight:700">293 440</div><div style="text-align:right" class="yoy-change-up">+35,9%</div>
+          <div><span class="broker broker-daniel">Daniel</span></div><div style="text-align:right">36 000</div><div style="text-align:right;font-weight:700">188 160</div><div style="text-align:right" class="yoy-change-up">+422,7%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Broker cards -->
+    <div class="broker-grid">
+      <div class="broker-card" style="border-top-color:#1e40af">
+        <div class="broker-card-name">Sindre</div>
+        <div class="broker-stat"><span class="broker-stat-label">Salg</span><span class="broker-stat-value">4</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Omsetning ex. mva</span><span class="broker-stat-value">350 440</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Opptjent (45%)</span><span class="broker-stat-value">157 698</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Utbetalt</span><span class="broker-stat-value">0</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Utestående</span><span class="broker-stat-value" style="color:var(--red)">157 698</span></div>
+      </div>
+      <div class="broker-card" style="border-top-color:#166534">
+        <div class="broker-card-name">Henrik</div>
+        <div class="broker-stat"><span class="broker-stat-label">Salg</span><span class="broker-stat-value">6</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Omsetning ex. mva</span><span class="broker-stat-value">293 440</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Opptjent (40%)</span><span class="broker-stat-value">117 376</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Utbetalt</span><span class="broker-stat-value">41 856</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Utestående</span><span class="broker-stat-value" style="color:var(--red)">75 520</span></div>
+      </div>
+      <div class="broker-card" style="border-top-color:#92400e">
+        <div class="broker-card-name">Daniel</div>
+        <div class="broker-stat"><span class="broker-stat-label">Salg</span><span class="broker-stat-value">3</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Omsetning ex. mva</span><span class="broker-stat-value">188 160</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Opptjent (40%)</span><span class="broker-stat-value">75 264</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Utbetalt</span><span class="broker-stat-value">0</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Utestående</span><span class="broker-stat-value" style="color:var(--red)">75 264</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ OPPGJØR ═══════════════════ -->
+  <div class="tab-content" id="tab-oppgjor">
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Oppgjør 2026</div>
+        <div class="card-actions">
+          <select class="filter-select">
+            <option>Alle meglere</option><option>Sindre</option><option>Henrik</option><option>Daniel</option>
+          </select>
+          <select class="filter-select">
+            <option>Alle statuser</option><option>Ikke oppgjort</option><option>Delvis</option><option>Tilbakeholdt</option><option>Ferdig oppgjort</option>
+          </select>
+          <button class="btn-secondary">Eksporter</button>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Nr</th>
+              <th>Fartøy</th>
+              <th>Dato</th>
+              <th class="text-right">Salgssum</th>
+              <th class="text-right">Oms. ex mva</th>
+              <th>Megler</th>
+              <th class="text-right">Meglerlønn</th>
+              <th>Faktura</th>
+              <th>Innbetalt</th>
+              <th>Oppgjør</th>
+              <th>Tilbakeholdt</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- AD Astra -->
+            <tr>
+              <td class="num">—</td>
+              <td>Charter AD Astra</td>
+              <td>19. jan</td>
+              <td class="money">—</td>
+              <td class="money editable">170 000<span class="edit-icon">✎</span></td>
+              <td><span class="broker broker-sindre">Sindre</span></td>
+              <td class="money">76 500</td>
+              <td><span class="status status-invoiced">Fakturert</span></td>
+              <td><span class="status status-paid">Innbetalt</span></td>
+              <td><span class="status status-pending">Venter</span></td>
+              <td>—</td>
+              <td style="cursor:pointer;color:var(--gray-dark)" onclick="toggleDetail(this)">▾</td>
+            </tr>
+
+            <!-- Nimbus 300R -->
+            <tr>
+              <td class="num">25088</td>
+              <td>Nimbus 300R</td>
+              <td>09. feb</td>
+              <td class="money">890 000</td>
+              <td class="money">42 720</td>
+              <td><span class="broker broker-sindre">Sindre</span></td>
+              <td class="money">19 224</td>
+              <td><span class="status status-invoiced">Fakturert</span></td>
+              <td><span class="status status-paid">Innbetalt</span></td>
+              <td><span class="status status-pending">Venter</span></td>
+              <td>—</td>
+              <td style="cursor:pointer;color:var(--gray-dark)">▾</td>
+            </tr>
+
+            <!-- Delphia with detail panel shown -->
+            <tr>
+              <td class="num">24089</td>
+              <td>Delphia 40.3</td>
+              <td>11. feb</td>
+              <td class="money">900 000</td>
+              <td class="money">43 200</td>
+              <td><span class="broker broker-henrik">Henrik</span></td>
+              <td class="money">17 280</td>
+              <td><span class="status status-invoiced">Fakturert</span></td>
+              <td><span class="status status-paid">Innbetalt</span></td>
+              <td><span class="status status-paid">Oppgjort</span></td>
+              <td>—</td>
+              <td style="cursor:pointer;color:var(--navy);font-weight:700">▴</td>
+            </tr>
+            <tr>
+              <td colspan="12" style="padding:0">
+                <div class="detail-panel">
+                  <div class="detail-grid">
+                    <div class="detail-section">
+                      <div class="detail-section-title">Detaljer</div>
+                      <div class="detail-row"><span>Selger</span><span class="editable">Egil Kristian Kolberg<span class="edit-icon">✎</span></span></div>
+                      <div class="detail-row"><span>Kjøper</span><span class="editable">Dag Øivind Andersen<span class="edit-icon">✎</span></span></div>
+                      <div class="detail-row"><span>Provisjon</span><span>54 000 (6%)</span></div>
+                      <div class="detail-row"><span>Omsetning ex. mva</span><span>43 200</span></div>
+                      <div class="detail-row"><span>Oppdrag inn</span><span class="broker broker-henrik">Henrik</span></div>
+                      <div class="detail-row"><span>Solgt av</span><span class="broker broker-henrik">Henrik</span></div>
+                      <div class="detail-row"><span>Splitt</span><span>100% Henrik (40%)</span></div>
+                      <div class="detail-row"><span>Oppdragskilde</span><span class="editable">—<span class="edit-icon">✎</span></span></div>
+                    </div>
+                    <div class="detail-section">
+                      <div class="detail-section-title">Utbetalingshistorikk</div>
+                      <div class="detail-row"><span>Meglerlønn Henrik</span><span style="font-weight:700">17 280</span></div>
+                      <div class="detail-row"><span>Utbetalt 28. feb</span><span>17 280</span></div>
+                      <div class="detail-row"><span>Utestående</span><span style="color:var(--green);font-weight:700">0</span></div>
+                      <div style="border-top:2px solid var(--gray);margin-top:10px;padding-top:10px">
+                        <div class="detail-row"><span>Firmadel (60%)</span><span style="font-weight:700">23 760</span></div>
+                      </div>
+                      <div style="margin-top:12px">
+                        <div class="detail-section-title">Notat</div>
+                        <div style="color:var(--gray-dark);font-style:italic">Ingen notater</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Axopar - paid -->
+            <tr>
+              <td class="num">26001</td>
+              <td>Axopar 28 Cabin Brabus</td>
+              <td>24. feb</td>
+              <td class="money">1 280 000</td>
+              <td class="money">61 440</td>
+              <td><span class="broker broker-henrik">Henrik</span></td>
+              <td class="money">24 576</td>
+              <td><span class="status status-invoiced">Fakturert</span></td>
+              <td><span class="status status-paid">Innbetalt</span></td>
+              <td><span class="status status-paid">Oppgjort</span></td>
+              <td>—</td>
+              <td style="cursor:pointer;color:var(--gray-dark)">▾</td>
+            </tr>
+
+            <!-- Goldfish - with HOLD -->
+            <tr style="background:rgba(254,226,226,0.15)">
+              <td class="num">26007</td>
+              <td>Goldfish 30 Sport</td>
+              <td>05. mar</td>
+              <td class="money">2 200 000</td>
+              <td class="money">95 000</td>
+              <td><span class="broker broker-sindre">Sindre</span></td>
+              <td class="money">42 750</td>
+              <td><span class="status status-invoiced">Fakturert</span></td>
+              <td><span class="status status-paid">Innbetalt</span></td>
+              <td><span class="status status-hold">Tilbakeholdt</span></td>
+              <td><span class="hold-badge">100 000 — venter utbedring</span></td>
+              <td style="cursor:pointer;color:var(--gray-dark)">▾</td>
+            </tr>
+
+            <!-- Cormate - not invoiced -->
+            <tr>
+              <td class="num">26002</td>
+              <td>Cormate SU23</td>
+              <td>12. mar</td>
+              <td class="money">890 000</td>
+              <td class="money">42 720</td>
+              <td><span class="broker broker-sindre">Sindre</span></td>
+              <td class="money">19 224</td>
+              <td><span class="status status-not-invoiced">Ikke fakturert</span></td>
+              <td><span class="status status-not-invoiced">—</span></td>
+              <td><span class="status status-pending">Venter</span></td>
+              <td>—</td>
+              <td style="cursor:pointer;color:var(--gray-dark)">▾</td>
+            </tr>
+
+            <!-- Nord West - with HOLD -->
+            <tr style="background:rgba(254,226,226,0.15)">
+              <td class="num">26003</td>
+              <td>Nord West 370 Fly</td>
+              <td>27. mar</td>
+              <td class="money">1 820 000</td>
+              <td class="money">87 360</td>
+              <td><span class="broker broker-daniel">Daniel</span></td>
+              <td class="money">34 944</td>
+              <td><span class="status status-invoiced">Fakturert</span></td>
+              <td><span class="status status-partial">Delvis</span></td>
+              <td><span class="status status-hold">Tilbakeholdt</span></td>
+              <td><span class="hold-badge">50 000 — feil på baugpropell</span></td>
+              <td style="cursor:pointer;color:var(--gray-dark)">▾</td>
+            </tr>
+
+            <!-- Hanse - invoiced, not paid -->
+            <tr>
+              <td class="num">25061</td>
+              <td>Hanse 388</td>
+              <td>15. mar</td>
+              <td class="money">1 700 000</td>
+              <td class="money">81 600</td>
+              <td><span class="broker broker-henrik">Henrik</span></td>
+              <td class="money">32 640</td>
+              <td><span class="status status-invoiced">Fakturert</span></td>
+              <td><span class="status status-pending">Venter</span></td>
+              <td><span class="status status-pending">Venter</span></td>
+              <td>—</td>
+              <td style="cursor:pointer;color:var(--gray-dark)">▾</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr style="background:var(--surface);font-weight:700">
+              <td colspan="3" style="text-align:right;padding-right:16px">Totalt (13 salg)</td>
+              <td class="money">14 449 000</td>
+              <td class="money">832 040</td>
+              <td></td>
+              <td class="money">374 418</td>
+              <td colspan="3"></td>
+              <td><span class="hold-badge">150 000 totalt</span></td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <p style="font-size:12px;color:var(--gray-dark);text-align:center">
+      Stiplede felter kan redigeres. ▾ utvider detaljer med selger/kjøper, provisjonssplitt, utbetalingshistorikk og notater.
+    </p>
+  </div>
+
+  <!-- ═══════════════════ CASHFLOW ═══════════════════ -->
+  <div class="tab-content" id="tab-cashflow">
+
+    <div class="cf-pipeline" style="margin-bottom:20px">
+      <div class="cf-step">
+        <div class="cf-step-label">Solgt (totalt)</div>
+        <div class="cf-step-value">832 040</div>
+        <div class="cf-step-count">13 deals</div>
+      </div>
+      <div class="cf-step">
+        <div class="cf-step-label">Fakturert</div>
+        <div class="cf-step-value">682 040</div>
+        <div class="cf-step-count">10 deals</div>
+      </div>
+      <div class="cf-step">
+        <div class="cf-step-label">Innbetalt klient</div>
+        <div class="cf-step-value">538 040</div>
+        <div class="cf-step-count">8 deals</div>
+      </div>
+      <div class="cf-step">
+        <div class="cf-step-label">Oppgjort selger</div>
+        <div class="cf-step-value">389 040</div>
+        <div class="cf-step-count">6 deals</div>
+      </div>
+    </div>
+
+    <!-- Pending actions -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Krever handling</div>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Nr</th>
+              <th>Fartøy</th>
+              <th>Solgt dato</th>
+              <th class="text-right">Beløp</th>
+              <th>Neste steg</th>
+              <th>Dager siden salg</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="num">26002</td>
+              <td>Cormate SU23</td>
+              <td>12. mar</td>
+              <td class="money">42 720</td>
+              <td><span class="status status-not-invoiced">Send faktura</span></td>
+              <td>34 dager</td>
+              <td><button class="btn-primary" style="padding:5px 12px;font-size:11px">Marker fakturert</button></td>
+            </tr>
+            <tr>
+              <td class="num">26009</td>
+              <td>Nimbus 230R</td>
+              <td>11. mar</td>
+              <td class="money">12 000</td>
+              <td><span class="status status-not-invoiced">Send faktura</span></td>
+              <td>35 dager</td>
+              <td><button class="btn-primary" style="padding:5px 12px;font-size:11px">Marker fakturert</button></td>
+            </tr>
+            <tr>
+              <td class="num">26011</td>
+              <td>Axopar 28 Cabin</td>
+              <td>19. mar</td>
+              <td class="money">40 000</td>
+              <td><span class="status status-not-invoiced">Send faktura</span></td>
+              <td>27 dager</td>
+              <td><button class="btn-primary" style="padding:5px 12px;font-size:11px">Marker fakturert</button></td>
+            </tr>
+            <tr style="background:rgba(219,234,254,0.3)">
+              <td class="num">25061</td>
+              <td>Hanse 388</td>
+              <td>15. mar</td>
+              <td class="money">81 600</td>
+              <td><span class="status status-pending">Venter innbetaling</span></td>
+              <td>31 dager</td>
+              <td><button class="btn-primary" style="padding:5px 12px;font-size:11px;background:var(--blue)">Marker innbetalt</button></td>
+            </tr>
+            <tr style="background:rgba(219,234,254,0.3)">
+              <td class="num">25072</td>
+              <td>Nordkapp 905</td>
+              <td>24. mar</td>
+              <td class="money">55 200</td>
+              <td><span class="status status-pending">Venter innbetaling</span></td>
+              <td>22 dager</td>
+              <td><button class="btn-primary" style="padding:5px 12px;font-size:11px;background:var(--blue)">Marker innbetalt</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Withheld overview -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Tilbakeholdte beløp</div>
+        <div class="card-actions">
+          <span style="font-size:13px;font-weight:700;color:var(--red)">Totalt: 150 000 NOK</span>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Nr</th>
+              <th>Fartøy</th>
+              <th class="text-right">Tilbakeholdt</th>
+              <th>Årsak</th>
+              <th>Opprettet</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="num">26007</td>
+              <td>Goldfish 30 Sport</td>
+              <td class="money" style="color:var(--red);font-weight:700">100 000</td>
+              <td class="editable">Venter utbedring av gelcoat-skade<span class="edit-icon">✎</span></td>
+              <td>08. mar</td>
+              <td><span class="status status-hold">Åpen</span></td>
+              <td><button class="btn-secondary" style="padding:4px 10px;font-size:11px">Frigi</button></td>
+            </tr>
+            <tr>
+              <td class="num">26003</td>
+              <td>Nord West 370 Fly</td>
+              <td class="money" style="color:var(--red);font-weight:700">50 000</td>
+              <td class="editable">Feil på baugpropell<span class="edit-icon">✎</span></td>
+              <td>30. mar</td>
+              <td><span class="status status-hold">Åpen</span></td>
+              <td><button class="btn-secondary" style="padding:4px 10px;font-size:11px">Frigi</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <p style="font-size:12px;color:var(--gray-dark);text-align:center">
+      Fremtidig: DnB-integrasjon matcher innbetalinger automatisk mot oppdrag. Meglere får Slack-varsling ved innbetaling.
+    </p>
+  </div>
+
+  <!-- ═══════════════════ BUDSJETT ═══════════════════ -->
+  <div class="tab-content" id="tab-budsjett">
+
+    <div class="kpi-row" style="margin-bottom:24px">
+      <div class="kpi">
+        <div class="kpi-label">Budsjett honorar 2026</div>
+        <div class="kpi-value">9 150 000</div>
+        <div class="kpi-sub">Oppnådd: 832 040 (9,1%)</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:9.1%"></div></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Budsjett salg</div>
+        <div class="kpi-value">164</div>
+        <div class="kpi-sub">Oppnådd: 13 (7,9%)</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:7.9%"></div></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Oppdrag inn</div>
+        <div class="kpi-value">197</div>
+        <div class="kpi-sub">Oppnådd: 7 (3,6%)</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:3.6%"></div></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">YoY Q1 omsetning</div>
+        <div class="kpi-value" style="color:var(--green)">+28,5%</div>
+        <div class="kpi-sub">832k vs 648k (Q1 2025)</div>
+      </div>
+    </div>
+
+    <!-- Company budget table -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">HoY samlet — Måned for måned</div>
+        <div class="card-actions">
+          <select class="filter-select"><option>2026</option><option>2025</option><option>2024</option></select>
+          <button class="btn-secondary">Rediger budsjett</button>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Måned</th>
+              <th class="text-center">Bud. salg</th>
+              <th class="text-center">Faktisk</th>
+              <th class="text-center">Bud. oppdrag</th>
+              <th class="text-center">Faktisk</th>
+              <th class="text-right">Bud. honorar</th>
+              <th class="text-right">Oppnådd</th>
+              <th class="text-right">Fjorår</th>
+              <th>Progress</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Januar</td>
+              <td class="text-center" style="color:var(--gray-dark)">5</td>
+              <td class="text-center" style="font-weight:700">1</td>
+              <td class="text-center" style="color:var(--gray-dark)">8</td>
+              <td class="text-center" style="font-weight:700">3</td>
+              <td class="money" style="color:var(--gray-dark)">285 000</td>
+              <td class="money" style="font-weight:700">170 000</td>
+              <td class="money" style="color:var(--gray-dark)">216 000</td>
+              <td style="min-width:90px">
+                <div style="font-size:12px;font-weight:600">59,6%</div>
+                <div class="progress-mini"><div class="progress-mini-fill progress-ok" style="width:59.6%"></div></div>
+              </td>
+            </tr>
+            <tr>
+              <td>Februar</td>
+              <td class="text-center" style="color:var(--gray-dark)">8</td>
+              <td class="text-center" style="font-weight:700">3</td>
+              <td class="text-center" style="color:var(--gray-dark)">12</td>
+              <td class="text-center" style="font-weight:700">2</td>
+              <td class="money" style="color:var(--gray-dark)">465 000</td>
+              <td class="money" style="font-weight:700">147 360</td>
+              <td class="money" style="color:var(--gray-dark)">179 520</td>
+              <td>
+                <div style="font-size:12px;font-weight:600">31,7%</div>
+                <div class="progress-mini"><div class="progress-mini-fill progress-behind" style="width:31.7%"></div></div>
+              </td>
+            </tr>
+            <tr>
+              <td>Mars</td>
+              <td class="text-center" style="color:var(--gray-dark)">11</td>
+              <td class="text-center" style="font-weight:700">9</td>
+              <td class="text-center" style="color:var(--gray-dark)">19</td>
+              <td class="text-center" style="font-weight:700">2</td>
+              <td class="money" style="color:var(--gray-dark)">645 000</td>
+              <td class="money" style="font-weight:700">514 680</td>
+              <td class="money" style="color:var(--gray-dark)">252 000</td>
+              <td>
+                <div style="font-size:12px;font-weight:600;color:var(--green)">79,8%</div>
+                <div class="progress-mini"><div class="progress-mini-fill progress-ok" style="width:79.8%"></div></div>
+              </td>
+            </tr>
+            <tr style="background:rgba(201,168,76,0.06)">
+              <td style="font-weight:600">April <span style="font-size:10px;color:var(--gold)">(pågår)</span></td>
+              <td class="text-center" style="color:var(--gray-dark)">14</td>
+              <td class="text-center" style="font-weight:700">—</td>
+              <td class="text-center" style="color:var(--gray-dark)">21</td>
+              <td class="text-center" style="font-weight:700">—</td>
+              <td class="money" style="color:var(--gray-dark)">780 000</td>
+              <td class="money" style="font-weight:700">—</td>
+              <td class="money" style="color:var(--gray-dark)">476 000</td>
+              <td><span style="font-size:12px;color:var(--gray-dark)">—</span></td>
+            </tr>
+            <tr style="color:var(--gray-dark)">
+              <td>Mai – Des</td>
+              <td class="text-center">126</td><td class="text-center">—</td>
+              <td class="text-center">137</td><td class="text-center">—</td>
+              <td class="money">6 975 000</td><td class="money">—</td><td class="money">3 734 000</td>
+              <td></td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr style="background:var(--surface);font-weight:700">
+              <td>Totalt</td>
+              <td class="text-center">164</td><td class="text-center">13</td>
+              <td class="text-center">197</td><td class="text-center">7</td>
+              <td class="money">9 150 000</td><td class="money">832 040</td><td class="money">4 857 517</td>
+              <td><strong>9,1%</strong></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- Per-broker cards -->
+    <div class="broker-grid">
+      <div class="broker-card" style="border-top-color:#1e40af">
+        <div class="broker-card-name">Sindre</div>
+        <div class="broker-stat"><span class="broker-stat-label">Bud. salg / Faktisk</span><span class="broker-stat-value">24 / 4</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Bud. oppdrag / Faktisk</span><span class="broker-stat-value">35 / 3</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Bud. honorar</span><span class="broker-stat-value">1 800 000</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Oppnådd</span><span class="broker-stat-value">350 440</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Fjorår Q1</span><span class="broker-stat-value">395 520 <span class="yoy-change-down" style="font-size:11px">-11%</span></span></div>
+        <div style="margin-top:8px"><div style="font-size:12px;font-weight:600">19,5%</div><div class="progress-mini"><div class="progress-mini-fill progress-ok" style="width:19.5%"></div></div></div>
+      </div>
+      <div class="broker-card" style="border-top-color:#166534">
+        <div class="broker-card-name">Henrik</div>
+        <div class="broker-stat"><span class="broker-stat-label">Bud. salg / Faktisk</span><span class="broker-stat-value">70 / 6</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Bud. oppdrag / Faktisk</span><span class="broker-stat-value">88 / 2</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Bud. honorar</span><span class="broker-stat-value">3 850 000</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Oppnådd</span><span class="broker-stat-value">293 440</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Fjorår Q1</span><span class="broker-stat-value">216 000 <span class="yoy-change-up" style="font-size:11px">+36%</span></span></div>
+        <div style="margin-top:8px"><div style="font-size:12px;font-weight:600">7,6%</div><div class="progress-mini"><div class="progress-mini-fill progress-behind" style="width:7.6%"></div></div></div>
+      </div>
+      <div class="broker-card" style="border-top-color:#92400e">
+        <div class="broker-card-name">Daniel</div>
+        <div class="broker-stat"><span class="broker-stat-label">Bud. salg / Faktisk</span><span class="broker-stat-value">70 / 3</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Bud. oppdrag / Faktisk</span><span class="broker-stat-value">74 / 2</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Bud. honorar</span><span class="broker-stat-value">3 500 000</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Oppnådd</span><span class="broker-stat-value">188 160</span></div>
+        <div class="broker-stat"><span class="broker-stat-label">Fjorår Q1</span><span class="broker-stat-value">36 000 <span class="yoy-change-up" style="font-size:11px">+423%</span></span></div>
+        <div style="margin-top:8px"><div style="font-size:12px;font-weight:600">5,4%</div><div class="progress-mini"><div class="progress-mini-fill progress-behind" style="width:5.4%"></div></div></div>
+      </div>
+    </div>
+
+    <p style="font-size:12px;color:var(--gray-dark);text-align:center">
+      Budsjett-tall redigeres via "Rediger budsjett". Faktiske tall hentes automatisk fra oppgjørsmodulen. Fjorår-kolonne for rask sammenligning.
+    </p>
+  </div>
+
+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  event.target.closest('.tab').classList.add('active');
+}
+</script>
+</body>
+</html>

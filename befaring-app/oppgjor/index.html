@@ -124,6 +124,28 @@
     .btn-import-deal{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue);border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
     .btn-import-deal:disabled{opacity:0.4;cursor:not-allowed}
 
+    /* ── Seller settlement panel ── */
+    .seller-panel{margin-top:16px;background:white;border-radius:12px;border:2px solid var(--gray);padding:16px}
+    .seller-panel h4{font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:var(--gold);margin:0 0 12px;font-weight:800}
+    .avregning-line{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--gray)}
+    .avregning-line.total{border-top:2px solid var(--navy);border-bottom:none;padding-top:10px;margin-top:4px;font-weight:800;font-size:14px;color:var(--navy)}
+    .avregning-line.subtotal{font-weight:700;color:var(--gray-dark)}
+    .avregning-label{color:var(--gray-dark)}
+    .avregning-value{font-weight:700}
+    .avregning-value.negative{color:var(--red)}
+    .avregning-value.positive{color:var(--green)}
+
+    .adj-item{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px}
+    .adj-item .adj-desc{color:var(--text);flex:1}
+    .adj-item .adj-amount{font-weight:700;margin:0 8px}
+    .adj-item .adj-cat{font-size:10px;color:var(--gray-dark);margin-right:8px}
+    .adj-item .adj-delete{color:var(--red);cursor:pointer;font-size:11px;border:none;background:none;font-weight:600;padding:2px 4px}
+
+    .btn-add-adj{background:var(--yellow-bg);color:var(--yellow);border:1px solid var(--yellow);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px}
+
+    .payout-status-row{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
+    .payout-status-row .badge{font-size:12px;padding:4px 12px}
+
     .empty-state{text-align:center;padding:60px 20px;color:var(--gray-dark)}
     .empty-icon{font-size:40px;margin-bottom:12px}
 
@@ -251,7 +273,7 @@
         <div class="form-group"><label>Ekstra notat</label><input id="f_extra_note"></div>
         <div class="form-group"><label>Oppdragskilde</label><input id="f_source" placeholder="Cold Outreach, Finn.no, etc."></div>
         <div class="form-group"><label>Status</label>
-          <select id="f_status"><option value="pending">Uoppgjort</option><option value="settled">Oppgjort</option></select>
+          <select id="f_status"><option value="pending">Uoppgjort</option><option value="settled">Oppgjort</option><option value="paid_out">Utbetalt</option></select>
         </div>
         <div class="form-group full"><label>Notater</label><textarea id="f_notes"></textarea></div>
       </div>
@@ -281,6 +303,33 @@
       <div class="modal-actions">
         <button class="btn-secondary" onclick="closePaymentModal()">Avbryt</button>
         <button class="btn-primary" onclick="savePayment()">Registrer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Adjustment modal -->
+  <div class="modal-overlay" id="adjModal">
+    <div class="modal" style="max-width:440px">
+      <h3>Legg til justeringslinje</h3>
+      <div class="form-grid" style="grid-template-columns:1fr">
+        <div class="form-group"><label>Beskrivelse</label><input id="a_description" placeholder="Arbeid, kjøring, skade, kompensasjon…"></div>
+        <div class="form-group"><label>Beløp (NOK)</label><input id="a_amount" type="number" placeholder="Positivt tall"></div>
+        <div class="form-group"><label>Inkl. mva?</label>
+          <select id="a_includes_vat"><option value="false">Nei</option><option value="true">Ja</option></select>
+        </div>
+        <div class="form-group"><label>Kategori</label>
+          <select id="a_category">
+            <option value="deduction">Fradrag (trekkes fra selger)</option>
+            <option value="addition">Tillegg (tillegg til selger)</option>
+            <option value="withheld">Tilbakeholdt (betales senere)</option>
+            <option value="buyer_return">Retur kjøper</option>
+          </select>
+        </div>
+      </div>
+      <input type="hidden" id="a_settlement_id">
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeAdjModal()">Avbryt</button>
+        <button class="btn-primary" onclick="saveAdjustment()">Legg til</button>
       </div>
     </div>
   </div>
@@ -376,10 +425,12 @@ function renderTable() {
   }
 
   document.getElementById('tableBody').innerHTML = filtered.map(s => {
-    const statusBadge = s.settlement_status === 'settled'
-      ? '<span class="badge badge-green">Oppgjort</span>'
+    const statusBadge = s.settlement_status === 'paid_out'
+      ? '<span class="badge badge-green">Utbetalt</span>'
+      : s.settlement_status === 'settled'
+      ? '<span class="badge badge-blue">Oppgjort</span>'
       : '<span class="badge badge-yellow">Uoppgjort</span>';
-    const rowClass = s.settlement_status === 'settled' ? 'row-settled' : '';
+    const rowClass = s.settlement_status === 'paid_out' ? 'row-settled' : '';
     const totalBroker = Number(s.broker_share || 0) + Number(s.broker2_share || 0);
     const outstandingClass = s.outstanding > 0 ? 'style="color:var(--red);font-weight:700"' : '';
 
@@ -424,6 +475,20 @@ function renderDetail(id) {
   if (!s) return;
   const cell = document.getElementById(`detail-cell-${id}`);
   const payments = s.payments || [];
+  const adjustments = s.adjustments || [];
+
+  // Kategoriser justeringer
+  const deductions = adjustments.filter(a => a.category === 'deduction');
+  const additions = adjustments.filter(a => a.category === 'addition');
+  const withheld = adjustments.filter(a => a.category === 'withheld');
+  const buyerReturns = adjustments.filter(a => a.category === 'buyer_return');
+  const catLabel = { deduction: 'Fradrag', addition: 'Tillegg', withheld: 'Tilbakeholdt', buyer_return: 'Retur kjøper' };
+
+  const saleAmt = Number(s.sale_amount) || 0;
+  const commAmt = Number(s.commission) || 0;
+  const calcPayout = s.calc_seller_payout != null ? s.calc_seller_payout : (saleAmt - commAmt);
+  const calcWithheld = s.calc_withheld || 0;
+  const calcBuyerReturn = s.calc_buyer_return || 0;
 
   cell.innerHTML = `
     <div class="detail-inner">
@@ -436,14 +501,12 @@ function renderDetail(id) {
         <div class="detail-field"><span class="detail-field-label">Oppdrag inn</span><span class="detail-field-value">${s.assigned_by || '—'}</span></div>
         <div class="detail-field"><span class="detail-field-label">Solgt av</span><span class="detail-field-value">${s.sold_by || '—'}</span></div>
         <div class="detail-field"><span class="detail-field-label">Firmaandel</span><span class="detail-field-value">${nok(s.company_share)} kr</span></div>
-        <div class="detail-field"><span class="detail-field-label">Ekstra</span><span class="detail-field-value">${s.extra ? nok(s.extra) + ' kr' : '—'}${s.extra_note ? ' (' + s.extra_note + ')' : ''}</span></div>
         <div class="detail-field"><span class="detail-field-label">Splittpartner</span><span class="detail-field-value">${s.split_broker || '—'}</span></div>
         <div class="detail-field"><span class="detail-field-label">Megler 2 lønn</span><span class="detail-field-value">${s.broker2_share ? nok(s.broker2_share) + ' kr' : '—'}</span></div>
         <div class="detail-field"><span class="detail-field-label">Oppdragskilde</span><span class="detail-field-value">${s.source || '—'}</span></div>
         ${s.notes ? `<div class="detail-field"><span class="detail-field-label">Notater</span><span class="detail-field-value">${s.notes}</span></div>` : ''}
-      </div>
-      <div class="detail-section">
-        <h4>Utbetalinger</h4>
+
+        <h4 style="margin-top:18px">Meglerlønn</h4>
         <div class="payments-list">
           ${payments.length ? payments.map(p => `
             <div class="payment-row">
@@ -453,6 +516,74 @@ function renderDetail(id) {
           `).join('') : '<div style="color:var(--gray-dark);font-size:12px;padding:8px 0">Ingen utbetalinger registrert</div>'}
         </div>
         <button class="btn-add-payment" onclick="openPaymentModal('${id}')">+ Registrer utbetaling</button>
+      </div>
+
+      <div class="detail-section">
+        <div class="seller-panel">
+          <h4>Selgeroppgjør</h4>
+          <div class="avregning-line">
+            <span class="avregning-label">Kjøpesum</span>
+            <span class="avregning-value">${nok(saleAmt)} kr</span>
+          </div>
+          <div class="avregning-line">
+            <span class="avregning-label">– Provisjon inkl. mva</span>
+            <span class="avregning-value negative">−${nok(commAmt)} kr</span>
+          </div>
+          ${deductions.map(a => `
+            <div class="adj-item">
+              <span class="adj-desc">– ${a.description}${a.includes_vat ? ' (inkl. mva)' : ''}</span>
+              <span class="adj-amount negative">−${nok(a.amount)} kr</span>
+              <button class="adj-delete" onclick="deleteAdjustment('${a.id}','${id}')">✕</button>
+            </div>
+          `).join('')}
+          ${additions.map(a => `
+            <div class="adj-item">
+              <span class="adj-desc">+ ${a.description}${a.includes_vat ? ' (inkl. mva)' : ''}</span>
+              <span class="adj-amount positive">+${nok(a.amount)} kr</span>
+              <button class="adj-delete" onclick="deleteAdjustment('${a.id}','${id}')">✕</button>
+            </div>
+          `).join('')}
+          ${withheld.length ? `
+            <div class="avregning-line subtotal" style="margin-top:6px">
+              <span class="avregning-label">Tilbakeholdt</span><span></span>
+            </div>
+            ${withheld.map(a => `
+              <div class="adj-item">
+                <span class="adj-desc">– ${a.description}</span>
+                <span class="adj-amount negative">−${nok(a.amount)} kr</span>
+                <button class="adj-delete" onclick="deleteAdjustment('${a.id}','${id}')">✕</button>
+              </div>
+            `).join('')}
+          ` : ''}
+          ${buyerReturns.length ? `
+            <div class="avregning-line subtotal" style="margin-top:6px">
+              <span class="avregning-label">Retur kjøper</span><span></span>
+            </div>
+            ${buyerReturns.map(a => `
+              <div class="adj-item">
+                <span class="adj-desc">– ${a.description}</span>
+                <span class="adj-amount negative">−${nok(a.amount)} kr</span>
+                <button class="adj-delete" onclick="deleteAdjustment('${a.id}','${id}')">✕</button>
+              </div>
+            `).join('')}
+          ` : ''}
+          <div class="avregning-line total">
+            <span>Utbetales selger</span>
+            <span>${nok(calcPayout)} kr</span>
+          </div>
+          ${calcWithheld > 0 ? `<div class="avregning-line" style="font-size:12px;color:var(--yellow)"><span>Tilbakeholdt</span><span>${nok(calcWithheld)} kr</span></div>` : ''}
+          ${calcBuyerReturn > 0 ? `<div class="avregning-line" style="font-size:12px;color:var(--blue)"><span>Retur kjøper</span><span>${nok(calcBuyerReturn)} kr</span></div>` : ''}
+
+          <button class="btn-add-adj" onclick="openAdjModal('${id}')">+ Legg til justering</button>
+
+          <div class="payout-status-row">
+            <span class="badge ${s.payout_status === 'paid' ? 'badge-green' : s.payout_status === 'ready' ? 'badge-blue' : 'badge-yellow'}">
+              ${s.payout_status === 'paid' ? 'Utbetalt' : s.payout_status === 'ready' ? 'Klar for utbetaling' : s.payout_status === 'partial' ? 'Delvis utbetalt' : 'Venter'}
+            </span>
+            ${s.payout_date ? `<span style="font-size:12px;color:var(--gray-dark)">Utbetalt ${fmtDate(s.payout_date)}</span>` : ''}
+            ${s.seller_account ? `<span style="font-size:12px;color:var(--gray-dark)">Konto: ${s.seller_account}</span>` : ''}
+          </div>
+        </div>
       </div>
     </div>
   `;
@@ -631,6 +762,50 @@ async function deletePayment(paymentId, settlementId) {
     await apiFetch(`${API}?action=delete_payment`, { method: 'POST', body: JSON.stringify({ payment_id: paymentId }) });
     await loadYear();
     // Re-open detail
+    const btn = document.querySelector(`tr[data-id="${settlementId}"] .btn-expand`);
+    if (btn) toggleDetail(settlementId, btn);
+  } catch (e) {
+    alert('Feil: ' + e.message);
+  }
+}
+
+// ── Adjustments (justeringslinjer) ──
+function openAdjModal(settlementId) {
+  document.getElementById('a_settlement_id').value = settlementId;
+  document.getElementById('a_description').value = '';
+  document.getElementById('a_amount').value = '';
+  document.getElementById('a_includes_vat').value = 'false';
+  document.getElementById('a_category').value = 'deduction';
+  document.getElementById('adjModal').classList.add('open');
+}
+function closeAdjModal() { document.getElementById('adjModal').classList.remove('open'); }
+
+async function saveAdjustment() {
+  const body = {
+    settlement_id: document.getElementById('a_settlement_id').value,
+    description: document.getElementById('a_description').value,
+    amount: Number(document.getElementById('a_amount').value),
+    includes_vat: document.getElementById('a_includes_vat').value === 'true',
+    category: document.getElementById('a_category').value,
+  };
+  if (!body.description || !body.amount) { alert('Fyll inn beskrivelse og beløp'); return; }
+  try {
+    await apiFetch(`${API}?action=add_adjustment`, { method: 'POST', body: JSON.stringify(body) });
+    closeAdjModal();
+    await loadYear();
+    // Re-open detail panel
+    const btn = document.querySelector(`tr[data-id="${body.settlement_id}"] .btn-expand`);
+    if (btn) toggleDetail(body.settlement_id, btn);
+  } catch (e) {
+    alert('Feil: ' + e.message);
+  }
+}
+
+async function deleteAdjustment(adjustmentId, settlementId) {
+  if (!confirm('Slett justeringslinje?')) return;
+  try {
+    await apiFetch(`${API}?action=delete_adjustment`, { method: 'POST', body: JSON.stringify({ adjustment_id: adjustmentId }) });
+    await loadYear();
     const btn = document.querySelector(`tr[data-id="${settlementId}"] .btn-expand`);
     if (btn) toggleDetail(settlementId, btn);
   } catch (e) {
