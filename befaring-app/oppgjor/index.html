@@ -276,7 +276,7 @@
         <div class="form-group"><label>Ekstra notat</label><input id="f_extra_note"></div>
         <div class="form-group"><label>Oppdragskilde</label><input id="f_source" placeholder="Cold Outreach, Finn.no, etc."></div>
         <div class="form-group"><label>Status</label>
-          <select id="f_status"><option value="pending">Uoppgjort</option><option value="settled">Oppgjort</option><option value="paid_out">Utbetalt</option></select>
+          <select id="f_status"><option value="pending">Uoppgjort</option><option value="settled">Oppgjort</option></select>
         </div>
         <div class="form-group full"><label>Notater</label><textarea id="f_notes"></textarea></div>
       </div>
@@ -428,12 +428,10 @@ function renderTable() {
   }
 
   document.getElementById('tableBody').innerHTML = filtered.map(s => {
-    const statusBadge = s.settlement_status === 'paid_out'
-      ? '<span class="badge badge-green">Utbetalt</span>'
-      : s.settlement_status === 'settled'
-      ? '<span class="badge badge-blue">Oppgjort</span>'
+    const statusBadge = s.settlement_status === 'settled'
+      ? '<span class="badge badge-green">Oppgjort</span>'
       : '<span class="badge badge-yellow">Uoppgjort</span>';
-    const rowClass = s.settlement_status === 'paid_out' ? 'row-settled' : '';
+    const rowClass = s.settlement_status === 'settled' ? 'row-settled' : '';
     const totalBroker = Number(s.broker_share || 0) + Number(s.broker2_share || 0);
     const outstandingClass = s.outstanding > 0 ? 'style="color:var(--red);font-weight:700"' : '';
 
