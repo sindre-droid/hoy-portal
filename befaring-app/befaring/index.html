@@ -229,6 +229,7 @@
     <button class="btn btn-primary" id="nextBtn" onclick="navigateNext()">Neste →</button>
     <button class="btn btn-save" id="saveBtn" onclick="saveBefaring()" style="display:none">💾 Lagre befaring</button>
   </div>
+  <div id="draftStatus" style="display:none;text-align:center;font-size:11px;color:rgba(255,255,255,0.55);padding:4px 0 2px"></div>
 </nav>
 
 <script>
@@ -241,11 +242,69 @@ const KNOWN_OWNERS={
   'henrik@h-y.no': {id:'77221549',  name:'Henrik Olaf Bratz'},
 };
 const CLOSED_STAGES=['4400020706','4400020707'];
-const API_BASE='/.netlify/functions/api',UPLOAD_BASE='/.netlify/functions/upload';
+const API_BASE='/.netlify/functions/api',UPLOAD_BASE='/.netlify/functions/upload',DRAFT_BASE='/.netlify/functions/befaring-draft';
 const SERVICE_EMAIL='sindre@h-y.no';
 const STAGE_LABELS={'4400020701':'Første kontakt','4400020702':'Befaring planlagt','4400020703':'Befaring gjennomført','4400020704':'Verdivurdering sendt','4400020705':'Oppdragsavtale sendt','4400020706':'Vunnet','4400020707':'Tapt','4425071838':'Aktiv','4401874120':'Listing'};
 const SCORE_LABELS={5:'Utmerket',4:'Bra',3:'Akseptabel',2:'Mangelfull',1:'Kritisk'};
 const TILSTAND_MAP={5:'5 - Utmerket',4:'4 - Bra',3:'3 - Akseptabel',2:'2 - Mangelfull',1:'1 - Kritisk'};
+
+// ── DRAFT: auto-lagre utkast til Supabase ─────────────────────────────────────
+function showDraftStatus(msg){const el=$('draftStatus');if(el){el.textContent=msg;el.style.display='block';}}
+
+function captureDraftFields(){
+  const fields={};
+  document.querySelectorAll('#formMain input[id],#formMain textarea[id],#formMain select[id]').forEach(el=>{
+    if(el.type==='file')return;
+    fields[el.id]=el.type==='checkbox'?el.checked:el.value;
+  });
+  return fields;
+}
+
+function restoreDraftFields(){
+  if(!draftFieldValues)return;
+  Object.entries(draftFieldValues).forEach(([id,val])=>{
+    const el=document.getElementById(id);if(!el)return;
+    if(el.type==='checkbox')el.checked=!!val;else el.value=val||'';
+  });
+}
+
+async function saveDraftNow(){
+  if(!selectedDeal)return;
+  const dealId=selectedDeal.id;
+  const data={
+    isSailboat,motorCount,hasGenerator,
+    condState:Object.fromEntries(Object.entries(condState).map(([k,v])=>[k,{score:v.score,comment:v.comment,flag:v.flag,photoUrls:v.photoUrls||[]}])),
+    fields:captureDraftFields(),
+  };
+  try{
+    await fetch(DRAFT_BASE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deal_id:dealId,data})});
+    showDraftStatus('💾 Utkast lagret kl. '+new Date().toLocaleTimeString('no-NO',{hour:'2-digit',minute:'2-digit'}));
+  }catch(e){console.error('Draft save error:',e);}
+}
+
+function scheduleDraftSave(){clearTimeout(draftTimer);draftTimer=setTimeout(saveDraftNow,2000);}
+
+async function loadDraft(dealId){
+  try{
+    const res=await fetch(`${DRAFT_BASE}?deal_id=${dealId}`);
+    const json=await res.json();
+    if(!json.draft)return;
+    const d=json.draft;
+    if(d.isSailboat!==undefined)isSailboat=d.isSailboat;
+    if(d.motorCount!==undefined)motorCount=d.motorCount;
+    if(d.hasGenerator!==undefined)hasGenerator=d.hasGenerator;
+    if(d.condState)Object.assign(condState,d.condState);
+    draftFieldValues=d.fields||null;
+    const ts=new Date(json.updated_at);
+    const label=ts.toLocaleDateString('no-NO',{day:'numeric',month:'short'})+' kl. '+ts.toLocaleTimeString('no-NO',{hour:'2-digit',minute:'2-digit'});
+    showDraftStatus('📋 Utkast gjenopprettet fra '+label);
+  }catch(e){console.error('Draft load error:',e);}
+}
+
+async function clearDraft(dealId){
+  try{await fetch(`${DRAFT_BASE}?deal_id=${encodeURIComponent(dealId)}`,{method:'DELETE'});}
+  catch(e){console.error('Draft clear error:',e);}
+}
 
 const SHARED_SECTIONS=[
   {key:'skrog',title:'Skrog og dekk',desc:'Sprekker, delaminering, fukt, kjølbolter, gelcoat',photoKey:'skrog_bilde_url'},
@@ -265,6 +324,7 @@ const SAIL_SECTIONS=[
 let currentUser=null,ownerRecord=null,allDeals=[],selectedDeal=null,ownersMap={};
 let boatData={},boatId=null,isSailboat=false,isOnLand=false,motorCount=1,hasGenerator=false;
 let sections=[],currentSec=0,condState={},dealFieldData={},saved=false;
+let draftFieldValues=null,draftTimer=null;
 
 const $=id=>document.getElementById(id);
 const show=id=>{const e=$(id);if(e)e.style.display=''};
@@ -560,7 +620,11 @@ async function selectDeal(dealId){
     boatId=dealFieldData.boat_id||null;
     $('dealChip').textContent=dealFieldData.dealname||`Deal #${dealId}`;
     if(boatId)await loadBoatData();else{boatData={};isSailboat=false;}
-    initCondState();buildFormSections();showSection(0);
+    initCondState();
+    await loadDraft(dealId);   // gjenopprett evt. utkast (overstyrer condState + metadata)
+    buildFormSections();
+    restoreDraftFields();      // sett feltverdi-er nå alle seksjoner er i DOM
+    showSection(0);
     $('mainHeader').style.display='';$('navBar').style.display='';$('formScreen').style.display='block';
     hide('loadingScreen');
   }catch(err){alert('Feil: '+err.message);showScreen('dealSelectorScreen');}
@@ -606,6 +670,11 @@ function buildFormSections(){
   sections.forEach((_,i)=>{const p=document.createElement('div');p.className='pip';p.id=`pip${i}`;pc.appendChild(p);});
   const fm=$('formMain');fm.innerHTML='';
   sections.forEach((sec,i)=>{const d=document.createElement('div');d.className='section';d.id=`section${i}`;d.style.display='none';d.innerHTML=sec.render();fm.appendChild(d);});
+  // Auto-lagre utkast ved enhver feltendring
+  fm.removeEventListener('input',scheduleDraftSave);
+  fm.removeEventListener('change',scheduleDraftSave);
+  fm.addEventListener('input',scheduleDraftSave);
+  fm.addEventListener('change',scheduleDraftSave);
 }
 
 function showSection(idx){
@@ -899,12 +968,14 @@ function setMotorCount(n){
   const m2=$('motor2_section'),m3=$('motor3_section');
   if(m2)m2.style.display=n>=2?'':'none';
   if(m3)m3.style.display=n>=3?'':'none';
+  scheduleDraftSave();
 }
 
 function generatorToggle(checked){
   hasGenerator=checked;
   const sec=$('generator_section');
   if(sec)sec.style.display=checked?'':'none';
+  scheduleDraftSave();
 }
 
 function onLandToggle(checked){
@@ -936,6 +1007,7 @@ function onScoreChange(key,val){
     if(score<=2){condState[key].flag=true;const fc=$(`${key}_flag`);if(fc)fc.checked=true;}
   }
   if(sections[currentSec]?.id==='sec_summary')renderSummaryContent();
+  scheduleDraftSave();
 }
 
 function showCommentArea(key){
@@ -947,6 +1019,7 @@ function toggleFlag(key){
   condState[key]=condState[key]||{score:null,comment:'',flag:false,photos:[],photoUrls:[]};
   const chk=$(`${key}_flag`);condState[key].flag=chk?chk.checked:!condState[key].flag;
   if(chk)chk.checked=condState[key].flag;
+  scheduleDraftSave();
 }
 
 // ── SUMMARY ──────────────────────────────────
@@ -1185,6 +1258,7 @@ async function saveBefaring(){
   }
   await Promise.all(tasks);
   saved=true;$('saveBtn').disabled=false;hide('navBar');
+  clearDraft(dealId).catch(()=>{});  // slett utkast — befaring er nå permanent lagret i HubSpot
 
   // Build PDF payload — used by "Generer PDF"-knappen på completion-screen
   const pdfPayload={
