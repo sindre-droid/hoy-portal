@@ -657,7 +657,7 @@ async function toggleImport() {
       <div class="import-item">
         <div class="import-item-info">
           <span class="import-item-name">${d.deal_name}</span>
-          <span class="import-item-meta">${fmtDate(d.close_date)} · ${d.amount ? nok(d.amount) + ' kr' : 'Ingen sum'} · ${d.owner || 'Ukjent megler'}</span>
+          <span class="import-item-meta">${fmtDate(d.close_date)} · Provisjon: ${d.amount ? nok(d.amount) + ' kr' : '—'} · ${d.owner || 'Ukjent megler'}</span>
         </div>
         <button class="btn-import-deal" onclick="importDeal('${d.deal_id}', this)">Importer</button>
       </div>

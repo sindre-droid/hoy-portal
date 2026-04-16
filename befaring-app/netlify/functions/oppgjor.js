@@ -5,6 +5,7 @@
 // GET  ?detail=SETTLEMENT_ID   → Enkelt oppgjør med utbetalinger
 // GET  ?summary=YEAR           → Aggregert per megler (lønn, utbetalt, utestående)
 // GET  ?hubspot_deals=1        → Pipeline B closed deals uten oppgjør (for import)
+// POST action=sync_amount      → Webhook: les provisjon_ex_mva, sett amount = provisjon_ex_mva × 1.25
 // POST action=create           → Opprett nytt oppgjør (manuelt eller fra HubSpot-deal)
 // POST action=update           → Oppdater oppgjørsfelt
 // POST action=add_payment      → Registrer utbetaling
@@ -84,7 +85,8 @@ async function getOwnerName(ownerId) {
   if (OWNER_MAP[ownerId]) return OWNER_MAP[ownerId];
   const r = await hs(`/crm/v3/owners/${ownerId}`);
   if (r.ok) {
-    const name = r.data.firstName || r.data.email?.split('@')[0] || 'Ukjent';
+    // Bruk bare fornavn (Sindre, Henrik, Daniel, etc.)
+    const name = (r.data.firstName || r.data.email?.split('@')[0] || 'Ukjent').split(' ')[0];
     OWNER_MAP[ownerId] = name;
     return name;
   }
@@ -300,6 +302,48 @@ exports.handler = async (event) => {
       const body = JSON.parse(event.body || '{}');
       const action = q.action || body.action;
 
+      // ── sync_amount (HubSpot webhook) ───────────────────────────────────
+      // Kalles av HubSpot workflow når provisjon-input endres.
+      // Leser provisjon_ex_mva (beregnet), setter amount = provisjon_ex_mva × 1.25
+      if (action === 'sync_amount') {
+        // HubSpot workflow sender { objectId: dealId } eller vi tar deal_id fra body
+        const dealId = body.objectId || body.deal_id;
+        if (!dealId) return { statusCode: 400, headers: h, body: JSON.stringify({ error: 'Missing deal_id/objectId' }) };
+
+        // Les provisjon_ex_mva fra dealen
+        const dr = await hs(`/crm/v3/objects/deals/${dealId}?properties=provisjon_ex_mva,amount`);
+        if (!dr.ok) {
+          console.error('sync_amount: HubSpot read failed', dr.status, dr.data);
+          return { statusCode: 502, headers: h, body: JSON.stringify({ error: 'HubSpot read failed' }) };
+        }
+
+        const provExMva = Number(dr.data.properties.provisjon_ex_mva);
+        if (!provExMva || isNaN(provExMva)) {
+          console.log('sync_amount: provisjon_ex_mva er tom/0 for deal', dealId);
+          return { statusCode: 200, headers: h, body: JSON.stringify({ skipped: true, reason: 'no provisjon_ex_mva' }) };
+        }
+
+        const newAmount = Math.round(provExMva * 1.25);
+        const currentAmount = Number(dr.data.properties.amount) || 0;
+
+        // Bare oppdater hvis verdien faktisk endret seg
+        if (Math.abs(newAmount - currentAmount) < 1) {
+          return { statusCode: 200, headers: h, body: JSON.stringify({ skipped: true, reason: 'amount already correct', amount: currentAmount }) };
+        }
+
+        const ur = await hs(`/crm/v3/objects/deals/${dealId}`, 'PATCH', {
+          properties: { amount: String(newAmount) },
+        });
+
+        if (!ur.ok) {
+          console.error('sync_amount: HubSpot PATCH failed', ur.status, ur.data);
+          return { statusCode: 502, headers: h, body: JSON.stringify({ error: 'HubSpot update failed', detail: ur.data }) };
+        }
+
+        console.log(`sync_amount: deal ${dealId} amount ${currentAmount} → ${newAmount}`);
+        return { statusCode: 200, headers: h, body: JSON.stringify({ ok: true, deal_id: dealId, old_amount: currentAmount, new_amount: newAmount }) };
+      }
+
       // ── create ──────────────────────────────────────────────────────────
       if (action === 'create') {
         const rev = Number(body.commission || 0) / 1.25;
@@ -394,8 +438,8 @@ exports.handler = async (event) => {
         const { data: existing } = await supabase.from('settlements').select('id').eq('deal_id', deal_id).single();
         if (existing) return { statusCode: 409, headers: h, body: JSON.stringify({ error: 'Already imported', id: existing.id }) };
 
-        // Hent deal fra HubSpot
-        const dr = await hs(`/crm/v3/objects/deals/${deal_id}?properties=dealname,amount,closedate,hubspot_owner_id`);
+        // Hent deal fra HubSpot (amount = provisjon inkl. mva, provisjon_ex_mva = custom property)
+        const dr = await hs(`/crm/v3/objects/deals/${deal_id}?properties=dealname,amount,closedate,hubspot_owner_id,provisjon_ex_mva`);
         if (!dr.ok) return { statusCode: 502, headers: h, body: JSON.stringify({ error: 'HubSpot deal fetch failed' }) };
         const dp = dr.data.properties;
 
@@ -405,11 +449,12 @@ exports.handler = async (event) => {
         const ownerName = await getOwnerName(dp.hubspot_owner_id);
         const closeDate = dp.closedate ? dp.closedate.split('T')[0] : null;
         const year = closeDate ? parseInt(closeDate.substring(0, 4), 10) : new Date().getFullYear();
-        const saleAmount = dp.amount ? Number(dp.amount) : null;
 
-        // Standard provisjon: 6%, minimum 45000
-        let commission = saleAmount ? Math.max(saleAmount * 0.06, 45000) : null;
-        const rev = commission ? commission / 1.25 : 0;
+        // amount i HubSpot = forventet provisjon (inkl. mva), IKKE salgssum
+        const commission = dp.amount ? Number(dp.amount) : null;
+        // Bruk provisjon_ex_mva fra HubSpot hvis tilgjengelig, ellers beregn
+        const rev = dp.provisjon_ex_mva ? Number(dp.provisjon_ex_mva)
+          : (commission ? commission / 1.25 : 0);
         const model = inferSplitModel(ownerName, ownerName);  // Samme megler default
         const shares = calculateShares(rev, model);
 
@@ -425,7 +470,7 @@ exports.handler = async (event) => {
           year,
           boat_type: boatType,
           sold_date: closeDate,
-          sale_amount: saleAmount,
+          sale_amount: null,  // Salgssum finnes ikke i HubSpot — fylles manuelt
           commission,
           revenue_ex_vat: rev,
           assigned_by: ownerName,
