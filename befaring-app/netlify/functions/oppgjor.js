@@ -52,8 +52,11 @@ async function hs(path, method = 'GET', body = null) {
 
 // ── Split-modell beregning ──────────────────────────────────────────────────
 // Returnerer { broker_share, broker2_share, company_share } basert på modell.
-function calculateShares(revenueExVat, splitModel) {
-  const rev = Number(revenueExVat) || 0;
+// commissionDeduction: beløp som trekkes fra provisjon FØR meglerlønn beregnes
+// (f.eks. retur til kjøper som går av HoYs cut)
+function calculateShares(revenueExVat, splitModel, commissionDeduction = 0) {
+  const deductionExVat = Number(commissionDeduction || 0) / 1.25;
+  const rev = Math.max(0, (Number(revenueExVat) || 0) - deductionExVat);
   switch (splitModel) {
     case 'solo_45':
       return { broker_share: rev * 0.45, broker2_share: 0, company_share: rev * 0.55 };
@@ -413,8 +416,9 @@ exports.handler = async (event) => {
       // ── create ──────────────────────────────────────────────────────────
       if (action === 'create') {
         const rev = Number(body.commission || 0) / 1.25;
+        const commDed = Number(body.commission_deduction || 0);
         const model = body.split_model || inferSplitModel(body.assigned_by, body.sold_by);
-        const shares = calculateShares(rev, model);
+        const shares = calculateShares(rev, model, commDed);
 
         const row = {
           deal_id:       body.deal_id || null,
@@ -426,6 +430,7 @@ exports.handler = async (event) => {
           sold_date:     body.sold_date || null,
           sale_amount:   body.sale_amount || null,
           commission:    body.commission || null,
+          commission_deduction: commDed,
           revenue_ex_vat: body.revenue_ex_vat || rev,
           assigned_by:   body.assigned_by || null,
           sold_by:       body.sold_by || null,
@@ -453,11 +458,12 @@ exports.handler = async (event) => {
         if (!id) return { statusCode: 400, headers: h, body: JSON.stringify({ error: 'Missing id' }) };
 
         // Rekalkuler shares hvis relevant felt endres
-        if (fields.commission || fields.revenue_ex_vat || fields.split_model) {
+        if (fields.commission !== undefined || fields.revenue_ex_vat !== undefined || fields.split_model || fields.commission_deduction !== undefined) {
           const { data: current } = await supabase.from('settlements').select('*').eq('id', id).single();
           const rev = fields.revenue_ex_vat || (fields.commission ? Number(fields.commission) / 1.25 : Number(current.revenue_ex_vat));
           const model = fields.split_model || current.split_model;
-          const shares = calculateShares(rev, model);
+          const commDed = fields.commission_deduction !== undefined ? Number(fields.commission_deduction) : Number(current.commission_deduction || 0);
+          const shares = calculateShares(rev, model, commDed);
 
           if (fields.commission && !fields.revenue_ex_vat) {
             fields.revenue_ex_vat = Number(fields.commission) / 1.25;

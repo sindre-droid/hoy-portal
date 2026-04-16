@@ -270,6 +270,8 @@
         <div class="form-group"><label>Visningsmegler / Splittpartner</label><input id="f_split_broker" placeholder="Kun ved splitt"></div>
         <div class="form-group"><label>Meglerlønn (beregnet)</label><input id="f_broker_share" type="number" placeholder="Auto"></div>
         <div class="form-group"><label>Megler 2 lønn</label><input id="f_broker2_share" type="number" placeholder="Auto"></div>
+        <div class="form-group"><label>Prov.fradrag (inkl. mva)</label><input id="f_commission_deduction" type="number" value="0" placeholder="F.eks. retur kjøper" oninput="calcPreview()"></div>
+        <div class="form-group"><label>Prov.fradrag notat</label><input id="f_commission_deduction_note" placeholder="Retur kjøper, etc."></div>
         <div class="form-group"><label>Ekstra +/-</label><input id="f_extra" type="number" value="0"></div>
         <div class="form-group"><label>Ekstra notat</label><input id="f_extra_note"></div>
         <div class="form-group"><label>Oppdragskilde</label><input id="f_source" placeholder="Cold Outreach, Finn.no, etc."></div>
@@ -506,6 +508,10 @@ function renderDetail(id) {
         <h4>Detaljer</h4>
         <div class="detail-field"><span class="detail-field-label">Salgssum</span><span class="detail-field-value">${s.sale_amount ? nok(s.sale_amount) + ' kr' : '—'}</span></div>
         <div class="detail-field"><span class="detail-field-label">Provisjon inkl. mva</span><span class="detail-field-value">${s.commission ? nok(s.commission) + ' kr' : '—'}</span></div>
+        ${Number(s.commission_deduction) ? `
+          <div class="detail-field"><span class="detail-field-label">Prov.fradrag${s.commission_deduction_note ? ' (' + s.commission_deduction_note + ')' : ''}</span><span class="detail-field-value" style="color:var(--red)">−${nok(s.commission_deduction)} kr</span></div>
+          <div class="detail-field"><span class="detail-field-label">Netto provisjon ex. mva</span><span class="detail-field-value">${nok((Number(s.commission) - Number(s.commission_deduction)) / 1.25)} kr</span></div>
+        ` : ''}
         <div class="detail-field"><span class="detail-field-label">Selger</span><span class="detail-field-value">${s.seller_name || '—'}</span></div>
         <div class="detail-field"><span class="detail-field-label">Kjøper</span><span class="detail-field-value">${s.buyer_name || '—'}</span></div>
         <div class="detail-field"><span class="detail-field-label">Oppdrag inn</span><span class="detail-field-value">${s.assigned_by || '—'}</span></div>
@@ -624,9 +630,10 @@ function openCreateModal() {
   document.getElementById('f_id').value = '';
   document.getElementById('f_deal_id').value = '';
   ['oppdragsnr','boat_type','seller_name','buyer_name','sold_date','sale_amount','commission',
-   'revenue_ex_vat','split_broker','broker_share','broker2_share','extra_note','source','notes']
+   'revenue_ex_vat','split_broker','broker_share','broker2_share','extra_note','source','notes','commission_deduction_note']
     .forEach(f => document.getElementById('f_' + f).value = '');
   document.getElementById('f_extra').value = '0';
+  document.getElementById('f_commission_deduction').value = '0';
   document.getElementById('f_assigned_by').value = '';
   document.getElementById('f_sold_by').value = '';
   document.getElementById('f_split_model').value = '';
@@ -655,6 +662,8 @@ function openEditModal(id) {
   document.getElementById('f_split_broker').value = s.split_broker || '';
   document.getElementById('f_broker_share').value = s.broker_share || '';
   document.getElementById('f_broker2_share').value = s.broker2_share || '';
+  document.getElementById('f_commission_deduction').value = s.commission_deduction || 0;
+  document.getElementById('f_commission_deduction_note').value = s.commission_deduction_note || '';
   document.getElementById('f_extra').value = s.extra || 0;
   document.getElementById('f_extra_note').value = s.extra_note || '';
   document.getElementById('f_source').value = s.source || '';
@@ -669,7 +678,10 @@ function closeModal() { document.getElementById('modal').classList.remove('open'
 function calcPreview() {
   const commission = Number(document.getElementById('f_commission').value) || 0;
   if (!commission) { document.getElementById('calcPreviewBox').style.display = 'none'; return; }
+  const commDed = Number(document.getElementById('f_commission_deduction').value) || 0;
   const rev = commission / 1.25;
+  const dedExVat = commDed / 1.25;
+  const netRev = Math.max(0, rev - dedExVat);
   const a = document.getElementById('f_assigned_by').value;
   const s = document.getElementById('f_sold_by').value;
   let model = document.getElementById('f_split_model').value;
@@ -680,13 +692,15 @@ function calcPreview() {
     else model = 'solo_40';
   }
   const pct = { solo_45: 0.45, solo_40: 0.40, split_50_50: 0.20, vip_10: 0.45 };
-  const broker = rev * (pct[model] || 0.40);
-  const broker2 = model === 'split_50_50' ? rev * 0.20 : model === 'vip_10' ? rev * 0.10 : 0;
-  const company = rev - broker - broker2;
+  const broker = netRev * (pct[model] || 0.40);
+  const broker2 = model === 'split_50_50' ? netRev * 0.20 : model === 'vip_10' ? netRev * 0.10 : 0;
+  const company = netRev - broker - broker2;
 
   document.getElementById('calcPreviewBox').style.display = 'block';
   document.getElementById('calcPreviewText').innerHTML =
-    `Omsetning: <strong>${nok(rev)}</strong> · Megler: <strong>${nok(broker)}</strong> (${splitLabel(model)})` +
+    `Omsetning: <strong>${nok(rev)}</strong>` +
+    (commDed ? ` · Prov.fradrag: <strong style="color:var(--red)">−${nok(dedExVat)}</strong> · Netto: <strong>${nok(netRev)}</strong>` : '') +
+    ` · Megler: <strong>${nok(broker)}</strong> (${splitLabel(model)})` +
     (broker2 ? ` · Megler 2: <strong>${nok(broker2)}</strong>` : '') +
     ` · Firma: <strong>${nok(company)}</strong>`;
 }
@@ -706,6 +720,8 @@ async function saveSettlement() {
     sold_by: document.getElementById('f_sold_by').value || null,
     split_model: document.getElementById('f_split_model').value || undefined,
     split_broker: document.getElementById('f_split_broker').value || null,
+    commission_deduction: Number(document.getElementById('f_commission_deduction').value) || 0,
+    commission_deduction_note: document.getElementById('f_commission_deduction_note').value || null,
     extra: Number(document.getElementById('f_extra').value) || 0,
     extra_note: document.getElementById('f_extra_note').value || null,
     source: document.getElementById('f_source').value || null,
