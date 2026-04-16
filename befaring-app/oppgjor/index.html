@@ -54,7 +54,7 @@
     .search-input{background:white;border:2px solid var(--gray);border-radius:10px;padding:10px 16px;font-size:13px;font-family:inherit;min-width:200px}
 
     /* ── Table ── */
-    .table-wrap{background:white;border-radius:14px;box-shadow:var(--shadow);overflow-x:auto}
+    .table-wrap{background:white;border-radius:14px;box-shadow:var(--shadow);overflow-x:auto;overscroll-behavior-x:contain}
     table{width:100%;border-collapse:collapse;font-size:13px}
     th{background:var(--surface);font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:0.5px;color:var(--gray-dark);padding:12px 14px;text-align:left;white-space:nowrap;position:sticky;top:0}
     td{padding:12px 14px;border-top:1px solid var(--gray);vertical-align:middle;white-space:nowrap}
@@ -197,11 +197,8 @@
               <th>Nr</th>
               <th>Båttype</th>
               <th>Solgt dato</th>
-              <th class="text-right">Salgssum</th>
-              <th class="text-right">Provisjon</th>
               <th class="text-right">Omsetning</th>
-              <th>Oppdrag inn</th>
-              <th>Solgt av</th>
+              <th>Megler</th>
               <th>Splitt</th>
               <th class="text-right">Meglerlønn</th>
               <th class="text-right">Utbetalt</th>
@@ -374,7 +371,7 @@ function renderTable() {
   });
 
   if (!filtered.length) {
-    document.getElementById('tableBody').innerHTML = `<tr><td colspan="15" class="empty-state"><div class="empty-icon">📋</div>Ingen oppgjør for ${currentYear}</td></tr>`;
+    document.getElementById('tableBody').innerHTML = `<tr><td colspan="12" class="empty-state"><div class="empty-icon">📋</div>Ingen oppgjør for ${currentYear}</td></tr>`;
     return;
   }
 
@@ -392,11 +389,8 @@ function renderTable() {
         <td><strong>${s.oppdragsnr || '—'}</strong></td>
         <td>${s.boat_type || '—'}</td>
         <td>${fmtDate(s.sold_date)}</td>
-        <td class="text-right">${nok(s.sale_amount)}</td>
-        <td class="text-right">${nok(s.commission)}</td>
         <td class="text-right">${nok(s.revenue_ex_vat)}</td>
-        <td>${s.assigned_by || '—'}</td>
-        <td>${s.sold_by || '—'}</td>
+        <td>${s.sold_by || s.assigned_by || '—'}</td>
         <td><span class="badge badge-blue">${splitLabel(s.split_model)}</span></td>
         <td class="text-right">${nok(totalBroker)}</td>
         <td class="text-right">${nok(s.total_paid)}</td>
@@ -405,7 +399,7 @@ function renderTable() {
         <td><button class="btn-sm" onclick="openEditModal('${s.id}')">Rediger</button></td>
       </tr>
       <tr class="detail-row" id="detail-${s.id}">
-        <td colspan="15" class="detail-cell" id="detail-cell-${s.id}"></td>
+        <td colspan="12" class="detail-cell" id="detail-cell-${s.id}"></td>
       </tr>
     `;
   }).join('');
@@ -435,8 +429,12 @@ function renderDetail(id) {
     <div class="detail-inner">
       <div class="detail-section">
         <h4>Detaljer</h4>
+        <div class="detail-field"><span class="detail-field-label">Salgssum</span><span class="detail-field-value">${s.sale_amount ? nok(s.sale_amount) + ' kr' : '—'}</span></div>
+        <div class="detail-field"><span class="detail-field-label">Provisjon inkl. mva</span><span class="detail-field-value">${s.commission ? nok(s.commission) + ' kr' : '—'}</span></div>
         <div class="detail-field"><span class="detail-field-label">Selger</span><span class="detail-field-value">${s.seller_name || '—'}</span></div>
         <div class="detail-field"><span class="detail-field-label">Kjøper</span><span class="detail-field-value">${s.buyer_name || '—'}</span></div>
+        <div class="detail-field"><span class="detail-field-label">Oppdrag inn</span><span class="detail-field-value">${s.assigned_by || '—'}</span></div>
+        <div class="detail-field"><span class="detail-field-label">Solgt av</span><span class="detail-field-value">${s.sold_by || '—'}</span></div>
         <div class="detail-field"><span class="detail-field-label">Firmaandel</span><span class="detail-field-value">${nok(s.company_share)} kr</span></div>
         <div class="detail-field"><span class="detail-field-label">Ekstra</span><span class="detail-field-value">${s.extra ? nok(s.extra) + ' kr' : '—'}${s.extra_note ? ' (' + s.extra_note + ')' : ''}</span></div>
         <div class="detail-field"><span class="detail-field-label">Splittpartner</span><span class="detail-field-value">${s.split_broker || '—'}</span></div>
