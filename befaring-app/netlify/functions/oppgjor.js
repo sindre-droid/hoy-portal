@@ -97,7 +97,58 @@ async function getOwnerName(ownerId) {
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: CORS, body: '' };
 
-  // ── Auth ──────────────────────────────────────────────────────────────────
+  const h = { ...CORS, ...JSON_H };
+  const q = event.queryStringParameters || {};
+
+  // ── Webhook-endpoints (ingen auth) ────────────────────────────────────────
+  // sync_amount kalles av HubSpot workflow — ingen JWT tilgjengelig
+  if (event.httpMethod === 'POST' && (q.action === 'sync_amount')) {
+    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+    try {
+      const body = JSON.parse(event.body || '{}');
+      // HubSpot workflow sender objectId i ulike formater
+      const dealId = body.objectId || body.deal_id || (body.object && body.object.objectId);
+      if (!dealId) {
+        console.error('sync_amount: no dealId in body', JSON.stringify(body).slice(0, 500));
+        return { statusCode: 400, headers: h, body: JSON.stringify({ error: 'Missing deal_id/objectId' }) };
+      }
+
+      const dr = await hs(`/crm/v3/objects/deals/${dealId}?properties=provisjon_ex_mva,amount`);
+      if (!dr.ok) {
+        console.error('sync_amount: HubSpot read failed', dr.status, dr.data);
+        return { statusCode: 502, headers: h, body: JSON.stringify({ error: 'HubSpot read failed' }) };
+      }
+
+      const provExMva = Number(dr.data.properties.provisjon_ex_mva);
+      if (!provExMva || isNaN(provExMva)) {
+        console.log('sync_amount: provisjon_ex_mva er tom/0 for deal', dealId);
+        return { statusCode: 200, headers: h, body: JSON.stringify({ skipped: true, reason: 'no provisjon_ex_mva' }) };
+      }
+
+      const newAmount = Math.round(provExMva * 1.25);
+      const currentAmount = Number(dr.data.properties.amount) || 0;
+
+      if (Math.abs(newAmount - currentAmount) < 1) {
+        return { statusCode: 200, headers: h, body: JSON.stringify({ skipped: true, reason: 'already correct', amount: currentAmount }) };
+      }
+
+      const ur = await hs(`/crm/v3/objects/deals/${dealId}`, 'PATCH', {
+        properties: { amount: String(newAmount) },
+      });
+      if (!ur.ok) {
+        console.error('sync_amount: PATCH failed', ur.status, ur.data);
+        return { statusCode: 502, headers: h, body: JSON.stringify({ error: 'HubSpot update failed' }) };
+      }
+
+      console.log(`sync_amount: deal ${dealId} amount ${currentAmount} → ${newAmount}`);
+      return { statusCode: 200, headers: h, body: JSON.stringify({ ok: true, deal_id: dealId, old: currentAmount, new: newAmount }) };
+    } catch (err) {
+      console.error('sync_amount error:', err);
+      return { statusCode: 500, headers: h, body: JSON.stringify({ error: err.message }) };
+    }
+  }
+
+  // ── Auth (alle andre endpoints) ───────────────────────────────────────────
   const authHeader = event.headers.authorization || event.headers.Authorization || '';
   if (!authHeader.startsWith('Bearer ')) {
     return { statusCode: 401, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'Unauthorized' }) };
@@ -107,10 +158,8 @@ exports.handler = async (event) => {
     return { statusCode: 401, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'Invalid token' }) };
   }
   const userId = jwt.email;
-  const h = { ...CORS, ...JSON_H };
 
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-  const q = event.queryStringParameters || {};
 
   try {
     // ═════════════════════════════════════════════════════════════════════════
@@ -254,19 +303,24 @@ exports.handler = async (event) => {
     }
 
     // ═════════════════════════════════════════════════════════════════════════
-    // GET ?hubspot_deals=1 — Pipeline B "Solgt" deals uten oppgjør
+    // GET ?hubspot_deals=1 — Pipeline B "In Contract" deals uten oppgjør
     // ═════════════════════════════════════════════════════════════════════════
     if (event.httpMethod === 'GET' && q.hubspot_deals) {
-      // Hent alle "Solgt"-deals fra Pipeline B
-      // Hent closed-won deals fra Pipeline B (hs_is_closed_won = true)
+      // Hent deals i "In Contract" + "Closed Won" fra Pipeline B
+      const STAGE_IN_CONTRACT = '4425071838';
+      const STAGE_CLOSED_WON  = '4401874125';
       const searchBody = {
-        filterGroups: [{
-          filters: [
+        filterGroups: [
+          { filters: [
             { propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_B },
-            { propertyName: 'hs_is_closed_won', operator: 'EQ', value: 'true' },
-          ],
-        }],
-        properties: ['dealname', 'amount', 'closedate', 'hubspot_owner_id'],
+            { propertyName: 'dealstage', operator: 'EQ', value: STAGE_IN_CONTRACT },
+          ]},
+          { filters: [
+            { propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_B },
+            { propertyName: 'dealstage', operator: 'EQ', value: STAGE_CLOSED_WON },
+          ]},
+        ],
+        properties: ['dealname', 'amount', 'closedate', 'hubspot_owner_id', 'final_sales_price_nok', 'dealstage'],
         sorts: [{ propertyName: 'closedate', direction: 'DESCENDING' }],
         limit: 100,
       };
@@ -283,12 +337,15 @@ exports.handler = async (event) => {
       // Resolve owner names
       const deals = await Promise.all(newDeals.map(async d => {
         const ownerName = await getOwnerName(d.properties.hubspot_owner_id);
+        const stage = d.properties.dealstage === STAGE_IN_CONTRACT ? 'In Contract' : 'Closed Won';
         return {
           deal_id: d.id,
           deal_name: d.properties.dealname,
           amount: d.properties.amount ? Number(d.properties.amount) : null,
+          sale_price: d.properties.final_sales_price_nok ? Number(d.properties.final_sales_price_nok) : null,
           close_date: d.properties.closedate,
           owner: ownerName,
+          stage,
         };
       }));
 
@@ -302,47 +359,7 @@ exports.handler = async (event) => {
       const body = JSON.parse(event.body || '{}');
       const action = q.action || body.action;
 
-      // ── sync_amount (HubSpot webhook) ───────────────────────────────────
-      // Kalles av HubSpot workflow når provisjon-input endres.
-      // Leser provisjon_ex_mva (beregnet), setter amount = provisjon_ex_mva × 1.25
-      if (action === 'sync_amount') {
-        // HubSpot workflow sender { objectId: dealId } eller vi tar deal_id fra body
-        const dealId = body.objectId || body.deal_id;
-        if (!dealId) return { statusCode: 400, headers: h, body: JSON.stringify({ error: 'Missing deal_id/objectId' }) };
-
-        // Les provisjon_ex_mva fra dealen
-        const dr = await hs(`/crm/v3/objects/deals/${dealId}?properties=provisjon_ex_mva,amount`);
-        if (!dr.ok) {
-          console.error('sync_amount: HubSpot read failed', dr.status, dr.data);
-          return { statusCode: 502, headers: h, body: JSON.stringify({ error: 'HubSpot read failed' }) };
-        }
-
-        const provExMva = Number(dr.data.properties.provisjon_ex_mva);
-        if (!provExMva || isNaN(provExMva)) {
-          console.log('sync_amount: provisjon_ex_mva er tom/0 for deal', dealId);
-          return { statusCode: 200, headers: h, body: JSON.stringify({ skipped: true, reason: 'no provisjon_ex_mva' }) };
-        }
-
-        const newAmount = Math.round(provExMva * 1.25);
-        const currentAmount = Number(dr.data.properties.amount) || 0;
-
-        // Bare oppdater hvis verdien faktisk endret seg
-        if (Math.abs(newAmount - currentAmount) < 1) {
-          return { statusCode: 200, headers: h, body: JSON.stringify({ skipped: true, reason: 'amount already correct', amount: currentAmount }) };
-        }
-
-        const ur = await hs(`/crm/v3/objects/deals/${dealId}`, 'PATCH', {
-          properties: { amount: String(newAmount) },
-        });
-
-        if (!ur.ok) {
-          console.error('sync_amount: HubSpot PATCH failed', ur.status, ur.data);
-          return { statusCode: 502, headers: h, body: JSON.stringify({ error: 'HubSpot update failed', detail: ur.data }) };
-        }
-
-        console.log(`sync_amount: deal ${dealId} amount ${currentAmount} → ${newAmount}`);
-        return { statusCode: 200, headers: h, body: JSON.stringify({ ok: true, deal_id: dealId, old_amount: currentAmount, new_amount: newAmount }) };
-      }
+      // (sync_amount håndteres utenfor auth-blokken, se over)
 
       // ── create ──────────────────────────────────────────────────────────
       if (action === 'create') {
@@ -438,8 +455,8 @@ exports.handler = async (event) => {
         const { data: existing } = await supabase.from('settlements').select('id').eq('deal_id', deal_id).single();
         if (existing) return { statusCode: 409, headers: h, body: JSON.stringify({ error: 'Already imported', id: existing.id }) };
 
-        // Hent deal fra HubSpot (amount = provisjon inkl. mva, provisjon_ex_mva = custom property)
-        const dr = await hs(`/crm/v3/objects/deals/${deal_id}?properties=dealname,amount,closedate,hubspot_owner_id,provisjon_ex_mva`);
+        // Hent deal fra HubSpot (amount = provisjon inkl. mva, final_sales_price_nok = salgssum)
+        const dr = await hs(`/crm/v3/objects/deals/${deal_id}?properties=dealname,amount,closedate,hubspot_owner_id,provisjon_ex_mva,final_sales_price_nok`);
         if (!dr.ok) return { statusCode: 502, headers: h, body: JSON.stringify({ error: 'HubSpot deal fetch failed' }) };
         const dp = dr.data.properties;
 
@@ -470,7 +487,7 @@ exports.handler = async (event) => {
           year,
           boat_type: boatType,
           sold_date: closeDate,
-          sale_amount: null,  // Salgssum finnes ikke i HubSpot — fylles manuelt
+          sale_amount: dp.final_sales_price_nok ? Number(dp.final_sales_price_nok) : null,
           commission,
           revenue_ex_vat: rev,
           assigned_by: ownerName,
