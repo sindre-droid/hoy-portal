@@ -306,20 +306,15 @@ exports.handler = async (event) => {
     // GET ?hubspot_deals=1 — Pipeline B "In Contract" deals uten oppgjør
     // ═════════════════════════════════════════════════════════════════════════
     if (event.httpMethod === 'GET' && q.hubspot_deals) {
-      // Hent deals i "In Contract" + "Closed Won" fra Pipeline B
+      // Hent deals i "In Contract" fra Pipeline B
       const STAGE_IN_CONTRACT = '4425071838';
-      const STAGE_CLOSED_WON  = '4401874125';
       const searchBody = {
-        filterGroups: [
-          { filters: [
+        filterGroups: [{
+          filters: [
             { propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_B },
             { propertyName: 'dealstage', operator: 'EQ', value: STAGE_IN_CONTRACT },
-          ]},
-          { filters: [
-            { propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_B },
-            { propertyName: 'dealstage', operator: 'EQ', value: STAGE_CLOSED_WON },
-          ]},
-        ],
+          ],
+        }],
         properties: ['dealname', 'amount', 'closedate', 'hubspot_owner_id', 'final_sales_price_nok', 'dealstage'],
         sorts: [{ propertyName: 'closedate', direction: 'DESCENDING' }],
         limit: 100,
@@ -337,7 +332,7 @@ exports.handler = async (event) => {
       // Resolve owner names
       const deals = await Promise.all(newDeals.map(async d => {
         const ownerName = await getOwnerName(d.properties.hubspot_owner_id);
-        const stage = d.properties.dealstage === STAGE_IN_CONTRACT ? 'In Contract' : 'Closed Won';
+        const stage = 'In Contract';
         return {
           deal_id: d.id,
           deal_name: d.properties.dealname,
