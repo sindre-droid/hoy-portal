@@ -58,6 +58,7 @@
     table{width:100%;border-collapse:collapse;font-size:13px}
     th{background:var(--surface);font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:0.5px;color:var(--gray-dark);padding:12px 14px;text-align:left;white-space:nowrap;position:sticky;top:0}
     td{padding:12px 14px;border-top:1px solid var(--gray);vertical-align:middle;white-space:nowrap}
+    td.detail-cell{white-space:normal;overflow:hidden}
     tr:hover td{background:rgba(10,33,64,0.02)}
     tr.row-settled td{opacity:0.6}
     .text-right{text-align:right}
@@ -77,8 +78,8 @@
     /* ── Detail panel (inline expand) ── */
     .detail-row{display:none}
     .detail-row.open{display:table-row}
-    .detail-cell{padding:0 14px 20px;background:var(--surface)}
-    .detail-inner{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:16px 0}
+    .detail-cell{padding:0 14px 20px;background:var(--surface);white-space:normal}
+    .detail-inner{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:16px 0;min-width:0}
     .detail-section h4{font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:var(--gray-dark);margin:0 0 10px}
     .detail-field{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--gray)}
     .detail-field-label{color:var(--gray-dark);font-weight:600}
@@ -125,9 +126,10 @@
     .btn-import-deal:disabled{opacity:0.4;cursor:not-allowed}
 
     /* ── Seller settlement panel ── */
-    .seller-panel{margin-top:16px;background:white;border-radius:12px;border:2px solid var(--gray);padding:16px}
+    .detail-section{min-width:0;overflow:hidden}
+    .seller-panel{background:white;border-radius:12px;border:2px solid var(--gray);padding:16px}
     .seller-panel h4{font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:var(--gold);margin:0 0 12px;font-weight:800}
-    .avregning-line{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--gray)}
+    .avregning-line{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--gray);gap:12px}
     .avregning-line.total{border-top:2px solid var(--navy);border-bottom:none;padding-top:10px;margin-top:4px;font-weight:800;font-size:14px;color:var(--navy)}
     .avregning-line.subtotal{font-weight:700;color:var(--gray-dark)}
     .avregning-label{color:var(--gray-dark)}
