@@ -384,7 +384,43 @@ exports.handler = async (event) => {
   let boats = [];
 
   try {
-    if (action === 'activate') {
+    if (action === 'fillimages') {
+      // For each {hs_id, slug, image_url}: fetch boat, check gallery_images, if empty → upload image + PATCH
+      const body = JSON.parse(event.body || '{}');
+      const items = body.boats || [];
+      if (!Array.isArray(items) || items.length === 0) {
+        return { statusCode: 400, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'no boats' }) };
+      }
+      const results = [];
+      for (const it of items) {
+        const started = Date.now();
+        try {
+          // Check current gallery_images
+          const fetched = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}/${it.hs_id}?properties=gallery_images`, 'GET');
+          if (!fetched.ok) throw new Error(`fetch failed: ${fetched.status}`);
+          const existing = (fetched.data?.properties?.gallery_images || '').trim();
+          if (existing) {
+            results.push({ ok: true, slug: it.slug, hs_id: it.hs_id, action: 'skipped', reason: 'already has images', existing, duration_ms: Date.now() - started });
+            continue;
+          }
+          if (!it.image_url) {
+            results.push({ ok: false, slug: it.slug, hs_id: it.hs_id, action: 'skipped', reason: 'no wix image url', duration_ms: Date.now() - started });
+            continue;
+          }
+          // Download + upload + PATCH
+          const { buffer, contentType } = await downloadImage(it.image_url);
+          const ext = contentType.includes('png') ? 'png' : 'jpg';
+          const up = await uploadImage(buffer, `${it.slug}.${ext}`, contentType);
+          const patched = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}/${it.hs_id}`, 'PATCH', { properties: { gallery_images: String(up.id) } });
+          if (!patched.ok) throw new Error(`patch failed: ${patched.status} ${JSON.stringify(patched.data)}`);
+          results.push({ ok: true, slug: it.slug, hs_id: it.hs_id, action: 'filled', file_id: up.id, hs_url: `https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/${it.hs_id}`, duration_ms: Date.now() - started });
+        } catch (e) {
+          results.push({ ok: false, slug: it.slug, hs_id: it.hs_id, error: e.message, duration_ms: Date.now() - started });
+        }
+      }
+      const ok = results.filter(r => r.ok).length;
+      return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ total: results.length, ok, failed: results.length - ok, filled: results.filter(r => r.action==='filled').length, skipped: results.filter(r => r.action==='skipped').length, results }, null, 2) };
+    } else if (action === 'activate') {
       // Batch-activate boats: PATCH activated=yes for each HS ID
       const body = JSON.parse(event.body || '{}');
       const hsIds = body.hs_ids || [];
