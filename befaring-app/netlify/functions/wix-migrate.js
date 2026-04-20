@@ -142,13 +142,11 @@ async function migrateBoat(spec) {
         props.pris = String(priceTwo);
       }
 
-      // motortype → type_motor (real HubSpot property name)
-      if (props.motortype && !props.type_motor) {
-        props.type_motor = props.motortype;
-      }
-
-      // Remove properties that don't exist on the HubSpot boats schema
-      for (const k of ['merke', 'modell', 'price_two', 'motortype', 'market_type']) {
+      // Remove properties that don't map cleanly:
+      // - merke/modell/price_two/market_type: don't exist in HubSpot schema
+      // - motortype: Wix "Innenbords"/"Utenbords" doesn't match HubSpot type_motor enum (1/2/3/Strak aksling/IPS/Zeus pod)
+      // - type_motor: skip — team must set manually
+      for (const k of ['merke', 'modell', 'price_two', 'motortype', 'type_motor', 'market_type']) {
         delete props[k];
       }
 
