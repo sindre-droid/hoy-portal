@@ -384,7 +384,12 @@ exports.handler = async (event) => {
   let boats = [];
 
   try {
-    if (action === 'fillimages') {
+    if (action === 'schema') {
+      // Inspect boat_type property to see valid enum values
+      const prop = event.queryStringParameters?.prop || 'boat_type';
+      const res = await hs(`/crm/v3/properties/${BOAT_OBJ_TYPE}/${prop}`, 'GET');
+      return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify(res.data, null, 2) };
+    } else if (action === 'fillimages') {
       // For each {hs_id, slug, image_url}: fetch boat, check gallery_images, if empty → upload image + PATCH
       const body = JSON.parse(event.body || '{}');
       const items = body.boats || [];
