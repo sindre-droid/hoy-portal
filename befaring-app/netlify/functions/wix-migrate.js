@@ -121,6 +121,8 @@ async function migrateBoat(spec) {
 
     if (spec.action === 'create') {
       const props = { ...spec.props };
+      // HubSpot requires `slug` — default to page_path2 if caller didn't set it
+      if (!props.slug && props.page_path2) props.slug = props.page_path2;
       if (imageId) props.gallery_images = String(imageId);
       const res = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}`, 'POST', { properties: props });
       if (!res.ok) throw new Error(`Create failed: ${res.status} ${JSON.stringify(res.data)}`);
