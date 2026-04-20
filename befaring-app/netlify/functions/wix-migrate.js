@@ -25,6 +25,42 @@ const JSON_H = { 'Content-Type': 'application/json' };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+// Convert Wix HTML body → clean plain text suitable for HubSpot `description`
+function cleanWixHtml(html) {
+  if (!html) return '';
+  let s = String(html);
+  // Decode common HTML entities
+  const entities = {
+    '&nbsp;': ' ', '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"',
+    '&#39;': "'", '&apos;': "'", '&ldquo;': '“', '&rdquo;': '”',
+    '&aring;': 'å', '&Aring;': 'Å', '&oslash;': 'ø', '&Oslash;': 'Ø',
+    '&aelig;': 'æ', '&AElig;': 'Æ', '&eacute;': 'é', '&egrave;': 'è',
+    '&ouml;': 'ö', '&auml;': 'ä', '&uuml;': 'ü', '&hellip;': '…',
+    '&mdash;': '—', '&ndash;': '–',
+  };
+  for (const [k, v] of Object.entries(entities)) s = s.replace(new RegExp(k, 'g'), v);
+  s = s.replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)));
+  // Replace block elements with newlines so paragraph structure survives
+  s = s.replace(/<\/(p|div|h[1-6]|li|br)>/gi, '\n');
+  s = s.replace(/<br\s*\/?>/gi, '\n');
+  // Strip remaining tags
+  s = s.replace(/<[^>]+>/g, '');
+  // Drop wix layout artifacts
+  s = s.replace(/\u200B/g, ''); // zero-width space (wixGuard)
+  // Cut boilerplate "Om oss" section onwards (consistent across Wix listings)
+  const omOssIdx = s.search(/\bOm oss\s*:/i);
+  if (omOssIdx > 0) s = s.slice(0, omOssIdx);
+  // Cut "Ta kontakt for avtale" + contact info if it appears as trailing block
+  const contactIdx = s.search(/Ta kontakt (for|med)/i);
+  if (contactIdx > 200) s = s.slice(0, contactIdx);
+  // Collapse whitespace
+  s = s.replace(/[ \t]+/g, ' ');
+  s = s.replace(/\n[ \t]+/g, '\n');
+  s = s.replace(/\n{3,}/g, '\n\n');
+  return s.trim();
+}
+
+
 async function hs(path, method = 'GET', body = null) {
   const res = await fetch(`https://api.hubapi.com${path}`, {
     method,
@@ -141,6 +177,15 @@ async function migrateBoat(spec) {
       if (!props.pris && priceTwo && /^\d+$/.test(String(priceTwo))) {
         props.pris = String(priceTwo);
       }
+
+      // customer_comment is for BUYER feedback, not boat narrative. The Wix body text goes in `description`.
+      // Also: clean HTML tags + trim boilerplate (Om oss/kontakt sections)
+      if (props.customer_comment && !props.description) {
+        props.description = cleanWixHtml(props.customer_comment);
+      } else if (props.description) {
+        props.description = cleanWixHtml(props.description);
+      }
+      delete props.customer_comment;
 
       // Remove properties that don't map cleanly:
       // - merke/modell/price_two/market_type: don't exist in HubSpot schema
@@ -339,7 +384,36 @@ exports.handler = async (event) => {
   let boats = [];
 
   try {
-    if (action === 'pilot') {
+    if (action === 'fixpilot') {
+      // Fix the 3 pilot CREATEs that used customer_comment: clear it, set description (cleaned)
+      const pilotCreates = [
+        { hs_id: '426915761383', slug: 'azimut-47-fly' },
+        { hs_id: '426912355563', slug: 'sargo-25' },
+        { hs_id: '426911553726', slug: 'windy-7500' },
+      ];
+      const results = [];
+      for (const pc of pilotCreates) {
+        const src = PILOT_BOATS.find(b => b.slug === pc.slug);
+        const cleaned = cleanWixHtml(src?.props?.customer_comment || '');
+        const res = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}/${pc.hs_id}`, 'PATCH', {
+          properties: { description: cleaned, customer_comment: '' },
+        });
+        results.push({
+          ok: res.ok,
+          slug: pc.slug,
+          hs_id: pc.hs_id,
+          hs_url: `https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/${pc.hs_id}`,
+          description_chars: cleaned.length,
+          description_preview: cleaned.slice(0, 300) + (cleaned.length > 300 ? '…' : ''),
+          error: res.ok ? null : JSON.stringify(res.data),
+        });
+      }
+      return {
+        statusCode: 200,
+        headers: { ...CORS, ...JSON_H },
+        body: JSON.stringify({ total: results.length, results }, null, 2),
+      };
+    } else if (action === 'pilot') {
       boats = PILOT_BOATS;
     } else if (action === 'run') {
       const body = JSON.parse(event.body || '{}');
