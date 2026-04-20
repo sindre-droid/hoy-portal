@@ -384,7 +384,49 @@ exports.handler = async (event) => {
   let boats = [];
 
   try {
-    if (action === 'setboattype') {
+    if (action === 'findprefixed') {
+      // Fetch all boats with boat_name starting with "NNNNN - " pattern (oppdragsnummer prefix)
+      const all = [];
+      let after = undefined;
+      do {
+        const q = after ? `?limit=100&after=${after}&properties=boat_name` : '?limit=100&properties=boat_name';
+        const res = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}${q}`, 'GET');
+        if (!res.ok) throw new Error(`List failed: ${res.status}`);
+        (res.data.results || []).forEach(r => all.push({ id: r.id, boat_name: r.properties?.boat_name || '' }));
+        after = res.data.paging?.next?.after;
+      } while (after);
+      const matches = all.filter(b => /^\s*\d{3,6}\s*-\s*/.test(b.boat_name));
+      const preview = matches.map(b => ({
+        hs_id: b.id,
+        current: b.boat_name,
+        proposed: b.boat_name.replace(/^\s*\d{3,6}\s*-\s*/, '').trim(),
+      }));
+      return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ total_boats: all.length, matches: preview.length, preview }, null, 2) };
+    } else if (action === 'stripprefix') {
+      // Strip oppdragsnummer prefix from boat_name for given hs_ids
+      const body = JSON.parse(event.body || '{}');
+      const ids = body.hs_ids || [];
+      const results = [];
+      for (const hsId of ids) {
+        try {
+          const fetched = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}/${hsId}?properties=boat_name`, 'GET');
+          if (!fetched.ok) throw new Error(`fetch: ${fetched.status}`);
+          const current = fetched.data?.properties?.boat_name || '';
+          const stripped = current.replace(/^\s*\d{3,6}\s*-\s*/, '').trim();
+          if (stripped === current) {
+            results.push({ ok: true, hs_id: hsId, action: 'skipped', reason: 'no prefix', current });
+            continue;
+          }
+          const patched = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}/${hsId}`, 'PATCH', { properties: { boat_name: stripped } });
+          if (!patched.ok) throw new Error(`patch: ${patched.status} ${JSON.stringify(patched.data)}`);
+          results.push({ ok: true, hs_id: hsId, action: 'stripped', from: current, to: stripped });
+        } catch (e) {
+          results.push({ ok: false, hs_id: hsId, error: e.message });
+        }
+      }
+      const ok = results.filter(r => r.ok).length;
+      return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ total: results.length, ok, failed: results.length - ok, results }, null, 2) };
+    } else if (action === 'setboattype') {
       const body = JSON.parse(event.body || '{}');
       const items = body.boats || [];
       const results = [];
