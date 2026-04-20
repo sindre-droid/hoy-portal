@@ -384,7 +384,21 @@ exports.handler = async (event) => {
   let boats = [];
 
   try {
-    if (action === 'schema') {
+    if (action === 'setboattype') {
+      const body = JSON.parse(event.body || '{}');
+      const items = body.boats || [];
+      const results = [];
+      for (const it of items) {
+        try {
+          const res = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}/${it.hs_id}`, 'PATCH', { properties: { boat_type: it.boat_type } });
+          results.push({ ok: res.ok, hs_id: it.hs_id, boat_type: it.boat_type, error: res.ok ? null : JSON.stringify(res.data).slice(0, 200) });
+        } catch (e) {
+          results.push({ ok: false, hs_id: it.hs_id, boat_type: it.boat_type, error: e.message });
+        }
+      }
+      const ok = results.filter(r => r.ok).length;
+      return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ total: results.length, ok, failed: results.length - ok, results }, null, 2) };
+    } else if (action === 'schema') {
       // Inspect boat_type property to see valid enum values
       const prop = event.queryStringParameters?.prop || 'boat_type';
       const res = await hs(`/crm/v3/properties/${BOAT_OBJ_TYPE}/${prop}`, 'GET');
