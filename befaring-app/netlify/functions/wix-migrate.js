@@ -384,7 +384,30 @@ exports.handler = async (event) => {
   let boats = [];
 
   try {
-    if (action === 'fixpilot') {
+    if (action === 'activate') {
+      // Batch-activate boats: PATCH activated=yes for each HS ID
+      const body = JSON.parse(event.body || '{}');
+      const hsIds = body.hs_ids || [];
+      if (!Array.isArray(hsIds) || hsIds.length === 0) {
+        return { statusCode: 400, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'no hs_ids' }) };
+      }
+      const results = [];
+      for (const hsId of hsIds) {
+        const res = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}/${hsId}`, 'PATCH', { properties: { activated: 'yes' } });
+        results.push({
+          ok: res.ok,
+          hs_id: hsId,
+          hs_url: `https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/${hsId}`,
+          error: res.ok ? null : JSON.stringify(res.data).slice(0, 200),
+        });
+      }
+      const ok = results.filter(r => r.ok).length;
+      return {
+        statusCode: 200,
+        headers: { ...CORS, ...JSON_H },
+        body: JSON.stringify({ total: results.length, ok, failed: results.length - ok, results }, null, 2),
+      };
+    } else if (action === 'fixpilot') {
       // Fix the 3 pilot CREATEs that used customer_comment: clear it, set description (cleaned)
       const pilotCreates = [
         { hs_id: '426915761383', slug: 'azimut-47-fly' },
