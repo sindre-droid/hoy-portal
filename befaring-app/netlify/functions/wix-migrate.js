@@ -121,8 +121,37 @@ async function migrateBoat(spec) {
 
     if (spec.action === 'create') {
       const props = { ...spec.props };
-      // HubSpot requires `slug` — default to page_path2 if caller didn't set it
+
+      // Sanitize + normalize against HubSpot's actual boats schema
+      // Slug requires alphanumeric only (no hyphens, etc.)
       if (!props.slug && props.page_path2) props.slug = props.page_path2;
+      if (props.slug) props.slug = String(props.slug).replace(/[^a-zA-Z0-9]/g, '');
+
+      // lengde_i_fot must be integer: "47 fot" → 47
+      if (props.lengde_i_fot) {
+        const m = String(props.lengde_i_fot).match(/(\d+)/);
+        props.lengde_i_fot = m ? m[1] : undefined;
+      }
+
+      // pris must be integer. Prefer numeric `price_two` value, fallback drop non-numeric pris.
+      const priceTwo = props.price_two;
+      if (props.pris && !/^\d+$/.test(String(props.pris))) {
+        delete props.pris;
+      }
+      if (!props.pris && priceTwo && /^\d+$/.test(String(priceTwo))) {
+        props.pris = String(priceTwo);
+      }
+
+      // motortype → type_motor (real HubSpot property name)
+      if (props.motortype && !props.type_motor) {
+        props.type_motor = props.motortype;
+      }
+
+      // Remove properties that don't exist on the HubSpot boats schema
+      for (const k of ['merke', 'modell', 'price_two', 'motortype', 'market_type']) {
+        delete props[k];
+      }
+
       if (imageId) props.gallery_images = String(imageId);
       const res = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}`, 'POST', { properties: props });
       if (!res.ok) throw new Error(`Create failed: ${res.status} ${JSON.stringify(res.data)}`);
