@@ -384,7 +384,22 @@ exports.handler = async (event) => {
   let boats = [];
 
   try {
-    if (action === 'findprefixed') {
+    if (action === 'setname') {
+      // Set boat_name to explicit new value (for special cases)
+      const body = JSON.parse(event.body || '{}');
+      const items = body.boats || [];
+      const results = [];
+      for (const it of items) {
+        try {
+          const res = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}/${it.hs_id}`, 'PATCH', { properties: { boat_name: it.boat_name } });
+          results.push({ ok: res.ok, hs_id: it.hs_id, boat_name: it.boat_name, error: res.ok ? null : JSON.stringify(res.data).slice(0, 200) });
+        } catch (e) {
+          results.push({ ok: false, hs_id: it.hs_id, error: e.message });
+        }
+      }
+      const ok = results.filter(r => r.ok).length;
+      return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ total: results.length, ok, failed: results.length - ok, results }, null, 2) };
+    } else if (action === 'findprefixed') {
       // Fetch all boats with boat_name starting with "NNNNN - " pattern (oppdragsnummer prefix)
       const all = [];
       let after = undefined;
