@@ -468,6 +468,23 @@ exports.handler = async (event) => {
         out.push({ id, ok: r.ok, properties: r.data?.properties });
       }
       return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify(out, null, 2) };
+    } else if (action === 'repubtheme') {
+      // Reads + re-writes same content to trigger HubSpot theme recompile
+      const p = event.queryStringParameters?.path;
+      const token = process.env.HUBSPOT_CONTENT_TOKEN;
+      if (!p || !token) return { statusCode: 400, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'missing path or token' }) };
+      const r1 = await fetch(`https://api.hubapi.com/cms/v3/source-code/published/content/${encodeURI(p)}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r1.ok) return { statusCode: r1.status, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ step: 'read', error: await r1.text() }) };
+      const src = await r1.text();
+      // Add a timestamp comment to ensure actual change
+      const modified = `{# republished-${Date.now()} #}\n${src}`;
+      const r2 = await fetch(`https://api.hubapi.com/cms/v3/source-code/published/content/${encodeURI(p)}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source: modified }),
+      });
+      const t2 = await r2.text();
+      return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ read: { ok: r1.ok, bytes: src.length }, write: { status: r2.status, ok: r2.ok, resp: t2.slice(0, 300) } }, null, 2) };
     } else if (action === 'readtheme') {
       const p = event.queryStringParameters?.path;
       if (!p) return { statusCode: 400, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'missing path' }) };
