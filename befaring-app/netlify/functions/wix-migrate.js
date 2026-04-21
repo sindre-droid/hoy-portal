@@ -464,7 +464,7 @@ exports.handler = async (event) => {
       const ids = (event.queryStringParameters?.ids || '').split(',').filter(Boolean);
       const out = [];
       for (const id of ids) {
-        const r = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}/${id}?properties=boat_name,slug,page_path2,gallery_images,status,activated,pris,boat_type`, 'GET');
+        const r = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}/${id}?properties=boat_name,slug,page_path2,gallery_images,status,activated,pris,boat_type,batmerke,bat_modell,lengde_i_fot,arsmodell`, 'GET');
         out.push({ id, ok: r.ok, properties: r.data?.properties });
       }
       return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify(out, null, 2) };
