@@ -397,6 +397,7 @@ exports.handler = async (event) => {
           const current = (fetched.data?.properties?.gallery_images || '').trim();
           if (!current) { results.push({ ok: true, hs_id: hsId, action: 'skipped', reason: 'empty' }); continue; }
           if (current.startsWith('http')) { results.push({ ok: true, hs_id: hsId, action: 'skipped', reason: 'already url' }); continue; }
+          if (current.includes(';')) { results.push({ ok: true, hs_id: hsId, action: 'skipped', reason: 'multi-image gallery (team-managed) — leaving untouched' }); continue; }
           const firstId = current.split(';')[0].trim();
           const fileRes = await hs(`/files/v3/files/${firstId}`, 'GET');
           if (!fileRes.ok) throw new Error(`file fetch: ${fileRes.status}`);
@@ -411,6 +412,23 @@ exports.handler = async (event) => {
       }
       const ok = results.filter(r => r.ok).length;
       return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ total: results.length, ok, failed: results.length - ok, converted: results.filter(r => r.action==='converted').length, skipped: results.filter(r => r.action==='skipped').length, results }, null, 2) };
+    } else if (action === 'findmissing') {
+      // List all sold+activated boats with empty gallery_images
+      const all = [];
+      let after;
+      do {
+        const q = after ? `?limit=100&after=${after}&properties=boat_name,gallery_images,status,activated` : '?limit=100&properties=boat_name,gallery_images,status,activated';
+        const res = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}${q}`, 'GET');
+        if (!res.ok) throw new Error(`list failed: ${res.status}`);
+        (res.data.results || []).forEach(r => {
+          const p = r.properties || {};
+          if (p.status === 'sold' && p.activated === 'yes' && (!p.gallery_images || !p.gallery_images.trim())) {
+            all.push({ id: r.id, boat_name: p.boat_name, url: `https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/${r.id}` });
+          }
+        });
+        after = res.data.paging?.next?.after;
+      } while (after);
+      return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ total: all.length, boats: all }, null, 2) };
     } else if (action === 'peekfile') {
       // Compare file metadata for debugging missing images
       const ids = (event.queryStringParameters?.ids || '').split(',').filter(Boolean);
