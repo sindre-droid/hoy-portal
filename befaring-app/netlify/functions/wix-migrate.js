@@ -413,7 +413,9 @@ exports.handler = async (event) => {
       const ok = results.filter(r => r.ok).length;
       return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ total: results.length, ok, failed: results.length - ok, converted: results.filter(r => r.action==='converted').length, skipped: results.filter(r => r.action==='skipped').length, results }, null, 2) };
     } else if (action === 'findunconverted') {
-      // Lists all sold+activated boats where gallery_images is a single file ID (candidate for convertgallery)
+      // Lists activated boats with single file ID gallery_images (convertgallery candidates)
+      // Query param: status=sold|for-sale|any (default: any)
+      const statusFilter = event.queryStringParameters?.status || 'any';
       const all = [];
       let after;
       do {
@@ -423,8 +425,9 @@ exports.handler = async (event) => {
         (res.data.results || []).forEach(r => {
           const p = r.properties || {};
           const gi = (p.gallery_images || '').trim();
-          if (p.status === 'sold' && p.activated === 'yes' && gi && !gi.startsWith('http') && !gi.includes(';') && /^\d+$/.test(gi)) {
-            all.push({ id: r.id, boat_name: p.boat_name, gallery_images: gi });
+          const statusOk = statusFilter === 'any' || p.status === statusFilter;
+          if (statusOk && p.activated === 'yes' && gi && !gi.startsWith('http') && !gi.includes(';') && /^\d+$/.test(gi)) {
+            all.push({ id: r.id, boat_name: p.boat_name, status: p.status, gallery_images: gi });
           }
         });
         after = res.data.paging?.next?.after;
