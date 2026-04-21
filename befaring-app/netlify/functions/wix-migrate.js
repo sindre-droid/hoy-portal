@@ -384,7 +384,34 @@ exports.handler = async (event) => {
   let boats = [];
 
   try {
-    if (action === 'peekfile') {
+    if (action === 'convertgallery') {
+      // For each boat: read gallery_images (file ID), fetch file URL, PATCH gallery_images to full URL
+      // Skips if already a URL. Idempotent.
+      const body = JSON.parse(event.body || '{}');
+      const ids = body.hs_ids || [];
+      const results = [];
+      for (const hsId of ids) {
+        try {
+          const fetched = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}/${hsId}?properties=gallery_images`, 'GET');
+          if (!fetched.ok) throw new Error(`fetch: ${fetched.status}`);
+          const current = (fetched.data?.properties?.gallery_images || '').trim();
+          if (!current) { results.push({ ok: true, hs_id: hsId, action: 'skipped', reason: 'empty' }); continue; }
+          if (current.startsWith('http')) { results.push({ ok: true, hs_id: hsId, action: 'skipped', reason: 'already url' }); continue; }
+          const firstId = current.split(';')[0].trim();
+          const fileRes = await hs(`/files/v3/files/${firstId}`, 'GET');
+          if (!fileRes.ok) throw new Error(`file fetch: ${fileRes.status}`);
+          const url = fileRes.data?.url || fileRes.data?.defaultHostingUrl;
+          if (!url) throw new Error('no url in file response');
+          const patched = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}/${hsId}`, 'PATCH', { properties: { gallery_images: url } });
+          if (!patched.ok) throw new Error(`patch: ${patched.status}`);
+          results.push({ ok: true, hs_id: hsId, action: 'converted', from: firstId, to: url });
+        } catch (e) {
+          results.push({ ok: false, hs_id: hsId, error: e.message });
+        }
+      }
+      const ok = results.filter(r => r.ok).length;
+      return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ total: results.length, ok, failed: results.length - ok, converted: results.filter(r => r.action==='converted').length, skipped: results.filter(r => r.action==='skipped').length, results }, null, 2) };
+    } else if (action === 'peekfile') {
       // Compare file metadata for debugging missing images
       const ids = (event.queryStringParameters?.ids || '').split(',').filter(Boolean);
       const out = [];
