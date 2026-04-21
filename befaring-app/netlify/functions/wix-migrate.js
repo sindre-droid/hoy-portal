@@ -468,6 +468,27 @@ exports.handler = async (event) => {
         out.push({ id, ok: r.ok, properties: r.data?.properties });
       }
       return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify(out, null, 2) };
+    } else if (action === 'writetheme_raw') {
+      // Write raw source to a theme path. Body: { path, source }
+      const token = process.env.HUBSPOT_CONTENT_TOKEN;
+      if (!token) return { statusCode: 500, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'HUBSPOT_CONTENT_TOKEN not set' }) };
+      const body = JSON.parse(event.body || '{}');
+      if (!body.path || typeof body.source !== 'string') return { statusCode: 400, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'need path + source' }) };
+      const fname = body.path.split('/').pop();
+      const boundary = '----FormBoundary' + Date.now().toString(16);
+      const parts = [
+        `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${fname}"\r\nContent-Type: text/html\r\n\r\n`,
+        body.source,
+        `\r\n--${boundary}--\r\n`,
+      ];
+      const payload = Buffer.concat(parts.map(x => Buffer.from(x, 'utf8')));
+      const r = await fetch(`https://api.hubapi.com/cms/v3/source-code/published/content/${encodeURI(body.path)}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+        body: payload,
+      });
+      const t = await r.text();
+      return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ status: r.status, ok: r.ok, resp: t.slice(0, 400) }, null, 2) };
     } else if (action === 'repubtheme') {
       // Reads + re-writes same content to trigger HubSpot theme recompile
       const p = event.queryStringParameters?.path;
