@@ -384,7 +384,16 @@ exports.handler = async (event) => {
   let boats = [];
 
   try {
-    if (action === 'peek') {
+    if (action === 'peekfile') {
+      // Compare file metadata for debugging missing images
+      const ids = (event.queryStringParameters?.ids || '').split(',').filter(Boolean);
+      const out = [];
+      for (const id of ids) {
+        const r = await hs(`/files/v3/files/${id}`, 'GET');
+        out.push({ id, ok: r.ok, status: r.status, file: r.data });
+      }
+      return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify(out, null, 2) };
+    } else if (action === 'peek') {
       // Fetch full properties for one or more boats (debugging)
       const ids = (event.queryStringParameters?.ids || '').split(',').filter(Boolean);
       const out = [];
