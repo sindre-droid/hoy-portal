@@ -478,10 +478,18 @@ exports.handler = async (event) => {
       const src = await r1.text();
       // Add a timestamp comment to ensure actual change
       const modified = `{# republished-${Date.now()} #}\n${src}`;
+      // HubSpot Source Code API accepts multipart/form-data with 'file' field
+      const boundary = '----FormBoundary' + Date.now().toString(16);
+      const parts = [
+        `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${p.split('/').pop()}"\r\nContent-Type: text/html\r\n\r\n`,
+        modified,
+        `\r\n--${boundary}--\r\n`,
+      ];
+      const body = Buffer.concat(parts.map(x => Buffer.from(x, 'utf8')));
       const r2 = await fetch(`https://api.hubapi.com/cms/v3/source-code/published/content/${encodeURI(p)}`, {
         method: 'PUT',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ source: modified }),
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+        body,
       });
       const t2 = await r2.text();
       return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ read: { ok: r1.ok, bytes: src.length }, write: { status: r2.status, ok: r2.ok, resp: t2.slice(0, 300) } }, null, 2) };
