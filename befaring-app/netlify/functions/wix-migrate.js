@@ -412,6 +412,24 @@ exports.handler = async (event) => {
       }
       const ok = results.filter(r => r.ok).length;
       return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ total: results.length, ok, failed: results.length - ok, converted: results.filter(r => r.action==='converted').length, skipped: results.filter(r => r.action==='skipped').length, results }, null, 2) };
+    } else if (action === 'findunconverted') {
+      // Lists all sold+activated boats where gallery_images is a single file ID (candidate for convertgallery)
+      const all = [];
+      let after;
+      do {
+        const q = after ? `?limit=100&after=${after}&properties=boat_name,gallery_images,status,activated` : '?limit=100&properties=boat_name,gallery_images,status,activated';
+        const res = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}${q}`, 'GET');
+        if (!res.ok) throw new Error(`list failed: ${res.status}`);
+        (res.data.results || []).forEach(r => {
+          const p = r.properties || {};
+          const gi = (p.gallery_images || '').trim();
+          if (p.status === 'sold' && p.activated === 'yes' && gi && !gi.startsWith('http') && !gi.includes(';') && /^\d+$/.test(gi)) {
+            all.push({ id: r.id, boat_name: p.boat_name, gallery_images: gi });
+          }
+        });
+        after = res.data.paging?.next?.after;
+      } while (after);
+      return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ total: all.length, hs_ids: all.map(b => b.id), boats: all }, null, 2) };
     } else if (action === 'findmissing') {
       // List all sold+activated boats with empty gallery_images
       const all = [];
