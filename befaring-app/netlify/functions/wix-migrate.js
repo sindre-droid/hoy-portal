@@ -468,6 +468,28 @@ exports.handler = async (event) => {
         out.push({ id, ok: r.ok, properties: r.data?.properties });
       }
       return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify(out, null, 2) };
+    } else if (action === 'readtheme') {
+      const p = event.queryStringParameters?.path;
+      if (!p) return { statusCode: 400, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'missing path' }) };
+      const token = process.env.HUBSPOT_CONTENT_TOKEN;
+      if (!token) return { statusCode: 500, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'HUBSPOT_CONTENT_TOKEN not set' }) };
+      const r = await fetch(`https://api.hubapi.com/cms/v3/source-code/published/content/${encodeURI(p)}`, { headers: { Authorization: `Bearer ${token}` } });
+      const t = await r.text();
+      return { statusCode: 200, headers: { ...CORS, 'Content-Type': 'text/plain' }, body: `status=${r.status}\n${t.slice(0, 2000)}` };
+    } else if (action === 'writetheme') {
+      // Write theme file via Source Code API. Body: { path, source }
+      const token = process.env.HUBSPOT_CONTENT_TOKEN;
+      if (!token) return { statusCode: 500, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'HUBSPOT_CONTENT_TOKEN not set' }) };
+      const body = JSON.parse(event.body || '{}');
+      if (!body.path || typeof body.source !== 'string') return { statusCode: 400, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'need path + source' }) };
+      const r = await fetch(`https://api.hubapi.com/cms/v3/source-code/published/content/${encodeURI(body.path)}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source: body.source }),
+      });
+      const t = await r.text();
+      let parsed; try { parsed = JSON.parse(t); } catch { parsed = { raw: t.slice(0, 500) }; }
+      return { statusCode: r.status, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ status: r.status, ok: r.ok, response: parsed }, null, 2) };
     } else if (action === 'setname') {
       // Set boat_name to explicit new value (for special cases)
       const body = JSON.parse(event.body || '{}');
