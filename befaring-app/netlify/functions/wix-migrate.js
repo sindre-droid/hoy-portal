@@ -506,6 +506,94 @@ exports.handler = async (event) => {
         stages: (p.stages || []).map(s => ({ id: s.id, label: s.label, metadata: s.metadata }))
       }));
       return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify(simple, null, 2) };
+    } else if (action === 'salesstats_v3') {
+      // Count closed-won deals + fetch associated boat prices
+      const wonStages = ['188138475', '4401874125'];
+      const BOAT_ASSOC_TYPE_ID = 40; // deal→boat association type (USER_DEFINED, common default)
+      const allDeals = [];
+      for (const stage of wonStages) {
+        let after;
+        do {
+          const body = {
+            filterGroups: [{ filters: [{ propertyName: 'dealstage', operator: 'EQ', value: stage }] }],
+            properties: ['dealname', 'pipeline', 'amount', 'closedate'],
+            limit: 100,
+            ...(after ? { after } : {}),
+          };
+          const res = await fetch('https://api.hubapi.com/crm/v3/objects/deals/search', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${process.env.HUBSPOT_TOKEN}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          const data = await res.json();
+          (data.results || []).forEach(d => allDeals.push({ id: d.id, ...d.properties }));
+          after = data.paging?.next?.after;
+        } while (after);
+      }
+
+      // Batch read associations: deals → boats
+      const dealIds = allDeals.map(d => d.id);
+      const batchSize = 100;
+      const dealToBoats = {};
+      for (let i = 0; i < dealIds.length; i += batchSize) {
+        const batch = dealIds.slice(i, i + batchSize);
+        const r = await fetch(`https://api.hubapi.com/crm/v4/associations/deals/${BOAT_OBJ_TYPE}/batch/read`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${process.env.HUBSPOT_TOKEN}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ inputs: batch.map(id => ({ id })) }),
+        });
+        const data = await r.json();
+        (data.results || []).forEach(res => {
+          dealToBoats[res.from.id] = res.to.map(t => t.toObjectId);
+        });
+      }
+
+      // Collect unique boat IDs
+      const boatIds = [...new Set(Object.values(dealToBoats).flat())];
+      const boatPrices = {};
+      for (let i = 0; i < boatIds.length; i += batchSize) {
+        const batch = boatIds.slice(i, i + batchSize);
+        const r = await fetch(`https://api.hubapi.com/crm/v3/objects/${BOAT_OBJ_TYPE}/batch/read`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${process.env.HUBSPOT_TOKEN}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ inputs: batch.map(id => ({ id })), properties: ['pris', 'boat_name'] }),
+        });
+        const data = await r.json();
+        (data.results || []).forEach(b => {
+          boatPrices[b.id] = { pris: parseFloat(b.properties.pris) || 0, name: b.properties.boat_name };
+        });
+      }
+
+      // Sum: for each deal, take first associated boat's price
+      const now = Date.now();
+      const oneYearAgo = now - (365 * 24 * 3600 * 1000);
+      let totalSalesValue = 0, lastYearSalesValue = 0, dealsWithPrice = 0, dealsWithoutBoat = 0;
+      const priceBands = {'<1M':0,'1-2M':0,'2-4M':0,'4-10M':0,'10M+':0};
+      allDeals.forEach(d => {
+        const boats = dealToBoats[d.id] || [];
+        if (boats.length === 0) { dealsWithoutBoat++; return; }
+        const price = boatPrices[boats[0]]?.pris || 0;
+        if (price > 0) {
+          totalSalesValue += price;
+          dealsWithPrice++;
+          if (price < 1e6) priceBands['<1M']++;
+          else if (price < 2e6) priceBands['1-2M']++;
+          else if (price < 4e6) priceBands['2-4M']++;
+          else if (price < 10e6) priceBands['4-10M']++;
+          else priceBands['10M+']++;
+          if (d.closedate && new Date(d.closedate).getTime() > oneYearAgo) lastYearSalesValue += price;
+        }
+      });
+
+      return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({
+        total_closed_won_deals: allDeals.length,
+        deals_last_12mo: allDeals.filter(d => d.closedate && new Date(d.closedate).getTime() > oneYearAgo).length,
+        deals_with_boat_price: dealsWithPrice,
+        deals_without_boat: dealsWithoutBoat,
+        total_sales_value_NOK: totalSalesValue,
+        last_12mo_sales_value_NOK: lastYearSalesValue,
+        price_band_distribution: priceBands,
+      }, null, 2) };
     } else if (action === 'salesstats_v2') {
       // Count deals from closed-won stages in HoY + Pipeline B
       const wonStages = ['188138475', '4401874125'];
