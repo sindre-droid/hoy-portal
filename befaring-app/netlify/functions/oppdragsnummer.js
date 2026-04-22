@@ -180,6 +180,8 @@ function findOneflowContractsInList(allContracts, dealName, boatName) {
 
   for (const c of allContracts) {
     const cName = (c._private?.name || c.name || '');
+    // Skip kontrakter som allerede har oppdragsnummer (f.eks. "26011 - ...")
+    if (/^\d{5}\s*[-–]/.test(cName.trim())) continue;
     if (!fuzzyMatch(cName, searchTerms)) continue;
 
     const tid = parseInt(c._private_ownerside?.template_id || c.template?._id || c.template?.id || 0);
@@ -226,7 +228,14 @@ function fuzzyMatch(contractName, searchTerms) {
     const tWords = term.toLowerCase().replace(/[^a-zæøå0-9\s]/g, '').split(/\s+/).filter(w => w.length > 1);
     if (tWords.length === 0) continue;
     // Tell hvor mange søkeord som finnes i kontraktnavnet
-    const matched = tWords.filter(tw => cWords.some(cw => cw === tw || (tw.length >= 4 && cw.includes(tw)) || (cw.length >= 4 && tw.includes(cw))));
+    // Substring-match kun hvis ordene ligner i lengde (minste >= 70% av lengste)
+    const matched = tWords.filter(tw => cWords.some(cw => {
+      if (cw === tw) return true;
+      const shorter = Math.min(tw.length, cw.length);
+      const longer = Math.max(tw.length, cw.length);
+      if (shorter < 4 || shorter / longer < 0.7) return false;
+      return cw.includes(tw) || tw.includes(cw);
+    }));
     // Krev at minst 2/3 av ordene matcher (minimum 2)
     const threshold = Math.max(2, Math.ceil(tWords.length * 0.66));
     if (matched.length >= threshold) return true;
@@ -242,6 +251,8 @@ function matchOneflowForDeal(allContracts, dealName, boatName) {
   for (const c of allContracts) {
     const displayName = c._private?.name || c.name || '';
     const name = displayName.toLowerCase();
+    // Skip kontrakter som allerede har oppdragsnummer (f.eks. "26011 - ...")
+    if (/^\d{5}\s*[-–]/.test(displayName.trim())) continue;
     if (!fuzzyMatch(name, searchTerms)) continue;
 
     const tid = parseInt(c._private_ownerside?.template_id || c.template?._id || c.template?.id || 0);
