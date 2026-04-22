@@ -468,6 +468,21 @@ exports.handler = async (event) => {
         out.push({ id, ok: r.ok, properties: r.data?.properties });
       }
       return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify(out, null, 2) };
+    } else if (action === 'archivepages') {
+      const token = process.env.HUBSPOT_CONTENT_TOKEN;
+      if (!token) return { statusCode: 500, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'no token' }) };
+      const body = JSON.parse(event.body || '{}');
+      const ids = body.ids || [];
+      const results = [];
+      for (const id of ids) {
+        const r = await fetch(`https://api.hubapi.com/cms/v3/pages/site-pages/${id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const t = await r.text();
+        results.push({ id, status: r.status, ok: r.ok, error: r.ok ? null : t.slice(0, 200) });
+      }
+      return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ total: results.length, ok: results.filter(x => x.ok).length, results }, null, 2) };
     } else if (action === 'listpages') {
       // List all site pages
       const token = process.env.HUBSPOT_CONTENT_TOKEN;
