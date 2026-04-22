@@ -506,6 +506,54 @@ exports.handler = async (event) => {
         stages: (p.stages || []).map(s => ({ id: s.id, label: s.label, metadata: s.metadata }))
       }));
       return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify(simple, null, 2) };
+    } else if (action === 'salesstats_v2') {
+      // Count deals from closed-won stages in HoY + Pipeline B
+      const wonStages = ['188138475', '4401874125'];
+      const all = [];
+      for (const stage of wonStages) {
+        let after;
+        do {
+          const body = {
+            filterGroups: [{ filters: [{ propertyName: 'dealstage', operator: 'EQ', value: stage }] }],
+            properties: ['dealname', 'pipeline', 'dealstage', 'amount', 'closedate', 'createdate'],
+            limit: 100,
+            ...(after ? { after } : {}),
+          };
+          const res = await fetch('https://api.hubapi.com/crm/v3/objects/deals/search', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${process.env.HUBSPOT_TOKEN}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          const data = await res.json();
+          (data.results || []).forEach(d => {
+            all.push({
+              id: d.id,
+              pipeline: d.properties.pipeline,
+              stage: d.properties.dealstage,
+              amount: parseFloat(d.properties.amount) || 0,
+              closedate: d.properties.closedate,
+              dealname: d.properties.dealname,
+            });
+          });
+          after = data.paging?.next?.after;
+        } while (after);
+      }
+
+      const now = Date.now();
+      const oneYearAgo = now - (365 * 24 * 3600 * 1000);
+      const lastYear = all.filter(d => d.closedate && new Date(d.closedate).getTime() > oneYearAgo);
+      const sum = arr => arr.reduce((a, b) => a + b.amount, 0);
+
+      return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({
+        total_closed_won: all.length,
+        hoy_pipeline: all.filter(d => d.pipeline === '79616217').length,
+        pipeline_b: all.filter(d => d.pipeline === '3211644128').length,
+        last_12mo: lastYear.length,
+        sum_all_amount: sum(all),
+        sum_last_12mo_amount: sum(lastYear),
+        note: 'amount on deals may be brokerage fee (6%) rather than sale price. Verify against a known example.',
+        sample: all.slice(0, 5),
+      }, null, 2) };
     } else if (action === 'salesstats') {
       // Calculate real sales stats from boats with status=sold
       const all = [];
