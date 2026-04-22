@@ -1,0 +1,1316 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<title>Review LOW-CONFIDENCE UPDATE – HoY Wix-migrering</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f7f9fc; color: #1a202c; }
+  h1 { margin: 0 0 8px; font-size: 24px; }
+  .header-stats { background: white; padding: 16px 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 16px; position: sticky; top: 0; z-index: 100; display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+  .stat { font-size: 14px; }
+  .stat strong { font-size: 20px; display: block; }
+  .stat-ok strong { color: #16a34a; }
+  .stat-change strong { color: #f59e0b; }
+  .stat-create strong { color: #2563eb; }
+  .stat-skip strong { color: #dc2626; }
+  .filters { display: flex; gap: 8px; margin-left: auto; }
+  .filter-btn { padding: 6px 12px; border: 1px solid #e2e8f0; background: white; border-radius: 6px; cursor: pointer; font-size: 13px; }
+  .filter-btn.active { background: #1a202c; color: white; }
+  button.export { background: #16a34a; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+  button.export:hover { background: #15803d; }
+  .card { display: grid; grid-template-columns: 220px 1fr; gap: 16px; background: white; padding: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 12px; position: relative; }
+  .card-num { position: absolute; top: 8px; right: 12px; font-size: 12px; color: #94a3b8; font-weight: 600; }
+  .img-col { display: flex; flex-direction: column; gap: 6px; }
+  .img-col img { width: 100%; height: 160px; object-fit: cover; border-radius: 6px; background: #f1f5f9; }
+  .no-img { width: 100%; height: 160px; display: flex; align-items: center; justify-content: center; background: #f1f5f9; border-radius: 6px; color: #94a3b8; font-size: 13px; }
+  .conf-badge { color: white; font-size: 10px; padding: 3px 6px; border-radius: 4px; text-align: center; font-weight: 700; }
+  .info-col h3 { margin: 0; font-size: 18px; display: inline-block; margin-right: 8px; }
+  .row1 { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .badge { font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 600; }
+  .badge-sold { background: #fef3c7; color: #92400e; }
+  .badge-active { background: #d1fae5; color: #065f46; }
+  .meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: #475569; margin-bottom: 6px; }
+  .reason { background: #fefce8; padding: 8px 12px; border-left: 3px solid #ca8a04; border-radius: 4px; font-size: 12px; margin: 8px 0; }
+  .hs-preview { background: #ecfeff; padding: 8px 12px; border-left: 3px solid #06b6d4; border-radius: 4px; font-size: 13px; margin: 6px 0; }
+  .actions { display: flex; gap: 8px; margin-bottom: 10px; }
+  .actions a { font-size: 13px; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-weight: 500; }
+  .link-wix { background: #2563eb; color: white; }
+  .link-hs { background: #ff7a59; color: white; }
+  .decision { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid #f1f5f9; }
+  .decision label { font-size: 13px; cursor: pointer; user-select: none; }
+  .decision input[type=text] { flex: 1; min-width: 240px; padding: 5px 10px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 13px; }
+  .card[data-decision="SKIP"] { opacity: 0.55; background: #fef2f2; }
+  .card[data-decision="CHANGE"] { background: #fef3c7; }
+  .card[data-decision="CREATE_NEW"] { background: #dbeafe; }
+  .card.hidden { display: none; }
+</style>
+</head>
+<body>
+  <h1>Review lav-konfidens UPDATE-matches</h1>
+  <p style="color:#64748b; margin: 0 0 12px;">Disse 28 båtene ble auto-matched mot HubSpot uten slug-match eller med flere mulige kandidater. Åpne både Wix-siden og HubSpot-recorden og bekreft at de faktisk er samme båt.</p>
+
+  <div class="header-stats">
+    <div class="stat stat-ok"><strong id="cnt-ok">28</strong>Riktig match</div>
+    <div class="stat stat-change"><strong id="cnt-change">0</strong>Feil match</div>
+    <div class="stat stat-create"><strong id="cnt-create">0</strong>Opprett ny</div>
+    <div class="stat stat-skip"><strong id="cnt-skip">0</strong>Skip</div>
+
+    <div class="filters">
+      <button class="filter-btn active" data-filter="all">Alle</button>
+      <button class="filter-btn" data-filter="APPROVE">Riktig</button>
+      <button class="filter-btn" data-filter="CHANGE">Feil</button>
+      <button class="filter-btn" data-filter="CREATE_NEW">Ny</button>
+      <button class="filter-btn" data-filter="SKIP">Skip</button>
+    </div>
+
+    <button class="export" onclick="exportPicks()">📋 Eksportér valg</button>
+  </div>
+
+  <div id="cards">
+    
+    <div class="card" data-hs="351481042126" data-idx="0">
+      <div class="card-num">#1</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_bb8109c7952b4dedb988bb9589f93aad~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#f59e0b">MIDDELS KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Hydrolift X-26 S - 400R</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2020</span>
+          <span><strong>Lengde:</strong> 26 fot</span>
+          <span><strong>Merke:</strong> Hydrolift </span>
+          <span><strong>Modell:</strong> X-26S</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> Solgt!</span>
+          <span><strong>NOK:</strong> 1350000</span>
+          <span><strong>Motor:</strong> Mercury 400R Utenbords 400 HK</span>
+        </div>
+        <div class="reason" style="border-left-color:#f59e0b">
+          <strong>Hvorfor review:</strong> Flere kandidater hadde samme signatur — vi tok første. Du hadde ikke markert X.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>Hydrolift X-26S-R</strong> (path: 24010-hydrolift-x-26s-r, år: 2020)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/hydrolift-x-26-s---400r" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351481042126" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-0" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-0" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-0" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-0" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="0">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351484705014" data-idx="1">
+      <div class="card-num">#2</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/2f08e4_d38e2d1d81b44233a65af53109b109e0~mv2.jpeg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#f59e0b">MIDDELS KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>RYCK 280 m/ Mercury Verado 350HK</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2023</span>
+          <span><strong>Lengde:</strong> 28</span>
+          <span><strong>Merke:</strong> Ryck</span>
+          <span><strong>Modell:</strong> 280</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> Solgt!</span>
+          <span><strong>NOK:</strong> 1790000</span>
+          <span><strong>Motor:</strong> Mercury Verado utenbords 350HK</span>
+        </div>
+        <div class="reason" style="border-left-color:#f59e0b">
+          <strong>Hvorfor review:</strong> Matched via signatur (merke+modell+år+lengde), men slug er forskjellig fra Wix.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>Ryck 280</strong> (path: ryck-280, år: 2023)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/ryck-280-m%2F-mercury-verado-350hk" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351484705014" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-1" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-1" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-1" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-1" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="1">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443201219" data-idx="2">
+      <div class="card-num">#3</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_63b5657bb8c34ab58da3b52f18ec7120~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#f59e0b">MIDDELS KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nordic Ocean Craft Catamaran</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2017</span>
+          <span><strong>Lengde:</strong> 49 fot</span>
+          <span><strong>Merke:</strong> Nordic Ocean Craft</span>
+          <span><strong>Modell:</strong> 50 Catamaran</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> Solgt!</span>
+          <span><strong>NOK:</strong> 3950000</span>
+          <span><strong>Motor:</strong> 2 x Volvo Penta D4-225 Innenbords 450 HK</span>
+        </div>
+        <div class="reason" style="border-left-color:#f59e0b">
+          <strong>Hvorfor review:</strong> Matched via signatur (merke+modell+år+lengde), men slug er forskjellig fra Wix.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>Nordic Ocean Craft 25001 - LH2160 Nordic Oceancraft Cat 50</strong> (path: 25001-lh2160-nordic-oceancraft-cat-50, år: 2017)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nordic-ocean-craft-catamaran" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443201219" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-2" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-2" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-2" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-2" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="2">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443262706" data-idx="3">
+      <div class="card-num">#4</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_19587fec0c854287a49187fbf70c22ff~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#f59e0b">MIDDELS KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Delphia 40.3</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2009</span>
+          <span><strong>Lengde:</strong> 40 fot</span>
+          <span><strong>Merke:</strong> Delphia</span>
+          <span><strong>Modell:</strong> 40.3</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> Solgt!</span>
+          <span><strong>NOK:</strong> 970000</span>
+          <span><strong>Motor:</strong> Volvo Penta D2-40 Innenbords 40 HK</span>
+        </div>
+        <div class="reason" style="border-left-color:#f59e0b">
+          <strong>Hvorfor review:</strong> Matched via signatur (merke+modell+år+lengde), men slug er forskjellig fra Wix.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>Delphia 40.3</strong> (path: delphia-403, år: 2009)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/delphia-40.3" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443262706" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-3" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-3" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-3" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-3" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="3">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443280112" data-idx="4">
+      <div class="card-num">#5</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_b4003167eeed4b0897a655a785eaa25b~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#f59e0b">MIDDELS KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Marex 360 CC - 2022</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2022</span>
+          <span><strong>Lengde:</strong> 36 fot</span>
+          <span><strong>Merke:</strong> Marex</span>
+          <span><strong>Modell:</strong> 360 CC</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> Solgt!</span>
+          <span><strong>NOK:</strong> 4690000</span>
+          <span><strong>Motor:</strong> 2 x Mercruiser 270  Innenbords 540 HK</span>
+        </div>
+        <div class="reason" style="border-left-color:#f59e0b">
+          <strong>Hvorfor review:</strong> Matched via signatur (merke+modell+år+lengde), men slug er forskjellig fra Wix.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>Marex 360 CC</strong> (path: 23033-marex-360-cc, år: 2022)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/marex-360-cc---2022" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443280112" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-4" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-4" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-4" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-4" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="4">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351417864418" data-idx="5">
+      <div class="card-num">#6</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_179b85dfaae3429ea711f659bb8d0207~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#f59e0b">MIDDELS KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Seaside 23 - 2023</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2023</span>
+          <span><strong>Lengde:</strong> 23 fot</span>
+          <span><strong>Merke:</strong> Seaside</span>
+          <span><strong>Modell:</strong> 23</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> 899.000,-</span>
+          <span><strong>NOK:</strong> 899000</span>
+          <span><strong>Motor:</strong> Mercury Verado 300 Utenbords 300 HK</span>
+        </div>
+        <div class="reason" style="border-left-color:#f59e0b">
+          <strong>Hvorfor review:</strong> Flere kandidater hadde samme signatur — vi tok første. Du hadde ikke markert X.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>Seaside Seaside 23</strong> (path: seaside-23, år: 2023)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/seaside-23---2023" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351417864418" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-5" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-5" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-5" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-5" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="5">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351481028811" data-idx="6">
+      <div class="card-num">#7</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_17870be8db3f4bdd8f0d6c10320b4be3~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#f59e0b">MIDDELS KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Fjord 40 Open - 2007</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2007</span>
+          <span><strong>Lengde:</strong> 40 fot</span>
+          <span><strong>Merke:</strong> Fjord</span>
+          <span><strong>Modell:</strong> 40 Open</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> 3.900.000,-</span>
+          <span><strong>NOK:</strong> 3900000</span>
+          <span><strong>Motor:</strong> 2 x Volvo Penta IPS Innenbords 740 HK</span>
+        </div>
+        <div class="reason" style="border-left-color:#f59e0b">
+          <strong>Hvorfor review:</strong> Matched via signatur (merke+modell+år+lengde), men slug er forskjellig fra Wix.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>Fjord 40 Open</strong> (path: 22028-fjord-40-open, år: 2007)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/fjord-40-open---2007" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351481028811" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-6" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-6" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-6" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-6" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="6">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351475307758" data-idx="7">
+      <div class="card-num">#8</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/2f08e4_d287fc2a28c14c9e867d08e216b4758a~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#f59e0b">MIDDELS KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Grand Banks Eastbay 45SX</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2009</span>
+          <span><strong>Lengde:</strong> 45 fot</span>
+          <span><strong>Merke:</strong> Grand Banks</span>
+          <span><strong>Modell:</strong> Eastbay 45SX</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> Solgt!</span>
+          <span><strong>NOK:</strong> 5490000</span>
+          <span><strong>Motor:</strong> Cummins QSC 8,3L 600 1200 HK</span>
+        </div>
+        <div class="reason" style="border-left-color:#f59e0b">
+          <strong>Hvorfor review:</strong> Matched via signatur (merke+modell+år+lengde), men slug er forskjellig fra Wix.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>Grand Banks Eastbay 45 SX</strong> (path: 23037-grand-banks-eastbay-45-sx, år: 2009)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/grand-banks-eastbay-45sx" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351475307758" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-7" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-7" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-7" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-7" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="7">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351479077107" data-idx="8">
+      <div class="card-num">#9</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_a91c9ce08fca4cd5a19e28de11b7ac39~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#f59e0b">MIDDELS KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Capelli 900 WA</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2017</span>
+          <span><strong>Lengde:</strong> 30 fot</span>
+          <span><strong>Merke:</strong> Capelli</span>
+          <span><strong>Modell:</strong> Tempest 900 WA</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> Solgt!</span>
+          <span><strong>NOK:</strong> 789000</span>
+          <span><strong>Motor:</strong> 2 x Suzuki 300 Utenbords 600 HK</span>
+        </div>
+        <div class="reason" style="border-left-color:#f59e0b">
+          <strong>Hvorfor review:</strong> Matched via signatur (merke+modell+år+lengde), men slug er forskjellig fra Wix.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>Capelli Tempest 900 WA</strong> (path: capelli-tempest-900-wa, år: 2017)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/capelli-900-wa" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351479077107" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-8" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-8" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-8" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-8" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="8">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443201238" data-idx="9">
+      <div class="card-num">#10</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_6486169936ea481a87f6d516972af348~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#dc2626">LAV KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nimbus W9 - 2020</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2020</span>
+          <span><strong>Lengde:</strong> 31 fot</span>
+          <span><strong>Merke:</strong> Nimbus</span>
+          <span><strong>Modell:</strong> W9</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> 1.590.000,-</span>
+          <span><strong>NOK:</strong> 1590000</span>
+          <span><strong>Motor:</strong> Mercury Verado 300 Utenbords 300 HK</span>
+        </div>
+        <div class="reason" style="border-left-color:#dc2626">
+          <strong>Hvorfor review:</strong> Du markerte X. Re-match fant kun løs (fuzzy) match mot én deal-assosiert båt.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>Nimbus W9</strong> (path: nimbus-w9, år: 2020)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nimbus-w9---2020" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443201238" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-9" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-9" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-9" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-9" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="9">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351484705012" data-idx="10">
+      <div class="card-num">#11</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_b6337a1fa20e42a1b424c482a6cce9e8~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#f59e0b">MIDDELS KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Brig Eagle 8 - 2022</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2022</span>
+          <span><strong>Lengde:</strong> 26 fot</span>
+          <span><strong>Merke:</strong> Brig</span>
+          <span><strong>Modell:</strong> Eagle 8</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> 949.000,-</span>
+          <span><strong>NOK:</strong> 949000</span>
+          <span><strong>Motor:</strong> Mercury Verado V8-300 Utenbords 300 HK</span>
+        </div>
+        <div class="reason" style="border-left-color:#f59e0b">
+          <strong>Hvorfor review:</strong> Flere kandidater hadde samme signatur — vi tok første. Du hadde ikke markert X.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>BRIG Eagle 8</strong> (path: brig-eagle-8-2022, år: 2022)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/brig-eagle-8---2022" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351484705012" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-10" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-10" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-10" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-10" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="10">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443214533" data-idx="11">
+      <div class="card-num">#12</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_808206f86bd645bb97c0faccbf0ecae3~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#dc2626">LAV KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Windy 35 Khamsin 2008 D6-370</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2008</span>
+          <span><strong>Lengde:</strong> 35 fot</span>
+          <span><strong>Merke:</strong> Windy </span>
+          <span><strong>Modell:</strong> 35 Khamsin</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> Solgt!</span>
+          <span><strong>NOK:</strong> 1889000</span>
+          <span><strong>Motor:</strong> Volvo Penta D6-370 Innenbords 740</span>
+        </div>
+        <div class="reason" style="border-left-color:#dc2626">
+          <strong>Hvorfor review:</strong> Du markerte X. Re-match fant kun løs (fuzzy) match mot én deal-assosiert båt.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>Windy 35 Khamsin</strong> (path: windy-35-khamsin, år: 2008)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/windy-35-khamsin-2008-d6-370" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443214533" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-11" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-11" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-11" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-11" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="11">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351414280424" data-idx="12">
+      <div class="card-num">#13</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_e0b007e1b15a463080e5b2ef1b086582~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#dc2626">LAV KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Lagoon 52 F</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2018</span>
+          <span><strong>Lengde:</strong> 52 fot</span>
+          <span><strong>Merke:</strong> Lagoon</span>
+          <span><strong>Modell:</strong> 52F</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> EUR 649.000,-</span>
+          <span><strong>NOK:</strong> 7500000</span>
+          <span><strong>Motor:</strong> 2 x Yanmar 4JH80 Innenbords 160 HK</span>
+        </div>
+        <div class="reason" style="border-left-color:#dc2626">
+          <strong>Hvorfor review:</strong> Du markerte X. Re-match fant kun løs (fuzzy) match mot én deal-assosiert båt.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>Lagoon 52F</strong> (path: lagoon-52f, år: 2018)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/lagoon-52-f" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351414280424" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-12" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-12" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-12" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-12" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="12">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443281089" data-idx="13">
+      <div class="card-num">#14</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_a6e240ec32684276bebbbd95c6fe1ab4~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#f59e0b">MIDDELS KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Cranchi 47 Mediterranee</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2005</span>
+          <span><strong>Lengde:</strong> 47 fot</span>
+          <span><strong>Merke:</strong> Cranchi</span>
+          <span><strong>Modell:</strong> 47 Mediterranee</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> Solgt!</span>
+          <span><strong>NOK:</strong> 1890000</span>
+          <span><strong>Motor:</strong> 2 x Volvo Penta D9-575 Innenbords 1150 HK</span>
+        </div>
+        <div class="reason" style="border-left-color:#f59e0b">
+          <strong>Hvorfor review:</strong> Matched via signatur (merke+modell+år+lengde), men slug er forskjellig fra Wix.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>Cranchi Mediterranee 47</strong> (path: cranchi-mediterranee, år: 2005)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/cranchi-47-mediterranee" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443281089" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-13" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-13" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-13" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-13" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="13">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351456244957" data-idx="14">
+      <div class="card-num">#15</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_e009d3cb22e74a8c9b10133b20b8ff46~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#f59e0b">MIDDELS KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Pardo P43</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2024</span>
+          <span><strong>Lengde:</strong> 46 fot</span>
+          <span><strong>Merke:</strong> Pardo</span>
+          <span><strong>Modell:</strong> P43</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> 13.990.000,-</span>
+          <span><strong>NOK:</strong> 13990000</span>
+          <span><strong>Motor:</strong> 2 x Volvo Penta IPS 650 Innenbords 960 HK</span>
+        </div>
+        <div class="reason" style="border-left-color:#f59e0b">
+          <strong>Hvorfor review:</strong> Matched via signatur (merke+modell+år+lengde), men slug er forskjellig fra Wix.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>Pardo 43</strong> (path: pardo-43, år: 2024)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/pardo-p43" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351456244957" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-14" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-14" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-14" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-14" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="14">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351482889402" data-idx="15">
+      <div class="card-num">#16</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_891ce013bf0b40feb122233648bc6d37~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#f59e0b">MIDDELS KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Fleming 58</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2015</span>
+          <span><strong>Lengde:</strong> 62 fot</span>
+          <span><strong>Merke:</strong> Fleming </span>
+          <span><strong>Modell:</strong> 58</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> Solgt!</span>
+          <span><strong>NOK:</strong> 27000000</span>
+          <span><strong>Motor:</strong> 2 x MAN i6-800 Innenbords 1600 HK</span>
+        </div>
+        <div class="reason" style="border-left-color:#f59e0b">
+          <strong>Hvorfor review:</strong> Matched via signatur (merke+modell+år+lengde), men slug er forskjellig fra Wix.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>Fleming 58</strong> (path: 22027-fleming-58, år: 2015)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/fleming-58" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351482889402" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-15" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-15" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-15" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-15" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="15">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443214548" data-idx="16">
+      <div class="card-num">#17</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_c0347c1971214a43b58884fe014a4011~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#f59e0b">MIDDELS KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Goldfish 32 SC 2001</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2001</span>
+          <span><strong>Lengde:</strong> 32 fot</span>
+          <span><strong>Merke:</strong> Goldfish</span>
+          <span><strong>Modell:</strong> 32 SC</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> 1.190.000,-</span>
+          <span><strong>NOK:</strong> 1190000</span>
+          <span><strong>Motor:</strong> 2 x Yanmar 6LP-STZE Innenbords 540 HK</span>
+        </div>
+        <div class="reason" style="border-left-color:#f59e0b">
+          <strong>Hvorfor review:</strong> Flere kandidater hadde samme signatur — vi tok første. Du hadde ikke markert X.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>Goldfish Goldfish 32 Sportcruiser</strong> (path: goldfish-32-sportcruiser, år: 2001)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/goldfish-32-sc-2001" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443214548" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-16" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-16" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-16" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-16" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="16">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351481028816" data-idx="17">
+      <div class="card-num">#18</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/b99d91_15e81c29c9d34d73ae100b3e49480f2f~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#f59e0b">MIDDELS KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Bavaria 37 Cruiser - 2006</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2006</span>
+          <span><strong>Lengde:</strong> 37 fot</span>
+          <span><strong>Merke:</strong> Bavaria</span>
+          <span><strong>Modell:</strong> 37 Cruiser</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> Solgt!</span>
+          <span><strong>NOK:</strong> 750000</span>
+          <span><strong>Motor:</strong> Volvo Penta D1-30 Innenbords 28 HK</span>
+        </div>
+        <div class="reason" style="border-left-color:#f59e0b">
+          <strong>Hvorfor review:</strong> Flere kandidater hadde samme signatur — vi tok første. Du hadde ikke markert X.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>Bavaria 23030 - Bavaria 37 Crusier</strong> (path: 23030-bavaria-37-crusier, år: 2006)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/bavaria-37-cruiser---2006" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351481028816" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-17" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-17" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-17" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-17" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="17">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351484720350" data-idx="18">
+      <div class="card-num">#19</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_c894053841d74604b7058061e53d5ef7~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#f59e0b">MIDDELS KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nord West 370 Coupé</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2010</span>
+          <span><strong>Lengde:</strong> 36 fot</span>
+          <span><strong>Merke:</strong> Nord West</span>
+          <span><strong>Modell:</strong> 370 Coupé</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> Solgt!</span>
+          <span><strong>NOK:</strong> 1990000</span>
+          <span><strong>Motor:</strong> Volvo Penta D4 Innenbords 520 HK</span>
+        </div>
+        <div class="reason" style="border-left-color:#f59e0b">
+          <strong>Hvorfor review:</strong> Matched via signatur (merke+modell+år+lengde), men slug er forskjellig fra Wix.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>Nord West 370 Coupe</strong> (path: nord-west-370-coupe, år: 2010)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nord-west-370-coup%C3%A9" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351484720350" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-18" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-18" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-18" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-18" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="18">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351414280426" data-idx="19">
+      <div class="card-num">#20</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_351295498f3a4b5a98bd9e95edc24d3f~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#f59e0b">MIDDELS KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Goldfish 38 SuperSport - #021</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2018</span>
+          <span><strong>Lengde:</strong> 38 fot</span>
+          <span><strong>Merke:</strong> Goldfish</span>
+          <span><strong>Modell:</strong> 38 SuperSport</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> 2.290.000,-</span>
+          <span><strong>NOK:</strong> 2290000</span>
+          <span><strong>Motor:</strong> 2 x Mercruiser V8 370 HK Innenbords 740 HK</span>
+        </div>
+        <div class="reason" style="border-left-color:#f59e0b">
+          <strong>Hvorfor review:</strong> Flere kandidater hadde samme signatur — vi tok første. Du hadde ikke markert X.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>Goldfish 38 supersport</strong> (path: goldfish-38-supersport, år: 2018)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/goldfish-38-supersport---%23021" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351414280426" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-19" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-19" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-19" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-19" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="19">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443214531" data-idx="20">
+      <div class="card-num">#21</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_3687532b7d164dfcae4b178c3c0445e8~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#f59e0b">MIDDELS KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Skorgenes Sonic 445 Fly</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2012</span>
+          <span><strong>Lengde:</strong> 44 fot</span>
+          <span><strong>Merke:</strong> Skorgenes</span>
+          <span><strong>Modell:</strong> Sonic 445 Fly</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> Solgt!</span>
+          <span><strong>NOK:</strong> 3390000</span>
+          <span><strong>Motor:</strong> 2 x Volvo Penta D6-435 Innenbords 870 HK</span>
+        </div>
+        <div class="reason" style="border-left-color:#f59e0b">
+          <strong>Hvorfor review:</strong> Matched via signatur (merke+modell+år+lengde), men slug er forskjellig fra Wix.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>Skorgenes 445 Sonic</strong> (path: skorgenes-445-sonic, år: 2012)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/skorgenes-sonic-445-fly" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443214531" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-20" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-20" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-20" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-20" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="20">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351446935762" data-idx="21">
+      <div class="card-num">#22</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_d4055e6187d142f9a545e4474307e60d~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#f59e0b">MIDDELS KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Goldfish 29 RIB Tender - 2009</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2009</span>
+          <span><strong>Lengde:</strong> 29 fot</span>
+          <span><strong>Merke:</strong> Goldfish</span>
+          <span><strong>Modell:</strong> 29 RIB Tender</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> 789.000,-</span>
+          <span><strong>NOK:</strong> 789000</span>
+          <span><strong>Motor:</strong> Mercruiser 8,2l Innenbords 425 HK</span>
+        </div>
+        <div class="reason" style="border-left-color:#f59e0b">
+          <strong>Hvorfor review:</strong> Matched via signatur (merke+modell+år+lengde), men slug er forskjellig fra Wix.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>Goldfish Goldfish 29 RIB Tender (2009)</strong> (path: goldfish-29-rib-tender-2009, år: 2009)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/goldfish-29-rib-tender---2009" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351446935762" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-21" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-21" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-21" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-21" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="21">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443263674" data-idx="22">
+      <div class="card-num">#23</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_e60e45d4d34a483e8e923628d86c72d2~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#f59e0b">MIDDELS KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Skorgenes 350 Fly</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2007</span>
+          <span><strong>Lengde:</strong> 35 fot</span>
+          <span><strong>Merke:</strong> Skorgenes</span>
+          <span><strong>Modell:</strong> 350 Fly</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> Solgt!</span>
+          <span><strong>NOK:</strong> 1390000</span>
+          <span><strong>Motor:</strong> Volvo Penta D6-370 Innenbords 370 HK</span>
+        </div>
+        <div class="reason" style="border-left-color:#f59e0b">
+          <strong>Hvorfor review:</strong> Matched via signatur (merke+modell+år+lengde), men slug er forskjellig fra Wix.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>Skorgenes Skorgenes 350 FB</strong> (path: skorgenes-350-fb, år: 2007)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/skorgenes-350-fly" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443263674" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-22" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-22" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-22" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-22" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="22">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351417864416" data-idx="23">
+      <div class="card-num">#24</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_140c493682d342aeb6559fb8cbefe310~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#f59e0b">MIDDELS KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Swan 48</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2000</span>
+          <span><strong>Lengde:</strong> 48 fot</span>
+          <span><strong>Merke:</strong> Swan</span>
+          <span><strong>Modell:</strong> 48</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> Solgt!</span>
+          <span><strong>NOK:</strong> 3990000</span>
+          <span><strong>Motor:</strong> Volvo D2-75 Innenbords 75 HK</span>
+        </div>
+        <div class="reason" style="border-left-color:#f59e0b">
+          <strong>Hvorfor review:</strong> Matched via signatur (merke+modell+år+lengde), men slug er forskjellig fra Wix.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>Swan Swan 48 GALATEA</strong> (path: swan-48-galatea, år: 2000)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/swan-48" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351417864416" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-23" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-23" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-23" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-23" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="23">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351482911947" data-idx="24">
+      <div class="card-num">#25</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_52e13e4ca9f34127b18821d07e368dea~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#f59e0b">MIDDELS KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Cormate T-27 - 2015</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2015</span>
+          <span><strong>Lengde:</strong> 28 fot</span>
+          <span><strong>Merke:</strong> Cormate </span>
+          <span><strong>Modell:</strong> T-27</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> Solgt!</span>
+          <span><strong>NOK:</strong> 1200000</span>
+          <span><strong>Motor:</strong> MerCruiser 4.2l V8 370 TDI Innenbords 370 HK</span>
+        </div>
+        <div class="reason" style="border-left-color:#f59e0b">
+          <strong>Hvorfor review:</strong> Matched via signatur (merke+modell+år+lengde), men slug er forskjellig fra Wix.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>Cormate Cormate 27 Sportmate</strong> (path: cormate-27-sportmate, år: 2015)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/cormate-t-27---2015" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351482911947" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-24" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-24" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-24" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-24" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="24">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443262696" data-idx="25">
+      <div class="card-num">#26</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_2763ea59ad764af3a61349d91f962cb9~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#f59e0b">MIDDELS KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Storebro 430 Biscay</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 1997</span>
+          <span><strong>Lengde:</strong> 43 fot</span>
+          <span><strong>Merke:</strong> Storebro</span>
+          <span><strong>Modell:</strong> 430 Biscay</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> 2.079.000,-</span>
+          <span><strong>NOK:</strong> 2079000</span>
+          <span><strong>Motor:</strong> 2 x Volvo Penta 63P Innenbords 710 HK</span>
+        </div>
+        <div class="reason" style="border-left-color:#f59e0b">
+          <strong>Hvorfor review:</strong> Matched via signatur (merke+modell+år+lengde), men slug er forskjellig fra Wix.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>Storebro 430 Biscay</strong> (path: storebro-430-biscay-royal-cruiser, år: 1997)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/storebro-430-biscay" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443262696" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-25" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-25" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-25" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-25" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="25">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443229926" data-idx="26">
+      <div class="card-num">#27</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_fb8f4fbca05c47cb98649f7bd2b84217~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#f59e0b">MIDDELS KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Grand Banks 52 Europa</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2007</span>
+          <span><strong>Lengde:</strong> 56 fot</span>
+          <span><strong>Merke:</strong> Grand Banks</span>
+          <span><strong>Modell:</strong> 52 Europa</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> Solgt!</span>
+          <span><strong>NOK:</strong> 6900000</span>
+          <span><strong>Motor:</strong> 2 x John Deere 6125AFM 75 Innenbords 1040 HK</span>
+        </div>
+        <div class="reason" style="border-left-color:#f59e0b">
+          <strong>Hvorfor review:</strong> Matched via signatur (merke+modell+år+lengde), men slug er forskjellig fra Wix.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>Grand Banks 52 Heritage</strong> (path: grand-banks-52-heritage, år: 2007)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/grand-banks-52-europa" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443229926" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-26" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-26" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-26" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-26" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="26">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351414280433" data-idx="27">
+      <div class="card-num">#28</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_a2d0bc4821824ceb8aff831853f64d59~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#f59e0b">MIDDELS KONFIDENS</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nimbus 35 Nova HT - 2008</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2008</span>
+          <span><strong>Lengde:</strong> 38 fot</span>
+          <span><strong>Merke:</strong> Nimbus</span>
+          <span><strong>Modell:</strong> 35 Nova HT</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris:</strong> Solgt!</span>
+          <span><strong>NOK:</strong> 1500000</span>
+          <span><strong>Motor:</strong> 2 x Volvo Penta D4-260 Innenbords 520 HK</span>
+        </div>
+        <div class="reason" style="border-left-color:#f59e0b">
+          <strong>Hvorfor review:</strong> Matched via signatur (merke+modell+år+lengde), men slug er forskjellig fra Wix.
+        </div>
+        <div class="hs-preview">Auto-matched HS: <strong>Nimbus Nimbus 35 Nova</strong> (path: nimbus-35-nova-2, år: 2008)</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nimbus-35-nova-ht---2008" target="_blank" rel="noopener" class="link-wix">Wix-side ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351414280433" target="_blank" rel="noopener" class="link-hs">HubSpot-record ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-27" value="APPROVE" checked> ✅ Riktig match</label>
+          <label><input type="radio" name="dec-27" value="CHANGE"> 🔄 Feil match → bruk denne:</label>
+          <label><input type="radio" name="dec-27" value="CREATE_NEW"> ➕ Opprett ny</label>
+          <label><input type="radio" name="dec-27" value="SKIP"> ❌ Hopp over</label>
+          <input type="text" class="manual-id" placeholder="Ny HubSpot ID eller URL (kun hvis 'Feil match')" data-idx="27">
+        </div>
+      </div>
+    </div>
+    
+  </div>
+
+<script>
+const STORAGE_KEY = 'hoy-low-conf-update-review';
+const total = 28;
+
+function load() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch (e) { return {}; }
+}
+function save(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+const saved = load();
+document.querySelectorAll('.card').forEach(card => {
+  const hsId = card.dataset.hs;
+  const dec = saved[hsId] && saved[hsId].decision;
+  const manId = saved[hsId] && saved[hsId].manual;
+  if (dec) {
+    const r = card.querySelector('input[type=radio][value="' + dec + '"]');
+    if (r) r.checked = true;
+    card.dataset.decision = dec;
+  } else {
+    card.dataset.decision = 'APPROVE';
+  }
+  if (manId) card.querySelector('.manual-id').value = manId;
+});
+
+function updateCounts() {
+  let ok=0, ch=0, cr=0, sk=0;
+  document.querySelectorAll('.card').forEach(c => {
+    const d = c.dataset.decision;
+    if (d === 'SKIP') sk++;
+    else if (d === 'CHANGE') ch++;
+    else if (d === 'CREATE_NEW') cr++;
+    else ok++;
+  });
+  document.getElementById('cnt-ok').textContent = ok;
+  document.getElementById('cnt-change').textContent = ch;
+  document.getElementById('cnt-create').textContent = cr;
+  document.getElementById('cnt-skip').textContent = sk;
+}
+updateCounts();
+
+document.querySelectorAll('input[type=radio]').forEach(r => {
+  r.addEventListener('change', e => {
+    const card = e.target.closest('.card');
+    const hsId = card.dataset.hs;
+    const val = e.target.value;
+    card.dataset.decision = val;
+    const data = load();
+    data[hsId] = data[hsId] || {};
+    data[hsId].decision = val;
+    save(data);
+    updateCounts();
+  });
+});
+
+document.querySelectorAll('.manual-id').forEach(inp => {
+  inp.addEventListener('input', e => {
+    const card = e.target.closest('.card');
+    const hsId = card.dataset.hs;
+    const data = load();
+    data[hsId] = data[hsId] || {};
+    data[hsId].manual = e.target.value;
+    save(data);
+  });
+});
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', e => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const f = btn.dataset.filter;
+    document.querySelectorAll('.card').forEach(card => {
+      if (f === 'all' || card.dataset.decision === f) card.classList.remove('hidden');
+      else card.classList.add('hidden');
+    });
+  });
+});
+
+function exportPicks() {
+  const data = load();
+  const lines = ['hs_id,decision,manual_id_or_url'];
+  document.querySelectorAll('.card').forEach(card => {
+    const hsId = card.dataset.hs;
+    const d = (data[hsId] && data[hsId].decision) || 'APPROVE';
+    const m = (data[hsId] && data[hsId].manual) || '';
+    lines.push(hsId + ',' + d + ',' + m);
+  });
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'low-conf-update-decisions.csv';
+  a.click();
+}
+</script>
+</body>
+</html>

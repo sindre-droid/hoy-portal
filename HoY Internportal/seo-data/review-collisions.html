@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<title>Review ambiguous collisions – HoY Wix-migrering</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 1300px; margin: 0 auto; padding: 20px; background: #f7f9fc; color: #1a202c; }
+  h1 { margin: 0 0 8px; font-size: 24px; }
+  .header-stats { background: white; padding: 16px 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 16px; position: sticky; top: 0; z-index: 100; display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+  .stat strong { font-size: 20px; display: block; }
+  .stat-match strong { color: #16a34a; }
+  .stat-change strong { color: #f59e0b; }
+  .stat-create strong { color: #2563eb; }
+  .stat-skip strong { color: #dc2626; }
+  button.export { background: #16a34a; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-left: auto; }
+  .group { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; }
+  .group-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 12px; }
+  .group-header h2 { margin: 0; font-size: 18px; flex: 1; }
+  .link-hs { background: #ff7a59; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 13px; font-weight: 500; white-space: nowrap; }
+  .link-wix { background: #2563eb; color: white; padding: 5px 10px; border-radius: 4px; text-decoration: none; font-size: 12px; }
+  .group-hint { font-size: 13px; color: #64748b; margin: 0 0 14px; }
+  .sources { display: flex; gap: 14px; flex-wrap: wrap; }
+  .source-card { flex: 1; min-width: 340px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; display: grid; grid-template-columns: 140px 1fr; gap: 10px; }
+  .src-img img { width: 140px; height: 100px; object-fit: cover; border-radius: 4px; background: #f1f5f9; }
+  .no-img { width: 140px; height: 100px; background: #f1f5f9; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #94a3b8; }
+  .src-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .src-meta { font-size: 12px; color: #475569; margin-bottom: 3px; }
+  .src-desc { font-size: 11px; color: #64748b; margin: 4px 0; max-height: 40px; overflow: hidden; }
+  .src-links { margin: 6px 0; }
+  .src-decision { margin-top: 8px; border-top: 1px solid #f1f5f9; padding-top: 8px; display: flex; flex-direction: column; gap: 3px; }
+  .src-decision label { font-size: 12px; cursor: pointer; }
+  .src-decision input[type=text] { margin: 3px 0 3px 20px; padding: 4px 8px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 12px; }
+  .badge { font-size: 10px; padding: 2px 6px; border-radius: 3px; font-weight: 600; margin-left: 6px; }
+  .badge-sold { background: #fef3c7; color: #92400e; }
+  .badge-active { background: #d1fae5; color: #065f46; }
+  .source-card[data-decision="CHANGE"] { background: #fef3c7; border-color: #f59e0b; }
+  .source-card[data-decision="CREATE"] { background: #dbeafe; border-color: #3b82f6; }
+  .source-card[data-decision="SKIP"] { opacity: 0.5; background: #fef2f2; }
+</style>
+</head>
+<body>
+  <h1>Ambiguous collisions (14 Wix-oppføringer over 7 HubSpot-båter)</h1>
+  <p style="color:#64748b; margin: 0 0 12px;">For hver gruppe: åpne HubSpot-recorden, sammenlign med Wix-oppføringene. Per Wix-oppføring: samme båt, feil match (lim inn riktig URL), forskjellig (opprett ny), eller dropp.</p>
+
+  <div class="header-stats">
+    <div class="stat stat-match"><strong id="cnt-match">14</strong>Samme båt</div>
+    <div class="stat stat-change"><strong id="cnt-change">0</strong>Feil match</div>
+    <div class="stat stat-create"><strong id="cnt-create">0</strong>Opprett ny</div>
+    <div class="stat stat-skip"><strong id="cnt-skip">0</strong>Drop</div>
+    <button class="export" onclick="exportPicks()">📋 Eksportér</button>
+  </div>
+
+  
+    <div class="group" data-hs="351388463314">
+      <div class="group-header">
+        <h2>Chris-Craft 25 Corsair — 3 Wix-oppføringer peker på HubSpot-ID 351388463314</h2>
+        <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351388463314" target="_blank" class="link-hs">Åpne HubSpot-record ↗</a>
+      </div>
+      <p class="group-hint">Spørsmål: Er dette én båt (slå sammen alle) eller flere ulike båter? Sjekk HubSpot-record for å se hva slags båt som ligger der — sammenlign mot Wix-oppføringene under.</p>
+      <div class="sources">
+        
+        <div class="source-card" data-key="351388463314::chris-craft-25-corsair::2004">
+          <div class="src-img"><img src="https://static.wixstatic.com/media/ad1ced_512b9b3a960944de8a2c0b231e516dc2~mv2_d_5616_3744_s_4_2.jpg" alt="" loading="lazy"></div>
+          <div class="src-info">
+            <div class="src-title">Chris-Craft 25 Corsair <span class="badge badge-sold">SOLGT</span></div>
+            <div class="src-meta"><strong>År:</strong> 2004 | <strong>Lengde:</strong> 27 fot | <strong>Pris:</strong> Solgt!</div>
+            <div class="src-meta"><strong>Motor:</strong> MerCruiser 350 MAG MPI Innenbords 300 HK</div>
+            <div class="src-desc">&lt;p style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif&quot;&gt;&lt;span style=&quot;font-style:italic&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;Vi har f&amp;aring;tt inn for salg en f...</div>
+            <div class="src-links">
+              <a href="https://houseofyachts.no/Baater/chris-craft-25-corsair" target="_blank" class="link-wix">Wix-side ↗</a>
+            </div>
+            <div class="src-decision">
+              <label><input type="radio" name="dec-0-0" value="MATCH" checked> ✅ Samme båt som HubSpot (slå sammen)</label>
+              <label><input type="radio" name="dec-0-0" value="CHANGE"> 🔄 Feil HubSpot-match → bruk denne URLen:</label>
+              <input type="text" class="manual-id" placeholder="Lim inn riktig HubSpot URL/ID" data-key="351388463314::chris-craft-25-corsair::2004">
+              <label><input type="radio" name="dec-0-0" value="CREATE"> ➕ Forskjellig båt → opprett ny record</label>
+              <label><input type="radio" name="dec-0-0" value="SKIP"> ❌ Dropp denne Wix-oppføringen</label>
+            </div>
+          </div>
+        </div>
+        
+        <div class="source-card" data-key="351388463314::chris-craft-25-corsair::2006">
+          <div class="src-img"><img src="https://static.wixstatic.com/media/ad1ced_940b8186d9a64f99890b3b172e67665a~mv2_d_5659_3773_s_4_2.jpg" alt="" loading="lazy"></div>
+          <div class="src-info">
+            <div class="src-title">Chris-Craft 25 Corsair <span class="badge badge-sold">SOLGT</span></div>
+            <div class="src-meta"><strong>År:</strong> 2006 | <strong>Lengde:</strong> 27 fot | <strong>Pris:</strong> Solgt!</div>
+            <div class="src-meta"><strong>Motor:</strong> MerCruiser 350 MPI Horizon Innenbords 300 HK</div>
+            <div class="src-desc">&lt;p style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif&quot;&gt;&lt;span style=&quot;font-style:italic&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;Vi har f&amp;aring;tt inn for salg en f...</div>
+            <div class="src-links">
+              <a href="https://houseofyachts.no/Baater/chris-craft-25-corsair" target="_blank" class="link-wix">Wix-side ↗</a>
+            </div>
+            <div class="src-decision">
+              <label><input type="radio" name="dec-0-1" value="MATCH" checked> ✅ Samme båt som HubSpot (slå sammen)</label>
+              <label><input type="radio" name="dec-0-1" value="CHANGE"> 🔄 Feil HubSpot-match → bruk denne URLen:</label>
+              <input type="text" class="manual-id" placeholder="Lim inn riktig HubSpot URL/ID" data-key="351388463314::chris-craft-25-corsair::2006">
+              <label><input type="radio" name="dec-0-1" value="CREATE"> ➕ Forskjellig båt → opprett ny record</label>
+              <label><input type="radio" name="dec-0-1" value="SKIP"> ❌ Dropp denne Wix-oppføringen</label>
+            </div>
+          </div>
+        </div>
+        
+        <div class="source-card" data-key="351388463314::chris-craft-25-corsair::2008">
+          <div class="src-img"><img src="https://static.wixstatic.com/media/ad1ced_bf4bed3b925c4269aa5ac5ed18d6e7c1~mv2_d_4724_3784_s_4_2.jpg" alt="" loading="lazy"></div>
+          <div class="src-info">
+            <div class="src-title">Chris-Craft 25 Corsair <span class="badge badge-sold">SOLGT</span></div>
+            <div class="src-meta"><strong>År:</strong> 2008 | <strong>Lengde:</strong> 27 fot | <strong>Pris:</strong> Solgt!</div>
+            <div class="src-meta"><strong>Motor:</strong> MerCruiser MAG MPI 350 SeaCore Innenbords 300 HK</div>
+            <div class="src-desc">&lt;p&gt;&lt;span style=&quot;font-style:italic&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;&lt;span style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif&quot;&gt;Vi har p&amp;aring; vei inn for salg en flott Chris-Craft 25 C...</div>
+            <div class="src-links">
+              <a href="https://houseofyachts.no/Baater/chris-craft-25-corsair" target="_blank" class="link-wix">Wix-side ↗</a>
+            </div>
+            <div class="src-decision">
+              <label><input type="radio" name="dec-0-2" value="MATCH" checked> ✅ Samme båt som HubSpot (slå sammen)</label>
+              <label><input type="radio" name="dec-0-2" value="CHANGE"> 🔄 Feil HubSpot-match → bruk denne URLen:</label>
+              <input type="text" class="manual-id" placeholder="Lim inn riktig HubSpot URL/ID" data-key="351388463314::chris-craft-25-corsair::2008">
+              <label><input type="radio" name="dec-0-2" value="CREATE"> ➕ Forskjellig båt → opprett ny record</label>
+              <label><input type="radio" name="dec-0-2" value="SKIP"> ❌ Dropp denne Wix-oppføringen</label>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="group" data-hs="351443214525">
+      <div class="group-header">
+        <h2>Chris-Craft 28 Corsair — 2 Wix-oppføringer peker på HubSpot-ID 351443214525</h2>
+        <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443214525" target="_blank" class="link-hs">Åpne HubSpot-record ↗</a>
+      </div>
+      <p class="group-hint">Spørsmål: Er dette én båt (slå sammen alle) eller flere ulike båter? Sjekk HubSpot-record for å se hva slags båt som ligger der — sammenlign mot Wix-oppføringene under.</p>
+      <div class="sources">
+        
+        <div class="source-card" data-key="351443214525::chris-craft-28-corsair::2006">
+          <div class="src-img"><img src="https://static.wixstatic.com/media/b99d91_2507828480354285867ac73d405b962f~mv2.jpg" alt="" loading="lazy"></div>
+          <div class="src-info">
+            <div class="src-title">Chris-Craft 28 Corsair <span class="badge badge-sold">SOLGT</span></div>
+            <div class="src-meta"><strong>År:</strong> 2006 | <strong>Lengde:</strong> 30 fot | <strong>Pris:</strong> Solgt!</div>
+            <div class="src-meta"><strong>Motor:</strong> Volvo 8.1 GXI MPI Innenbord 420 HK</div>
+            <div class="src-desc">&lt;p style=&quot;font-size: 14px;&quot;&gt;&lt;span style=&quot;font-size:14px;&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif;&quot;&gt;&lt;span style=&quot;font-weight:bold;&quot;&gt;Vi har f&amp;aring;tt inn for salg en 2006 modell Chris-Craft 28 C...</div>
+            <div class="src-links">
+              <a href="https://houseofyachts.no/Baater/chris-craft-28-corsair" target="_blank" class="link-wix">Wix-side ↗</a>
+            </div>
+            <div class="src-decision">
+              <label><input type="radio" name="dec-1-0" value="MATCH" checked> ✅ Samme båt som HubSpot (slå sammen)</label>
+              <label><input type="radio" name="dec-1-0" value="CHANGE"> 🔄 Feil HubSpot-match → bruk denne URLen:</label>
+              <input type="text" class="manual-id" placeholder="Lim inn riktig HubSpot URL/ID" data-key="351443214525::chris-craft-28-corsair::2006">
+              <label><input type="radio" name="dec-1-0" value="CREATE"> ➕ Forskjellig båt → opprett ny record</label>
+              <label><input type="radio" name="dec-1-0" value="SKIP"> ❌ Dropp denne Wix-oppføringen</label>
+            </div>
+          </div>
+        </div>
+        
+        <div class="source-card" data-key="351443214525::chris-craft-28-corsair::2008">
+          <div class="src-img"><img src="https://static.wixstatic.com/media/ad1ced_514b98f62b484650b785021269d670fa~mv2_d_5760_3840_s_4_2.jpg" alt="" loading="lazy"></div>
+          <div class="src-info">
+            <div class="src-title">Chris-Craft 28 Corsair <span class="badge badge-sold">SOLGT</span></div>
+            <div class="src-meta"><strong>År:</strong> 2008 | <strong>Lengde:</strong> 28 fot | <strong>Pris:</strong> Solgt!</div>
+            <div class="src-meta"><strong>Motor:</strong> 2 x Mercury MAG 350 Innenbords 600 HK</div>
+            <div class="src-desc">&lt;p style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif&quot;&gt;&lt;span style=&quot;font-style:italic&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;Vi har p&amp;aring; vei inn for salg en...</div>
+            <div class="src-links">
+              <a href="https://houseofyachts.no/Baater/chris-craft-28-corsair" target="_blank" class="link-wix">Wix-side ↗</a>
+            </div>
+            <div class="src-decision">
+              <label><input type="radio" name="dec-1-1" value="MATCH" checked> ✅ Samme båt som HubSpot (slå sammen)</label>
+              <label><input type="radio" name="dec-1-1" value="CHANGE"> 🔄 Feil HubSpot-match → bruk denne URLen:</label>
+              <input type="text" class="manual-id" placeholder="Lim inn riktig HubSpot URL/ID" data-key="351443214525::chris-craft-28-corsair::2008">
+              <label><input type="radio" name="dec-1-1" value="CREATE"> ➕ Forskjellig båt → opprett ny record</label>
+              <label><input type="radio" name="dec-1-1" value="SKIP"> ❌ Dropp denne Wix-oppføringen</label>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="group" data-hs="351388463332">
+      <div class="group-header">
+        <h2>Nimbus 33 Nova — 2 Wix-oppføringer peker på HubSpot-ID 351388463332</h2>
+        <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351388463332" target="_blank" class="link-hs">Åpne HubSpot-record ↗</a>
+      </div>
+      <p class="group-hint">Spørsmål: Er dette én båt (slå sammen alle) eller flere ulike båter? Sjekk HubSpot-record for å se hva slags båt som ligger der — sammenlign mot Wix-oppføringene under.</p>
+      <div class="sources">
+        
+        <div class="source-card" data-key="351388463332::nimbus-33-nova::2000">
+          <div class="src-img"><img src="https://static.wixstatic.com/media/ad1ced_a8eff096260c4c90a434641be45ff9d3~mv2_d_5736_3824_s_4_2.jpg" alt="" loading="lazy"></div>
+          <div class="src-info">
+            <div class="src-title">Nimbus 33 Nova <span class="badge badge-sold">SOLGT</span></div>
+            <div class="src-meta"><strong>År:</strong> 2000 | <strong>Lengde:</strong> 33 fot | <strong>Pris:</strong> Solgt!</div>
+            <div class="src-meta"><strong>Motor:</strong> 2 x Volvo Penta KAD44 EDC Innenbords 520 HK</div>
+            <div class="src-desc">&lt;p&gt;&lt;span style=&quot;font-style:italic&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;&lt;span style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif&quot;&gt;Vi har f&amp;aring;tt inn for salg en MEGET velholdt Nimbus 33...</div>
+            <div class="src-links">
+              <a href="https://houseofyachts.no/Baater/nimbus-33-nova" target="_blank" class="link-wix">Wix-side ↗</a>
+            </div>
+            <div class="src-decision">
+              <label><input type="radio" name="dec-2-0" value="MATCH" checked> ✅ Samme båt som HubSpot (slå sammen)</label>
+              <label><input type="radio" name="dec-2-0" value="CHANGE"> 🔄 Feil HubSpot-match → bruk denne URLen:</label>
+              <input type="text" class="manual-id" placeholder="Lim inn riktig HubSpot URL/ID" data-key="351388463332::nimbus-33-nova::2000">
+              <label><input type="radio" name="dec-2-0" value="CREATE"> ➕ Forskjellig båt → opprett ny record</label>
+              <label><input type="radio" name="dec-2-0" value="SKIP"> ❌ Dropp denne Wix-oppføringen</label>
+            </div>
+          </div>
+        </div>
+        
+        <div class="source-card" data-key="351388463332::nimbus-33-nova::2003">
+          <div class="src-img"><img src="https://static.wixstatic.com/media/ad1ced_a380c91f55c7432fad13c0f520bda6d2~mv2.jpg" alt="" loading="lazy"></div>
+          <div class="src-info">
+            <div class="src-title">Nimbus 33 Nova <span class="badge badge-sold">SOLGT</span></div>
+            <div class="src-meta"><strong>År:</strong> 2003 | <strong>Lengde:</strong> 33 fot | <strong>Pris:</strong> Solgt!</div>
+            <div class="src-meta"><strong>Motor:</strong> 2 x Volvo Penta KAD300 Innenbords 560 HK</div>
+            <div class="src-desc">&lt;p class=&quot;font_8&quot;&gt;&lt;em&gt;&lt;strong&gt;Vi har fått inn for salg en meget velholdt Nimbus 33 Nova. Båten er betydelig oppgradert gjennom mange år, og fremstår som i meget god stand, både teknisk og kosmetisk. N...</div>
+            <div class="src-links">
+              <a href="https://houseofyachts.no/Baater/nimbus-33-nova" target="_blank" class="link-wix">Wix-side ↗</a>
+            </div>
+            <div class="src-decision">
+              <label><input type="radio" name="dec-2-1" value="MATCH" checked> ✅ Samme båt som HubSpot (slå sammen)</label>
+              <label><input type="radio" name="dec-2-1" value="CHANGE"> 🔄 Feil HubSpot-match → bruk denne URLen:</label>
+              <input type="text" class="manual-id" placeholder="Lim inn riktig HubSpot URL/ID" data-key="351388463332::nimbus-33-nova::2003">
+              <label><input type="radio" name="dec-2-1" value="CREATE"> ➕ Forskjellig båt → opprett ny record</label>
+              <label><input type="radio" name="dec-2-1" value="SKIP"> ❌ Dropp denne Wix-oppføringen</label>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="group" data-hs="351414280421">
+      <div class="group-header">
+        <h2>Scand Baltic 29 — 2 Wix-oppføringer peker på HubSpot-ID 351414280421</h2>
+        <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351414280421" target="_blank" class="link-hs">Åpne HubSpot-record ↗</a>
+      </div>
+      <p class="group-hint">Spørsmål: Er dette én båt (slå sammen alle) eller flere ulike båter? Sjekk HubSpot-record for å se hva slags båt som ligger der — sammenlign mot Wix-oppføringene under.</p>
+      <div class="sources">
+        
+        <div class="source-card" data-key="351414280421::scand-baltic-29::1994">
+          <div class="src-img"><img src="https://static.wixstatic.com/media/ad1ced_cea510d2d3344d96bcc19a64cfef1aee~mv2_d_5691_3794_s_4_2.jpg" alt="" loading="lazy"></div>
+          <div class="src-info">
+            <div class="src-title">Scand Baltic 29 <span class="badge badge-sold">SOLGT</span></div>
+            <div class="src-meta"><strong>År:</strong> 1994 | <strong>Lengde:</strong> 29 fot | <strong>Pris:</strong> Solgt!</div>
+            <div class="src-meta"><strong>Motor:</strong> Volvo Penta D6-310 Innenbords 310 HK</div>
+            <div class="src-desc">&lt;p style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;&lt;span style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif&quot;&gt;Vi har f&amp;aring;tt inn for salg en helt unik Scand Baltic 29. B&amp;arin...</div>
+            <div class="src-links">
+              <a href="https://houseofyachts.no/Baater/scand-baltic-29" target="_blank" class="link-wix">Wix-side ↗</a>
+            </div>
+            <div class="src-decision">
+              <label><input type="radio" name="dec-3-0" value="MATCH" checked> ✅ Samme båt som HubSpot (slå sammen)</label>
+              <label><input type="radio" name="dec-3-0" value="CHANGE"> 🔄 Feil HubSpot-match → bruk denne URLen:</label>
+              <input type="text" class="manual-id" placeholder="Lim inn riktig HubSpot URL/ID" data-key="351414280421::scand-baltic-29::1994">
+              <label><input type="radio" name="dec-3-0" value="CREATE"> ➕ Forskjellig båt → opprett ny record</label>
+              <label><input type="radio" name="dec-3-0" value="SKIP"> ❌ Dropp denne Wix-oppføringen</label>
+            </div>
+          </div>
+        </div>
+        
+        <div class="source-card" data-key="351414280421::scand-baltic-29::2005">
+          <div class="src-img"><img src="https://static.wixstatic.com/media/ad1ced_eacb88ebbd7644adbdcc241128054d42~mv2.webp" alt="" loading="lazy"></div>
+          <div class="src-info">
+            <div class="src-title">Scand Baltic 29 <span class="badge badge-sold">SOLGT</span></div>
+            <div class="src-meta"><strong>År:</strong> 2005 | <strong>Lengde:</strong> 29 fot | <strong>Pris:</strong> Solgt!</div>
+            <div class="src-meta"><strong>Motor:</strong> Yanmar 6LPA-STP Innenbords 292 HK</div>
+            <div class="src-desc">&lt;p class=&quot;font_7&quot;&gt;&lt;em&gt;&lt;strong&gt;House of Yachts tilbyr nå en ekte norsk klassiker – en pen Scand Baltic 29&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;
+&lt;p class=&quot;font_7&quot;&gt;&lt;em&gt;&lt;strong&gt;fra 2005, med den ettertraktede akter-kabinen. ...</div>
+            <div class="src-links">
+              <a href="https://houseofyachts.no/Baater/scand-baltic-29" target="_blank" class="link-wix">Wix-side ↗</a>
+            </div>
+            <div class="src-decision">
+              <label><input type="radio" name="dec-3-1" value="MATCH" checked> ✅ Samme båt som HubSpot (slå sammen)</label>
+              <label><input type="radio" name="dec-3-1" value="CHANGE"> 🔄 Feil HubSpot-match → bruk denne URLen:</label>
+              <input type="text" class="manual-id" placeholder="Lim inn riktig HubSpot URL/ID" data-key="351414280421::scand-baltic-29::2005">
+              <label><input type="radio" name="dec-3-1" value="CREATE"> ➕ Forskjellig båt → opprett ny record</label>
+              <label><input type="radio" name="dec-3-1" value="SKIP"> ❌ Dropp denne Wix-oppføringen</label>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="group" data-hs="351475307742">
+      <div class="group-header">
+        <h2>Nimbus W9 — 2 Wix-oppføringer peker på HubSpot-ID 351475307742</h2>
+        <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351475307742" target="_blank" class="link-hs">Åpne HubSpot-record ↗</a>
+      </div>
+      <p class="group-hint">Spørsmål: Er dette én båt (slå sammen alle) eller flere ulike båter? Sjekk HubSpot-record for å se hva slags båt som ligger der — sammenlign mot Wix-oppføringene under.</p>
+      <div class="sources">
+        
+        <div class="source-card" data-key="351475307742::nimbus-w9::2022">
+          <div class="src-img"><img src="https://static.wixstatic.com/media/ad1ced_e481821a6a4b4d1ca6f3515814b58561~mv2.jpg" alt="" loading="lazy"></div>
+          <div class="src-info">
+            <div class="src-title">Nimbus W9 <span class="badge badge-sold">SOLGT</span></div>
+            <div class="src-meta"><strong>År:</strong> 2022 | <strong>Lengde:</strong> 31 fot | <strong>Pris:</strong> Solgt!</div>
+            <div class="src-meta"><strong>Motor:</strong> Mercury Verado V8 F300 Utenbords 300</div>
+            <div class="src-desc">&lt;p class=&quot;font_7&quot;&gt;&lt;em&gt;&lt;strong&gt;Vi har fått inn for salg en nydelig Nimbus W9. Båten er fra 2022 og har knapt to&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;
+&lt;p class=&quot;font_7&quot;&gt;&lt;em&gt;&lt;strong&gt;sesonger bak seg. Hun er meget godt holdt...</div>
+            <div class="src-links">
+              <a href="https://houseofyachts.no/Baater/nimbus-w9" target="_blank" class="link-wix">Wix-side ↗</a>
+            </div>
+            <div class="src-decision">
+              <label><input type="radio" name="dec-4-0" value="MATCH" checked> ✅ Samme båt som HubSpot (slå sammen)</label>
+              <label><input type="radio" name="dec-4-0" value="CHANGE"> 🔄 Feil HubSpot-match → bruk denne URLen:</label>
+              <input type="text" class="manual-id" placeholder="Lim inn riktig HubSpot URL/ID" data-key="351475307742::nimbus-w9::2022">
+              <label><input type="radio" name="dec-4-0" value="CREATE"> ➕ Forskjellig båt → opprett ny record</label>
+              <label><input type="radio" name="dec-4-0" value="SKIP"> ❌ Dropp denne Wix-oppføringen</label>
+            </div>
+          </div>
+        </div>
+        
+        <div class="source-card" data-key="351475307742::nimbus-w9---2020::2020">
+          <div class="src-img"><img src="https://static.wixstatic.com/media/ad1ced_6486169936ea481a87f6d516972af348~mv2.webp" alt="" loading="lazy"></div>
+          <div class="src-info">
+            <div class="src-title">Nimbus W9 - 2020 <span class="badge badge-active">AKTIV</span></div>
+            <div class="src-meta"><strong>År:</strong> 2020 | <strong>Lengde:</strong> 31 fot | <strong>Pris:</strong> 1.590.000,-</div>
+            <div class="src-meta"><strong>Motor:</strong> Mercury Verado 300 Utenbords 300 HK</div>
+            <div class="src-desc">&lt;p class=&quot;font_7&quot;&gt;Dette er ikke en hvilken som helst Nimbus W9 – det er båten som setter standarden for elegante&lt;/p&gt;
+&lt;p class=&quot;font_7&quot;&gt;daycruisere. En unik kombinasjon av tidløs skandinavisk design, k...</div>
+            <div class="src-links">
+              <a href="https://houseofyachts.no/Baater/nimbus-w9---2020" target="_blank" class="link-wix">Wix-side ↗</a>
+            </div>
+            <div class="src-decision">
+              <label><input type="radio" name="dec-4-1" value="MATCH" checked> ✅ Samme båt som HubSpot (slå sammen)</label>
+              <label><input type="radio" name="dec-4-1" value="CHANGE"> 🔄 Feil HubSpot-match → bruk denne URLen:</label>
+              <input type="text" class="manual-id" placeholder="Lim inn riktig HubSpot URL/ID" data-key="351475307742::nimbus-w9---2020::2020">
+              <label><input type="radio" name="dec-4-1" value="CREATE"> ➕ Forskjellig båt → opprett ny record</label>
+              <label><input type="radio" name="dec-4-1" value="SKIP"> ❌ Dropp denne Wix-oppføringen</label>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="group" data-hs="351481028812">
+      <div class="group-header">
+        <h2>Windy 35 Khamsin — 2 Wix-oppføringer peker på HubSpot-ID 351481028812</h2>
+        <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351481028812" target="_blank" class="link-hs">Åpne HubSpot-record ↗</a>
+      </div>
+      <p class="group-hint">Spørsmål: Er dette én båt (slå sammen alle) eller flere ulike båter? Sjekk HubSpot-record for å se hva slags båt som ligger der — sammenlign mot Wix-oppføringene under.</p>
+      <div class="sources">
+        
+        <div class="source-card" data-key="351481028812::windy-35-khamsin::2007">
+          <div class="src-img"><img src="https://static.wixstatic.com/media/ad1ced_5f9f5effaf16408fbfbbcd87147b5366~mv2.jpg" alt="" loading="lazy"></div>
+          <div class="src-info">
+            <div class="src-title">Windy 35 Khamsin <span class="badge badge-sold">SOLGT</span></div>
+            <div class="src-meta"><strong>År:</strong> 2007 | <strong>Lengde:</strong> 35 fot | <strong>Pris:</strong> Solgt!</div>
+            <div class="src-meta"><strong>Motor:</strong> 2 x Volvo Penta D6-350 Innenbords 700 HK</div>
+            <div class="src-desc">&lt;p class=&quot;font_7&quot;&gt;&lt;strong&gt;Vi har fått inn for salg en nydelig Windy 35 Khamsin fra 2007! Den udødelige&lt;br&gt;
+klassikeren med tidløse linjer er og forblir en folkefavoritt. 35 Khamsin har beholdt sin uro...</div>
+            <div class="src-links">
+              <a href="https://houseofyachts.no/Baater/windy-35-khamsin" target="_blank" class="link-wix">Wix-side ↗</a>
+            </div>
+            <div class="src-decision">
+              <label><input type="radio" name="dec-5-0" value="MATCH" checked> ✅ Samme båt som HubSpot (slå sammen)</label>
+              <label><input type="radio" name="dec-5-0" value="CHANGE"> 🔄 Feil HubSpot-match → bruk denne URLen:</label>
+              <input type="text" class="manual-id" placeholder="Lim inn riktig HubSpot URL/ID" data-key="351481028812::windy-35-khamsin::2007">
+              <label><input type="radio" name="dec-5-0" value="CREATE"> ➕ Forskjellig båt → opprett ny record</label>
+              <label><input type="radio" name="dec-5-0" value="SKIP"> ❌ Dropp denne Wix-oppføringen</label>
+            </div>
+          </div>
+        </div>
+        
+        <div class="source-card" data-key="351481028812::windy-35-khamsin-2008-d6-370::2008">
+          <div class="src-img"><img src="https://static.wixstatic.com/media/ad1ced_808206f86bd645bb97c0faccbf0ecae3~mv2.webp" alt="" loading="lazy"></div>
+          <div class="src-info">
+            <div class="src-title">Windy 35 Khamsin 2008 D6-370 <span class="badge badge-sold">SOLGT</span></div>
+            <div class="src-meta"><strong>År:</strong> 2008 | <strong>Lengde:</strong> 35 fot | <strong>Pris:</strong> Solgt!</div>
+            <div class="src-meta"><strong>Motor:</strong> Volvo Penta D6-370 Innenbords 740</div>
+            <div class="src-desc">&lt;p class=&quot;font_7&quot;&gt;&lt;em&gt;&lt;strong&gt;Vi har gleden av å presentere en svært pen og velholdt Windy 35 Khamsin fra 2008. Innbytte i mindre skjærgårdsjeep kan være aktuelt (250-600k).&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;
+&lt;p class...</div>
+            <div class="src-links">
+              <a href="https://houseofyachts.no/Baater/windy-35-khamsin-2008-d6-370" target="_blank" class="link-wix">Wix-side ↗</a>
+            </div>
+            <div class="src-decision">
+              <label><input type="radio" name="dec-5-1" value="MATCH" checked> ✅ Samme båt som HubSpot (slå sammen)</label>
+              <label><input type="radio" name="dec-5-1" value="CHANGE"> 🔄 Feil HubSpot-match → bruk denne URLen:</label>
+              <input type="text" class="manual-id" placeholder="Lim inn riktig HubSpot URL/ID" data-key="351481028812::windy-35-khamsin-2008-d6-370::2008">
+              <label><input type="radio" name="dec-5-1" value="CREATE"> ➕ Forskjellig båt → opprett ny record</label>
+              <label><input type="radio" name="dec-5-1" value="SKIP"> ❌ Dropp denne Wix-oppføringen</label>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="group" data-hs="351481058525">
+      <div class="group-header">
+        <h2>Paragon 25 Cabin — 1 Wix-oppføring peker på HubSpot-ID 351481058525</h2>
+        <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351481058525" target="_blank" class="link-hs">Åpne HubSpot-record ↗</a>
+      </div>
+      <p class="group-hint">Spørsmål: Er dette én båt (slå sammen alle) eller flere ulike båter? Sjekk HubSpot-record for å se hva slags båt som ligger der — sammenlign mot Wix-oppføringene under.</p>
+      <div class="sources">
+        
+        <div class="source-card" data-key="351481058525::paragon-25-cabin::2017">
+          <div class="src-img"><img src="https://static.wixstatic.com/media/ad1ced_cfa50a47846f4bca8c3399678b2c1909~mv2_d_5184_3456_s_4_2.jpg" alt="" loading="lazy"></div>
+          <div class="src-info">
+            <div class="src-title">Paragon 25 Cabin <span class="badge badge-sold">SOLGT</span></div>
+            <div class="src-meta"><strong>År:</strong> 2017 | <strong>Lengde:</strong> 28 fot | <strong>Pris:</strong> Solgt!</div>
+            <div class="src-meta"><strong>Motor:</strong> Volvo Penta D4-300 Innenbords 300 HK</div>
+            <div class="src-desc">&lt;p&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;&lt;span style=&quot;font-style:italic&quot;&gt;&lt;span style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif&quot;&gt;Vi har f&amp;aring;tt inn for salg en meget velholdt Paragon 2...</div>
+            <div class="src-links">
+              <a href="https://houseofyachts.no/Baater/paragon-25-cabin" target="_blank" class="link-wix">Wix-side ↗</a>
+            </div>
+            <div class="src-decision">
+              <label><input type="radio" name="dec-6-0" value="MATCH" checked> ✅ Samme båt som HubSpot (slå sammen)</label>
+              <label><input type="radio" name="dec-6-0" value="CHANGE"> 🔄 Feil HubSpot-match → bruk denne URLen:</label>
+              <input type="text" class="manual-id" placeholder="Lim inn riktig HubSpot URL/ID" data-key="351481058525::paragon-25-cabin::2017">
+              <label><input type="radio" name="dec-6-0" value="CREATE"> ➕ Forskjellig båt → opprett ny record</label>
+              <label><input type="radio" name="dec-6-0" value="SKIP"> ❌ Dropp denne Wix-oppføringen</label>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+    
+
+<script>
+const STORAGE_KEY = 'hoy-collision-review';
+function load() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch (e) { return {}; } }
+function save(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+const saved = load();
+document.querySelectorAll('.source-card').forEach(card => {
+  const k = card.dataset.key;
+  const entry = saved[k] || {};
+  const dec = entry.decision;
+  const manual = entry.manual;
+  if (dec) {
+    const r = card.querySelector('input[type=radio][value="' + dec + '"]');
+    if (r) r.checked = true;
+    card.dataset.decision = dec;
+  } else {
+    card.dataset.decision = 'MATCH';
+  }
+  if (manual) {
+    const inp = card.querySelector('.manual-id');
+    if (inp) inp.value = manual;
+  }
+});
+
+function updateCounts() {
+  let m=0, ch=0, c=0, s=0;
+  document.querySelectorAll('.source-card').forEach(card => {
+    const d = card.dataset.decision;
+    if (d === 'SKIP') s++;
+    else if (d === 'CHANGE') ch++;
+    else if (d === 'CREATE') c++;
+    else m++;
+  });
+  document.getElementById('cnt-match').textContent = m;
+  document.getElementById('cnt-change').textContent = ch;
+  document.getElementById('cnt-create').textContent = c;
+  document.getElementById('cnt-skip').textContent = s;
+}
+updateCounts();
+
+document.querySelectorAll('input[type=radio]').forEach(r => {
+  r.addEventListener('change', e => {
+    const card = e.target.closest('.source-card');
+    card.dataset.decision = e.target.value;
+    const data = load();
+    data[card.dataset.key] = data[card.dataset.key] || {};
+    data[card.dataset.key].decision = e.target.value;
+    save(data);
+    updateCounts();
+  });
+});
+
+document.querySelectorAll('.manual-id').forEach(inp => {
+  inp.addEventListener('input', e => {
+    const card = e.target.closest('.source-card');
+    const data = load();
+    data[card.dataset.key] = data[card.dataset.key] || {};
+    data[card.dataset.key].manual = e.target.value;
+    save(data);
+  });
+  // Auto-switch to CHANGE when user starts typing
+  inp.addEventListener('focus', e => {
+    const card = e.target.closest('.source-card');
+    const changeRadio = card.querySelector('input[type=radio][value="CHANGE"]');
+    if (changeRadio && !changeRadio.checked) {
+      changeRadio.checked = true;
+      changeRadio.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  });
+});
+
+function exportPicks() {
+  const data = load();
+  const lines = ['hs_id,wix_slug,wix_year,decision,manual_id_or_url'];
+  document.querySelectorAll('.source-card').forEach(card => {
+    const parts = card.dataset.key.split('::');
+    const entry = data[card.dataset.key] || {};
+    const d = entry.decision || 'MATCH';
+    const m = (entry.manual || '').replace(/,/g, '%2C');
+    lines.push(parts[0] + ',' + parts[1] + ',' + parts[2] + ',' + d + ',' + m);
+  });
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'collision-decisions.csv';
+  a.click();
+}
+</script>
+</body>
+</html>

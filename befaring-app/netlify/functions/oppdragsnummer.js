@@ -123,7 +123,7 @@ async function checkOneflowStatus(dealName, boatName) {
     const searchKeys = searchTerms.map(s => s.toLowerCase()).filter(k => k.length > 2);
 
     while (offset < totalCount && offset < MAX_PAGES * 100 && !foundMatch) {
-      const res = await ofApi(`/contracts?limit=100&offset=${offset}`);
+      const res = await ofApi(`/contracts?limit=100&offset=${offset}&sort=-updated_time`);
       if (!res.ok) {
         console.error('Oneflow contract list feil:', res.status, JSON.stringify(res.data).substring(0, 200));
         break;
@@ -199,13 +199,13 @@ function findOneflowContractsInList(allContracts, dealName, boatName) {
 
 // ── Fetch all Oneflow contracts once (cached per request) ──────────────────
 async function fetchAllOneflowContracts() {
-  const MAX_PAGES = 5;
+  const MAX_PAGES = 3;  // Maks 300 — nyeste først, så vi trenger ikke mange
   let contracts = [];
   let offset = 0;
   let totalCount = Infinity;
 
   while (offset < totalCount && offset < MAX_PAGES * 100) {
-    const res = await ofApi(`/contracts?limit=100&offset=${offset}`);
+    const res = await ofApi(`/contracts?limit=100&offset=${offset}&sort=-updated_time`);
     if (!res.ok) {
       console.error('Oneflow fetch feil:', res.status);
       break;

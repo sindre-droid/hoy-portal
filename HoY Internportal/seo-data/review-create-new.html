@@ -1,0 +1,3355 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<title>Review CREATE_NEW – HoY Wix-migrering</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f7f9fc; color: #1a202c; }
+  h1 { margin: 0 0 8px; font-size: 24px; }
+  .header-stats { background: white; padding: 16px 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 16px; position: sticky; top: 0; z-index: 100; display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+  .stat { font-size: 14px; }
+  .stat strong { font-size: 20px; display: block; }
+  .stat-create strong { color: #16a34a; }
+  .stat-skip strong { color: #dc2626; }
+  .stat-match strong { color: #2563eb; }
+  .filters { display: flex; gap: 8px; margin-left: auto; }
+  .filter-btn { padding: 6px 12px; border: 1px solid #e2e8f0; background: white; border-radius: 6px; cursor: pointer; font-size: 13px; }
+  .filter-btn.active { background: #1a202c; color: white; }
+  button.export { background: #16a34a; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+  button.export:hover { background: #15803d; }
+  .card { display: grid; grid-template-columns: 220px 1fr; gap: 16px; background: white; padding: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 12px; position: relative; }
+  .card-num { position: absolute; top: 8px; right: 12px; font-size: 12px; color: #94a3b8; font-weight: 600; }
+  .img-col img { width: 100%; height: 160px; object-fit: cover; border-radius: 6px; background: #f1f5f9; }
+  .no-img { width: 100%; height: 160px; display: flex; align-items: center; justify-content: center; background: #f1f5f9; border-radius: 6px; color: #94a3b8; font-size: 13px; }
+  .img-count { font-size: 12px; color: #64748b; margin-top: 4px; text-align: center; }
+  .info-col h3 { margin: 0; font-size: 18px; display: inline-block; margin-right: 8px; }
+  .row1 { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .badge { font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 600; }
+  .badge-sold { background: #fef3c7; color: #92400e; }
+  .badge-active { background: #d1fae5; color: #065f46; }
+  .meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: #475569; margin-bottom: 6px; }
+  .reason { background: #fef9c3; padding: 6px 10px; border-left: 3px solid #ca8a04; border-radius: 4px; font-size: 12px; margin: 8px 0; }
+  .desc { font-size: 12px; color: #64748b; line-height: 1.4; margin-bottom: 8px; max-height: 60px; overflow: hidden; }
+  .actions { display: flex; gap: 8px; margin-bottom: 10px; }
+  .actions a, .actions button { font-size: 13px; padding: 6px 10px; border-radius: 4px; text-decoration: none; cursor: pointer; border: 1px solid #e2e8f0; background: #f8fafc; color: #1a202c; }
+  .actions a.link-wix { background: #2563eb; color: white; border-color: #2563eb; }
+  .decision { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid #f1f5f9; }
+  .decision label { font-size: 13px; cursor: pointer; user-select: none; }
+  .decision input[type=text] { flex: 1; min-width: 240px; padding: 5px 10px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 13px; }
+  .card[data-decision="SKIP"] { opacity: 0.55; background: #fef2f2; }
+  .card[data-decision="MATCH"] { background: #eff6ff; }
+  .card.hidden { display: none; }
+</style>
+</head>
+<body>
+  <h1>Review CREATE_NEW (Wix → HubSpot)</h1>
+  <p style="color:#64748b; margin: 0 0 12px;">Sjekk hver båt — er det virkelig ingen tilsvarende boat-record i HubSpot? Bruk "Søk i HubSpot" eller åpne Wix-sida for å sammenligne. Endringer lagres lokalt i nettleseren.</p>
+
+  <div class="header-stats">
+    <div class="stat stat-create"><strong id="cnt-create">77</strong>Opprett nye</div>
+    <div class="stat stat-skip"><strong id="cnt-skip">0</strong>Hopp over</div>
+    <div class="stat stat-match"><strong id="cnt-match">0</strong>Match funnet</div>
+    <div class="stat"><strong id="cnt-total">77</strong>Totalt</div>
+
+    <div class="filters">
+      <button class="filter-btn active" data-filter="all">Alle</button>
+      <button class="filter-btn" data-filter="CREATE">Create</button>
+      <button class="filter-btn" data-filter="SKIP">Skip</button>
+      <button class="filter-btn" data-filter="MATCH">Match</button>
+    </div>
+
+    <button class="export" onclick="exportPicks()">📋 Eksportér valg</button>
+  </div>
+
+  <div id="cards">
+    
+    <div class="card" data-slug="saffier-se-33-ud" data-idx="0">
+      <div class="card-num">#1</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/b99d91_cb5dc831392842e99d5992f36566f359~mv2.jpg" alt="Saffier SE 33 UD" loading="lazy">
+        <div class="img-count">26 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Saffier SE 33 UD</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2016</span>
+          <span><strong>Lengde:</strong> 31 fot</span>
+          <span><strong>Merke:</strong> Saffier Yachts</span>
+          <span><strong>Modell:</strong> SE 33 UD</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 1600000</span>
+          <span><strong>Motor:</strong> Yanmar  Innenbords 14 hk</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;em&gt;House of Yacht Sail Division presenterer denne Saffier SE 33 UD for salg. En linjelekker og rask båt, designet for enkel single- og shorthanded håndtering.&lt;/em&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;Saffier Yachts er et nederlandsk verft som er spesialisert på å bygg…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/saffier-se-33-ud" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Saffier Yachts SE 33 UD">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-0" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-0" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-0" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="0">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="riviera-925-fly" data-idx="1">
+      <div class="card-num">#2</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_d985e59e3b094165a974388a69ae880a~mv2.jpg" alt="Riviera 925 Fly" loading="lazy">
+        <div class="img-count">46 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Riviera 925 Fly</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2007</span>
+          <span><strong>Lengde:</strong> 34 fot</span>
+          <span><strong>Merke:</strong> Riviera </span>
+          <span><strong>Modell:</strong> 925 Fly</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 1090000</span>
+          <span><strong>Motor:</strong> Volvo Penta D6-350 Innenbords 350 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p class=&quot;font_7&quot;&gt;&lt;em&gt;&lt;strong&gt;Vi har fått inn for salg en fantastisk Riviera 925 Fly. Båten er meget oppgradert og jevnlig vedlikeholdt. Ny motorblokk 2018/1015t (Nå 1516 timer)&lt;br&gt;
+&lt;br&gt;
+Dette er den siste versjonen med bla. forlenget flybridge og skikkelig dusjnisje med kabinett.&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;
+…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/riviera-925-fly" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Riviera  925 Fly">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-1" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-1" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-1" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="1">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="azimut-47-fly" data-idx="2">
+      <div class="card-num">#3</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_96127d0d70034710b6cb2a2263cafdd0~mv2.jpg" alt="Azimut 47 Fly" loading="lazy">
+        <div class="img-count">42 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Azimut 47 Fly</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2010</span>
+          <span><strong>Lengde:</strong> 47 fot</span>
+          <span><strong>Merke:</strong> Azimut</span>
+          <span><strong>Modell:</strong> 47 Fly</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 4900000</span>
+          <span><strong>Motor:</strong> 2 x CAT C9 575 Innenbords 1150 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;em&gt;&lt;strong&gt;Rålekker Azimut 47 fly selges! Meget pen 2010 modell, med riktig utstyr. Båten er nylig sjøsatt og klar for ny sesong. Alltid lagret innendørs, og med kun ca. 620 timer på motorene er dette en meget velholdt båt.&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p class=&quot;fo…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/azimut-47-fly" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Azimut 47 Fly">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-2" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-2" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-2" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="2">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="viksund-290%2F310-st.-cruz" data-idx="3">
+      <div class="card-num">#4</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_6510e90e10584ef2bcb841a51013ca9e~mv2_d_5447_3631_s_4_2.jpg" alt="Viksund 290/310 St. Cruz" loading="lazy">
+        <div class="img-count">33 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Viksund 290/310 St. Cruz</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2000</span>
+          <span><strong>Lengde:</strong> 31 fot</span>
+          <span><strong>Merke:</strong> Viksund</span>
+          <span><strong>Modell:</strong> 290/310 St. Cruz</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 690000</span>
+          <span><strong>Motor:</strong> Volvo Penta 41 Innenbords 193 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p&gt;&lt;span style=&quot;font-style:italic&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;&lt;span style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif&quot;&gt;Vi har f&amp;aring;tt inn for salg en meget velholdt Viksund 290/310 St. Cruz. B&amp;aring;ten har kun hatt &amp;eacute;n eier fra ny til 2018, f&amp;oslash;r n&amp;aring;v&amp;aelig…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/viksund-290%2F310-st.-cruz" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Viksund 290/310 St. Cruz">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-3" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-3" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-3" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="3">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="candela-c-8" data-idx="4">
+      <div class="card-num">#5</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/b99d91_248be5adec634dec8929f461b89a2080~mv2.png" alt="Candela C-8" loading="lazy">
+        <div class="img-count">17 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Candela C-8</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2022</span>
+          <span><strong>Lengde:</strong> 28 fot</span>
+          <span><strong>Merke:</strong> Candela</span>
+          <span><strong>Modell:</strong> C-8</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 3750000</span>
+          <span><strong>Motor:</strong> Candela C-POD Elektrisk 45/50kW</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;em&gt;Som norsk agent for svenske Candela Speed Boat har vi gleden av å introdusere helt nye Candela C-8 for det norske markedet.&amp;nbsp;&lt;/em&gt;&lt;br&gt;
+&lt;br&gt;
+Ved å løfte skroget ut av vannet, oppnår man langt bedre ytelser enn hva andre elektriske båter på markedet klarer å matche. Med en to…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/candela-c-8" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Candela C-8">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-4" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-4" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-4" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="4">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="vandutch-40-open---2008" data-idx="5">
+      <div class="card-num">#6</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/b99d91_f6b7f1f6b6c44a7c9e6b2ff1103b0fa4~mv2.jpg" alt="Vandutch 40 Open - 2008" loading="lazy">
+        <div class="img-count">22 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Vandutch 40 Open - 2008</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2008</span>
+          <span><strong>Lengde:</strong> 40 fot</span>
+          <span><strong>Merke:</strong> Vandutch</span>
+          <span><strong>Modell:</strong> 40 Open</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 2495000</span>
+          <span><strong>Motor:</strong> 2 x Yanmar 6BY260 Innenbords 520 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot; style=&quot;font-size: 14px&quot;&gt;&lt;em&gt;&lt;strong&gt;VanDutch er nederlansk håndtverk og design på sitt beste. Det minimalistiske Frank Mulder Designet i kombinasjon med nederlansk byggekvalitet, har gjort VanDutch til en av de mest ikoniske og mest populære dayboatene/superyacht tenderne verden ov…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/vandutch-40-open---2008" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Vandutch 40 Open">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-5" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-5" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-5" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="5">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="marex-310-sun-cruiser" data-idx="6">
+      <div class="card-num">#7</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_ec486115af9c4192a6dcf5ed552c2569~mv2.jpg" alt="Marex 310 Sun Cruiser" loading="lazy">
+        <div class="img-count">67 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Marex 310 Sun Cruiser</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2021</span>
+          <span><strong>Lengde:</strong> 31 fot</span>
+          <span><strong>Merke:</strong> Marex </span>
+          <span><strong>Modell:</strong> 310 Sun Cruiser</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 3190000</span>
+          <span><strong>Motor:</strong> Volvo Penta D6-380 Innenbords 380 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;strong&gt;Vi har fått inn for salg en nydelig 2021 Marex 310 Sun Cruiser. Med sine drøyt 100 timer og svært gode utstyrsspec fremstår hun som et attraktivt høstkupp.&lt;/strong&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;&lt;strong&gt;Nypris idag er over 3,7 Mnok+.&lt;/strong&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;&lt;strong&gt;Båten er …</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/marex-310-sun-cruiser" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Marex  310 Sun Cruiser">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-6" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-6" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-6" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="6">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="grand-banks-47-heritage-eu" data-idx="7">
+      <div class="card-num">#8</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_aff794bf223b40e79fc23cc5d4609946~mv2.jpg" alt="Grand Banks 47 Heritage EU" loading="lazy">
+        <div class="img-count">89 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Grand Banks 47 Heritage EU</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2008</span>
+          <span><strong>Lengde:</strong> 47 fot</span>
+          <span><strong>Merke:</strong> Grand Banks</span>
+          <span><strong>Modell:</strong> 47 Heritage EU</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 5900000</span>
+          <span><strong>Motor:</strong> 2 x Cummins Qsc 8.3  Innenbords 1100 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;em&gt;&lt;strong&gt;Vi har fått inn for salg en nydelig Grand Banks 47 Heritage EU. Dette er Europa&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;&lt;em&gt;&lt;strong&gt;versjonen, og siden hun er bygget i 2008 får du med det store akterdekket og utenpåmontert badeplattform. Med to sett petimeter-eiere fremstår…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/grand-banks-47-heritage-eu" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Grand Banks 47 Heritage EU">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-7" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-7" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-7" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="7">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="nimbus-230-r" data-idx="8">
+      <div class="card-num">#9</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_9604bb0c1ec84d9084bb65fa9f470b3e~mv2_d_5472_3648_s_4_2.jpg" alt="Nimbus 230 R" loading="lazy">
+        <div class="img-count">11 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nimbus 230 R</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2003</span>
+          <span><strong>Lengde:</strong> 23 fot</span>
+          <span><strong>Merke:</strong> Nimbus</span>
+          <span><strong>Modell:</strong> 230 R</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 375000</span>
+          <span><strong>Motor:</strong> Volvo Penta GXI 5.7 Innenbords 320 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;Om b&amp;aring;ten:&lt;/span&gt;&lt;br /&gt;
+Nimbus Nova 230R er den optimale landstedsb&amp;aring;t i premium -segmentet Med den spesielle bunnkonstruksjonen til Ocke Mannerfelt er dette…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nimbus-230-r" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Nimbus 230 R">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-8" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-8" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-8" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="8">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="cormate-23-su---2022-shark-grey" data-idx="9">
+      <div class="card-num">#10</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_a2df990473d344de9bc7158d9d3d4d18~mv2.webp" alt="Cormate 23 SU - 2022 Shark Grey" loading="lazy">
+        <div class="img-count">46 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Cormate 23 SU - 2022 Shark Grey</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2022</span>
+          <span><strong>Lengde:</strong> 23 fot</span>
+          <span><strong>Merke:</strong> Cormate 23 Super Utility</span>
+          <span><strong>Modell:</strong> 2022</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 889000</span>
+          <span><strong>Motor:</strong> Mercruiser 6,2l V8 350 Innenbords 350 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p class=&quot;font_7&quot;&gt;&lt;strong&gt;Vi har fått inn en særdeles lekker og fullspekket Cormate 23SU for salg – en båt som leverer både prestasjon og premiumfølelse i toppklasse. Dette er Super Utility-versjonen, utstyrt med den største bensinmotoren som leveres til modellen: En Mercury 6.2L V8 på 350 hk, DTS-g…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/cormate-23-su---2022-shark-grey" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Cormate 23 Super Utility 2022">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-9" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-9" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-9" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="9">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="comtesse-%22liberty%22" data-idx="10">
+      <div class="card-num">#11</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_985787a9c90d4e8abd6244b5c71502a8~mv2.jpg" alt="Comtesse &quot;Liberty&quot;" loading="lazy">
+        <div class="img-count">23 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Comtesse &quot;Liberty&quot;</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 1967</span>
+          <span><strong>Lengde:</strong> 49 fot</span>
+          <span><strong>Merke:</strong> Ostseewerft Karl Vertens</span>
+          <span><strong>Modell:</strong> Comtesse</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 1190000</span>
+          <span><strong>Motor:</strong> 2 x Yanmar BY260 Innenbords 520 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;em&gt;&lt;strong&gt;Vi har fått inn for salg en sjelden og meget pen Comtesse. “Liberty” er bygget ved Ostseewerft Karl Vertens i 1967 og med jevnlig vedlikehold og flere store oppgraderinger gjennom årenes løp fremstår hun nå som et smykke på sjøen.&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;&lt;br…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/comtesse-%22liberty%22" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Ostseewerft Karl Vertens Comtesse">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-10" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-10" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-10" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="10">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="sargo-25" data-idx="11">
+      <div class="card-num">#12</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_f3e9771304ba45afabad68dd9f2a4c4e~mv2.jpg" alt="Sargo 25" loading="lazy">
+        <div class="img-count">40 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Sargo 25</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2018</span>
+          <span><strong>Lengde:</strong> 25 fot</span>
+          <span><strong>Merke:</strong> Sargo</span>
+          <span><strong>Modell:</strong> 25</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 1590000</span>
+          <span><strong>Motor:</strong> Volvo Penta D4-260 Innenbords 260 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;em&gt;&lt;strong&gt;VI HAR FÅTT INN FOR SALG EN RÅTØFF SARGO 25. BÅTEN ER MEGET VELHOLDT, LAGRET INNENDØRS OG MED FULL SERVICEHISTORIKK.&lt;/strong&gt;&lt;/em&gt;&lt;em&gt;&amp;nbsp;&lt;/em&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;&lt;br&gt;
+Nydelig &amp;nbsp;helårsbåt med solide egenskaper. Skumfylt skrog, stor takluke og dører &amp;nbsp;ut på …</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/sargo-25" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Sargo 25">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-11" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-11" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-11" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="11">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="nordkapp-airborne-7" data-idx="12">
+      <div class="card-num">#13</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_30a202a3ec7a43f1bb4baf5739f5ff5f~mv2.jpg" alt="Nordkapp Airborne 7" loading="lazy">
+        <div class="img-count">35 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nordkapp Airborne 7</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2021</span>
+          <span><strong>Lengde:</strong> 22 fot</span>
+          <span><strong>Merke:</strong> Nordkapp</span>
+          <span><strong>Modell:</strong> Airborne 7</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 859000</span>
+          <span><strong>Motor:</strong> Mercury Verado 250 Utenbords 250 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;em&gt;&lt;strong&gt;Vi har fått for salg en toppspeccet Nordkapp Airborne 7 fra 2021! Motoren har kun 25 timer på telleren, og båten fremstår som ubetydelig brukt. Speccet med bla. ekstra belysning, ankervinsj og baugthruster på fjernkontroll og kjøleskuff.&lt;br&gt;
+&lt;br&gt;
+&lt;/strong&gt;&lt;/em&gt;&lt;strong&gt;O…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nordkapp-airborne-7" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Nordkapp Airborne 7">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-12" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-12" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-12" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="12">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="goldfish-29-sport---2015" data-idx="13">
+      <div class="card-num">#14</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_f1565037e3da4cffbdaaed53b7a2cd5f~mv2.jpg" alt="Goldfish 29 Sport - 2015" loading="lazy">
+        <div class="img-count">18 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Goldfish 29 Sport - 2015</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2015</span>
+          <span><strong>Lengde:</strong> 31 fot</span>
+          <span><strong>Merke:</strong> Goldfish</span>
+          <span><strong>Modell:</strong> 29 Sport</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 1730000</span>
+          <span><strong>Motor:</strong> Mercury Racing 8.6 Innenbords 520 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;strong&gt;Goldfish 29 Sport er en fantastisk kjøremaskin, og nå ha vi gleden av å tilby for salg et flott eksemplar fra 2015, med meget bra spec!&lt;/strong&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;Denne båten er utstyrt med Mercury racing sin 8.6 liter bensimotor på 520 HK.&lt;/p…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/goldfish-29-sport---2015" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Goldfish 29 Sport">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-13" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-13" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-13" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="13">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="windy-7500" data-idx="14">
+      <div class="card-num">#15</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_9640aed22f864a3eac4954ce5d9e3f3f~mv2_d_5760_3840_s_4_2.jpg" alt="Windy 7500" loading="lazy">
+        <div class="img-count">23 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Windy 7500</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2000</span>
+          <span><strong>Lengde:</strong> 25 fot</span>
+          <span><strong>Merke:</strong> Windy</span>
+          <span><strong>Modell:</strong> 7500</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 290000</span>
+          <span><strong>Motor:</strong> Volvo Penta AQ KAD 32 Innenbords 160 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif&quot;&gt;&lt;span style=&quot;font-style:italic&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;Vi har f&amp;aring;tt inn for salg en meget velholdt og oppgradert Windy 7500 fra 1999. B&amp;aring;ten har v&amp;aelig;rt i eie hos selger siden 2…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/windy-7500" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Windy 7500">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-14" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-14" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-14" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="14">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="beneteau-mc6s" data-idx="15">
+      <div class="card-num">#16</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_79d1584d701e422d9b3a21fc4b30aaf5~mv2.jpg" alt="Beneteau MC6S" loading="lazy">
+        <div class="img-count">110 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Beneteau MC6S</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2017</span>
+          <span><strong>Lengde:</strong> 60 fot</span>
+          <span><strong>Merke:</strong> Beneteau </span>
+          <span><strong>Modell:</strong> MC6S</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> 8.900.000,-</span>
+          <span><strong>Pris (NOK):</strong> 8900000</span>
+          <span><strong>Motor:</strong> 2 x Cummins Qsc 8,3 600 HK Innenbords 1 200 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p class=&quot;font_7&quot;&gt;&lt;em&gt;&lt;strong&gt;Vi har for salg en nydelig Beneteau MC6S. Båten ble levert ny i Norge i 2017, og er nå etter ca. 700 timer med jevnlig service og betydelige oppgraderinger klar for nye eiere.&lt;br&gt;
+&lt;br&gt;
+Med joystickstyringen ute på styrbordside er det svært enkelt å legge til longside. D…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/beneteau-mc6s" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Beneteau  MC6S">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-15" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-15" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-15" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="15">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="chris-craft-carina-21" data-idx="16">
+      <div class="card-num">#17</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/b99d91_31df5bc5951e4a21a754a718ed924b99~mv2_d_5760_3840_s_4_2.jpg" alt="Chris-Craft Carina 21" loading="lazy">
+        <div class="img-count">38 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Chris-Craft Carina 21</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2014</span>
+          <span><strong>Lengde:</strong> 21 fot</span>
+          <span><strong>Merke:</strong> Chris-Craft</span>
+          <span><strong>Modell:</strong> Carina 21</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 575000</span>
+          <span><strong>Motor:</strong> Volvo Penta V8-300 FWC Innenbords 300 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p style=&quot;font-size: 14px;&quot;&gt;&lt;span style=&quot;font-weight:bold;&quot;&gt;&lt;span style=&quot;font-size:14px;&quot;&gt;For salg har vi en lekker Carina 21 fra 2014 utstyrt med en Volvo Penta V8 bensinmotor med kun ca 120 timer.&amp;nbsp;&lt;/span&gt;&lt;/span&gt;&lt;/p&gt;
+
+&lt;p style=&quot;font-size: 14px;&quot;&gt;&lt;span style=&quot;font-weight:bold;&quot;&gt;&lt;span style=&quot;fon…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/chris-craft-carina-21" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Chris-Craft Carina 21">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-16" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-16" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-16" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="16">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="targa-27.1" data-idx="17">
+      <div class="card-num">#18</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_515285edf12c4de5a91b079ca39df421~mv2_d_6000_4000_s_4_2.jpg" alt="Targa 27.1" loading="lazy">
+        <div class="img-count">5 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Targa 27.1</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2017</span>
+          <span><strong>Lengde:</strong> 29 fot</span>
+          <span><strong>Merke:</strong> Targa</span>
+          <span><strong>Modell:</strong> 27.1</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 1895000</span>
+          <span><strong>Motor:</strong> Volvo Penta D6-330 DPH Innenbords 330 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif&quot;&gt;Vi har f&amp;aring;tt inn for salg en velholdt Targa 27 fra 2017.&amp;nbsp;&lt;br /&gt;
+Registrert i skipsregisteret. B&amp;aring;ten er skadefri, og kj&amp;oslash;pt ny hos Thor R Nilsen AS. Ligger p&amp;aring; sj&amp;oslash;en…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/targa-27.1" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Targa 27.1">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-17" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-17" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-17" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="17">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="azimut-atlantis-40-ht" data-idx="18">
+      <div class="card-num">#19</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_0029325423804e47b462649dff9fb3e3~mv2.jpg" alt="Azimut Atlantis 40 HT" loading="lazy">
+        <div class="img-count">74 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Azimut Atlantis 40 HT</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2011</span>
+          <span><strong>Lengde:</strong> 41 fot</span>
+          <span><strong>Merke:</strong> Azimut Atlantis</span>
+          <span><strong>Modell:</strong> 40 HT</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 2845000</span>
+          <span><strong>Motor:</strong> 2 x Volvo Penta D6-330 Innenbords 660 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;em&gt;&lt;strong&gt;Vi har på vei inn for salg en meget velholdt 2011 modell, Azimut Atlantis 40 HT! Båten er holdt av svært pertentlig eier, og er betydelig vedlikeholdt og oppgradert. Båten er nylig sjøsatt, og klar for ny sesong med drøyt 600 timer på telleren.&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;
+&lt;p clas…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/azimut-atlantis-40-ht" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Azimut Atlantis 40 HT">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-18" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-18" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-18" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="18">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="timeless-34-nordic" data-idx="19">
+      <div class="card-num">#20</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_ca3b73b6e12b4bb189b9586e0023db70~mv2.webp" alt="Timeless Nordic" loading="lazy">
+        <div class="img-count">62 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Timeless Nordic</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2018</span>
+          <span><strong>Lengde:</strong> 36 fot</span>
+          <span><strong>Merke:</strong> Timeless</span>
+          <span><strong>Modell:</strong> Nordic</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> 3.690.000,-</span>
+          <span><strong>Pris (NOK):</strong> 3690000</span>
+          <span><strong>Motor:</strong> Yanmar 320 PK, 8LV-320 Innenbords 320 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match (verifisert mot deal-båter)
+        </div>
+        <div class="desc">&lt;p class=&quot;font_7&quot;&gt;&lt;strong&gt;En moderne gentlemans cruiser med autentisk design og unike tilpasninger.&lt;/strong&gt;&lt;/p&gt;
+&lt;p class=&quot;font_7&quot;&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p class=&quot;font_7&quot;&gt;House of Yachts presenterer en svært spesiell mulighet: En nederlandskbygget Timeless Yachts, her importert til Norge og oppgradert med et spe…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/timeless-34-nordic" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Timeless Nordic">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-19" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-19" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-19" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="19">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="beneteau-oceanis-37" data-idx="20">
+      <div class="card-num">#21</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_d545dcfea150471e9a917ecba2d6ab95~mv2.jpg" alt="Beneteau Oceanis 37" loading="lazy">
+        <div class="img-count">90 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Beneteau Oceanis 37</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2012</span>
+          <span><strong>Lengde:</strong> 37 fot</span>
+          <span><strong>Merke:</strong> Beneteau </span>
+          <span><strong>Modell:</strong> Oceanis 37</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 1185000</span>
+          <span><strong>Motor:</strong> Yanmar Innenbords 29 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p class=&quot;font_7&quot;&gt;House of Yachts presenterer Beneteau Oceanis 37. Båten har kun hatt én eier, og er klar til salg og levering.&lt;/p&gt;
+&lt;p class=&quot;font_7&quot;&gt;Beneteau Oceanis 37, tegnet av Jean Marie Finot, ble lansert i 2006, og ble raskt en salgssuksess. Det er lett å forstå - båten&lt;/p&gt;
+&lt;p class=&quot;font_7&quot;&gt;…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/beneteau-oceanis-37" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Beneteau  Oceanis 37">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-20" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-20" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-20" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="20">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="nimbus-250-r" data-idx="21">
+      <div class="card-num">#22</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_fd798b9249f24fb989f701338984cbea~mv2_d_5472_3648_s_4_2.jpg" alt="Nimbus 250 R" loading="lazy">
+        <div class="img-count">16 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nimbus 250 R</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2004</span>
+          <span><strong>Lengde:</strong> 25 fot</span>
+          <span><strong>Merke:</strong> Nimbus </span>
+          <span><strong>Modell:</strong> 250R</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> </span>
+          <span><strong>Motor:</strong> Volvo Penta KAD300 Innenbords 300 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;&lt;span style=&quot;font-style:italic&quot;&gt;Vi har f&amp;aring;tt inn for salg en fin Nimbus 250R fra 2004.&lt;/span&gt;&lt;/span&gt;&lt;br /&gt;
+&lt;span style=&quot;font-weight:bold&quot;&gt;&lt;span style=&quot;font-style:…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nimbus-250-r" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Nimbus  250R">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-21" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-21" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-21" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="21">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="goldfish-38-supersport" data-idx="22">
+      <div class="card-num">#23</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_b70735967fdc4d0095a4fd69e81cf5a7~mv2.jpg" alt="Goldfish 38 SuperSport" loading="lazy">
+        <div class="img-count">42 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Goldfish 38 SuperSport</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2016</span>
+          <span><strong>Lengde:</strong> 39</span>
+          <span><strong>Merke:</strong> Goldfish</span>
+          <span><strong>Modell:</strong> 38 Supersport</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 2250000</span>
+          <span><strong>Motor:</strong> 2 x Mercury 4.2 TDI Innenbords 740 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p class=&quot;font_7&quot;&gt;&lt;em&gt;&lt;strong&gt;Vi har fått for salg en helt rå Goldfish 38 Supersport fra 2016. Båten er betydelig oppgradert senere år med blandt annet nye tubes, nytt putesett, ny gripfoam på dørken og nye patrol seats. Ligger sjøsatt, klar for umiddelbar overtakelse.&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;
+&lt;p class=&quot;fo…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/goldfish-38-supersport" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Goldfish 38 Supersport">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-22" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-22" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-22" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="22">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="fairline-targa-37" data-idx="23">
+      <div class="card-num">#24</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_e8d0ace5a8be461f88a85b8c9f9bd37d~mv2.jpg" alt="Fairline Targa 37" loading="lazy">
+        <div class="img-count">56 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Fairline Targa 37</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 1999</span>
+          <span><strong>Lengde:</strong> 37 fot</span>
+          <span><strong>Merke:</strong> Fairline</span>
+          <span><strong>Modell:</strong> Targa 37</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 1100000</span>
+          <span><strong>Motor:</strong> 2 x Volvo Penta KAD 44 EDC Innenbords 520 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p class=&quot;font_7&quot;&gt;&lt;strong&gt;Fairline Targa 37 – en klassiker i solid britisk kvalitet. Her får du en romslig og veldesignet båt med den perfekte kombinasjonen av komfort, kjøreegenskaper og praktiske løsninger. Targa serien har vært en favoritt blant kresne båteiere i årevis, og denne båten er intet u…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/fairline-targa-37" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Fairline Targa 37">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-23" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-23" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-23" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="23">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="axopar-37-cabin" data-idx="24">
+      <div class="card-num">#25</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_20788a602d6948c391741b0608592342~mv2_d_2048_1536_s_2.jpg" alt="Axopar 37 Cabin" loading="lazy">
+        <div class="img-count">19 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Axopar 37 Cabin</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2018</span>
+          <span><strong>Lengde:</strong> 37 fot</span>
+          <span><strong>Merke:</strong> Axopar</span>
+          <span><strong>Modell:</strong> 37 Cabin</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 1680000</span>
+          <span><strong>Motor:</strong> 2 x Yamaha F300BETU Utenbords 600 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif&quot;&gt;&lt;span style=&quot;font-style:italic&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;Vi har f&amp;aring;tt inn for salg en meget pen 2018 Axopar 37 med 2 x 300 Yamaha. B&amp;aring;ten ligger innend&amp;oslash;rs lagret i varm hall (…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/axopar-37-cabin" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Axopar 37 Cabin">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-24" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-24" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-24" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="24">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="anker-%26-jensen-8mr-1914-carmen-iv" data-idx="25">
+      <div class="card-num">#26</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_689b30f89917439a852bd581f3645ba0~mv2.jpg" alt="Anker &amp; Jensen 8mR 1914 Carmen IV" loading="lazy">
+        <div class="img-count">15 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Anker &amp; Jensen 8mR 1914 Carmen IV</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 1914</span>
+          <span><strong>Lengde:</strong> 43 fot</span>
+          <span><strong>Merke:</strong> Anker &amp; Jensen</span>
+          <span><strong>Modell:</strong> 8mR </span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> 590.000,- </span>
+          <span><strong>Pris (NOK):</strong> 590000</span>
+          <span><strong>Motor:</strong> Volvo Penta D1-30 Innenbords 30 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match (verifisert mot deal-båter)
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;em&gt;&lt;strong&gt;Vi er så heldige å ha fått inn for salg en meget pen Anker &amp;amp; &amp;nbsp;Jensen 8mR fra 1914&amp;nbsp; - Carmen IV. Det er sjelden disse er tilgjengelig &amp;nbsp;på markedet, og vi ser nå etter nye eiere som ønsker å føre historien &amp;nbsp;videre og ta godt vare på henne.&lt;/strong&gt;…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/anker-%26-jensen-8mr-1914-carmen-iv" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Anker &amp; Jensen 8mR ">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-25" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-25" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-25" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="25">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="nimbus-280-coup%C3%A9" data-idx="26">
+      <div class="card-num">#27</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_8745a26c64a14077b75bc4f1985a7876~mv2.jpg" alt="Nimbus 280 Coupé" loading="lazy">
+        <div class="img-count">22 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nimbus 280 Coupé</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2004</span>
+          <span><strong>Lengde:</strong> 28 fot</span>
+          <span><strong>Merke:</strong> Nimbus</span>
+          <span><strong>Modell:</strong> 280 Coupé</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 595000</span>
+          <span><strong>Motor:</strong> Volvo Penta TAMD31P Innenbords 150 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;em&gt;&lt;strong&gt;Vi har fått inn for salg en pen Nimbus 280 Coupé fra 2004. Båten er godt utstyrt og godt holdt.&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;Enkel adkomst fra stor badeplattform gjennom hekkport, til akterdekket. Her er det god plass, med flere fine sitteplasser. Solid bakdør in…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nimbus-280-coup%C3%A9" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Nimbus 280 Coupé">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-26" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-26" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-26" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="26">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="windy-44-chinook" data-idx="27">
+      <div class="card-num">#28</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/b99d91_5027343071fb490c821a66bbb7187427~mv2.jpg" alt="Windy 44 Chinook" loading="lazy">
+        <div class="img-count">43 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Windy 44 Chinook</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2010</span>
+          <span><strong>Lengde:</strong> 44 fot</span>
+          <span><strong>Merke:</strong> Windy</span>
+          <span><strong>Modell:</strong> 44 Chinook</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 3850000</span>
+          <span><strong>Motor:</strong> 2 x Volvo Penta D6-370 Innenbord 740 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;For salg har vi et eksepsjonelt eksemplar av en Windy 44 Chinook. Ligget kun ca. 5 uker p&amp;aring; sj&amp;oslash;en hver sommer, ellers lagret innend&amp;oslash;rs. B&amp;aring;ten …</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/windy-44-chinook" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Windy 44 Chinook">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-27" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-27" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-27" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="27">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="bostr%C3%B8m-31-mki" data-idx="28">
+      <div class="card-num">#29</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_402ed23fee644768b31f1fc89fb39f76~mv2.jpg" alt="Bostrøm 31 MkI" loading="lazy">
+        <div class="img-count">38 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Bostrøm 31 MkI</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 1978</span>
+          <span><strong>Lengde:</strong> 31 fot</span>
+          <span><strong>Merke:</strong> Bostrøm </span>
+          <span><strong>Modell:</strong> 31 MkI</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 149000</span>
+          <span><strong>Motor:</strong> GreenStar GS10SX Innenbords 10 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;em&gt;House of Yachts Sail Division presenterer nå denne betydelig oppgraderte og moderniserte Bostrøm 31.&lt;/em&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;Bostrøm 31 passer ypperlig for seileren med sans for en annerledes og enkel god seilbåt.&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p …</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/bostr%C3%B8m-31-mki" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Bostrøm  31 MkI">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-28" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-28" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-28" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="28">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="jeanneau-sun-odyssey-36i" data-idx="29">
+      <div class="card-num">#30</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_5b804225feda4c2088a48c8dee6da763~mv2.jpg" alt="Jeanneau Sun Odyssey 36i" loading="lazy">
+        <div class="img-count">24 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Jeanneau Sun Odyssey 36i</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2008</span>
+          <span><strong>Lengde:</strong> 36 fot</span>
+          <span><strong>Merke:</strong> Jeanneau</span>
+          <span><strong>Modell:</strong> Sun Odyssey 36i</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 799000</span>
+          <span><strong>Motor:</strong> Yanmar Innenbords 29 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p class=&quot;font_7&quot;&gt;Oppgradert eksemplar av Jeanneau 36i er nå til salgs hos House of Yachts!&lt;/p&gt;
+&lt;p class=&quot;font_7&quot;&gt;Båten har en romslig layout med 2 kabiner, lys og pen salong, samt en velutstyrt bysse og toalett med separat dusj. Perfekt for cruising eller familieturer.&lt;/p&gt;
+&lt;p class=&quot;font_7&quot;&gt;&lt;br&gt;&lt;/p…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/jeanneau-sun-odyssey-36i" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Jeanneau Sun Odyssey 36i">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-29" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-29" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-29" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="29">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="cormate-35-chase" data-idx="30">
+      <div class="card-num">#31</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_9e85c3d644074fe682dcd5e8c6def7fb~mv2.webp" alt="Cormate 35 Chase" loading="lazy">
+        <div class="img-count">60 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Cormate 35 Chase</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2023</span>
+          <span><strong>Lengde:</strong> 35 fot</span>
+          <span><strong>Merke:</strong> Cormate</span>
+          <span><strong>Modell:</strong> 35 Chase</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 2550000</span>
+          <span><strong>Motor:</strong> 2 x Mercruiser 350 V8 Innenbords 700 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p class=&quot;font_7&quot;&gt;&lt;strong&gt;Vi har gleden av å presentere en strøken og velutstyrt Cormate Chase 35 – levert ny i 2023 og nå tilgjengelig for ny eier. Dette er toppmodellen i Cormate-serien, og en båt som kombinerer offshoreracing-DNA med gjennomført komfort og design i særklasse. Båten fremstår nær n…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/cormate-35-chase" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Cormate 35 Chase">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-30" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-30" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-30" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="30">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="baltic-krager%C3%B8-34" data-idx="31">
+      <div class="card-num">#32</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_4b9125a9aca44aac9674321775b96d5d~mv2.webp" alt="Baltic Kragerø 34" loading="lazy">
+        <div class="img-count">22 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Baltic Kragerø 34</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2002</span>
+          <span><strong>Lengde:</strong> 34 fot</span>
+          <span><strong>Merke:</strong> Baltic Marine</span>
+          <span><strong>Modell:</strong> Kragerø Trebåtbyggeri 34</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> 2.700.000,-</span>
+          <span><strong>Pris (NOK):</strong> 2700000</span>
+          <span><strong>Motor:</strong> 2 x Yanmar Diesel Innenbords 580 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match (verifisert mot deal-båter)
+        </div>
+        <div class="desc">&lt;p class=&quot;font_7&quot;&gt;House of Yachts presenterer nå en unik og vanvittig flott motorbåt! Norsk design (Kragerø Trebåtbyggeri) som byr på&lt;/p&gt;
+&lt;p class=&quot;font_7&quot;&gt;klassiske linjer, med italienske Riva som en naturlig sammenligning. Båten er epoxy-bygget, og krever dermed langt mindre&lt;/p&gt;
+&lt;p class=&quot;font_7&quot;&gt;…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/baltic-krager%C3%B8-34" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Baltic Marine Kragerø Trebåtbyggeri 34">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-31" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-31" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-31" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="31">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="jeanneau-so-49-ds" data-idx="32">
+      <div class="card-num">#33</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_7ee4ec3cf9ca471aadc40ecc49bfcff9~mv2.jpg" alt="Jeanneau SO 49 DS" loading="lazy">
+        <div class="img-count">21 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Jeanneau SO 49 DS</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2005</span>
+          <span><strong>Lengde:</strong> 49 fot</span>
+          <span><strong>Merke:</strong> Jeanneau</span>
+          <span><strong>Modell:</strong> Sun Odyssey 49 DS</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 1750000</span>
+          <span><strong>Motor:</strong> Yanmar 4JH3-HTE Innenbords 100 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;&lt;span style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif&quot;&gt;Vi har for salg en veldig lite brukt Jeanneau Sun Odyssey 49 DS&lt;/span&gt;&lt;/span&gt;&lt;br /&gt;
+&lt;span style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif&quot;&gt;Dette e…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/jeanneau-so-49-ds" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Jeanneau Sun Odyssey 49 DS">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-32" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-32" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-32" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="32">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="modesty-33-sc" data-idx="33">
+      <div class="card-num">#34</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_7aea9fc9c3cc4a71b33f5bda0edb939d~mv2.jpg" alt="Modesty 33 SC" loading="lazy">
+        <div class="img-count">53 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Modesty 33 SC</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2012</span>
+          <span><strong>Lengde:</strong> 33 fot</span>
+          <span><strong>Merke:</strong> Modesty</span>
+          <span><strong>Modell:</strong> 33 SportsCruiser</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 845000</span>
+          <span><strong>Motor:</strong> Mercruiser v6 4.2 liter Innenbords 350 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;em&gt;&lt;strong&gt;Vi har fått inn for salg en utrolig lekker Modesty 33 SC fra 2012! Denne rålekre, norske cruiseren fra 2012 byr på enormt med båtglede, smarte løsninger og en god dose lekre linjer.&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;Mercruiser v6 Diesel på 3…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/modesty-33-sc" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Modesty 33 SportsCruiser">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-33" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-33" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-33" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="33">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="arctic-blue-27-mkii" data-idx="34">
+      <div class="card-num">#35</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_289c5c575d79450da45ed6f86b650d7b~mv2.jpg" alt="Arctic Blue 27 mkII" loading="lazy">
+        <div class="img-count">47 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Arctic Blue 27 mkII</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2006</span>
+          <span><strong>Lengde:</strong> 28 fot</span>
+          <span><strong>Merke:</strong> Arctic Blue</span>
+          <span><strong>Modell:</strong> 27 mkII</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 365000</span>
+          <span><strong>Motor:</strong> Mercruiser 4,2L 320 Innenbords 320 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;Råtøff Arctic Blue 27 mkII fra 2006, med mange oppgraderinger siste årene.&lt;br&gt;
+&lt;br&gt;
+Denne norskkonstruerte båten har i tillegg til et svært bra steppet skrog, også fokus på komfort og sikkerhet, og er mest sannsynlig den RIBen på markedet under 35 fot med mest solbadingsareale, med…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/arctic-blue-27-mkii" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Arctic Blue 27 mkII">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-34" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-34" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-34" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="34">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="nordkapp-760-noblesse" data-idx="35">
+      <div class="card-num">#36</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_52debfad333b4c8ea7beb7d0ed6a516d~mv2.jpg" alt="Nordkapp 760 Noblesse" loading="lazy">
+        <div class="img-count">20 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nordkapp 760 Noblesse</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2011</span>
+          <span><strong>Lengde:</strong> 25 fot</span>
+          <span><strong>Merke:</strong> Nordkapp</span>
+          <span><strong>Modell:</strong> 760 Noblesse</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 595000</span>
+          <span><strong>Motor:</strong> Evinrude E-Tec 250 Utenbords 250 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;strong&gt;Vi har fått inn for salg en meget velholdt Nordkapp 760 Noblesse fra 2011. Klar for henting umiddelbart, ferdig stroppet og klar for sommerferie på en flott, registrert Tredal-henger med el.vinsj. Gjør det svært enkelt å slippsette båten.&lt;/strong&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;&lt;br&gt;…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nordkapp-760-noblesse" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Nordkapp 760 Noblesse">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-35" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-35" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-35" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="35">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="beneteau-41-swift-trawler-sedan" data-idx="36">
+      <div class="card-num">#37</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_b75b274a14c442c2a95b2cf0ab8e237e~mv2.jpg" alt="Beneteau 41 Swift Trawler Sedan" loading="lazy">
+        <div class="img-count">60 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Beneteau 41 Swift Trawler Sedan</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2021</span>
+          <span><strong>Lengde:</strong> 41 fot</span>
+          <span><strong>Merke:</strong> Beneteau</span>
+          <span><strong>Modell:</strong> 41 Swift Trawler Sedan</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> 4.790.000,-</span>
+          <span><strong>Pris (NOK):</strong> 4790000</span>
+          <span><strong>Motor:</strong> 2 x Volvo Penta D4-300 Innenbords 600 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p class=&quot;font_7&quot;&gt;&lt;strong&gt;Vi har gleden av å tilby en særdeles velholdt Beneteau Swift Trawler 41 Sedan – en sjelden mulighet til å skaffe seg en ettertraktet turbåt til en solid prisreduksjon sett opp mot nypris.&lt;/strong&gt;&lt;/p&gt;
+&lt;p class=&quot;font_7&quot;&gt;&lt;strong&gt;Båten er registrert i NOR og kan besiktiges i n…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/beneteau-41-swift-trawler-sedan" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Beneteau 41 Swift Trawler Sedan">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-36" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-36" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-36" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="36">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="quicksilver-905-pilothouse" data-idx="37">
+      <div class="card-num">#38</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_47739fe59ddd4acab31e3a6777e1fd02~mv2.jpg" alt="Quicksilver 905 Pilothouse" loading="lazy">
+        <div class="img-count">48 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Quicksilver 905 Pilothouse</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2016</span>
+          <span><strong>Lengde:</strong> 29 fot</span>
+          <span><strong>Merke:</strong> Quicksilver</span>
+          <span><strong>Modell:</strong> 905 Pilothouse</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 995000</span>
+          <span><strong>Motor:</strong> 2 x Mercury Verado 200 Utenbords 400 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;em&gt;&lt;strong&gt;Vi har fått inn for salg en meget godt utstyrt, og pent holdt Quicksilver 905 Pilothouse fra 2016! Båten er utstyrt med 2 x Mercury Verado 200 HK, kun ca 170 timer på telleren. En skikkelig allværsbåt, i perfekt harmoni mellom fiske og fritidsbåt.&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;
+&lt;p c…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/quicksilver-905-pilothouse" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Quicksilver 905 Pilothouse">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-37" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-37" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-37" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="37">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="archambault-a-31" data-idx="38">
+      <div class="card-num">#39</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/b99d91_b9993381d0c943d589353d34c3502c03~mv2.jpg" alt="Archambault A 31" loading="lazy">
+        <div class="img-count">44 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Archambault A 31</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2010</span>
+          <span><strong>Lengde:</strong> 31 fot</span>
+          <span><strong>Merke:</strong> Archambault</span>
+          <span><strong>Modell:</strong> A 31</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 650000</span>
+          <span><strong>Motor:</strong> Nanni diesel Innenbords 21 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p style=&quot;font-size: 14px;&quot;&gt;&lt;span style=&quot;font-size:14px;&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif;&quot;&gt;Det franske verftet Archambault har siden 1967 v&amp;aelig;rt kjent for &amp;aring; bygge en rekke regattafokuserte seilb&amp;aring;ter fra 25-40 fot.&lt;/span&gt;&lt;/span&gt;&lt;/p&gt;
+
+&lt;p style=&quot;font-size: 14px;&quot;&gt;&lt;span st…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/archambault-a-31" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Archambault A 31">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-38" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-38" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-38" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="38">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="seabreacher-z" data-idx="39">
+      <div class="card-num">#40</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/b99d91_e963572499ba49c7b2c2295bb0b38e7c~mv2.jpg" alt="Seabreacher Z" loading="lazy">
+        <div class="img-count">7 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Seabreacher Z</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2018</span>
+          <span><strong>Lengde:</strong> 17 fot</span>
+          <span><strong>Merke:</strong> Seabreacher</span>
+          <span><strong>Modell:</strong> Z</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 1300000</span>
+          <span><strong>Motor:</strong> Rotax ACE 1630cc 4 stroke Innenbords 300 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p style=&quot;font-size: 14px;&quot;&gt;&lt;span style=&quot;font-size:14px;&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif;&quot;&gt;Om du synes vannscooter er for kjipt, har vi det perfekte alternativet for deg. For salg har vi den f&amp;oslash;rste&amp;nbsp;Seabreacher Z i europa (2018 modell), med&amp;nbsp;et beskjedent timeantall p&amp;a…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/seabreacher-z" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Seabreacher Z">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-39" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-39" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-39" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="39">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="axopar-37-" data-idx="40">
+      <div class="card-num">#41</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_006e829418ab40838dc63d40eed2ade4~mv2_d_2048_1536_s_2.jpg" alt="Axopar 37 " loading="lazy">
+        <div class="img-count">19 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Axopar 37 </h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2018</span>
+          <span><strong>Lengde:</strong> 37 fot</span>
+          <span><strong>Merke:</strong> Axopar</span>
+          <span><strong>Modell:</strong> 37</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 1800000</span>
+          <span><strong>Motor:</strong> 2 x Yamaha F300BETU Utenbords 600 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p&gt;&lt;span style=&quot;font-style:italic&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;&lt;span style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif&quot;&gt;Vi har p&amp;aring; vei inn for salg en 2018 Axopar 37. 2 x 300 Yamaha, lavt timeantall. Klar for umiddelbar levering. Meget godt utstyrt!&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/s…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/axopar-37-" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Axopar 37">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-40" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-40" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-40" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="40">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="marex-360-cc" data-idx="41">
+      <div class="card-num">#42</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_63040915289d4f02a562679d9b994a38~mv2.jpg" alt="Marex 360 CC" loading="lazy">
+        <div class="img-count">46 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Marex 360 CC</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2021</span>
+          <span><strong>Lengde:</strong> 36 fot</span>
+          <span><strong>Merke:</strong> Marex </span>
+          <span><strong>Modell:</strong> 360 CC</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 3990000</span>
+          <span><strong>Motor:</strong> Volvo Penta D6-480 Innenbords 480 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p class=&quot;font_7&quot;&gt;&lt;strong&gt;Vi har fått for salg en meget pen og svært velutstyrt Marex 360CC. Båten er fra 2021, og har knapt tre sesonger under kjølen. Her får du virkelig &quot;ny&quot; båt til brukt pris.&lt;/strong&gt;&lt;/p&gt;
+&lt;p class=&quot;font_7&quot;&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p class=&quot;font_7&quot;&gt;Nydelig, full teakpakke og solseng på fordekk…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/marex-360-cc" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Marex  360 CC">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-41" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-41" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-41" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="41">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="beneteau-swift-trawler-34" data-idx="42">
+      <div class="card-num">#43</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_1c4eb46135274eb8baddb3089d7512c5~mv2_d_5616_3744_s_4_2.jpg" alt="Beneteau Swift Trawler 34" loading="lazy">
+        <div class="img-count">29 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Beneteau Swift Trawler 34</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2011</span>
+          <span><strong>Lengde:</strong> 34 fot</span>
+          <span><strong>Merke:</strong> Beneteau</span>
+          <span><strong>Modell:</strong> Swift Trawler 34</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 1980000</span>
+          <span><strong>Motor:</strong> Cummins QSB  Innenbords 425 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p&gt;&lt;span style=&quot;font-style:italic&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;&lt;span style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif&quot;&gt;Vi har f&amp;aring;tt inn for salg en meget velholdt Beneteau Swift Trawler 34. B&amp;aring;ten har kun hatt to eiere, og ligger for &amp;oslash;yeblikket til havn i Stav…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/beneteau-swift-trawler-34" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Beneteau Swift Trawler 34">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-42" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-42" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-42" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="42">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="bertram-37-convertible" data-idx="43">
+      <div class="card-num">#44</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_d767b65a36ea46e3b80550de162f9a03~mv2.jpeg" alt="Bertram 37 Convertible" loading="lazy">
+        <div class="img-count">37 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Bertram 37 Convertible</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 1992</span>
+          <span><strong>Lengde:</strong> 37 fot</span>
+          <span><strong>Merke:</strong> Bertram</span>
+          <span><strong>Modell:</strong> 37 Convertible</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 1470000</span>
+          <span><strong>Motor:</strong> 2 x GM 6V92TA Innenbords 900 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-style:italic&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;&lt;span style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif&quot;&gt;Vi har fått inn for salg en meget velholdt og betydelig oppgradert Bertram 37 Convertible. &lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/p&gt;
+
+&lt;p style=…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/bertram-37-convertible" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Bertram 37 Convertible">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-43" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-43" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-43" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="43">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="boston-whaler-370-outrage" data-idx="44">
+      <div class="card-num">#45</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_97d610f9a7bd48578fcc3e0e785a3c86~mv2_d_5472_3648_s_4_2.jpg" alt="Boston Whaler 370 Outrage" loading="lazy">
+        <div class="img-count">37 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Boston Whaler 370 Outrage</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2012</span>
+          <span><strong>Lengde:</strong> 37 fot</span>
+          <span><strong>Merke:</strong> Boston Whaler</span>
+          <span><strong>Modell:</strong> 370 Outrage</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> </span>
+          <span><strong>Motor:</strong> 3 x Mercury 300 Verado Utenbords 900 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p style=&quot;font-size: 14px;&quot;&gt;&lt;span style=&quot;font-size:14px;&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif;&quot;&gt;&lt;span style=&quot;font-style:italic;&quot;&gt;&lt;span style=&quot;font-weight:bold;&quot;&gt;Vi har f&amp;aring;tt inn for salg en r&amp;aring;t&amp;oslash;ff Boston Whaler 370 Outrage.&lt;/span&gt;&lt;/span&gt;&lt;br /&gt;
+&lt;br /&gt;
+&lt;span style=&quot;font-wei…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/boston-whaler-370-outrage" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Boston Whaler 370 Outrage">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-44" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-44" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-44" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="44">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="goldfish-23-tender-mkiii" data-idx="45">
+      <div class="card-num">#46</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/b99d91_d943150e1792439b97ccd4d1a74955dc~mv2.jpg" alt="Goldfish 23 Tender mkIII" loading="lazy">
+        <div class="img-count">21 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Goldfish 23 Tender mkIII</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2021</span>
+          <span><strong>Lengde:</strong> 25 fot</span>
+          <span><strong>Merke:</strong> Goldifsh</span>
+          <span><strong>Modell:</strong> 23 Tender mkIII</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 1249000</span>
+          <span><strong>Motor:</strong> Mercury Verado 300 Utenbords 300 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match (verifisert mot deal-båter)
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;Vi har for salg en Goldfish 23 Tender fra 2021. Båten er kun brukt ca. 60 timer, og ligger visningsklar på vår salgsbrygge.&lt;br&gt;
+Med Mercury 300 oppnår du toppfart på over 60 knop. Utstyrt med bla.Grip foam og Garmin kartplotter. Svartlakkert skrog med svart grip foam og svart alumi…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/goldfish-23-tender-mkiii" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Goldifsh 23 Tender mkIII">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-45" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-45" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-45" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="45">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="targa-44-fly" data-idx="46">
+      <div class="card-num">#47</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_f6bc9e72eddb440d8ff31e7aa68111e3~mv2.jpg" alt="Targa 44 Fly" loading="lazy">
+        <div class="img-count">35 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Targa 44 Fly</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2012</span>
+          <span><strong>Lengde:</strong> 44 fot</span>
+          <span><strong>Merke:</strong> Targa </span>
+          <span><strong>Modell:</strong> 44 Fly</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 5850000</span>
+          <span><strong>Motor:</strong> 2 x Volvo Penta D6-370 Innenbords 370 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;em&gt;&lt;strong&gt;Targa 44 med 2 x Volvo Penta D6-370 Kommer for salg! Ca. 700 timer på motor, meget godt utstyrt modell som er svært påkostet.&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;Båten &amp;nbsp;har i 2021 fått fullt nytt Raymarine navigasjonssytem og Dockmate Twi…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/targa-44-fly" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Targa  44 Fly">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-46" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-46" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-46" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="46">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="paragon-25-cabin" data-idx="47">
+      <div class="card-num">#48</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_fba66475899148a69946a505113dca3b~mv2.webp" alt="Paragon 25 Cabin" loading="lazy">
+        <div class="img-count">60 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Paragon 25 Cabin</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2009</span>
+          <span><strong>Lengde:</strong> 25 fot</span>
+          <span><strong>Merke:</strong> Paragon</span>
+          <span><strong>Modell:</strong> 25 Cabin</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 799000</span>
+          <span><strong>Motor:</strong> Volvo Penta D4-300 Innenbords 300 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p class=&quot;font_7&quot;&gt;&lt;strong&gt;House of Yachts presenterer en utrolig velutstyrt Paragon 25!&lt;/strong&gt;&lt;/p&gt;
+&lt;p class=&quot;font_7&quot;&gt;&lt;strong&gt;Båten er en perfekt kombinasjon av praktiske egenskaper, kvalitet og stilig design. Enkel ombordstigning bak, hvor du først kommer til et meget romslig akterdekk i teak. Her…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/paragon-25-cabin" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Paragon 25 Cabin">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-47" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-47" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-47" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="47">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="targa-27.1" data-idx="48">
+      <div class="card-num">#49</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_515285edf12c4de5a91b079ca39df421~mv2_d_6000_4000_s_4_2.jpg" alt="Targa 27.1" loading="lazy">
+        <div class="img-count">5 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Targa 27.1</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2017</span>
+          <span><strong>Lengde:</strong> 29 fot</span>
+          <span><strong>Merke:</strong> Targa</span>
+          <span><strong>Modell:</strong> 27.1</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 1895000</span>
+          <span><strong>Motor:</strong> Volvo Penta D6-330 DPH Innenbords 330 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif&quot;&gt;Vi har f&amp;aring;tt inn for salg en velholdt Targa 27 fra 2017.&amp;nbsp;&lt;br /&gt;
+Registrert i skipsregisteret. B&amp;aring;ten er skadefri, og kj&amp;oslash;pt ny hos Thor R Nilsen AS. Ligger p&amp;aring; sj&amp;oslash;en…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/targa-27.1" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Targa 27.1">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-48" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-48" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-48" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="48">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="chris-craft-25-corsair-2008" data-idx="49">
+      <div class="card-num">#50</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_291e7796c81c49358d40280211b2e284~mv2_d_5760_3840_s_4_2.jpg" alt="Chris-Craft 25 Corsair 2008" loading="lazy">
+        <div class="img-count">10 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Chris-Craft 25 Corsair 2008</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2008</span>
+          <span><strong>Lengde:</strong> 27 fot</span>
+          <span><strong>Merke:</strong> Chris-Craft</span>
+          <span><strong>Modell:</strong> 25 Corsair</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 520000</span>
+          <span><strong>Motor:</strong> MerCruiser 350 MAG MPI SeaCore Innenbords 300 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;em&gt;&lt;strong&gt;Vi har fått inn for salg en flott Chris-Craft 25 Corsair fra &amp;nbsp;2008. Godt utstyr og pent holdt. Ferskvannskjølt motor. Heritage &amp;nbsp;edition, full teakpakke. Ligger nå i vinteropplag i Oslo.&lt;/strong&gt;&lt;/em&gt;&lt;br&gt;
+&lt;br&gt;
+&lt;strong&gt;Om Chris-Craft:&lt;/strong&gt;&lt;br&gt;
+Velkommen til …</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/chris-craft-25-corsair-2008" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Chris-Craft 25 Corsair">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-49" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-49" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-49" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="49">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="bavaria-e34-fly" data-idx="50">
+      <div class="card-num">#51</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_fed4721aa2144a788223e2ed384cddf7~mv2.jpg" alt="Bavaria E34 Fly" loading="lazy">
+        <div class="img-count">45 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Bavaria E34 Fly</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2019</span>
+          <span><strong>Lengde:</strong> 34 fot</span>
+          <span><strong>Merke:</strong> Bavaria</span>
+          <span><strong>Modell:</strong> E34 Fly</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 2670000</span>
+          <span><strong>Motor:</strong> Volvo Penta D3-220 Innenbords 220 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p class=&quot;font_7&quot;&gt;&lt;em&gt;&lt;strong&gt;Vi har for salg en fantastisk, ferieklar Bavaria E34 Fly. Båten er en 2019 modell som ble tatt i bruk første gang sesongen 2021. Kun én eier, med full servicehistorikk og profesjonelt opplag og vedlikehold. Hun ligger klar for overtakelse i Østfold. Meget godt utstyrt o…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/bavaria-e34-fly" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Bavaria E34 Fly">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-50" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-50" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-50" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="50">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="riva-76-perseo" data-idx="51">
+      <div class="card-num">#52</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/b99d91_7127f069b1894c93afdcf70a23730835~mv2.jpg" alt="Riva 76 Perseo" loading="lazy">
+        <div class="img-count">13 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Riva 76 Perseo</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2017</span>
+          <span><strong>Lengde:</strong> 76 fot</span>
+          <span><strong>Merke:</strong> Riva</span>
+          <span><strong>Modell:</strong> 76 Perseo</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 3000000</span>
+          <span><strong>Motor:</strong> 2 x MAN V12 1800 Innenbords 3600 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;em&gt;Til tross for at de færreste av oss har eiet en Riva før, har de fleste et forhold til den italienske båtbyggeren. Det er uten tvil en av de mest kjente og ikoniske produsentene gjennom tidene.&lt;/em&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;Modellen som er oppkalt etter …</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/riva-76-perseo" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Riva 76 Perseo">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-51" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-51" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-51" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="51">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="brig-eagle-8-hank%C3%B8-edition" data-idx="52">
+      <div class="card-num">#53</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_51aefe74555a4d3fa89dd49238e3b580~mv2.jpg" alt="Brig Eagle 8 Hankø Edition" loading="lazy">
+        <div class="img-count">50 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Brig Eagle 8 Hankø Edition</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2023</span>
+          <span><strong>Lengde:</strong> 26 fot</span>
+          <span><strong>Merke:</strong> Brig</span>
+          <span><strong>Modell:</strong> E8H</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 1295000</span>
+          <span><strong>Motor:</strong> Mercury Verado 350 XL V10 Utenbords 350 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p class=&quot;font_7&quot;&gt;&lt;em&gt;&lt;strong&gt;House of Yachts presenterer nå en topputstyrt Brig Eagle 8 Hankø Edition for salg! Stod utstilt som showpiece under båtmessen på Aker Brygge høsten 2023.&lt;/strong&gt;&lt;/em&gt;&lt;br&gt;
+&lt;em&gt;&lt;strong&gt;Båten ble levert under sesongen 2023 og fremstår omtrent som ny. Hun er svært godt uts…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/brig-eagle-8-hank%C3%B8-edition" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Brig E8H">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-52" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-52" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-52" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="52">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="goldfish-x12-endurance" data-idx="53">
+      <div class="card-num">#54</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/b99d91_00d57e7d1a5c4dc7955002d9f7b0951e~mv2.jpg" alt="Goldfish X12 Endurance" loading="lazy">
+        <div class="img-count">31 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Goldfish X12 Endurance</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2019</span>
+          <span><strong>Lengde:</strong> 41 feet</span>
+          <span><strong>Merke:</strong> Goldfish</span>
+          <span><strong>Modell:</strong> X12 Endurance</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 2800000</span>
+          <span><strong>Motor:</strong> 3 x Mercury TDI 3.0 V6 270  Inboard 810 HP</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;The X12 is the most extreme boat in Goldfish Boat&#x27;s model range.&amp;nbsp;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;Equipped with triple Mercury diesel engines, this boat has excellent range, maneuverability and redundancy.&amp;nbsp;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/goldfish-x12-endurance" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Goldfish X12 Endurance">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-53" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-53" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-53" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="53">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="bavaria-330-sport-ht" data-idx="54">
+      <div class="card-num">#55</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_a2e35421c2ff4fdabf08beab77243f6b~mv2.jpg" alt="Bavaria 330 Sport HT" loading="lazy">
+        <div class="img-count">32 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Bavaria 330 Sport HT</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2016</span>
+          <span><strong>Lengde:</strong> 36 fot</span>
+          <span><strong>Merke:</strong> Bavaria </span>
+          <span><strong>Modell:</strong> 330 Sport HT</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 1990000</span>
+          <span><strong>Motor:</strong> Volvo Penta D6-370 Innenbords 370 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p class=&quot;font_7&quot;&gt;&lt;em&gt;&lt;strong&gt;Vi har fått inn for salg en helt rå Bavaria 330 HT. Med sin fantastiske kombinasjon av plass og størrelse er dette trolig den romsligste 33-fotern i markedet.&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;
+&lt;p class=&quot;font_7&quot;&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p class=&quot;font_7&quot;&gt;&lt;em&gt;&lt;strong&gt;Båten er en 2016 modell, men ble …</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/bavaria-330-sport-ht" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Bavaria  330 Sport HT">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-54" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-54" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-54" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="54">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="bavaria-37-ac" data-idx="55">
+      <div class="card-num">#56</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_7cac98e75d7747b0adb4dc4a29a4af20~mv2_d_5467_3645_s_4_2.jpg" alt="Bavaria 37 AC" loading="lazy">
+        <div class="img-count">33 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Bavaria 37 AC</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2000</span>
+          <span><strong>Lengde:</strong> 38 fot</span>
+          <span><strong>Merke:</strong> Bavaria</span>
+          <span><strong>Modell:</strong> 37 AC</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 649000</span>
+          <span><strong>Motor:</strong> Volvo Penta MD2030 Innenbords 29 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;&lt;span style=&quot;font-style:italic&quot;&gt;Vi har f&amp;aring;tt inn for salg en meget oppgradert og velholdt Bavaria 37 AC. Kun 1 eier, som har kontinuerlig oppgradert og ivaretatt …</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/bavaria-37-ac" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Bavaria 37 AC">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-55" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-55" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-55" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="55">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="askeladden-c83-cruiser" data-idx="56">
+      <div class="card-num">#57</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_050d2cae9ee5451385855d0a17db13b1~mv2.jpg" alt="Askeladden C83 Cruiser" loading="lazy">
+        <div class="img-count">61 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Askeladden C83 Cruiser</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2021</span>
+          <span><strong>Lengde:</strong> 27 fot</span>
+          <span><strong>Merke:</strong> Askeladden</span>
+          <span><strong>Modell:</strong> C83 Cruiser</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 1580000</span>
+          <span><strong>Motor:</strong> Suzuki DF350 Utenbords 350 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p class=&quot;font_7&quot;&gt;&lt;strong&gt;Vi har fått for salg en svært pen Askeladden C83 Cruiser. Båten er fra 2021,&amp;nbsp;fremstår som meget velholdt og er godt utstyrt. Med Suzuki DF350HK har du godt med kraftoverskudd og båten har oppgitt toppfart til 44 knop. Ligger nå klar for&amp;nbsp;visning på Østlandet.&lt;/stro…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/askeladden-c83-cruiser" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Askeladden C83 Cruiser">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-56" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-56" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-56" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="56">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="chris-craft-25-corsair-2005" data-idx="57">
+      <div class="card-num">#58</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_029d66d2248a44b983cb36a3b7022b92~mv2.jpg" alt="Chris-Craft 25 Corsair 2005" loading="lazy">
+        <div class="img-count">24 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Chris-Craft 25 Corsair 2005</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2005</span>
+          <span><strong>Lengde:</strong> 27 fot</span>
+          <span><strong>Merke:</strong> Chris-Craft </span>
+          <span><strong>Modell:</strong> 25 Corsair</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 510000</span>
+          <span><strong>Motor:</strong> Volvo Penta 8.1 Gi-E (AQ) Innenbords 375 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;em&gt;&lt;strong&gt;Vi har fått inn for salg en flott Chris-Craft 25 Corsair fra 2005. Godt utstyr og pent holdt. Volvo Penta 8.1Gi-E (AQ). Båten er foliert i en lekker, blå metallic finish. &lt;br&gt;
+Ca 800 timer på motoren.&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;&lt;stron…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/chris-craft-25-corsair-2005" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Chris-Craft  25 Corsair">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-57" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-57" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-57" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="57">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="nimbus-34-nova" data-idx="58">
+      <div class="card-num">#59</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_cfc839655c9145a7ab3dcb7cae7f51e6~mv2.jpg" alt="Nimbus 34 Nova" loading="lazy">
+        <div class="img-count">12 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nimbus 34 Nova</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2017</span>
+          <span><strong>Lengde:</strong> 34 fot</span>
+          <span><strong>Merke:</strong> Nimbus</span>
+          <span><strong>Modell:</strong> 34 Nova</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 2890000</span>
+          <span><strong>Motor:</strong> 2 x Volvo Penta D4-300 Innenbords 600 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;em&gt;&lt;strong&gt;Vi har på vei inn for salg en meget velholdt Nimbus 34 Nova fra 2017. Kun 250 timer på motoren. Ligger i Gøteborg og kan leveres omgående. Meget godt utstyrt modell, hardtop med stor&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;&lt;em&gt;&lt;strong&gt;skyveluke i glass. Skyvedør i glass akt…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nimbus-34-nova" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Nimbus 34 Nova">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-58" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-58" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-58" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="58">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="dufour-385-gl" data-idx="59">
+      <div class="card-num">#60</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_18fae41c399542f98dcd7017ed3668e9~mv2.jpg" alt="Dufour 385 GL" loading="lazy">
+        <div class="img-count">61 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Dufour 385 GL</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2005</span>
+          <span><strong>Lengde:</strong> 38,5 fot</span>
+          <span><strong>Merke:</strong> Dufour </span>
+          <span><strong>Modell:</strong> 385 GL</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 849000</span>
+          <span><strong>Motor:</strong> Volvo Penta D2-40 Innenbords 38 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p class=&quot;font_7&quot;&gt;Dufour 385 Grand Large har vært en folkefavoritt siden den ble lansert i 2004, og kommer du ombord i denne er det lett å forstå hvorfor. Layout og cockpit tåler tidens tann særdeles godt, og dette velholdte eksemplaret er en god vei til et hyggelig og ubekymret båtliv. Stikkord er …</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/dufour-385-gl" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Dufour  385 GL">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-59" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-59" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-59" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="59">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="anytec-860-spd" data-idx="60">
+      <div class="card-num">#61</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/b99d91_a300909536814a9299814ac2611228b4~mv2_d_5760_3840_s_4_2.jpg" alt="Anytec 860 SPD" loading="lazy">
+        <div class="img-count">12 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Anytec 860 SPD</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2015</span>
+          <span><strong>Lengde:</strong> 29 fot</span>
+          <span><strong>Merke:</strong> Anytec</span>
+          <span><strong>Modell:</strong> 860 SPD</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 995000</span>
+          <span><strong>Motor:</strong> 2 x Evinrude E-tech G2 300 Utenbords 600 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p style=&quot;font-size: 14px;&quot;&gt;&lt;span style=&quot;font-weight:bold;&quot;&gt;&lt;span style=&quot;font-size:14px;&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif;&quot;&gt;For salg har vi f&amp;aring;tt en Anytec 860 SPD med den st&amp;oslash;rste og r&amp;aring;este motoriseringen b&amp;aring;ten er godkjent med. Dette er en helt r&amp;aring; b&amp;aring;…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/anytec-860-spd" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Anytec 860 SPD">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-60" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-60" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-60" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="60">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="capelli-tempest-1000" data-idx="61">
+      <div class="card-num">#62</div>
+      <div class="img-col">
+        <div class="no-img">Ingen bilde</div>
+        <div class="img-count">0 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Capelli Tempest 1000</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2020</span>
+          <span><strong>Lengde:</strong> 33 fot</span>
+          <span><strong>Merke:</strong> Capelli</span>
+          <span><strong>Modell:</strong> Tempest 1000</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 1595000</span>
+          <span><strong>Motor:</strong> 2 x Suzuki DF300BTX Utenbords 600 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;strong&gt;Capelli Temest 1000 Open er er stor RIB som byr på større plass og komfort enn hva vi vanligvis forbinder med RIB i Norge. Med en romslig sittegruppe med tilhørende salong bord akter, stor solseng i baugen, wetbar med kjøleskap og en kabin med soveplass til 2 samt toalett, …</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/capelli-tempest-1000" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Capelli Tempest 1000">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-61" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-61" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-61" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="61">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="windy-37-grand-mistral" data-idx="62">
+      <div class="card-num">#63</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_23c710a9ce894ef2a71ee09f7dba4c28~mv2.jpg" alt="Windy 37 Grand Mistral" loading="lazy">
+        <div class="img-count">51 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Windy 37 Grand Mistral</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2008</span>
+          <span><strong>Lengde:</strong> 37 fot</span>
+          <span><strong>Merke:</strong> Windy</span>
+          <span><strong>Modell:</strong> 37 Grand Mistral</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 1990000</span>
+          <span><strong>Motor:</strong> 2 x Volvo Penta D4-300 Innenbords 600 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p class=&quot;font_7&quot;&gt;&lt;em&gt;&lt;strong&gt;Vi har fått inn for salg en Windy 37 Grand Mistral fra 2008! En folkekjær klassiker, bygget i god gammel Windy stil og kvalitet. Med svært driftsikte Volvo Penta D4-300 og meget godt utstyrt fremstår hun som et perfekt valg for årets sommerferie.&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;
+&lt;p cl…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/windy-37-grand-mistral" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Windy 37 Grand Mistral">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-62" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-62" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-62" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="62">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="1912-anker-%26-jensen-9mr-flirt-iv" data-idx="63">
+      <div class="card-num">#64</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_5d02e048a9cf43748d49cb6407d42487~mv2.jpg" alt="1912 Anker &amp; Jensen 9mR Flirt IV" loading="lazy">
+        <div class="img-count">9 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>1912 Anker &amp; Jensen 9mR Flirt IV</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 1912</span>
+          <span><strong>Lengde:</strong> 47 fot</span>
+          <span><strong>Merke:</strong> Anker &amp; Jensen</span>
+          <span><strong>Modell:</strong> 9mR Flirt IV</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 3250000</span>
+          <span><strong>Motor:</strong> Yanmar Innenbords 28 hk</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;em&gt;&lt;strong&gt;Eventyrlig seilglede i klassisk mesterverk tegnet av linjenes mester Johan Anker.&amp;nbsp;&lt;br&gt;
+Hun er meget godt ivaretatt av nåværende eier etter en omfattende restaurering til Mint Condition over en 12 års periode, og med de beste materialer som kunne oppdrives.&lt;br&gt;
+Hun …</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/1912-anker-%26-jensen-9mr-flirt-iv" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Anker &amp; Jensen 9mR Flirt IV">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-63" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-63" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-63" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="63">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="beneteau-mc5" data-idx="64">
+      <div class="card-num">#65</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_ac5f54e69527434cbe95f46367ebdd24~mv2.jpg" alt="Beneteau MC5" loading="lazy">
+        <div class="img-count">80 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Beneteau MC5</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2015</span>
+          <span><strong>Lengde:</strong> 50 fot</span>
+          <span><strong>Merke:</strong> Beneteau</span>
+          <span><strong>Modell:</strong> Monte Carlo 5</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 5990000</span>
+          <span><strong>Motor:</strong> 2 x Volvo Penta IPS-600 Innebords 880 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;strong&gt;Vi har for salg en nydelig Beneteau MC5. Båten er en utrolig velholdt 2015 modell, under sin andre eier. Her spares det ingenting på vedlikeholdet, hvilket skinner gjennom. Hun fremstår som ferieklar og kan vises etter avtale, sentralt på Østlandet. Sertifikatfri båt (under…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/beneteau-mc5" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Beneteau Monte Carlo 5">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-64" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-64" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-64" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="64">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="boston-whaler-190-outrage" data-idx="65">
+      <div class="card-num">#66</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_cdec329b98a044dbb794249eb6c02639~mv2.jpg" alt="Boston Whaler 190 Outrage" loading="lazy">
+        <div class="img-count">56 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Boston Whaler 190 Outrage</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2011</span>
+          <span><strong>Lengde:</strong> 19 fot</span>
+          <span><strong>Merke:</strong> Boston Whaler</span>
+          <span><strong>Modell:</strong> 190 Outrage</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 449000</span>
+          <span><strong>Motor:</strong> Mercury Verado Utenbords 150 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;strong&gt;Èn-eiers knallfin Boston Whaler 190 Outrage fra 2011 med Mercury Verado 150 HK selges. Båten er meget pent behandlet, med full servicehistorikk på motor. Godt utstyrt modell med bla. hydraulisk styring, putepakke, elektronisk gir+smart craft intstrumentering, leaning post, …</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/boston-whaler-190-outrage" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Boston Whaler 190 Outrage">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-65" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-65" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-65" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="65">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="targa-27.1" data-idx="66">
+      <div class="card-num">#67</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_515285edf12c4de5a91b079ca39df421~mv2_d_6000_4000_s_4_2.jpg" alt="Targa 27.1" loading="lazy">
+        <div class="img-count">5 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Targa 27.1</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2017</span>
+          <span><strong>Lengde:</strong> 29 fot</span>
+          <span><strong>Merke:</strong> Targa</span>
+          <span><strong>Modell:</strong> 27.1</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 1895000</span>
+          <span><strong>Motor:</strong> Volvo Penta D6-330 DPH Innenbords 330 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif&quot;&gt;Vi har f&amp;aring;tt inn for salg en velholdt Targa 27 fra 2017.&amp;nbsp;&lt;br /&gt;
+Registrert i skipsregisteret. B&amp;aring;ten er skadefri, og kj&amp;oslash;pt ny hos Thor R Nilsen AS. Ligger p&amp;aring; sj&amp;oslash;en…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/targa-27.1" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Targa 27.1">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-66" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-66" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-66" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="66">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="bayliner-avanti-4085-express-cruiser" data-idx="67">
+      <div class="card-num">#68</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/b99d91_7937035b8e074c2c85d0f9c7a1075799~mv2.jpg" alt="Bayliner Avanti 4085 Express Cruiser" loading="lazy">
+        <div class="img-count">37 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Bayliner Avanti 4085 Express Cruiser</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 1999</span>
+          <span><strong>Lengde:</strong> 42 fot</span>
+          <span><strong>Merke:</strong> Bayliner</span>
+          <span><strong>Modell:</strong> Avanti 4085</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 850000</span>
+          <span><strong>Motor:</strong> 2 x Cummins Diamond series Innenbords 630 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;em&gt;Vi har fått for salg en Bayliner Avanti 4085 Sunbridge. Båten er meget godt utstyrt, og motorisert med&amp;nbsp; 2 x Cummins Diamond Series 315Hk med fast aksling.&lt;br&gt;
+Jevnlig vedlikeholdt og ny kalesje i 2020.&amp;nbsp;&lt;br&gt;
+&lt;/em&gt;&lt;br&gt;
+Båten er velutstyrt med det du trenger for en famil…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/bayliner-avanti-4085-express-cruiser" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Bayliner Avanti 4085">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-67" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-67" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-67" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="67">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="ibiza-881-t-special-edition" data-idx="68">
+      <div class="card-num">#69</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_d227a730749242c9a789bd69c14e090e~mv2.webp" alt="Ibiza 811 T Special Edition" loading="lazy">
+        <div class="img-count">54 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Ibiza 811 T Special Edition</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2019</span>
+          <span><strong>Lengde:</strong> 27 fot</span>
+          <span><strong>Merke:</strong> Ibiza</span>
+          <span><strong>Modell:</strong> 811 T Special Edition</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 1095000</span>
+          <span><strong>Motor:</strong> 2 x Suzuki 200 Utenbords  400 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p class=&quot;font_7&quot;&gt;&lt;em&gt;&lt;strong&gt;Denne Ibiza 811 T Special Edition er en unik og svært godt utstyrt daycruiser – og den eneste 811&lt;br&gt;
+som er levert med dobbelmotorinstallasjon. Med høy komfort, praktiske løsninger og solid&lt;br&gt;
+kvalitet er dette en båt som skiller seg ut i både ytelse og design. . En s…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/ibiza-881-t-special-edition" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Ibiza 811 T Special Edition">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-68" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-68" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-68" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="68">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="beneteau-gran-turismo-38" data-idx="69">
+      <div class="card-num">#70</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_44fb3cbe570f41d6aef45d81bb0ae8c8~mv2.jpg" alt="Beneteau Gran Turismo 38" loading="lazy">
+        <div class="img-count">49 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Beneteau Gran Turismo 38</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2012</span>
+          <span><strong>Lengde:</strong> 40 fot</span>
+          <span><strong>Merke:</strong> Beneteau </span>
+          <span><strong>Modell:</strong> Gran Turismo 38</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 1990000</span>
+          <span><strong>Motor:</strong> 2 x Volvo Penta D4-260 Innenbords 520 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p class=&quot;font_7&quot;&gt;&lt;strong&gt;Vi har nå fått for salg en utrolig flott og velholdt Benetau Gran Turismo 38 som kan&lt;/strong&gt;&lt;/p&gt;
+&lt;p class=&quot;font_7&quot;&gt;&lt;strong&gt;by på både en romslig cockpit, gode kjøreegenskaper som bidrar til lavt forbruk og et spennende utstyrsnivå. Med joystick styring som sørger for …</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/beneteau-gran-turismo-38" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Beneteau  Gran Turismo 38">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-69" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-69" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-69" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="69">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="flipper-760-dc" data-idx="70">
+      <div class="card-num">#71</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_675ddd7ac7ec42c7a679bf25bb65485f~mv2_d_5760_3840_s_4_2.jpg" alt="Flipper 760 DC" loading="lazy">
+        <div class="img-count">21 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Flipper 760 DC</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2017</span>
+          <span><strong>Lengde:</strong> 25 fot</span>
+          <span><strong>Merke:</strong> Flipper</span>
+          <span><strong>Modell:</strong> 760 DC</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 699000</span>
+          <span><strong>Motor:</strong> Mercury 300 XL Verado Utenbords 300 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;&lt;span style=&quot;font-style:italic&quot;&gt;&lt;span style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif&quot;&gt;Vi har f&amp;aring;tt inn for salg en nesten ny Flipper 760 DC. B&amp;aring;ten er 2017 modell, men ble sj&amp;oslash;satt f&amp;oslash;rst i 2018. En …</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/flipper-760-dc" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Flipper 760 DC">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-70" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-70" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-70" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="70">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="axopar-37-sports-cabin" data-idx="71">
+      <div class="card-num">#72</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_0467d87de9514dbbaad74f6bfb2db46a~mv2.jpg" alt="Axopar 37 Sports Cabin" loading="lazy">
+        <div class="img-count">25 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Axopar 37 Sports Cabin</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2018</span>
+          <span><strong>Lengde:</strong> 37 fot</span>
+          <span><strong>Merke:</strong> Axopar</span>
+          <span><strong>Modell:</strong> 37 Sports Cabin</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 1790000</span>
+          <span><strong>Motor:</strong> 2 x Mercury 300 HK Utenbords 600 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-style:italic&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;&lt;span style=&quot;font-size:14px&quot;&gt;&lt;span style=&quot;font-family:questrial,sans-serif&quot;&gt;Vi har f&amp;aring;tt inn for salg en meget pen 2018 Axopar 37 med 2 x 300 Mercury. B&amp;aring;ten ligger klar for visning i Fredrikstad.&lt;/spa…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/axopar-37-sports-cabin" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Axopar 37 Sports Cabin">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-71" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-71" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-71" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="71">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="sunseeker-manhattan-73" data-idx="72">
+      <div class="card-num">#73</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/b99d91_0fbc12ee7eed421e9b1506c62a3af748~mv2.jpg" alt="Sunseeker Manhattan 73" loading="lazy">
+        <div class="img-count">22 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Sunseeker Manhattan 73</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2013</span>
+          <span><strong>Lengde:</strong> 74 fot</span>
+          <span><strong>Merke:</strong> Sunseeker</span>
+          <span><strong>Modell:</strong> Manhattan 73</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 15000000</span>
+          <span><strong>Motor:</strong> 2 x MAN 1360 Innenbords 2720 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;strong&gt;Vi har fått inn for salg en meget pen Sunseeker Manhattan 73. Båten ble levert av oss til nåværende eier ifjor i Sverige, men da han skal ha større båt er denne igjen&lt;/strong&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;&lt;strong&gt;tilgjengelig på markedet.&lt;/strong&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/sunseeker-manhattan-73" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Sunseeker Manhattan 73">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-72" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-72" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-72" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="72">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="nimbus-c11" data-idx="73">
+      <div class="card-num">#74</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_12a76d8fb203432b95c2335c93629fa4~mv2.jpg" alt="Nimbus C11" loading="lazy">
+        <div class="img-count">63 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nimbus C11</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2021</span>
+          <span><strong>Lengde:</strong> 41 fot</span>
+          <span><strong>Merke:</strong> Nimbus</span>
+          <span><strong>Modell:</strong> C11</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> 4.990.000,-</span>
+          <span><strong>Pris (NOK):</strong> 4990000</span>
+          <span><strong>Motor:</strong> 2 x Mercury Verado 4,6l V8 300 Utenbords 600 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p class=&quot;font_7&quot;&gt;&lt;em&gt;&lt;strong&gt;Vi har fått inn for salg en fantastisk Nimbus C11. Båten fremstår omtrent som ny og er speccet usedvanlig godt. &lt;br&gt;
+ &lt;br&gt;
+Med denne utstyrslisten kan du fint reise på langtur hele&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;
+&lt;p class=&quot;font_7&quot;&gt;&lt;em&gt;&lt;strong&gt;sommeren. Det er gjort svært fornuftige u…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nimbus-c11" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Nimbus C11">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-73" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-73" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-73" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="73">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="m%2Fy-in-excess" data-idx="74">
+      <div class="card-num">#75</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/b99d91_553c10e4cd7e432ab2892c5cb5ca7097~mv2_d_2048_1365_s_2.jpg" alt="M/Y In Excess" loading="lazy">
+        <div class="img-count">26 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>M/Y In Excess</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 1990</span>
+          <span><strong>Lengde:</strong> 97 fot</span>
+          <span><strong>Merke:</strong> Lowland</span>
+          <span><strong>Modell:</strong> Netship 100</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> </span>
+          <span><strong>Motor:</strong> 2 x Detroit 16V92TA 1400 Innenbords 2800 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;span style=&quot;font-size: 14px&quot;&gt;&lt;span style=&quot;font-family: questrial, sans-serif&quot;&gt;&lt;strong&gt;Etter et mangeårig eierskap er eier nå motivert for å selge, og er åpen for bud!&lt;/strong&gt;&lt;/span&gt;&lt;/span&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot; style=&quot;font-size: 14px&quot;&gt;&lt;span style=&quot;font-…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/m%2Fy-in-excess" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Lowland Netship 100">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-74" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-74" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-74" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="74">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="nordkapp-grand-coupe-905---2x300hk" data-idx="75">
+      <div class="card-num">#76</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_d16c4e2ff1034869b119b008fa867754~mv2.webp" alt="Nordkapp Grand Coupe 905 - 2x300HK" loading="lazy">
+        <div class="img-count">57 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nordkapp Grand Coupe 905 - 2x300HK</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2020</span>
+          <span><strong>Lengde:</strong> 30 fot</span>
+          <span><strong>Merke:</strong> Nordkapp </span>
+          <span><strong>Modell:</strong> Grand Coupe 905</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 1500000</span>
+          <span><strong>Motor:</strong> 2 x Evinrude 200 Utenbords 400 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #ea580c">
+          Du markerte X — ingen deal-match funnet
+        </div>
+        <div class="desc">&lt;p class=&quot;font_7&quot;&gt;&lt;strong&gt;House of Yachts presenterer nå en flott utstyrt Nordkapp 905 Grand Coupe. Med sine 2x200 Evinrude motorer har båten et stort kraftoverskudd, og er god for over 50 knop. Gode sjøegenskaper og mange bruksområder, med stor komfort selv i dårlig vær. Båten er skipsregistrert og…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nordkapp-grand-coupe-905---2x300hk" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Nordkapp  Grand Coupe 905">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-75" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-75" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-75" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="75">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-slug="dufour-385-grand-large" data-idx="76">
+      <div class="card-num">#77</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/b99d91_dca20c3770d84b448001fc1c07ffff1b~mv2.jpg" alt="Dufour 385 Grand Large" loading="lazy">
+        <div class="img-count">38 bilder</div>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Dufour 385 Grand Large</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2005</span>
+          <span><strong>Lengde:</strong> 38 fot</span>
+          <span><strong>Merke:</strong> Dufour</span>
+          <span><strong>Modell:</strong> 385 Grand Large</span>
+        </div>
+        <div class="meta">
+          <span><strong>Pris (display):</strong> Solgt!</span>
+          <span><strong>Pris (NOK):</strong> 940000</span>
+          <span><strong>Motor:</strong> Volvo Penta D2-40 Innenbords 38 HK</span>
+        </div>
+        <div class="reason" style="border-left-color: #16a34a">
+          Ingen match funnet i HubSpot
+        </div>
+        <div class="desc">&lt;p class=&quot;font_8&quot;&gt;&lt;em&gt;House of Yachts Sail Division presenterer nå denne velseilende Dufour 385 GL Limited Edition for salg. &amp;nbsp;Båten har hatt vesentlige oppgraderinger i senere år. &amp;nbsp;&lt;/em&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p class=&quot;font_8&quot;&gt;Dufour 385 GL passer ypperlig for en familie på 4-6 pe…</div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/dufour-385-grand-large" target="_blank" rel="noopener" class="link-wix">Åpne Wix-side ↗</a>
+          <button class="search-hs" data-query="Dufour 385 Grand Large">Søk i HubSpot</button>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-76" value="CREATE" checked> ✅ Opprett ny</label>
+          <label><input type="radio" name="dec-76" value="SKIP"> ❌ Hopp over</label>
+          <label><input type="radio" name="dec-76" value="MATCH"> 🔗 Finnes allerede →</label>
+          <input type="text" class="manual-id" placeholder="Lim inn HubSpot boat ID eller URL" data-idx="76">
+        </div>
+      </div>
+    </div>
+    
+  </div>
+
+<script>
+const STORAGE_KEY = 'hoy-create-new-review';
+const total = 77;
+
+function load() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch (e) { return {}; }
+}
+function save(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+// Restore on load
+const saved = load();
+document.querySelectorAll('.card').forEach(card => {
+  const idx = card.dataset.idx;
+  const slug = card.dataset.slug;
+  const dec = saved[slug] && saved[slug].decision;
+  const manId = saved[slug] && saved[slug].manual;
+  if (dec) {
+    const radio = card.querySelector('input[type=radio][value="' + dec + '"]');
+    if (radio) radio.checked = true;
+    card.dataset.decision = dec;
+  } else {
+    card.dataset.decision = 'CREATE';
+  }
+  if (manId) {
+    card.querySelector('.manual-id').value = manId;
+  }
+});
+
+function updateCounts() {
+  let c = 0, s = 0, m = 0;
+  document.querySelectorAll('.card').forEach(card => {
+    const d = card.dataset.decision;
+    if (d === 'SKIP') s++;
+    else if (d === 'MATCH') m++;
+    else c++;
+  });
+  document.getElementById('cnt-create').textContent = c;
+  document.getElementById('cnt-skip').textContent = s;
+  document.getElementById('cnt-match').textContent = m;
+}
+updateCounts();
+
+document.querySelectorAll('input[type=radio]').forEach(r => {
+  r.addEventListener('change', e => {
+    const card = e.target.closest('.card');
+    const slug = card.dataset.slug;
+    const val = e.target.value;
+    card.dataset.decision = val;
+    const data = load();
+    data[slug] = data[slug] || {};
+    data[slug].decision = val;
+    save(data);
+    updateCounts();
+  });
+});
+
+document.querySelectorAll('.manual-id').forEach(inp => {
+  inp.addEventListener('input', e => {
+    const card = e.target.closest('.card');
+    const slug = card.dataset.slug;
+    const data = load();
+    data[slug] = data[slug] || {};
+    data[slug].manual = e.target.value;
+    save(data);
+  });
+});
+
+document.querySelectorAll('.search-hs').forEach(btn => {
+  btn.addEventListener('click', e => {
+    const q = e.target.dataset.query;
+    const url = 'https://app.hubspot.com/contacts/49060033/objects/2-145214665/views/all/list?query=' + encodeURIComponent(q);
+    window.open(url, '_blank');
+  });
+});
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', e => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const f = btn.dataset.filter;
+    document.querySelectorAll('.card').forEach(card => {
+      if (f === 'all' || card.dataset.decision === f) {
+        card.classList.remove('hidden');
+      } else {
+        card.classList.add('hidden');
+      }
+    });
+  });
+});
+
+function exportPicks() {
+  const data = load();
+  const lines = ['slug,decision,manual_id_or_url'];
+  document.querySelectorAll('.card').forEach(card => {
+    const slug = card.dataset.slug;
+    const d = (data[slug] && data[slug].decision) || 'CREATE';
+    const m = (data[slug] && data[slug].manual) || '';
+    lines.push(slug + ',' + d + ',' + m);
+  });
+  const csv = lines.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'create-new-decisions.csv';
+  a.click();
+}
+</script>
+</body>
+</html>

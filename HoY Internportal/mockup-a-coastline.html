@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>House of Yachts — Mockup A (Coastline)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FAFAF7;
+  --ink:#0A2540;
+  --ink-soft:#3B4B5E;
+  --muted:#8A9A98;
+  --rule:#E6E2DB;
+  --gold:#C9953E;
+  --teal:#006362;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  background:var(--paper);
+  color:var(--ink);
+  font-size:16px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:inherit;text-decoration:none}
+img{display:block;max-width:100%;height:auto}
+.container{max-width:1280px;margin:0 auto;padding:0 32px}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.rule{height:1px;background:var(--rule);border:0;width:100%}
+
+/* NAV */
+.nav{
+  position:sticky;top:0;z-index:10;
+  background:rgba(250,250,247,.85);
+  backdrop-filter:saturate(180%) blur(12px);
+  border-bottom:1px solid var(--rule);
+}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;height:72px}
+.logo{font-family:'Instrument Serif',serif;font-size:22px;letter-spacing:.01em}
+.logo span{color:var(--gold)}
+.nav-links{display:flex;gap:34px;font-size:14px}
+.nav-links a{color:var(--ink-soft);transition:color .2s}
+.nav-links a:hover{color:var(--ink)}
+.nav-cta{font-size:14px;padding:10px 18px;border:1px solid var(--ink);border-radius:40px;font-weight:500;transition:.2s}
+.nav-cta:hover{background:var(--ink);color:var(--paper)}
+
+/* HERO */
+.hero{padding:80px 0 100px}
+.hero-grid{display:grid;grid-template-columns:1fr 1.2fr;gap:72px;align-items:center}
+.hero h1{
+  font-family:'Instrument Serif',serif;
+  font-size:72px;line-height:1.02;letter-spacing:-.02em;font-weight:400;
+  color:var(--ink);
+  margin-bottom:28px;
+}
+.hero h1 em{font-style:italic;color:var(--gold)}
+.hero-sub{font-size:19px;color:var(--ink-soft);max-width:540px;margin-bottom:40px;line-height:1.5}
+.cta-row{display:flex;gap:16px;align-items:center;margin-bottom:56px}
+.btn-primary{
+  background:var(--ink);color:var(--paper);
+  padding:16px 28px;border-radius:48px;
+  font-size:15px;font-weight:500;
+  transition:.2s;display:inline-flex;align-items:center;gap:10px;
+}
+.btn-primary:hover{background:#07192E;transform:translateY(-1px)}
+.btn-ghost{
+  color:var(--ink);padding:16px 4px;font-size:15px;font-weight:500;
+  border-bottom:1px solid var(--ink);transition:.2s;
+}
+.btn-ghost:hover{opacity:.7}
+.arrow{font-size:18px}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:40px;padding-top:40px;border-top:1px solid var(--rule)}
+.stat-num{font-family:'Instrument Serif',serif;font-size:44px;line-height:1;color:var(--ink);margin-bottom:6px}
+.stat-lbl{font-size:13px;color:var(--muted);letter-spacing:.04em}
+
+.hero-img{aspect-ratio:4/5;border-radius:4px;overflow:hidden;position:relative;background:#0A2540}
+.hero-img img{width:100%;height:100%;object-fit:cover;filter:brightness(.92)}
+.hero-img::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 60%,rgba(10,37,64,.35));pointer-events:none}
+.hero-img-meta{position:absolute;bottom:24px;left:24px;color:var(--paper);font-size:12px;letter-spacing:.1em;text-transform:uppercase;opacity:.85}
+
+/* TRUST STRIP */
+.trust{padding:44px 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.trust-inner{display:flex;align-items:center;justify-content:space-between;gap:40px;flex-wrap:wrap}
+.trust-label{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.trust-logos{display:flex;gap:48px;align-items:center;flex-wrap:wrap;opacity:.55}
+.trust-logo{font-family:'Instrument Serif',serif;font-size:18px;color:var(--ink-soft)}
+
+/* RESULTS */
+.results{padding:120px 0}
+.section-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:48px}
+.section-head h2{font-family:'Instrument Serif',serif;font-size:48px;line-height:1.1;font-weight:400;letter-spacing:-.015em}
+.filters{display:flex;gap:10px;font-size:13px}
+.chip{padding:8px 14px;border:1px solid var(--rule);border-radius:20px;color:var(--ink-soft);cursor:pointer;transition:.2s}
+.chip:hover,.chip.active{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.results-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:32px}
+.boat-card{background:var(--paper);border:1px solid var(--rule);border-radius:4px;overflow:hidden;transition:.25s}
+.boat-card:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(10,37,64,.06)}
+.boat-img{aspect-ratio:4/3;overflow:hidden;position:relative}
+.boat-img img{width:100%;height:100%;object-fit:cover;transition:.4s}
+.boat-card:hover .boat-img img{transform:scale(1.04)}
+.boat-body{padding:22px 24px 26px}
+.boat-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);letter-spacing:.03em;margin-bottom:8px}
+.boat-title{font-size:19px;font-weight:500;margin-bottom:12px}
+.boat-foot{display:flex;justify-content:space-between;align-items:center;padding-top:16px;border-top:1px solid var(--rule)}
+.price-band{font-size:13px;color:var(--ink);font-weight:500}
+.days{font-size:13px;color:var(--muted)}
+
+/* GUARANTEE */
+.guarantee{padding:80px 0;background:var(--ink);color:var(--paper);text-align:center;position:relative;overflow:hidden}
+.guarantee::before,.guarantee::after{
+  content:'';position:absolute;width:600px;height:600px;border-radius:50%;
+  background:radial-gradient(circle,rgba(201,149,62,.12),transparent 70%);
+}
+.guarantee::before{top:-300px;left:-200px}
+.guarantee::after{bottom:-300px;right:-200px}
+.guarantee-inner{position:relative;z-index:1}
+.guarantee h2{font-family:'Instrument Serif',serif;font-size:64px;line-height:1;font-weight:400;margin-bottom:16px;letter-spacing:-.015em}
+.guarantee h2 em{font-style:italic;color:var(--gold)}
+.guarantee p{font-size:18px;opacity:.8;max-width:580px;margin:0 auto}
+
+/* PROCESS */
+.process{padding:120px 0}
+.process h2{font-family:'Instrument Serif',serif;font-size:48px;line-height:1.1;font-weight:400;margin-bottom:56px;letter-spacing:-.015em}
+.process-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:48px}
+.step{}
+.step-num{font-family:'Instrument Serif',serif;font-size:56px;color:var(--gold);line-height:1;margin-bottom:24px}
+.step h3{font-size:20px;font-weight:500;margin-bottom:12px}
+.step p{color:var(--ink-soft);font-size:15px;margin-bottom:16px}
+.step-proof{font-size:12px;letter-spacing:.06em;color:var(--teal);text-transform:uppercase}
+
+/* FORM */
+.form-sec{padding:100px 0 120px;background:#F4F1EB;border-top:1px solid var(--rule)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center}
+.form-grid h2{font-family:'Instrument Serif',serif;font-size:52px;line-height:1.05;font-weight:400;letter-spacing:-.015em;margin-bottom:20px}
+.form-grid h2 em{font-style:italic;color:var(--gold)}
+.form-grid>div>p{font-size:17px;color:var(--ink-soft);margin-bottom:24px;max-width:440px}
+.form-grid ul{list-style:none;padding:0}
+.form-grid li{padding:12px 0;border-bottom:1px solid var(--rule);font-size:14px;color:var(--ink-soft);display:flex;align-items:center;gap:12px}
+.form-grid li::before{content:'→';color:var(--gold)}
+
+.form-card{background:var(--paper);padding:40px;border-radius:8px;box-shadow:0 10px 40px rgba(10,37,64,.06)}
+.form-step{font-size:12px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+.form-card h3{font-size:24px;font-weight:500;margin-bottom:24px;font-family:'Instrument Serif',serif}
+.form-field{margin-bottom:20px}
+.form-field label{display:block;font-size:13px;color:var(--ink-soft);margin-bottom:6px}
+.form-field input,.form-field select{
+  width:100%;padding:14px 16px;border:1px solid var(--rule);border-radius:4px;
+  font-size:15px;font-family:inherit;background:#FAFAF7;color:var(--ink);
+}
+.form-field input:focus,.form-field select:focus{outline:none;border-color:var(--ink)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-submit{width:100%;margin-top:16px}
+
+/* FOOTER */
+footer{background:var(--ink);color:var(--paper);padding:80px 0 40px}
+.foot-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:56px;margin-bottom:56px}
+.foot-grid h4{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:18px;font-weight:500}
+.foot-grid p,.foot-grid a{font-size:14px;color:rgba(250,250,247,.75);line-height:1.7}
+.foot-grid a:hover{color:var(--paper)}
+.foot-grid ul{list-style:none}
+.foot-grid li{margin-bottom:8px}
+.foot-logo{font-family:'Instrument Serif',serif;font-size:28px;margin-bottom:20px}
+.foot-desc{max-width:380px;margin-bottom:24px}
+.foot-bottom{padding-top:32px;border-top:1px solid rgba(250,250,247,.1);display:flex;justify-content:space-between;font-size:12px;color:rgba(250,250,247,.5);letter-spacing:.04em}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .hero-grid,.form-grid{grid-template-columns:1fr;gap:48px}
+  .hero h1{font-size:52px}
+  .section-head h2,.process h2,.form-grid h2{font-size:36px}
+  .guarantee h2{font-size:44px}
+  .results-grid,.process-grid{grid-template-columns:1fr 1fr;gap:24px}
+  .foot-grid{grid-template-columns:1fr 1fr;gap:32px}
+  .nav-links{display:none}
+  .stats{grid-template-columns:1fr 1fr 1fr;gap:20px}
+  .stat-num{font-size:32px}
+  .trust-inner{justify-content:center;text-align:center}
+  .section-head{flex-direction:column;align-items:flex-start;gap:20px}
+}
+@media(max-width:600px){
+  .container{padding:0 20px}
+  .hero{padding:48px 0 64px}
+  .hero h1{font-size:40px}
+  .results-grid,.process-grid{grid-template-columns:1fr}
+  .form-row{grid-template-columns:1fr}
+  .foot-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="#" class="logo">House of <span>Yachts</span></a>
+    <div class="nav-links">
+      <a href="#">Selg</a>
+      <a href="#">Kjøp</a>
+      <a href="#">Salgshistorikk</a>
+      <a href="#">Om oss</a>
+      <a href="#">Kontakt</a>
+    </div>
+    <a href="#form" class="nav-cta">Start verdivurdering</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="container hero-grid">
+    <div>
+      <div class="eyebrow" style="margin-bottom:24px">Premium båtmegling · Oslofjord</div>
+      <h1>Selg båten din til <em>maksimal</em> pris.</h1>
+      <p class="hero-sub">Full-service megling for båter fra 1–15 millioner. Én megler, hele veien — fra verdivurdering til oppgjør. No cure, no pay.</p>
+      <div class="cta-row">
+        <a href="#form" class="btn-primary">Start verdivurdering <span class="arrow">→</span></a>
+        <a href="#results" class="btn-ghost">Se siste salg</a>
+      </div>
+      <div class="stats">
+        <div><div class="stat-num">42</div><div class="stat-lbl">Snittdager til salg</div></div>
+        <div><div class="stat-num">94 %</div><div class="stat-lbl">List → solgt</div></div>
+        <div><div class="stat-num">287M</div><div class="stat-lbl">NOK solgt, 12 mnd</div></div>
+      </div>
+    </div>
+    <div class="hero-img">
+      <img src="https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?w=1200&q=80&auto=format&fit=crop" alt="Yacht on fjord">
+      <div class="hero-img-meta">Nimbus 495 · Oslofjord · Solgt 2026</div>
+    </div>
+  </div>
+</section>
+
+<section class="trust">
+  <div class="container trust-inner">
+    <div class="trust-label">Samarbeidspartnere og sertifiseringer</div>
+    <div class="trust-logos">
+      <div class="trust-logo">Nimbus</div>
+      <div class="trust-logo">Windy</div>
+      <div class="trust-logo">Sunseeker</div>
+      <div class="trust-logo">Bavaria</div>
+      <div class="trust-logo">NBS</div>
+      <div class="trust-logo">Saxdor</div>
+    </div>
+  </div>
+</section>
+
+<section class="results" id="results">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow" style="margin-bottom:12px">Proof</div>
+        <h2>Siste salg.</h2>
+      </div>
+      <div class="filters">
+        <div class="chip active">Alle</div>
+        <div class="chip">1–2M</div>
+        <div class="chip">2–4M</div>
+        <div class="chip">4–10M</div>
+        <div class="chip">10M+</div>
+        <div class="chip">Motor</div>
+        <div class="chip">Seil</div>
+      </div>
+    </div>
+    <div class="results-grid">
+      <div class="boat-card">
+        <div class="boat-img"><img src="https://images.unsplash.com/photo-1609436132311-e4b0c9302506?w=900&q=80&auto=format&fit=crop" alt=""></div>
+        <div class="boat-body">
+          <div class="boat-meta"><span>2022 · 38 ft</span><span>Motor</span></div>
+          <div class="boat-title">Nimbus 405 Coupé</div>
+          <div class="boat-foot"><div class="price-band">4–10M NOK</div><div class="days">36 dager</div></div>
+        </div>
+      </div>
+      <div class="boat-card">
+        <div class="boat-img"><img src="https://images.unsplash.com/photo-1540946485063-a40da27545f8?w=900&q=80&auto=format&fit=crop" alt=""></div>
+        <div class="boat-body">
+          <div class="boat-meta"><span>2019 · 32 ft</span><span>Motor</span></div>
+          <div class="boat-title">Windy 37 Grand Mistral</div>
+          <div class="boat-foot"><div class="price-band">2–4M NOK</div><div class="days">52 dager</div></div>
+        </div>
+      </div>
+      <div class="boat-card">
+        <div class="boat-img"><img src="https://images.unsplash.com/photo-1599582909646-2a1bf6ae4e3f?w=900&q=80&auto=format&fit=crop" alt=""></div>
+        <div class="boat-body">
+          <div class="boat-meta"><span>2021 · 48 ft</span><span>Motor</span></div>
+          <div class="boat-title">Sunseeker Predator 52</div>
+          <div class="boat-foot"><div class="price-band">10M+ NOK</div><div class="days">28 dager</div></div>
+        </div>
+      </div>
+      <div class="boat-card">
+        <div class="boat-img"><img src="https://images.unsplash.com/photo-1605281317010-fe5ffe798166?w=900&q=80&auto=format&fit=crop" alt=""></div>
+        <div class="boat-body">
+          <div class="boat-meta"><span>2020 · 28 ft</span><span>Motor</span></div>
+          <div class="boat-title">Saxdor 320 GTC</div>
+          <div class="boat-foot"><div class="price-band">1–2M NOK</div><div class="days">41 dager</div></div>
+        </div>
+      </div>
+      <div class="boat-card">
+        <div class="boat-img"><img src="https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?w=900&q=80&auto=format&fit=crop" alt=""></div>
+        <div class="boat-body">
+          <div class="boat-meta"><span>2017 · 42 ft</span><span>Seil</span></div>
+          <div class="boat-title">Bavaria 44 Vision</div>
+          <div class="boat-foot"><div class="price-band">2–4M NOK</div><div class="days">63 dager</div></div>
+        </div>
+      </div>
+      <div class="boat-card">
+        <div class="boat-img"><img src="https://images.unsplash.com/photo-1519046904884-53103b34b206?w=900&q=80&auto=format&fit=crop" alt=""></div>
+        <div class="boat-body">
+          <div class="boat-meta"><span>2023 · 35 ft</span><span>Motor</span></div>
+          <div class="boat-title">Goldfish 32 SC</div>
+          <div class="boat-foot"><div class="price-band">4–10M NOK</div><div class="days">19 dager</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="guarantee">
+  <div class="container guarantee-inner">
+    <h2>No sale, <em>no fee</em>.</h2>
+    <p>Vi bærer risikoen. Er båten ikke solgt innen 90 dager fortsetter vi premium-markedsføringen for egen regning — til handelen er i boks.</p>
+  </div>
+</section>
+
+<section class="process">
+  <div class="container">
+    <div class="eyebrow" style="margin-bottom:16px">Hvordan det fungerer</div>
+    <h2>Fra befaring til oppgjør.</h2>
+    <div class="process-grid">
+      <div class="step">
+        <div class="step-num">01</div>
+        <h3>Verdivurdering og salgsplan</h3>
+        <p>Vi kommer ut til båten, gjennomgår tilstand, dokumentasjon og marked. Du får en skriftlig vurdering og en tydelig plan innen 48 timer.</p>
+        <div class="step-proof">Befaring ≤ 72 timer</div>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <h3>Premium listing</h3>
+        <p>Profesjonelle bilder, video og 3D-tour. Annonsering i Norge og internasjonalt, med oppfølging på hver forespørsel og visning.</p>
+        <div class="step-proof">Publisert ≤ 7 dager</div>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <h3>Forhandling og oppgjør</h3>
+        <p>Vi fører budrunder, sikrer dokumentasjon og gjennomfører oppgjør via klientkonto. Du trenger ikke løfte en finger.</p>
+        <div class="step-proof">Sikret klientkonto</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="form-sec" id="form">
+  <div class="container form-grid">
+    <div>
+      <div class="eyebrow" style="margin-bottom:16px">Start her</div>
+      <h2>Få en <em>ærlig</em> verdivurdering.</h2>
+      <p>Kort skjema, ingen forpliktelser. Vi ringer deg innen 5 minutter i arbeidstiden for å avtale befaring.</p>
+      <ul>
+        <li>Svar på telefon innen 5 minutter</li>
+        <li>Befaring hos deg innen 72 timer</li>
+        <li>Skriftlig verdivurdering innen 48 timer etter befaring</li>
+        <li>Full transparens i hele prosessen</li>
+      </ul>
+    </div>
+    <div class="form-card">
+      <div class="form-step">Steg 1 av 3 · Båt</div>
+      <h3>Fortell oss om båten</h3>
+      <div class="form-row">
+        <div class="form-field">
+          <label>Merke</label>
+          <input type="text" placeholder="f.eks. Nimbus">
+        </div>
+        <div class="form-field">
+          <label>Modell</label>
+          <input type="text" placeholder="f.eks. 405 Coupé">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>Årsmodell</label>
+          <input type="number" placeholder="2022">
+        </div>
+        <div class="form-field">
+          <label>Lengde (ft)</label>
+          <input type="number" placeholder="38">
+        </div>
+      </div>
+      <div class="form-field">
+        <label>Estimert verdi</label>
+        <select>
+          <option>Velg verdiband</option>
+          <option>Under 1M NOK</option>
+          <option>1–2M NOK</option>
+          <option>2–4M NOK</option>
+          <option>4–10M NOK</option>
+          <option>10M+ NOK</option>
+        </select>
+      </div>
+      <a href="#" class="btn-primary form-submit" style="justify-content:center">Neste steg <span class="arrow">→</span></a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="foot-grid">
+      <div>
+        <div class="foot-logo">House of <span style="color:var(--gold)">Yachts</span></div>
+        <p class="foot-desc">House of Yachts er et uavhengig meglerhus for premium fritidsbåter i Norge. Vi hjelper eiere å selge båter fra ca. 1–15 millioner kroner trygt og effektivt.</p>
+      </div>
+      <div>
+        <h4>Snarveier</h4>
+        <ul>
+          <li><a href="#">Selg båt</a></li>
+          <li><a href="#">Kjøp båt</a></li>
+          <li><a href="#">Salgshistorikk</a></li>
+          <li><a href="#">Off-market</a></li>
+          <li><a href="#">Om oss</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Kontakt</h4>
+        <ul>
+          <li>+47 938 40 189</li>
+          <li>sindre@h-y.no</li>
+          <li>Dicks Vei 12<br>1366 Lysaker</li>
+        </ul>
+      </div>
+      <div>
+        <h4>First-Look</h4>
+        <p>Tidlig varsel om utvalgte premiumbåter før de annonseres bredt.</p>
+        <input type="email" placeholder="din@epost.no" style="margin-top:12px;padding:12px 14px;border:1px solid rgba(250,250,247,.2);background:transparent;color:var(--paper);border-radius:4px;font-size:14px;width:100%">
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <div>© 2026 House of Yachts AS. Alle rettigheter reservert.</div>
+      <div>Oslofjord · Østlandet</div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

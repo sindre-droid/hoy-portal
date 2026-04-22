@@ -1,0 +1,548 @@
+priority,category,source_path,destination,clicks_16mnd,impressions_16mnd,avg_position,notes
+A,HOMEPAGE,/,/,2660,41867,12.49,Homepage — redirect to new root
+A,HOMEPAGE,/,/,760,25109,8.52,Homepage — redirect to new root
+A,BOAT_INDEX,/baater,/buy,456,47338,10.12,Boat index → /buy
+A,ABOUT,/om-oss,/om-oss,298,20380,9.32,Must recreate /om-oss page
+B,BLOG_POST_KEEP,/post/kjøp-av-båt-i-utlandet,/blog/kjøp-av-båt-i-utlandet,233,13017,22.17,High-traffic blog — migrate to new blog
+A,BOAT_MATCH,/Baater/fjord-terne-24,/boat/fjord-terne-24,213,4784,5.79,Match — direct 301 to new /boat/ page
+B,BLOG_POST_KEEP,/post/huskeliste-kjøp-av-bruktbåt,/blog/huskeliste-kjøp-av-bruktbåt,209,6137,15.05,High-traffic blog — migrate to new blog
+A,BOAT_MATCH,/Baater/nimbus-300r,/boat/nimbus-300r,200,2332,15.23,Match — direct 301 to new /boat/ page
+A,BOAT_RECREATE,/Baater/nimbus-250-r,/boat/nimbus-250-r,192,2124,13.67,High-traffic unmatched — RECREATE in HubSpot as sold
+A,BOAT_RECREATE,/Baater/seabreacher-z,/boat/seabreacher-z,191,1211,7.46,High-traffic unmatched — RECREATE in HubSpot as sold
+A,BOAT_MATCH,/Baater/sandvik-945,/boat/sandvik-945,185,5190,9.76,Match — direct 301 to new /boat/ page
+DEFER,ENGLISH,/en,/en,173,6953,7.48,Bilingual workstream — defer until NO/EN setup
+A,BOAT_RECREATE,/Baater/nimbus-230-r,/boat/nimbus-230-r,168,2676,13.16,High-traffic unmatched — RECREATE in HubSpot as sold
+A,BOAT_MATCH,/Baater/riva-dolceriva-48,/boat/riva-dolceriva-48,166,8188,13.37,Match — direct 301 to new /boat/ page
+B,MODEL_LANDING,/nimbus250,/buy?filter=nimbus,165,5214,13.97,Model-specific landing page
+A,BOAT_MATCH,/Baater/scand-baltic-29,/boat/scand-baltic-29,163,8866,10.58,Match — direct 301 to new /boat/ page
+A,BOAT_RECREATE,/Baater/riviera-925-fly,/boat/riviera-925-fly,163,4294,5.86,High-traffic unmatched — RECREATE in HubSpot as sold
+A,BOAT_RECREATE,/Baater/nordkapp-760-noblesse,/boat/nordkapp-760-noblesse,162,3935,8.4,High-traffic unmatched — RECREATE in HubSpot as sold
+DEFER,ENGLISH,/en/Baater/m/y-in-excess,/en/Baater/m/y-in-excess,159,966,5.19,Bilingual workstream — defer until NO/EN setup
+A,BOAT_RECREATE,/Baater/windy-7500,/boat/windy-7500,139,2464,5.97,High-traffic unmatched — RECREATE in HubSpot as sold
+A,BOAT_MATCH,/Baater/nidelv-725-sport,/boat/nidelv-725-sport,138,2548,7.7,Match — direct 301 to new /boat/ page
+DEFER,ENGLISH,/en/Baater/goldfish-50-ocean,/en/Baater/goldfish-50-ocean,127,3153,10.06,Bilingual workstream — defer until NO/EN setup
+A,BOAT_RECREATE,/Baater/arctic-blue-27-mkii,/boat/arctic-blue-27-mkii,121,3456,25.9,High-traffic unmatched — RECREATE in HubSpot as sold
+A,BOAT_MATCH,/Baater/goldfish-50-ocean,/boat/goldfish-50-ocean,119,2511,5.61,Match — direct 301 to new /boat/ page
+A,BOAT_RECREATE,/Baater/beneteau-swift-trawler-34,/boat/beneteau-swift-trawler-34,117,1433,15.7,High-traffic unmatched — RECREATE in HubSpot as sold
+A,BOAT_MATCH,/Baater/nimbus-35-nova-ht-,/boat/nimbus-35-nova-ht,114,2443,13.4,Match — direct 301 to new /boat/ page
+DEFER,ENGLISH,/en/Baater/viksund-290/310-st.-cruz,/en/Baater/viksund-290/310-st.-cruz,107,2818,8.88,Bilingual workstream — defer until NO/EN setup
+A,BOAT_MATCH,/Baater/windy-35-khamsin,/boat/windy-35-khamsin,103,3238,9.06,Match — direct 301 to new /boat/ page
+DEFER,ENGLISH,/en/Baater/skorgenes-sonic-445-fly,/en/Baater/skorgenes-sonic-445-fly,103,2309,7.42,Bilingual workstream — defer until NO/EN setup
+A,BOAT_RECREATE,/Baater/targa-27.1,/boat/targa-27.1,94,4463,5.58,High-traffic unmatched — RECREATE in HubSpot as sold
+B,BLOG_POST_KEEP,/post/sandvik-945-for-salg,/blog/sandvik-945-for-salg,94,1836,18.62,High-traffic blog — migrate to new blog
+A,BOAT_MATCH,/Baater/nimbus-230r,/boat/nimbus-230r,92,2140,16.87,Match — direct 301 to new /boat/ page
+A,BOAT_RECREATE,/Baater/windy-44-chinook,/boat/windy-44-chinook,86,1366,9.41,High-traffic unmatched — RECREATE in HubSpot as sold
+A,BOAT_INDEX_LEGACY,/BaaterTilSalgs,/buy,85,7490,11.39,Legacy variant → /buy
+A,BOAT_MATCH,/Baater/bavaria-40-cruiser,/boat/bavaria-40-cruiser,85,4552,14.94,Match — direct 301 to new /boat/ page
+A,BOAT_RECREATE,/Baater/nordic-ocean-craft-catamaran,/boat/nordic-ocean-craft-catamaran,85,1432,9.45,High-traffic unmatched — RECREATE in HubSpot as sold
+A,BOAT_MATCH,/Baater/marex-280-holiday,/boat/marex-280-holiday,81,2069,24.06,Match — direct 301 to new /boat/ page
+B,BLOG_POST_KEEP,/post/nidelv-725-sport-for-salg,/blog/nidelv-725-sport-for-salg,80,1856,4.91,High-traffic blog — migrate to new blog
+B,BLOG_POST_KEEP,/post/hvilken-goldfish-er-best-sammenligner-3-generasjoner-goldfish-23-tender,/blog/hvilken-goldfish-er-best-sammenligner-3-generasjoner-goldfish-23-tender,74,1415,14.13,High-traffic blog — migrate to new blog
+A,BOAT_MATCH,/Baater/axopar-28-cabin,/boat/axopar-28-cabin,71,4914,12.44,Match — direct 301 to new /boat/ page
+A,BOAT_RECREATE,/Baater/nimbus-34-nova,/boat/nimbus-34-nova,70,1178,14.43,High-traffic unmatched — RECREATE in HubSpot as sold
+A,BOAT_MATCH,/Baater/askeladden-c83-cruiser,/boat/askeladden-c83-cruiser,67,4013,10.0,Match — direct 301 to new /boat/ page
+A,BOAT_RECREATE,/Baater/nimbus-320-coupé,/boat/nimbus-320-coupé,67,1611,15.85,High-traffic unmatched — RECREATE in HubSpot as sold
+A,BOAT_MATCH,/Baater/princess-25m,/boat/princess-25m,67,1316,18.4,Match — direct 301 to new /boat/ page
+A,BOAT_RECREATE,/Baater/goldfish-23-tender-mkiii,/boat/goldfish-23-tender-mkiii,66,4767,8.54,High-traffic unmatched — RECREATE in HubSpot as sold
+A,BOAT_MATCH,/Baater/askeladden-c80-cruiser,/boat/askeladden-c80-cruiser,64,4166,11.54,Match — direct 301 to new /boat/ page
+A,BOAT_RECREATE,/Baater/bostrøm-31-mki,/boat/bostrøm-31-mki,64,1699,16.96,High-traffic unmatched — RECREATE in HubSpot as sold
+A,BOAT_MATCH,/Baater/nimbus-33-nova,/boat/nimbus-33-nova,63,1271,22.32,Match — direct 301 to new /boat/ page
+B,BLOG_POST_KEEP,/post/solgt-nordic-star-32,/blog/solgt-nordic-star-32,63,695,5.09,High-traffic blog — migrate to new blog
+A,BOAT_MATCH,/Baater/hydrolift-s24-diablo,/boat/hydrolift-s24-diablo,62,2305,7.64,Match — direct 301 to new /boat/ page
+A,BOAT_MATCH,/Baater/aquador-26-dc,/boat/aquador-26-dc,62,1683,21.94,Match — direct 301 to new /boat/ page
+DEFER,ENGLISH,/en/Baater/fairline-squadron-55,/en/Baater/fairline-squadron-55,60,1997,11.6,Bilingual workstream — defer until NO/EN setup
+A,BOAT_MATCH,/Baater/bavaria-44-vision,/boat/bavaria-44-vision,56,1199,14.19,Match — direct 301 to new /boat/ page
+A,BOAT_RECREATE,/Baater/candela-c-8,/boat/candela-c-8,53,3407,13.26,High-traffic unmatched — RECREATE in HubSpot as sold
+A,BOAT_MATCH,/Baater/bavaria-40-vision,/boat/bavaria-40-vision,53,3388,35.71,Match — direct 301 to new /boat/ page
+A,BOAT_RECREATE,/Baater/fleming-58,/boat/fleming-58,53,1645,12.33,High-traffic unmatched — RECREATE in HubSpot as sold
+A,BOAT_MATCH,/Baater/nimbus-30s,/boat/nimbus-30s,53,1214,18.6,Match — direct 301 to new /boat/ page
+A,BOAT_RECREATE,/Baater/beneteau-41-swift-trawler-sedan,/boat/beneteau-41-swift-trawler-sedan,52,1434,16.62,High-traffic unmatched — RECREATE in HubSpot as sold
+A,BOAT_MATCH,/Baater/windy-26-kharma,/boat/windy-26-kharma,51,1033,14.01,Match — direct 301 to new /boat/ page
+A,BOAT_MATCH,/Baater/beneteau-figaro-2,/boat/beneteau-figaro-2,51,591,21.26,Match — direct 301 to new /boat/ page
+B,BLOG_POST_KEEP,/post/solgt-2000-viksund-290-310-st-cruz,/blog/solgt-2000-viksund-290-310-st-cruz,50,1203,4.92,High-traffic blog — migrate to new blog
+B,BOAT_UNMATCHED,/Baater/dufour-385-grand-large,/sold,49,1145,26.18,Medium-traffic unmatched — redirect to /sold
+DEFER,ENGLISH,/en/Baater/paragon-31-fly,/en/Baater/paragon-31-fly,48,921,9.02,Bilingual workstream — defer until NO/EN setup
+B,BOAT_UNMATCHED,/Baater/anytec-860-spd,/sold,48,774,20.41,Medium-traffic unmatched — redirect to /sold
+B,BOAT_UNMATCHED,/Baater/windy-37-grand-mistral,/sold,47,2083,12.59,Medium-traffic unmatched — redirect to /sold
+A,BOAT_MATCH,/Baater/fairline-phantom-48,/boat/fairline-phantom-48,46,1405,23.45,Match — direct 301 to new /boat/ page
+A,BOAT_MATCH,/Baater/nimbus-29-nova,/boat/nimbus-29-nova,46,991,16.24,Match — direct 301 to new /boat/ page
+B,SEO_GENERIC,/baatmegler,/om-oss,45,3141,6.81,"Ranks for ""båtmegler"" keyword — redirect to About or home"
+C,BLOG_LOW,/post/månedens-båt-white-shark-298,/,44,1225,8.24,Low-value blog — redirect to home
+A,BOAT_MATCH,/Baater/paragon-25-cabin,/boat/paragon-25-cabin,42,1460,10.89,Match — direct 301 to new /boat/ page
+DEFER,ENGLISH,/en/Baater/bavaria-330-sport-ht,/en/Baater/bavaria-330-sport-ht,41,852,14.32,Bilingual workstream — defer until NO/EN setup
+B,BOAT_UNMATCHED,/Baater/boston-whaler-190-outrage,/sold,38,1192,24.74,Medium-traffic unmatched — redirect to /sold
+A,BOAT_MATCH,/Baater/askeladden-c83,/boat/askeladden-c83,37,2625,9.21,Match — direct 301 to new /boat/ page
+DEFER,ENGLISH,/en/baater,/en/baater,37,1518,9.62,Bilingual workstream — defer until NO/EN setup
+B,BOAT_UNMATCHED,/Baater/nord-west-370-coupé,/sold,36,684,5.79,Medium-traffic unmatched — redirect to /sold
+A,BOAT_MATCH,/Baater/nimbus-305-drophead,/boat/nimbus-305-drophead,36,570,10.35,Match — direct 301 to new /boat/ page
+C,BLOG_INVENTORY,/post/sargo-25-for-salg,/sold,35,642,8.08,Inventory-related post — redirect to /sold
+C,BLOG_LOW,/post/kjøpe-båt-i-utlandet,/,33,5563,33.27,Low-value blog — redirect to home
+DEFER,ENGLISH,/en/Baater/fjord-terne-24,/en/Baater/fjord-terne-24,33,987,7.58,Bilingual workstream — defer until NO/EN setup
+B,BOAT_UNMATCHED,/Baater/nimbus-280-coupé,/sold,33,700,22.82,Medium-traffic unmatched — redirect to /sold
+B,BOAT_UNMATCHED,/Baater/jeanneau-so-49-ds,/sold,33,675,24.22,Medium-traffic unmatched — redirect to /sold
+A,BOAT_MATCH,/Baater/marex-375,/boat/marex-375,32,1539,9.95,Match — direct 301 to new /boat/ page
+B,BOAT_UNMATCHED,/Baater/sargo-25,/sold,32,1507,10.27,Medium-traffic unmatched — redirect to /sold
+A,BOAT_MATCH,/Baater/jeanneau-sun-odyssey-36i,/boat/jeanneau-sun-odyssey-36i,32,470,5.8,Match — direct 301 to new /boat/ page
+A,BOAT_MATCH,/Baater/chris-craft-25-corsair,/boat/chris-craft-25-corsair,31,707,13.88,Match — direct 301 to new /boat/ page
+A,BOAT_MATCH,/Baater/cormate-t-27,/boat/cormate-t-27,30,1481,12.67,Match — direct 301 to new /boat/ page
+B,BOAT_UNMATCHED,/Baater/bavaria-37-ac,/sold,30,782,15.6,Medium-traffic unmatched — redirect to /sold
+C,BLOG_LOW,/post/månedens-båt-nimbus-r-serien,/,30,260,17.75,Low-value blog — redirect to home
+B,BOAT_MATCH,/Baater/colin-archer-40,/boat/colin-archer-40,29,629,11.79,Match — direct 301 to new /boat/ page
+C,BLOG_LOW,/post/månedens-båt-m-y-in-excess,/,28,602,11.61,Low-value blog — redirect to home
+DEFER,ENGLISH,/en/Baater/elan-power-35-ht,/en/Baater/elan-power-35-ht,28,521,26.24,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/anker-&-jensen-8mr-1914-carmen-iv,/en/Baater/anker-&-jensen-8mr-1914-carmen-iv,28,314,11.56,Bilingual workstream — defer until NO/EN setup
+B,BOAT_UNMATCHED,/Baater/windy-35-khamsin-2008-d6-370,/sold,27,1023,9.64,Medium-traffic unmatched — redirect to /sold
+B,BOAT_UNMATCHED,/Baater/quicksilver-905-pilothouse,/sold,27,895,10.5,Medium-traffic unmatched — redirect to /sold
+B,BOAT_MATCH,/Baater/axopar-28-open,/boat/axopar-28-open,27,800,9.8,Match — direct 301 to new /boat/ page
+B,BOAT_MATCH,/Baater/marex-370-acc,/boat/marex-370-acc,27,630,11.15,Match — direct 301 to new /boat/ page
+B,BOAT_MATCH,/Baater/marex-360-cc,/boat/marex-360-cc,26,2016,11.62,Match — direct 301 to new /boat/ page
+C,BLOG_INVENTORY,/post/solgt-sandvik-945,/sold,26,1336,5.91,Inventory-related post — redirect to /sold
+DEFER,ENGLISH,/en/Baater/princess-415,/en/Baater/princess-415,26,405,6.5,Bilingual workstream — defer until NO/EN setup
+B,BOAT_UNMATCHED,/Baater/goldfish-29-sport---2020,/sold,25,3331,22.19,Medium-traffic unmatched — redirect to /sold
+DEFER,ENGLISH,/en/Baater/riviera-925-fly,/en/Baater/riviera-925-fly,25,788,8.84,Bilingual workstream — defer until NO/EN setup
+B,SEO_LANDING,/kjope-bat,/buy,24,18728,20.46,SEO landing page → /buy
+C,SERVICES,/nautibuoy,/,24,13722,11.01,Low traffic — redirect to homepage
+B,BOAT_MATCH,/Baater/nordkapp-720-noblesse,/boat/nordkapp-720-noblesse,24,2257,18.22,Match — direct 301 to new /boat/ page
+B,BOAT_MATCH,/Baater/goldfish-28-rib,/boat/goldfish-28-rib,24,1254,20.8,Match — direct 301 to new /boat/ page
+B,BOAT_MATCH,/Baater/goldfish-29-sport,/boat/goldfish-29-sport,24,1089,9.64,Match — direct 301 to new /boat/ page
+B,BOAT_UNMATCHED,/Baater/grand-banks-52-europa,/sold,24,268,10.48,Medium-traffic unmatched — redirect to /sold
+C,BLOG_LOW,/post/yacht-i-middelhavet-mangusta-92,/,23,2425,6.31,Low-value blog — redirect to home
+B,BOAT_UNMATCHED,/Baater/goldfish-30-sport---diesel,/sold,23,1956,8.58,Medium-traffic unmatched — redirect to /sold
+B,BOAT_MATCH,/Baater/fjord-40-open,/boat/fjord-40-open,23,1117,9.25,Match — direct 301 to new /boat/ page
+DEFER,ENGLISH,/en/Baater/fairline-targa-37,/en/Baater/fairline-targa-37,23,974,7.32,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/ibiza-811-touring,/en/Baater/ibiza-811-touring,23,827,8.71,Bilingual workstream — defer until NO/EN setup
+B,BOAT_MATCH,/Baater/bavaria-s36-ht,/boat/bavaria-s36-ht,23,221,9.16,Match — direct 301 to new /boat/ page
+B,BOAT_MATCH,/Baater/elan-37,/boat/elan-37,22,707,27.19,Match — direct 301 to new /boat/ page
+C,JOB_POST,/post/kaptein-søkes-til-privat-yacht-ostlandet,/,22,309,17.09,Job post — redirect to home
+B,BOAT_MATCH,/Baater/goldfish-38-supersport,/boat/goldfish-38-supersport,21,2451,12.76,Match — direct 301 to new /boat/ page
+B,BOAT_UNMATCHED,/Baater/bayliner-avanti-4085-express-cruiser,/sold,21,533,10.49,Medium-traffic unmatched — redirect to /sold
+C,BLOG_LOW,/post/hiv-og-hoy-ep-34,/,21,488,16.83,Low-value blog — redirect to home
+B,BOAT_MATCH,/Baater/nordkapp-705-enduro,/boat/nordkapp-705-enduro,20,1014,26.67,Match — direct 301 to new /boat/ page
+B,BOAT_MATCH,/Baater/bavaria-35-sport,/boat/bavaria-35-sport,20,537,8.67,Match — direct 301 to new /boat/ page
+B,BOAT_MATCH,/Baater/grandezza-31-oc,/boat/grandezza-31-oc,20,415,8.34,Match — direct 301 to new /boat/ page
+DEFER,ENGLISH,/en/Baater/grandezza-31-oc,/en/Baater/grandezza-31-oc,20,409,7.24,Bilingual workstream — defer until NO/EN setup
+B,BOAT_UNMATCHED,/Baater/dufour-385-gl,/sold,20,298,9.29,Medium-traffic unmatched — redirect to /sold
+DEFER,ENGLISH,/en/Baater/nordic-ocean-craft-catamaran,/en/Baater/nordic-ocean-craft-catamaran,20,232,8.09,Bilingual workstream — defer until NO/EN setup
+B,BOAT_UNMATCHED,/Baater/flipper-760-dc,/sold,19,1337,14.36,Medium-traffic unmatched — redirect to /sold
+B,BOAT_MATCH,/Baater/nimbus-w9,/boat/nimbus-w9,19,554,9.02,Match — direct 301 to new /boat/ page
+B,BOAT_MATCH,/Baater/axopar-25-cross-bow,/boat/axopar-25-cross-bow,19,427,8.32,Match — direct 301 to new /boat/ page
+B,BOAT_MATCH,/Baater/nimbus-250r-mkii,/boat/nimbus-250r-mkii,19,197,15.84,Match — direct 301 to new /boat/ page
+C,BLOG_INDEX,/blogg,/,18,14187,10.64,Blog disabled for now — redirect to /
+B,BOAT_MATCH,/Baater/goldfish-28-tender,/boat/goldfish-28-tender,18,1726,11.6,Match — direct 301 to new /boat/ page
+B,BOAT_MATCH,/Baater/nimbus-w9-t-top,/boat/nimbus-w9-t-top,18,579,7.37,Match — direct 301 to new /boat/ page
+B,BOAT_UNMATCHED,/Baater/nimbus-300r---2005-modell,/sold,18,317,10.66,Medium-traffic unmatched — redirect to /sold
+B,BOAT_MATCH,/Baater/nimbus-35-nova-ht,/boat/nimbus-35-nova-ht,18,307,12.13,Match — direct 301 to new /boat/ page
+DEFER,ENGLISH,/en/Baater/hydrolift-c-27,/en/Baater/hydrolift-c-27,17,483,8.47,Bilingual workstream — defer until NO/EN setup
+C,BLOG_INVENTORY,/post/stormway-925-rib-selges,/sold,17,257,12.6,Inventory-related post — redirect to /sold
+B,BOAT_UNMATCHED,/Baater/m/y-in-excess,/sold,17,213,11.4,Medium-traffic unmatched — redirect to /sold
+C,BLOG_LOW,/post/arctic-blue-27-mkii,/,17,187,12.18,Low-value blog — redirect to home
+B,BOAT_UNMATCHED,/Baater/1912-anker-&-jensen-9mr-flirt-iv,/sold,17,134,11.57,Medium-traffic unmatched — redirect to /sold
+C,BLOG_INVENTORY,/post/bavaria-e34-fly-selges,/sold,17,95,19.0,Inventory-related post — redirect to /sold
+B,BOAT_UNMATCHED,/Baater/targa-44-fly,/sold,16,1789,8.9,Medium-traffic unmatched — redirect to /sold
+B,BOAT_UNMATCHED,/Baater/goldfish-23-tender---2018,/sold,16,1105,9.8,Medium-traffic unmatched — redirect to /sold
+B,BOAT_MATCH,/Baater/nimbus-t9,/boat/nimbus-t9,16,731,9.85,Match — direct 301 to new /boat/ page
+B,BOAT_MATCH,/Baater/jeanneau-sun-odyssey-519,/boat/jeanneau-sun-odyssey-519,16,571,9.26,Match — direct 301 to new /boat/ page
+B,BOAT_MATCH,/Baater/brig-eagle-8---2022,/boat/brig-eagle-8-2022,16,495,9.12,Match — direct 301 to new /boat/ page
+B,BOAT_UNMATCHED,/Baater/nimbus-35-nova-ht---2008,/sold,16,477,9.07,Medium-traffic unmatched — redirect to /sold
+DEFER,ENGLISH,/en/Baater/nimbus-w9,/en/Baater/nimbus-w9,16,475,13.67,Bilingual workstream — defer until NO/EN setup
+B,BOAT_UNMATCHED,/Baater/goldfish-x12-endurance,/sold,15,2379,13.14,Medium-traffic unmatched — redirect to /sold
+B,BOAT_MATCH,/Baater/fairline-targa-37,/boat/fairline-targa-37,15,1476,12.17,Match — direct 301 to new /boat/ page
+DEFER,ENGLISH,/en/Baater/goldfish-28-bullet-#020,/en/Baater/goldfish-28-bullet-#020,15,1332,8.22,Bilingual workstream — defer until NO/EN setup
+B,BOAT_UNMATCHED,/Baater/azimut-47-fly,/sold,15,866,12.65,Medium-traffic unmatched — redirect to /sold
+B,BOAT_MATCH,/Baater/bavaria-360-sport-open,/boat/bavaria-360-sport-open,15,828,26.22,Match — direct 301 to new /boat/ page
+B,BOAT_UNMATCHED,/Baater/nimbus-320-coupè---2003,/sold,15,499,8.7,Medium-traffic unmatched — redirect to /sold
+C,BLOG_INVENTORY,/post/prisreduksjon-goldfish-29-sport,/sold,15,236,26.33,Inventory-related post — redirect to /sold
+B,SELL_LANDING,/selge-bat,/,14,10199,14.1,Redirect to / (our /sell = /)
+C,BLOG_LOW,/post/slik-tar-du-gode-bilder-av-båten,/,14,1057,10.24,Low-value blog — redirect to home
+DEFER,ENGLISH,/en/Baater/goldfish-30-sport---diesel,/en/Baater/goldfish-30-sport---diesel,14,936,10.95,Bilingual workstream — defer until NO/EN setup
+C,BLOG_CATEGORY,/blogg/categories/ledig-stilling,/,14,589,32.48,Blog category — low traffic
+B,BOAT_UNMATCHED,/Baater/ibiza-881-t-special-edition,/sold,14,527,11.26,Medium-traffic unmatched — redirect to /sold
+B,BOAT_UNMATCHED,/Baater/skorgenes-350-fly,/sold,14,396,6.43,Medium-traffic unmatched — redirect to /sold
+C,BLOG_INVENTORY,/post/prisreduksjon-stormway-925-rib,/sold,14,239,13.41,Inventory-related post — redirect to /sold
+C,BLOG_LOW,/post/kronekursen-kan-gjør-båteksport-attraktivt,/,14,175,10.27,Low-value blog — redirect to home
+DEFER,ENGLISH,/en/Baater/1912-anker-&-jensen-9mr-flirt-iv,/en/Baater/1912-anker-&-jensen-9mr-flirt-iv,14,141,12.87,Bilingual workstream — defer until NO/EN setup
+B,BOAT_UNMATCHED,/Baater/goldfish-38-sport,/sold,13,1521,15.56,Medium-traffic unmatched — redirect to /sold
+DEFER,ENGLISH,/en/Baater/cormate-23-su---2022-shark-grey,/en/Baater/cormate-23-su---2022-shark-grey,13,666,14.74,Bilingual workstream — defer until NO/EN setup
+C,BLOG_INVENTORY,/post/nimbus-280-coupé-for-salg,/sold,13,622,45.45,Inventory-related post — redirect to /sold
+B,BOAT_MATCH,/Baater/windy-39-camira,/boat/windy-39-camira,13,591,11.09,Match — direct 301 to new /boat/ page
+B,BOAT_MATCH,/Baater/axopar-37-cabin,/boat/axopar-37-cabin,13,580,8.89,Match — direct 301 to new /boat/ page
+C,BLOG_INVENTORY,/post/nimbus-35-nova-ht-for-salg,/sold,13,374,8.81,Inventory-related post — redirect to /sold
+DEFER,ENGLISH,/en/Baater/quicksilver-905-pilothouse,/en/Baater/quicksilver-905-pilothouse,13,335,11.74,Bilingual workstream — defer until NO/EN setup
+C,BLOG_INVENTORY,/post/kommer-for-salg-nimbus-300r,/sold,13,313,11.75,Inventory-related post — redirect to /sold
+B,BOAT_UNMATCHED,/Baater/grand-banks-47-heritage-eu,/sold,13,214,10.57,Medium-traffic unmatched — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-goldfish-28-rib,/sold,13,190,25.68,Inventory-related post — redirect to /sold
+B,BOAT_UNMATCHED,/Baater/chris-craft-carina-21,/sold,13,180,14.56,Medium-traffic unmatched — redirect to /sold
+DEFER,ENGLISH,/en/Baater/beneteau-figaro-2,/en/Baater/beneteau-figaro-2,13,133,24.76,Bilingual workstream — defer until NO/EN setup
+B,BOAT_UNMATCHED,/Baater/windy-28-ghibli---2001,/sold,12,569,9.61,Medium-traffic unmatched — redirect to /sold
+B,BOAT_UNMATCHED,/Baater/axopar-37-sports-cabin,/sold,12,569,13.47,Medium-traffic unmatched — redirect to /sold
+B,BOAT_MATCH,/Baater/bavaria-37-cruiser,/boat/bavaria-37-cruiser,12,520,13.22,Match — direct 301 to new /boat/ page
+B,BOAT_UNMATCHED,/Baater/modesty-33-sc,/sold,12,340,10.26,Medium-traffic unmatched — redirect to /sold
+B,BOAT_UNMATCHED,/Baater/azimut-atlantis-40-ht,/sold,12,291,12.49,Medium-traffic unmatched — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-nimbus-250r-mkii,/sold,12,264,4.14,Inventory-related post — redirect to /sold
+B,BOAT_MATCH,/Baater/nimbus-250r,/boat/nimbus-250r,12,171,16.49,Match — direct 301 to new /boat/ page
+C,SERVICES,/sail-division,/,11,12668,10.46,Low traffic — redirect to homepage
+B,BOAT_UNMATCHED,/Baater/goldfish-30-sport---2022,/sold,11,1663,21.97,Medium-traffic unmatched — redirect to /sold
+B,BOAT_UNMATCHED,/Baater/cormate-35-chase,/sold,11,1368,11.39,Medium-traffic unmatched — redirect to /sold
+B,BOAT_MATCH,/Baater/marex-310-sun-cruiser,/boat/marex-310-sun-cruiser,11,679,13.3,Match — direct 301 to new /boat/ page
+B,BOAT_UNMATCHED,/Baater/windy-28-ghibli-kad-300,/sold,11,527,9.99,Medium-traffic unmatched — redirect to /sold
+DEFER,ENGLISH,/en/Baater/goldfish-23-tender---2018,/en/Baater/goldfish-23-tender---2018,11,407,10.22,Bilingual workstream — defer until NO/EN setup
+C,BLOG_INVENTORY,/post/princess-25m-for-salg,/sold,11,379,20.9,Inventory-related post — redirect to /sold
+B,BOAT_MATCH,/Baater/princess-415,/boat/princess-415,11,270,17.25,Match — direct 301 to new /boat/ page
+B,BOAT_UNMATCHED,/Baater/saffier-se-33-ud,/sold,11,257,6.81,Medium-traffic unmatched — redirect to /sold
+B,BOAT_UNMATCHED,/Baater/marex-360-cc---2022,/sold,11,256,8.3,Medium-traffic unmatched — redirect to /sold
+B,BOAT_MATCH,/Baater/jeanneau-cap-camarat-925-wa,/boat/jeanneau-cap-camarat-925-wa,11,224,18.3,Match — direct 301 to new /boat/ page
+B,BOAT_MATCH,/Baater/chris-craft-28-corsair,/boat/chris-craft-28-corsair,11,202,9.12,Match — direct 301 to new /boat/ page
+DEFER,ENGLISH,/en/Baater/sunseeker-44-camargue,/en/Baater/sunseeker-44-camargue,11,195,11.42,Bilingual workstream — defer until NO/EN setup
+B,CHARTER,/charter,/charter,10,1311,46.24,Needs page — create or redirect /
+B,BOAT_UNMATCHED,/Baater/bavaria-37-cruiser---2006,/sold,10,660,11.41,Medium-traffic unmatched — redirect to /sold
+C,BLOG_LOW,/post/romjulsspesial-jon-olsson-selger-båten-sin-og-boot-2023-hoy-pod-ep-3,/,10,570,19.96,Low-value blog — redirect to home
+B,BOAT_MATCH,/Baater/sunseeker-44-camargue,/boat/sunseeker-44-camargue,10,268,13.0,Match — direct 301 to new /boat/ page
+DEFER,ENGLISH,/en/Baater/dufour-44-performance,/en/Baater/dufour-44-performance,10,190,6.23,Bilingual workstream — defer until NO/EN setup
+C,BLOG_INVENTORY,/post/solgt-princess-25m,/sold,10,95,24.89,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-comtesse-liberty,/sold,10,70,6.66,Inventory-related post — redirect to /sold
+C,BOAT_UNMATCHED_LOW,/Baater/nimbus-c11,/sold,9,855,18.0,Low-traffic unmatched — redirect to /sold
+C,BLOG_INVENTORY,/post/quicksilver-905-pilothouse-for-salg,/sold,9,722,33.37,Inventory-related post — redirect to /sold
+C,BOAT_UNMATCHED_LOW,/Baater/capelli-tempest-1000,/sold,9,569,10.16,Low-traffic unmatched — redirect to /sold
+C,BOAT_UNMATCHED_LOW,/Baater/hydrolift-x-26-s---400r,/sold,9,520,9.27,Low-traffic unmatched — redirect to /sold
+DEFER,ENGLISH,/en/om-oss,/en/om-oss,9,424,35.19,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/colin-archer-40,/en/Baater/colin-archer-40,9,231,10.08,Bilingual workstream — defer until NO/EN setup
+C,BOAT_UNMATCHED_LOW,/Baater/nordkapp-grand-coupe-905---2x300hk,/sold,9,208,10.12,Low-traffic unmatched — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-archambault-a31,/sold,9,123,25.06,Inventory-related post — redirect to /sold
+DEFER,ENGLISH,/en/Baater/skorgenes-350-fly,/en/Baater/skorgenes-350-fly,9,121,6.12,Bilingual workstream — defer until NO/EN setup
+C,BOAT_UNMATCHED_LOW,/Baater/swan-48,/sold,9,91,6.48,Low-traffic unmatched — redirect to /sold
+DEFER,ENGLISH,/en/Baater/goldfish-29-rib-tender,/en/Baater/goldfish-29-rib-tender,8,1079,8.58,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/goldfish-32-sc-2001,/en/Baater/goldfish-32-sc-2001,8,698,7.43,Bilingual workstream — defer until NO/EN setup
+B,BOAT_MATCH,/Baater/nimbus-t11,/boat/nimbus-t11,8,672,12.03,Match — direct 301 to new /boat/ page
+C,JOB_POST,/post/ledig-stilling-båtmegler-trainee-juniormegler,/,8,508,28.81,Job post — redirect to home
+B,BOAT_MATCH,/Baater/glastron-gs-259,/boat/glastron-gs-259,8,288,36.63,Match — direct 301 to new /boat/ page
+C,BOAT_UNMATCHED_LOW,/Baater/delphia-40.3,/sold,8,236,27.49,Low-traffic unmatched — redirect to /sold
+C,BOAT_UNMATCHED_LOW,/Baater/goldfish-28-tender-#001,/sold,8,205,10.96,Low-traffic unmatched — redirect to /sold
+DEFER,ENGLISH,"/en/Baater/comtesse-""liberty""","/en/Baater/comtesse-""liberty""",8,136,17.54,Bilingual workstream — defer until NO/EN setup
+C,BOAT_UNMATCHED_LOW,/Baater/bavaria-e34-fly,/sold,8,135,13.36,Low-traffic unmatched — redirect to /sold
+DEFER,ENGLISH,/en/Baater/storebro-430-biscay,/en/Baater/storebro-430-biscay,8,92,6.92,Bilingual workstream — defer until NO/EN setup
+C,OTHER,/detailing,/,7,1081,60.74,Other — redirect to home
+B,BOAT_MATCH,/Baater/goldfish-30-sport,/boat/goldfish-30-sport,7,530,28.2,Match — direct 301 to new /boat/ page
+C,BLOG_LOW,/post/hvordan-handle-bruktbåt-tips-og-råd-til-hva-du-bør-se-etter-og-hvordan-gjøre-gode-kjøp-vinterstid,/,7,409,53.76,Low-value blog — redirect to home
+DEFER,ENGLISH,/en/Baater/hanse-548,/en/Baater/hanse-548,7,294,19.66,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/bavaria-35-sport,/en/Baater/bavaria-35-sport,7,255,7.08,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/capelli-900-wa,/en/Baater/capelli-900-wa,7,241,9.95,Bilingual workstream — defer until NO/EN setup
+C,BLOG_INVENTORY,/post/goldfish-29-sport-for-salg,/sold,7,156,24.53,Inventory-related post — redirect to /sold
+B,BOAT_MATCH,/Baater/hanse-355,/boat/hanse-355,7,149,10.65,Match — direct 301 to new /boat/ page
+C,BOAT_UNMATCHED_LOW,/Baater/cormate-t-27---2015,/sold,7,143,27.47,Low-traffic unmatched — redirect to /sold
+C,BOAT_UNMATCHED_LOW,/Baater/chris-craft-25-corsair-2008,/sold,7,132,11.11,Low-traffic unmatched — redirect to /sold
+DEFER,ENGLISH,/en/Baater/jeanneau-so-49-ds,/en/Baater/jeanneau-so-49-ds,7,115,8.74,Bilingual workstream — defer until NO/EN setup
+C,BOAT_UNMATCHED_LOW,/Baater/timeless-34-nordic,/sold,7,76,14.34,Low-traffic unmatched — redirect to /sold
+C,BLOG_LOW,/post/goldfish-23-tender-solgt,/,7,74,29.31,Low-value blog — redirect to home
+C,BOAT_UNMATCHED_LOW,/Baater/goldfish-38-supersport-#023,/sold,6,1722,10.31,Low-traffic unmatched — redirect to /sold
+C,BOAT_UNMATCHED_LOW,/Baater/goldfish-29-sport---2015,/sold,6,552,22.86,Low-traffic unmatched — redirect to /sold
+C,BLOG_INVENTORY,/post/targa-27-1-for-salg,/sold,6,368,10.01,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-arctic-blue-27-mkii,/sold,6,320,21.39,Inventory-related post — redirect to /sold
+C,BLOG_LOW,/post/forhandler-for-nautibuoy-marine,/,6,292,10.6,Low-value blog — redirect to home
+DEFER,ENGLISH,/en/Baater/goldfish-29-rib-tender---2009,/en/Baater/goldfish-29-rib-tender---2009,6,283,12.51,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/paragon-25-cabin,/en/Baater/paragon-25-cabin,6,199,9.55,Bilingual workstream — defer until NO/EN setup
+C,BOAT_UNMATCHED_LOW,/Baater/nimbus-230r---bensin,/sold,6,129,15.98,Low-traffic unmatched — redirect to /sold
+C,BOAT_UNMATCHED_LOW,/Baater/nimbus-w9-t-top-mercury-300,/sold,6,123,9.87,Low-traffic unmatched — redirect to /sold
+C,BOAT_UNMATCHED_LOW,/Baater/grand-banks-eastbay-45sx,/sold,6,101,7.26,Low-traffic unmatched — redirect to /sold
+C,BLOG_CATEGORY,/blogg/page/2,/,6,95,53.81,Blog category — low traffic
+C,BLOG_CATEGORY,/blogg/page/6,/,6,79,16.05,Blog category — low traffic
+C,BOAT_UNMATCHED_LOW,/Baater/archambault-a-31,/sold,6,73,21.66,Low-traffic unmatched — redirect to /sold
+B,SELL_LANDING,/verdivurdering,/,5,7005,14.42,Redirect to / (our /sell = /)
+C,BOAT_UNMATCHED_LOW,/Baater/brig-eagle-8-hankø-edition,/sold,5,517,11.33,Low-traffic unmatched — redirect to /sold
+DEFER,ENGLISH,/en/Baater/goldfish-28-tender-#064,/en/Baater/goldfish-28-tender-#064,5,393,10.71,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/goldfish-28-tender-#057,/en/Baater/goldfish-28-tender-#057,5,383,10.38,Bilingual workstream — defer until NO/EN setup
+B,BOAT_MATCH,/Baater/goldfish-23-tender,/boat/goldfish-23-tender,5,352,11.31,Match — direct 301 to new /boat/ page
+DEFER,ENGLISH,/en/Baater/nimbus-c11,/en/Baater/nimbus-c11,5,311,9.58,Bilingual workstream — defer until NO/EN setup
+B,BOAT_MATCH,/Baater/hydrolift-x-32s-r,/boat/hydrolift-x-32s-r,5,299,10.01,Match — direct 301 to new /boat/ page
+C,BLOG_INVENTORY,/post/solgt-scand-baltic-29,/sold,5,235,14.72,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-nimbus-35-nova-ht-1,/sold,5,234,6.17,Inventory-related post — redirect to /sold
+B,BOAT_MATCH,/Baater/nordkapp-905-grand-coupe,/boat/nordkapp-905-grand-coupe,5,210,15.7,Match — direct 301 to new /boat/ page
+B,BOAT_MATCH,/Baater/fairline-squadron-55,/boat/fairline-squadron-55,5,182,11.05,Match — direct 301 to new /boat/ page
+C,BOAT_UNMATCHED_LOW,/Baater/beneteau-mc5,/sold,5,179,17.62,Low-traffic unmatched — redirect to /sold
+C,BLOG_LOW,/post/goldfish-30-sport-oppgradere-fra-goldfish-29-sport,/,5,169,24.05,Low-value blog — redirect to home
+C,BOAT_UNMATCHED_LOW,/Baater/sunseeker-manhattan-73,/sold,5,133,23.91,Low-traffic unmatched — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-aquador-26-dc,/sold,5,111,26.54,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-nimbus-33-nova,/sold,5,89,11.44,Inventory-related post — redirect to /sold
+B,BOAT_MATCH,/Baater/seaside-23,/boat/seaside-23,5,84,8.87,Match — direct 301 to new /boat/ page
+DEFER,ENGLISH,/en/Baater/hydrolift-x-32s-r,/en/Baater/hydrolift-x-32s-r,5,61,8.18,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/sargo-25,/en/Baater/sargo-25,5,39,10.08,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/princess-25m,/en/Baater/princess-25m,5,28,5.11,Bilingual workstream — defer until NO/EN setup
+C,BLOG_INVENTORY,/post/archambault-a-31-for-salg,/sold,5,14,6.64,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-nimbus-29-nova,/sold,4,464,15.85,Inventory-related post — redirect to /sold
+C,BOAT_UNMATCHED_LOW,/Baater/boston-whaler-370-outrage,/sold,4,397,42.9,Low-traffic unmatched — redirect to /sold
+B,BOAT_MATCH,/Baater/pershing-64,/boat/pershing-64,4,396,48.27,Match — direct 301 to new /boat/ page
+B,BOAT_MATCH,/Baater/wolstenholme-38,/boat/wolstenholme-38,4,311,35.38,Match — direct 301 to new /boat/ page
+C,BLOG_INVENTORY,/post/solgt-bayline-avanti-4085,/sold,4,230,16.4,Inventory-related post — redirect to /sold
+DEFER,ENGLISH,/en/Baater/candela-c-8,/en/Baater/candela-c-8,4,203,16.49,Bilingual workstream — defer until NO/EN setup
+C,BLOG_INVENTORY,/post/windy-26-kharma-for-salg,/sold,4,141,31.43,Inventory-related post — redirect to /sold
+DEFER,ENGLISH,/en/Baater/marex-360-cc---2022,/en/Baater/marex-360-cc---2022,4,130,9.42,Bilingual workstream — defer until NO/EN setup
+C,BLOG_INVENTORY,/post/solgt-beneteau-figaro-2,/sold,4,101,19.62,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-nimbus-300r,/sold,4,59,17.69,Inventory-related post — redirect to /sold
+C,BLOG_CATEGORY,/blogg/page/4,/,4,54,12.65,Blog category — low traffic
+C,BLOG_INVENTORY,/post/nimbus-320-coupé-for-salg,/sold,4,52,22.9,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/seabreacher-z-for-salg,/sold,4,49,24.14,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-grand-banks-47-eu-heritage-edition,/sold,4,44,20.32,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/fleming-58-for-salg,/sold,4,33,14.3,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-hanse-355,/sold,4,8,20.75,Inventory-related post — redirect to /sold
+A,SOLD_INDEX,/sold,/sold,3,422,12.2,Direct match (page exists)
+C,BOAT_UNMATCHED_LOW,/Baater/goldfish-28-tender-#069,/sold,3,319,14.2,Low-traffic unmatched — redirect to /sold
+C,BOAT_UNMATCHED_LOW,/Baater/viksund-290/310-st.-cruz,/sold,3,308,6.45,Low-traffic unmatched — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-goldfish-23-tender-mkiii,/sold,3,188,10.68,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/modesty-33-sc-for-salg,/sold,3,142,5.54,Inventory-related post — redirect to /sold
+C,BOAT_UNMATCHED_LOW,/Baater/goldfish-23-tender-2017,/sold,3,132,24.65,Low-traffic unmatched — redirect to /sold
+DEFER,ENGLISH,/en/Baater/goldfish-29-sport,/en/Baater/goldfish-29-sport,3,116,10.61,Bilingual workstream — defer until NO/EN setup
+C,BLOG_CATEGORY,/blogg/page/8,/,3,101,14.13,Blog category — low traffic
+C,BOAT_UNMATCHED_LOW,/Baater/axopar-37-,/sold,3,101,21.65,Low-traffic unmatched — redirect to /sold
+C,BOAT_UNMATCHED_LOW,/Baater/ryck-280-m/-mercury-verado-350hk,/sold,3,100,14.19,Low-traffic unmatched — redirect to /sold
+DEFER,ENGLISH,/en/Baater/ibiza-881-t-special-edition,/en/Baater/ibiza-881-t-special-edition,3,82,8.74,Bilingual workstream — defer until NO/EN setup
+C,BOAT_UNMATCHED_LOW,/Baater/skorgenes-sonic-445-fly,/sold,3,81,5.37,Low-traffic unmatched — redirect to /sold
+DEFER,ENGLISH,/en/Baater/windy-35-khamsin,/en/Baater/windy-35-khamsin,3,80,6.25,Bilingual workstream — defer until NO/EN setup
+C,BLOG_LOW,/post/nytt-navn-house-of-yachts,/,3,77,13.62,Low-value blog — redirect to home
+DEFER,ENGLISH,/en/Baater/nimbus-250-r,/en/Baater/nimbus-250-r,3,69,9.41,Bilingual workstream — defer until NO/EN setup
+C,BLOG_LOW,/post/wallytender-45-available-for-daycharters-with-captain-in-oslo,/,3,60,14.82,Low-value blog — redirect to home
+DEFER,ENGLISH,/en/Baater/nimbus-30s,/en/Baater/nimbus-30s,3,52,11.94,Bilingual workstream — defer until NO/EN setup
+C,BLOG_LOW,/post/månedens-båt-itama-forty,/,3,51,15.65,Low-value blog — redirect to home
+DEFER,ENGLISH,/en/Baater/azimut-atlantis-40-ht,/en/Baater/azimut-atlantis-40-ht,3,44,8.91,Bilingual workstream — defer until NO/EN setup
+C,BLOG_INVENTORY,/post/goldfish-29-sport-for-salg-2,/sold,3,37,30.05,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-modesty-33-sc,/sold,3,35,4.4,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-nimbus-250r,/sold,3,35,22.43,Inventory-related post — redirect to /sold
+DEFER,ENGLISH,/en/Baater/bavaria-44-vision,/en/Baater/bavaria-44-vision,3,34,6.56,Bilingual workstream — defer until NO/EN setup
+C,BLOG_LOW,/post/ny-medarbeider-møt-jeanette,/,3,33,5.45,Low-value blog — redirect to home
+C,BLOG_INVENTORY,/post/beneteau-mc6s-for-salg,/sold,3,33,12.09,Inventory-related post — redirect to /sold
+C,BLOG_CATEGORY,/blogg/categories/markedsnyheter/page/2,/,3,31,17.06,Blog category — low traffic
+DEFER,ENGLISH,/en/Baater/aquador-26-dc,/en/Baater/aquador-26-dc,3,30,10.13,Bilingual workstream — defer until NO/EN setup
+C,BLOG_INVENTORY,/post/solgt-chris-craft-carina-21,/sold,3,23,37.17,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/saffier-se-33-ud-for-salg,/sold,3,15,7.4,Inventory-related post — redirect to /sold
+C,BLOG_LOW,/post/candela-speedboats,/,2,290,44.28,Low-value blog — redirect to home
+C,BOAT_UNMATCHED_LOW,/Baater/goldfish-29-sport---2016,/sold,2,285,14.72,Low-traffic unmatched — redirect to /sold
+C,JOB_POST,/post/ledig-stilling-detailer-båtklargjører,/,2,265,54.93,Job post — redirect to home
+C,BLOG_LOW,/post/solgt,/,2,220,30.97,Low-value blog — redirect to home
+C,BOAT_UNMATCHED_LOW,/Baater/riva-76-perseo,/sold,2,206,15.82,Low-traffic unmatched — redirect to /sold
+DEFER,ENGLISH,/en/BaaterTilSalgs,/en/BaaterTilSalgs,2,146,15.11,Bilingual workstream — defer until NO/EN setup
+C,BOAT_UNMATCHED_LOW,/Baater/seaside-23---2023,/sold,2,129,6.95,Low-traffic unmatched — redirect to /sold
+DEFER,ENGLISH,/en/Baater/bavaria-40-cruiser,/en/Baater/bavaria-40-cruiser,2,114,13.25,Bilingual workstream — defer until NO/EN setup
+C,BLOG_CATEGORY,/blogg/categories/markedsnyheter/page/3,/,2,113,56.74,Blog category — low traffic
+C,BOAT_UNMATCHED_LOW,/Baater/goldfish-30-sport-#038,/sold,2,104,14.26,Low-traffic unmatched — redirect to /sold
+C,BLOG_CATEGORY,/blogg/page/7,/,2,100,13.39,Blog category — low traffic
+B,BOAT_MATCH,/Baater/lagoon-560-s2,/boat/lagoon-560-s2,2,80,14.14,Match — direct 301 to new /boat/ page
+C,BOAT_UNMATCHED_LOW,/Baater/beneteau-mc6s,/sold,2,80,17.68,Low-traffic unmatched — redirect to /sold
+DEFER,ENGLISH,/en/Baater/beneteau-oceanis-37,/en/Baater/beneteau-oceanis-37,2,78,6.82,Bilingual workstream — defer until NO/EN setup
+C,BOAT_UNMATCHED_LOW,/Baater/anker-&-jensen-8mr-1914-carmen-iv,/sold,2,78,7.18,Low-traffic unmatched — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-nimbus-320-coupe,/sold,2,68,12.06,Inventory-related post — redirect to /sold
+DEFER,ENGLISH,/en/Baater/anytec-860-spd,/en/Baater/anytec-860-spd,2,60,11.77,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/sail-division,/en/sail-division,2,52,9.75,Bilingual workstream — defer until NO/EN setup
+C,BLOG_LOW,/post/kragstad-partners-video-update-ep-3,/,2,50,17.98,Low-value blog — redirect to home
+C,BLOG_INVENTORY,/post/2021-goldfish-23-tender-mkiii-for-salg,/sold,2,49,18.63,Inventory-related post — redirect to /sold
+C,BLOG_LOW,/post/ny-nordkapp-airborne-7-ødelagt-hiv-og-hoy-ep-37,/,2,49,49.47,Low-value blog — redirect to home
+C,BLOG_CATEGORY,/blogg/categories/markedsnyheter/page/4,/,2,44,17.14,Blog category — low traffic
+C,BLOG_INVENTORY,/post/nimbus-250r-for-salg,/sold,2,33,14.55,Inventory-related post — redirect to /sold
+DEFER,ENGLISH,/en/Baater/nimbus-w9---2020,/en/Baater/nimbus-w9---2020,2,31,15.16,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/hanse-355,/en/Baater/hanse-355,2,30,7.47,Bilingual workstream — defer until NO/EN setup
+C,BLOG_CATEGORY,/blogg/categories/månedens-båt,/,2,25,30.52,Blog category — low traffic
+C,BOAT_UNMATCHED_LOW,/Baater/goldfish-30-sport---2022-#023,/sold,2,21,21.19,Low-traffic unmatched — redirect to /sold
+C,BLOG_INVENTORY,/post/kommer-for-salg-windy-kharma-26,/sold,2,17,33.29,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-targa-27-1,/sold,2,15,13.6,Inventory-related post — redirect to /sold
+DEFER,ENGLISH,/en/Baater/jeanneau-sun-odyssey-519,/en/Baater/jeanneau-sun-odyssey-519,2,13,25.85,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/nidelv-725-sport,/en/Baater/nidelv-725-sport,2,10,5.5,Bilingual workstream — defer until NO/EN setup
+C,BOAT_UNMATCHED_LOW,/Baater/nordkapp-airborne-7,/sold,1,450,26.48,Low-traffic unmatched — redirect to /sold
+C,JOB_POST,/post/ledig-stilling-content-repurposer-some-ansvarlig,/,1,400,47.35,Job post — redirect to home
+C,BLOG_LOW,/post/månedens-båt-princess-f70,/,1,378,14.52,Low-value blog — redirect to home
+DEFER,ENGLISH,/en/kjope-bat,/en/kjope-bat,1,334,46.28,Bilingual workstream — defer until NO/EN setup
+C,BLOG_LOW,/post/høyhastighetskurs,/,1,290,40.5,Low-value blog — redirect to home
+DEFER,ENGLISH,/en/blogg,/en/blogg,1,248,8.27,Bilingual workstream — defer until NO/EN setup
+C,BLOG_LOW,/post/3-generasjoner-goldfish-23-tender-husbåtvisninger-og-nordkapp-test-hiv-og-hoy-ep-39,/,1,212,74.96,Low-value blog — redirect to home
+DEFER,ENGLISH,/en/Baater/saxdor-320-gtc,/en/Baater/saxdor-320-gtc,1,194,8.84,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/goldfish-28-tender-#069,/en/Baater/goldfish-28-tender-#069,1,184,12.19,Bilingual workstream — defer until NO/EN setup
+B,BOAT_MATCH,/Baater/carver-396-aft-cabin,/boat/carver-396-aft-cabin,1,176,15.68,Match — direct 301 to new /boat/ page
+DEFER,ENGLISH,/en/nimbus250,/en/nimbus250,1,176,45.01,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/goldfish-38-supersport---#021,/en/Baater/goldfish-38-supersport---#021,1,142,17.19,Bilingual workstream — defer until NO/EN setup
+C,BLOG_INVENTORY,/post/nordkapp-airborn-7-for-salg,/sold,1,134,45.46,Inventory-related post — redirect to /sold
+DEFER,ENGLISH,/en/Baater/targa-27.1,/en/Baater/targa-27.1,1,129,4.31,Bilingual workstream — defer until NO/EN setup
+C,BOAT_UNMATCHED_LOW,/Baater/axopar-28-open-2019,/sold,1,117,9.01,Low-traffic unmatched — redirect to /sold
+C,BLOG_LOW,/post/månedens-båt-vitters-18-50,/,1,109,19.61,Low-value blog — redirect to home
+C,BOAT_UNMATCHED_LOW,/Baater/goldfish-28-tender-merc-400r,/sold,1,96,20.88,Low-traffic unmatched — redirect to /sold
+C,BLOG_LOW,/post/høsten-2021-hva-skjer-i-båtmarkedet,/,1,95,14.21,Low-value blog — redirect to home
+DEFER,ENGLISH,/en/Baater/axopar-28-cabin,/en/Baater/axopar-28-cabin,1,94,33.47,Bilingual workstream — defer until NO/EN setup
+C,JOB_POST,/post/ledig-stilling-båtmegler-trainee-juniormegler-1,/,1,78,55.88,Job post — redirect to home
+DEFER,ENGLISH,/en/sold,/en/sold,1,77,3.29,Bilingual workstream — defer until NO/EN setup
+C,BOAT_UNMATCHED_LOW,"/Baater/comtesse-""liberty""",/sold,1,68,7.0,Low-traffic unmatched — redirect to /sold
+C,BLOG_CATEGORY,/blogg/categories/markedsnyheter/page/5,/,1,68,12.26,Blog category — low traffic
+C,BLOG_INVENTORY,/post/solgt-nidelv-725-sport,/sold,1,66,18.02,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/2022-goldfish-30-sport-for-salg,/sold,1,65,33.92,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-nimbus-300r-1,/sold,1,63,15.78,Inventory-related post — redirect to /sold
+C,BOAT_UNMATCHED_LOW,/Baater/beneteau-gran-turismo-38,/sold,1,54,20.87,Low-traffic unmatched — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-marex-370-acc,/sold,1,50,22.24,Inventory-related post — redirect to /sold
+DEFER,ENGLISH,/en/Baater/nordkapp-760-noblesse,/en/Baater/nordkapp-760-noblesse,1,49,36.98,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/windy-7500,/en/Baater/windy-7500,1,47,7.04,Bilingual workstream — defer until NO/EN setup
+C,BLOG_LOW,/post/båter-ønskes-kjøpt,/,1,46,36.83,Low-value blog — redirect to home
+B,BOAT_MATCH,/Baater/grandezza-27s,/boat/grandezza-27s,1,44,5.07,Match — direct 301 to new /boat/ page
+DEFER,ENGLISH,/en/Baater/askeladden-c83,/en/Baater/askeladden-c83,1,42,8.14,Bilingual workstream — defer until NO/EN setup
+B,BOAT_MATCH,/Baater/beneteau-oceanis-37,/boat/beneteau-oceanis-37,1,40,4.8,Match — direct 301 to new /boat/ page
+B,BOAT_MATCH,/Baater/saxdor-320-gtc,/boat/saxdor-320-gtc,1,37,7.35,Match — direct 301 to new /boat/ page
+C,BOAT_UNMATCHED_LOW,/Baater/goldfish-32-sc-2001,/sold,1,36,6.36,Low-traffic unmatched — redirect to /sold
+C,BOAT_UNMATCHED_LOW,/Baater/bertram-37-convertible,/sold,1,34,24.62,Low-traffic unmatched — redirect to /sold
+C,BOAT_UNMATCHED_LOW,/Baater/cranchi-47-mediterranee,/sold,1,31,7.32,Low-traffic unmatched — redirect to /sold
+DEFER,ENGLISH,/en/Baater/grandezza-27s,/en/Baater/grandezza-27s,1,30,9.67,Bilingual workstream — defer until NO/EN setup
+C,BLOG_INVENTORY,/post/axopar-37-sc-for-salg,/sold,1,27,48.63,Inventory-related post — redirect to /sold
+DEFER,ENGLISH,/en/Baater/baltic-kragerø-34,/en/Baater/baltic-kragerø-34,1,25,12.0,Bilingual workstream — defer until NO/EN setup
+C,BLOG_INVENTORY,/post/solgt-capelli-tempest-1000,/sold,1,25,26.48,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-nimbus-320-coupé,/sold,1,24,20.71,Inventory-related post — redirect to /sold
+C,BLOG_LOW,/post/kragstad-partners-video-update-ep-2,/,1,24,29.75,Low-value blog — redirect to home
+C,BLOG_LOW,/post/er-dette-norges-råeste-solskinnsbåt-axopar-37-suntop-walkthrough,/,1,23,9.91,Low-value blog — redirect to home
+DEFER,ENGLISH,/en/Baater/nordkapp-905-grand-coupe,/en/Baater/nordkapp-905-grand-coupe,1,23,31.22,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/nimbus-230-r,/en/Baater/nimbus-230-r,1,21,5.48,Bilingual workstream — defer until NO/EN setup
+B,BOAT_MATCH,/Baater/goldfish-29-rib-tender,/boat/goldfish-29-rib-tender,1,21,7.1,Match — direct 301 to new /boat/ page
+C,JOB_POST,/post/skipper-til-dagcharter-søkes-til-45-fots-dayboat,/,1,21,17.19,Job post — redirect to home
+C,BLOG_CATEGORY,/blogg/categories/markedsnyheter,/,1,20,16.95,Blog category — low traffic
+C,BLOG_INVENTORY,/post/dufour-385-gl-for-salg,/sold,1,19,25.42,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-nimbus-280-coupé,/sold,1,18,28.22,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-pershing-64,/sold,1,15,10.13,Inventory-related post — redirect to /sold
+DEFER,ENGLISH,/en/Baater/nimbus-320-coupè---2003,/en/Baater/nimbus-320-coupè---2003,1,13,9.08,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/bavaria-37-ac,/en/Baater/bavaria-37-ac,1,13,13.08,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/Jeanneau-SO-49-DS,/en/Baater/Jeanneau-SO-49-DS,1,11,4.36,Bilingual workstream — defer until NO/EN setup
+C,BLOG_INVENTORY,/post/solgt-axopar-37-sports-cabin,/sold,1,10,42.2,Inventory-related post — redirect to /sold
+C,BOAT_UNMATCHED_LOW,/Baater/Bavaria-37-Cruiser---2006,/sold,1,9,4.44,Low-traffic unmatched — redirect to /sold
+C,BOAT_UNMATCHED_LOW,/Baater/Chris-Craft-Carina-21,/sold,1,8,5.62,Low-traffic unmatched — redirect to /sold
+C,BLOG_INVENTORY,/post/azimut-atlantis-40-ht-for-salg,/sold,1,6,7.5,Inventory-related post — redirect to /sold
+DEFER,ENGLISH,/en/Baater/arctic-blue-27-mkii,/en/Baater/arctic-blue-27-mkii,1,4,5.75,Bilingual workstream — defer until NO/EN setup
+C,BOAT_UNMATCHED_LOW,/Baater/Bavaria-37-AC,/sold,1,4,7.25,Low-traffic unmatched — redirect to /sold
+DEFER,ENGLISH,/en/Baater/bavaria-360-sport-open,/en/Baater/bavaria-360-sport-open,1,4,12.75,Bilingual workstream — defer until NO/EN setup
+C,JOB_POST,/post/ledig-stilling-innholdsprodusent-some-ansvarlig,/,1,1,2.0,Job post — redirect to home
+C,BLOG_LOW,/post/vi-spiller-inn-en-reklamevideo-hiv-og-hoy-ep-35,/,0,2853,61.75,Low-value blog — redirect to home
+C,JOB_POST,/post/ledig-stilling-youtube-ansvarlig-innholdsprodusent,/,0,861,84.4,Job post — redirect to home
+DEFER,ENGLISH,/en/selge-bat,/en/selge-bat,0,554,51.47,Bilingual workstream — defer until NO/EN setup
+C,BLOG_CATEGORY,/blogg/categories/hiv-og-hoy-episoder,/,0,447,49.65,Blog category — low traffic
+C,BLOG_INVENTORY,/post/solgt-cormate-23-super-utility,/sold,0,248,48.73,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-nordkapp-enduro-705,/sold,0,204,50.66,Inventory-related post — redirect to /sold
+C,BOAT_UNMATCHED_LOW,/Baater/pardo-p43,/sold,0,203,17.44,Low-traffic unmatched — redirect to /sold
+DEFER,ENGLISH,/en/Baater/goldfish-28-bullet-#024,/en/Baater/goldfish-28-bullet-#024,0,197,14.1,Bilingual workstream — defer until NO/EN setup
+C,BLOG_INVENTORY,/post/goldfish-38-supersport-for-salg,/sold,0,161,25.12,Inventory-related post — redirect to /sold
+C,BLOG_LOW,/post/helt-nye-candela-c-8-er-lansert,/,0,146,45.29,Low-value blog — redirect to home
+C,BOAT_UNMATCHED_LOW,/Baater/goldfish-28-tender-#057,/sold,0,145,9.56,Low-traffic unmatched — redirect to /sold
+C,BLOG_INVENTORY,/post/kommer-for-salg-goldfish-28-tender,/sold,0,142,32.57,Inventory-related post — redirect to /sold
+C,OTHER,/members,/,0,141,2.84,Other — redirect to home
+C,BOAT_UNMATCHED_LOW,/Baater/goldfish-38-supersport---#021,/sold,0,135,12.82,Low-traffic unmatched — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-goldfish-28-tender,/sold,0,105,31.43,Inventory-related post — redirect to /sold
+DEFER,ENGLISH,/en/Baater/beneteau-swift-trawler-34,/en/Baater/beneteau-swift-trawler-34,0,95,31.67,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/nimbus-230r---2007,/en/Baater/nimbus-230r---2007,0,87,43.94,Bilingual workstream — defer until NO/EN setup
+C,BLOG_LOW,/post/galeon-440-fly-solgt,/,0,86,61.77,Low-value blog — redirect to home
+C,BLOG_LOW,/post/startskuddet-for-årets-båtsesong,/,0,84,41.1,Low-value blog — redirect to home
+C,JOB_POST,/post/ledig-stilling-summer-internship,/,0,67,48.31,Job post — redirect to home
+C,BLOG_INVENTORY,/post/solgt-goldfish-29-sport-1,/sold,0,66,69.82,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-bavaria-37-cruiser,/sold,0,57,33.37,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-goldfish-23-tender,/sold,0,56,24.54,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/2018-goldfish-23-tender-mkii-for-salg,/sold,0,56,26.09,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/goldfish-29-sport-for-salg-1,/sold,0,55,56.36,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-goldfish-29-sport,/sold,0,54,67.43,Inventory-related post — redirect to /sold
+DEFER,ENGLISH,/en/Baater/nimbus-t9,/en/Baater/nimbus-t9,0,52,31.04,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/nimbus-300r,/en/Baater/nimbus-300r,0,49,31.55,Bilingual workstream — defer until NO/EN setup
+C,BLOG_LOW,/post/ny-i-markedet-axopar-28-open,/,0,46,22.54,Low-value blog — redirect to home
+C,BLOG_INVENTORY,/post/solgt-axopar-28-open,/sold,0,42,20.38,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/kommer-for-salg-expression-29,/sold,0,41,49.39,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-nimbus-35-nova-ht,/sold,0,40,25.88,Inventory-related post — redirect to /sold
+C,BOAT_UNMATCHED_LOW,/Baater/goldfish-28-tender-#60,/sold,0,39,14.38,Low-traffic unmatched — redirect to /sold
+C,BLOG_CATEGORY,/blogg/page/5,/,0,36,42.86,Blog category — low traffic
+C,BLOG_INVENTORY,/post/bavaria-37-cruiser-for-salg,/sold,0,34,34.18,Inventory-related post — redirect to /sold
+C,BLOG_LOW,/post/selge-skitten-og-oksidert-båt-hiv-og-hoy-ep-31,/,0,32,17.0,Low-value blog — redirect to home
+C,BLOG_LOW,/post/hoy-pod-ep-1-hva-skjer-i-båtmarkedet-nå-kåring-av-årets-kuleste-båt,/,0,32,65.81,Low-value blog — redirect to home
+C,BLOG_LOW,/post/princess-25m-nå-registrert-i-nor,/,0,31,35.68,Low-value blog — redirect to home
+C,BLOG_INVENTORY,/post/capelli-tempest-1000-for-salg,/sold,0,30,11.23,Inventory-related post — redirect to /sold
+C,BOAT_UNMATCHED_LOW,/Baater/chris-craft-25-corsair-2005,/sold,0,30,25.33,Low-traffic unmatched — redirect to /sold
+DEFER,ENGLISH,/en/Baater/brig-eagle-8-hankø-edition,/en/Baater/brig-eagle-8-hankø-edition,0,29,7.07,Bilingual workstream — defer until NO/EN setup
+C,BLOG_INVENTORY,/post/chris-craft-carina-21-for-salg,/sold,0,29,20.66,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/2017-beneteau-mc6-s-for-salg,/sold,0,28,36.54,Inventory-related post — redirect to /sold
+C,BLOG_LOW,/post/ny-i-markedet-2019-cormate-t-27,/,0,26,23.27,Low-value blog — redirect to home
+DEFER,ENGLISH,/en/baatmegler,/en/baatmegler,0,25,2.0,Bilingual workstream — defer until NO/EN setup
+B,BOAT_MATCH,/Baater/cranchi-mediterrane-47,/boat/cranchi-mediterrane-47,0,25,8.6,Match — direct 301 to new /boat/ page
+C,BLOG_CATEGORY,/blogg/page/3,/,0,25,15.76,Blog category — low traffic
+C,BLOG_LOW,/post/hva-du-må-få-med-deg-på-båter-i-sjøen-2022,/,0,25,20.4,Low-value blog — redirect to home
+C,BLOG_INVENTORY,/post/solgt-princess-v52,/sold,0,25,33.2,Inventory-related post — redirect to /sold
+C,BLOG_LOW,/post/kjøreregler-for-et-lykkeligere-båtliv,/,0,25,38.48,Low-value blog — redirect to home
+C,BLOG_INVENTORY,/post/princess-68-for-salg,/sold,0,25,47.36,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/m-y-illusion-plus-for-salg,/sold,0,25,51.68,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-2015-goldfish-29-sport,/sold,0,25,51.88,Inventory-related post — redirect to /sold
+C,BLOG_LOW,/post/ny-i-markedet-glastron-gs-259,/,0,24,9.96,Low-value blog — redirect to home
+C,BOAT_UNMATCHED_LOW,/Baater/goldfish-30-sport---2021-#009,/sold,0,22,20.82,Low-traffic unmatched — redirect to /sold
+DEFER,ENGLISH,/en/Baater/windy-28-ghibli---2001,/en/Baater/windy-28-ghibli---2001,0,21,7.29,Bilingual workstream — defer until NO/EN setup
+C,BLOG_INVENTORY,/post/solgt-bavaria-vision-40,/sold,0,21,18.43,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-cormate-t-27-1,/sold,0,20,40.75,Inventory-related post — redirect to /sold
+C,BLOG_CATEGORY,/blogg/,/,0,19,2.63,Blog category — low traffic
+C,BOAT_UNMATCHED_LOW,/Baater/lagoon-52-f,/sold,0,19,6.32,Low-traffic unmatched — redirect to /sold
+C,BLOG_LOW,/post/vi-kjører-verdens-første-foilende-og-elektriske-båt-hiv-og-hoy-ep-36,/,0,19,64.32,Low-value blog — redirect to home
+DEFER,ENGLISH,/en/Baater/dufour-385-grand-large,/en/Baater/dufour-385-grand-large,0,18,6.5,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/fjord-40-open---2007,/en/Baater/fjord-40-open---2007,0,18,7.61,Bilingual workstream — defer until NO/EN setup
+C,BLOG_INVENTORY,/post/solgt-2011-goldfish-23-tender,/sold,0,18,20.67,Inventory-related post — redirect to /sold
+B,BOAT_MATCH,/Baater/ibiza-811-touring,/boat/ibiza-811-touring,0,17,11.65,Match — direct 301 to new /boat/ page
+C,BLOG_LOW,/post/coronavirus-sjøen-for-alle-avlyst-og-rekordsvak-krone,/,0,16,17.88,Low-value blog — redirect to home
+C,BLOG_INVENTORY,/post/solgt-cormate-t-27,/sold,0,14,21.29,Inventory-related post — redirect to /sold
+DEFER,ENGLISH,/en/nautibuoy,/en/nautibuoy,0,14,35.93,Bilingual workstream — defer until NO/EN setup
+C,BOAT_UNMATCHED_LOW,/Baater/baltic-kragerø-34,/sold,0,12,13.08,Low-traffic unmatched — redirect to /sold
+C,BLOG_INVENTORY,/post/vandutch-40-open-for-salg,/sold,0,12,14.42,Inventory-related post — redirect to /sold
+DEFER,ENGLISH,/en/Baater/nimbus-305-drophead,/en/Baater/nimbus-305-drophead,0,12,14.75,Bilingual workstream — defer until NO/EN setup
+C,BLOG_LOW,/post/hiv-og-hoy-ep-33-nordkapp-walkthrough-60-fots-yacht-og-fredrikstadtur,/,0,12,18.75,Low-value blog — redirect to home
+C,JOB_POST,/post/ledig-stilling-some-ansvarlig-content-creator,/,0,12,39.42,Job post — redirect to home
+C,BLOG_LOW,/post/skal-vi-kjøpe-båt-hiv-og-hoy-ep-38,/,0,12,60.92,Low-value blog — redirect to home
+C,BLOG_INVENTORY,/post/riva-76-perseo-for-salg,/sold,0,12,65.92,Inventory-related post — redirect to /sold
+DEFER,ENGLISH,/en/Baater/goldfish-30-sport---2022,/en/Baater/goldfish-30-sport---2022,0,11,4.82,Bilingual workstream — defer until NO/EN setup
+C,BOAT_UNMATCHED_LOW,/Baater/bavaria-330-sport-ht,/sold,0,11,9.82,Low-traffic unmatched — redirect to /sold
+C,BLOG_CATEGORY,/blogg/categories/råd-og-tips,/,0,11,19.36,Blog category — low traffic
+C,BLOG_INVENTORY,/post/2021-marex-360cc-for-salg,/sold,0,11,30.82,Inventory-related post — redirect to /sold
+DEFER,ENGLISH,/en/Baater/elan-37,/en/Baater/elan-37,0,10,4.7,Bilingual workstream — defer until NO/EN setup
+C,BOAT_UNMATCHED_LOW,/Baater/goldfish-30-sport-#16,/sold,0,10,14.0,Low-traffic unmatched — redirect to /sold
+C,BLOG_LOW,/post/nyansettelser-kaos-og-detailing-hiv-og-hoy-ep-32,/,0,10,14.0,Low-value blog — redirect to home
+C,BLOG_LOW,/post/ledig-deltidsstilling-videoklipper-innholdsprodusent,/,0,10,21.3,Low-value blog — redirect to home
+DEFER,ENGLISH,/en/Baater/marex-360-cc,/en/Baater/marex-360-cc,0,9,7.22,Bilingual workstream — defer until NO/EN setup
+C,BLOG_INVENTORY,/post/chris-craft-25-corsair-for-salg,/sold,0,9,23.33,Inventory-related post — redirect to /sold
+DEFER,ENGLISH,/en/Baater/nimbus-35-nova-ht-,/en/Baater/nimbus-35-nova-ht-,0,9,33.67,Bilingual workstream — defer until NO/EN setup
+C,BLOG_LOW,/post/hoy-pod-ep-2-blytung-norsk-båtøkonomi-rødts-yachtskatt-og-tvangsauksjon-av-russiske-fartøy,/,0,9,45.44,Low-value blog — redirect to home
+C,BLOG_INVENTORY,/post/pershing-64-inn-for-salgf,/sold,0,8,7.12,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/lagoon-39-for-salg-i-kroatia,/sold,0,8,8.75,Inventory-related post — redirect to /sold
+C,BLOG_CATEGORY,/blogg/categories/hoy-pod,/,0,8,22.0,Blog category — low traffic
+C,BLOG_INVENTORY,/post/s-y-state-of-grace-for-salg,/sold,0,8,23.25,Inventory-related post — redirect to /sold
+C,BLOG_CATEGORY,/blogg/categories/tester,/,0,8,28.75,Blog category — low traffic
+DEFER,ENGLISH,/en/Baater/bertram-37-convertible,/en/Baater/bertram-37-convertible,0,8,31.5,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/goldfish-30-sport-#16,/en/Baater/goldfish-30-sport-#16,0,7,7.43,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/axopar-28-open,/en/Baater/axopar-28-open,0,7,9.43,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/nimbus-230r,/en/Baater/nimbus-230r,0,7,9.86,Bilingual workstream — defer until NO/EN setup
+C,BLOG_CATEGORY,/blogg/categories/bloggposter,/,0,7,36.29,Blog category — low traffic
+C,BOAT_UNMATCHED_LOW,/Baater/vandutch-40-open---2008,/sold,0,6,6.0,Low-traffic unmatched — redirect to /sold
+C,BLOG_LOW,/post/ny-medarbeider-møt-jonas,/,0,6,12.33,Low-value blog — redirect to home
+DEFER,ENGLISH,/en/Baater/scand-baltic-29,/en/Baater/scand-baltic-29,0,5,6.0,Bilingual workstream — defer until NO/EN setup
+C,BLOG_LOW,/post/åpen-dag-hos-asker-seilforening,/,0,5,32.0,Low-value blog — redirect to home
+C,BLOG_INVENTORY,/post/solgt-goldfish-29-sport-2016,/sold,0,5,36.4,Inventory-related post — redirect to /sold
+C,BLOG_INVENTORY,/post/solgt-glastron-gs259,/sold,0,5,53.2,Inventory-related post — redirect to /sold
+DEFER,ENGLISH,/en/Baater/seaside-23,/en/Baater/seaside-23,0,4,5.25,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/boston-whaler-190-outrage,/en/Baater/boston-whaler-190-outrage,0,4,5.5,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/cormate-t-27,/en/Baater/cormate-t-27,0,4,5.5,Bilingual workstream — defer until NO/EN setup
+C,BLOG_INVENTORY,/post/solgt-carver-396-ac,/sold,0,4,7.0,Inventory-related post — redirect to /sold
+DEFER,ENGLISH,/en/Baater/nimbus-35-nova-ht,/en/Baater/nimbus-35-nova-ht,0,4,8.0,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/nimbus-35-nova-ht---2008,/en/Baater/nimbus-35-nova-ht---2008,0,4,22.25,Bilingual workstream — defer until NO/EN setup
+C,BLOG_CATEGORY,/blogg/page/9,/,0,4,26.5,Blog category — low traffic
+DEFER,ENGLISH,/en/Baater/delphia-40.3,/en/Baater/delphia-40.3,0,4,42.5,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/bavaria-e34-fly,/en/Baater/bavaria-e34-fly,0,3,3.67,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/nord-west-370-coupé,/en/Baater/nord-west-370-coupé,0,3,3.67,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/riva-dolceriva-48,/en/Baater/riva-dolceriva-48,0,3,4.0,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/capelli-tempest-1000,/en/Baater/capelli-tempest-1000,0,3,6.33,Bilingual workstream — defer until NO/EN setup
+C,BLOG_CATEGORY,/blogg/categories/markedsnyheter/page/6,/,0,3,31.33,Blog category — low traffic
+C,BLOG_INVENTORY,/post/m-y-tutku-for-salg,/sold,0,3,42.33,Inventory-related post — redirect to /sold
+C,BOAT_UNMATCHED_LOW,/Baater/cormate-23-su---2022-shark-grey,/sold,0,2,8.0,Low-traffic unmatched — redirect to /sold
+DEFER,ENGLISH,/en/Baater/goldfish-28-rib,/en/Baater/goldfish-28-rib,0,2,8.0,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/pershing-64,/en/Baater/pershing-64,0,2,8.5,Bilingual workstream — defer until NO/EN setup
+C,BOAT_UNMATCHED_LOW,/Baater/goldfish-28-bullet-#020,/sold,0,2,10.5,Low-traffic unmatched — redirect to /sold
+DEFER,ENGLISH,/en/Baater/nimbus-280-coupé,/en/Baater/nimbus-280-coupé,0,2,12.0,Bilingual workstream — defer until NO/EN setup
+C,BLOG_INVENTORY,/post/solgt-2005-jeanneau-so-49-ds,/sold,0,2,38.0,Inventory-related post — redirect to /sold
+C,OTHER,http://houseofyachts.no/,/,0,1,1.0,Other — redirect to home
+DEFER,ENGLISH,/en/Baater/askeladden-c80-cruiser,/en/Baater/askeladden-c80-cruiser,0,1,2.0,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/sandvik-945,/en/Baater/sandvik-945,0,1,3.0,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/beneteau-mc6s,/en/Baater/beneteau-mc6s,0,1,5.0,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/goldfish-29-sport---2016,/en/Baater/goldfish-29-sport---2016,0,1,8.0,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/nimbus-29-nova,/en/Baater/nimbus-29-nova,0,1,8.0,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/hydrolift-s24-diablo,/en/Baater/hydrolift-s24-diablo,0,1,9.0,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/seaside-23---2023,/en/Baater/seaside-23---2023,0,1,9.0,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/windy-44-chinook,/en/Baater/windy-44-chinook,0,1,9.0,Bilingual workstream — defer until NO/EN setup
+C,BLOG_INVENTORY,/post/solgt-vandutch-40-open,/sold,0,1,10.0,Inventory-related post — redirect to /sold
+DEFER,ENGLISH,/en/Baater/goldfish-30-sport,/en/Baater/goldfish-30-sport,0,1,15.0,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/marex-280-holiday,/en/Baater/marex-280-holiday,0,1,20.0,Bilingual workstream — defer until NO/EN setup
+C,BOAT_UNMATCHED_LOW,/Baater/Nordkapp-Airborne-7,/sold,0,1,22.0,Low-traffic unmatched — redirect to /sold
+DEFER,ENGLISH,/en/Baater/Beneteau-MC6S,/en/Baater/Beneteau-MC6S,0,1,27.0,Bilingual workstream — defer until NO/EN setup
+DEFER,ENGLISH,/en/Baater/fleming-58,/en/Baater/fleming-58,0,1,72.0,Bilingual workstream — defer until NO/EN setup
+C,BLOG_INVENTORY,/post/solgt-nordkapp-noblesse-720,/sold,0,1,90.0,Inventory-related post — redirect to /sold

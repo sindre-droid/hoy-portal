@@ -1,0 +1,3105 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<title>Review HØY-KONFIDENS UPDATE – HoY Wix-migrering</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f7f9fc; color: #1a202c; }
+  h1 { margin: 0 0 8px; font-size: 24px; }
+  h2.tier-header { margin: 24px 0 12px; font-size: 18px; border-bottom: 2px solid currentColor; padding-bottom: 4px; }
+  .header-stats { background: white; padding: 16px 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 16px; position: sticky; top: 0; z-index: 100; display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+  .stat { font-size: 14px; }
+  .stat strong { font-size: 20px; display: block; }
+  .stat-ok strong { color: #16a34a; }
+  .stat-change strong { color: #f59e0b; }
+  .stat-create strong { color: #2563eb; }
+  .stat-skip strong { color: #dc2626; }
+  .filters { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+  .filter-btn { padding: 5px 10px; border: 1px solid #e2e8f0; background: white; border-radius: 6px; cursor: pointer; font-size: 12px; }
+  .filter-btn.active { background: #1a202c; color: white; }
+  button.export { background: #16a34a; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+  .card { display: grid; grid-template-columns: 180px 1fr; gap: 14px; background: white; padding: 12px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 10px; position: relative; }
+  .card-num { position: absolute; top: 6px; right: 10px; font-size: 11px; color: #94a3b8; font-weight: 600; }
+  .img-col { display: flex; flex-direction: column; gap: 4px; }
+  .img-col img { width: 100%; height: 130px; object-fit: cover; border-radius: 6px; background: #f1f5f9; }
+  .no-img { width: 100%; height: 130px; display: flex; align-items: center; justify-content: center; background: #f1f5f9; border-radius: 6px; color: #94a3b8; font-size: 12px; }
+  .conf-badge { color: white; font-size: 10px; padding: 3px 6px; border-radius: 4px; text-align: center; font-weight: 700; }
+  .info-col h3 { margin: 0; font-size: 16px; display: inline-block; margin-right: 8px; }
+  .row1 { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+  .badge-sold { background: #fef3c7; color: #92400e; }
+  .badge-active { background: #d1fae5; color: #065f46; }
+  .meta { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: #475569; margin-bottom: 5px; }
+  .reason { background: #fefce8; padding: 5px 10px; border-left: 3px solid #ca8a04; border-radius: 4px; font-size: 11px; margin: 5px 0; }
+  .hs-preview { background: #ecfeff; padding: 5px 10px; border-left: 3px solid #06b6d4; border-radius: 4px; font-size: 12px; margin: 4px 0; }
+  .hs-preview code { background: #0e7490; color:white; padding: 1px 4px; border-radius: 3px; font-size: 11px; }
+  .actions { display: flex; gap: 6px; margin-bottom: 8px; }
+  .actions a { font-size: 12px; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-weight: 500; }
+  .link-wix { background: #2563eb; color: white; }
+  .link-hs { background: #ff7a59; color: white; }
+  .decision { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding-top: 6px; border-top: 1px solid #f1f5f9; }
+  .decision label { font-size: 12px; cursor: pointer; user-select: none; }
+  .decision input[type=text] { flex: 1; min-width: 200px; padding: 4px 8px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 12px; }
+  .card[data-decision="SKIP"] { opacity: 0.55; background: #fef2f2; }
+  .card[data-decision="CHANGE"] { background: #fef3c7; }
+  .card[data-decision="CREATE_NEW"] { background: #dbeafe; }
+  .card.hidden, .tier-header.hidden { display: none; }
+</style>
+</head>
+<body>
+  <h1>Review høy-konfidens UPDATE-matches (84)</h1>
+  <p style="color:#64748b; margin: 0 0 12px;">Samme flyt som før. Tier 1 (50) er eksakt-slug — bør gå raskt. Tier 2 (34) har X-ede matches der deal-assosiasjon peker entydig på én båt.</p>
+
+  <div class="header-stats">
+    <div class="stat stat-ok"><strong id="cnt-ok">84</strong>Riktig</div>
+    <div class="stat stat-change"><strong id="cnt-change">0</strong>Feil</div>
+    <div class="stat stat-create"><strong id="cnt-create">0</strong>Ny</div>
+    <div class="stat stat-skip"><strong id="cnt-skip">0</strong>Skip</div>
+    <div class="filters">
+      <button class="filter-btn active" data-filter="all">Alle</button>
+      <button class="filter-btn" data-filter="tier1">Kun Tier 1</button>
+      <button class="filter-btn" data-filter="tier2">Kun Tier 2</button>
+      <button class="filter-btn" data-filter="APPROVE">Riktig</button>
+      <button class="filter-btn" data-filter="CHANGE">Feil</button>
+      <button class="filter-btn" data-filter="CREATE_NEW">Ny</button>
+      <button class="filter-btn" data-filter="SKIP">Skip</button>
+    </div>
+    <button class="export" onclick="exportPicks()">📋 Eksportér</button>
+  </div>
+
+  <div id="cards"><h2 class="tier-header" style="color:#16a34a">Tier 1 — Slug-match (50 stk, bør være nær 100% riktige)</h2>
+    <div class="card" data-hs="351482888435" data-idx="0" data-tier="1">
+      <div class="card-num">#1</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_5499722be6734b9399547dc4e6fa4c9a~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Aquador 26 DC</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2012</span>
+          <span><strong>Lengde:</strong> 26 fot</span>
+          <span><strong>Merke:</strong> Aquador</span>
+          <span><strong>Modell:</strong> 26 DC</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>aquador-26-dc</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/aquador-26-dc" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351482888435" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-0" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-0" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-0" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-0" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="0">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443310785" data-idx="1" data-tier="1">
+      <div class="card-num">#2</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_f74f3aa075b64fb48d90c4f12d7269c5~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG+SIG</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Axopar 28 Open</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2019</span>
+          <span><strong>Lengde:</strong> 28 fot</span>
+          <span><strong>Merke:</strong> Axopar</span>
+          <span><strong>Modell:</strong> 28 Open</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt slug-match + identisk signatur.</div>
+        <div class="hs-preview">HubSpot path: <code>axopar-28-open</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/axopar-28-open" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443310785" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-1" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-1" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-1" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-1" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="1">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443201217" data-idx="2" data-tier="1">
+      <div class="card-num">#3</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_c21607a0aa804551b7c09c6c0f036ca5~mv2_d_5472_3648_s_4_2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Bavaria 360 Sport Open</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2015</span>
+          <span><strong>Lengde:</strong> 38 fot</span>
+          <span><strong>Merke:</strong> Bavaria </span>
+          <span><strong>Modell:</strong> 360 Sport Open</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>bavaria-360-sport-open</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/bavaria-360-sport-open" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443201217" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-2" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-2" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-2" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-2" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="2">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351482888420" data-idx="3" data-tier="1">
+      <div class="card-num">#4</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_8e6355baa40047b796c5117e23380709~mv2_d_5760_3840_s_4_2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Carver 396 Aft Cabin</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2001</span>
+          <span><strong>Lengde:</strong> 41 fot</span>
+          <span><strong>Merke:</strong> Carver</span>
+          <span><strong>Modell:</strong> 396 Aft Cabin</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>carver-396-aft-cabin</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/carver-396-aft-cabin" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351482888420" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-3" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-3" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-3" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-3" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="3">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351388463314" data-idx="4" data-tier="1">
+      <div class="card-num">#5</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_940b8186d9a64f99890b3b172e67665a~mv2_d_5659_3773_s_4_2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Chris-Craft 25 Corsair</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2006</span>
+          <span><strong>Lengde:</strong> 27 fot</span>
+          <span><strong>Merke:</strong> Chris-Craft</span>
+          <span><strong>Modell:</strong> 25 Corsair</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>chris-craft-25-corsair</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/chris-craft-25-corsair" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351388463314" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-4" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-4" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-4" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-4" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="4">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351388463314" data-idx="5" data-tier="1">
+      <div class="card-num">#6</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_940b8186d9a64f99890b3b172e67665a~mv2_d_5659_3773_s_4_2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Chris-Craft 25 Corsair</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2006</span>
+          <span><strong>Lengde:</strong> 27 fot</span>
+          <span><strong>Merke:</strong> Chris-Craft</span>
+          <span><strong>Modell:</strong> 25 Corsair</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>chris-craft-25-corsair</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/chris-craft-25-corsair" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351388463314" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-5" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-5" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-5" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-5" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="5">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351388463314" data-idx="6" data-tier="1">
+      <div class="card-num">#7</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_940b8186d9a64f99890b3b172e67665a~mv2_d_5659_3773_s_4_2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Chris-Craft 25 Corsair</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2006</span>
+          <span><strong>Lengde:</strong> 27 fot</span>
+          <span><strong>Merke:</strong> Chris-Craft</span>
+          <span><strong>Modell:</strong> 25 Corsair</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>chris-craft-25-corsair</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/chris-craft-25-corsair" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351388463314" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-6" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-6" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-6" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-6" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="6">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443214525" data-idx="7" data-tier="1">
+      <div class="card-num">#8</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_514b98f62b484650b785021269d670fa~mv2_d_5760_3840_s_4_2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Chris-Craft 28 Corsair</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2008</span>
+          <span><strong>Lengde:</strong> 28 fot</span>
+          <span><strong>Merke:</strong> Chris-Craft</span>
+          <span><strong>Modell:</strong> 28 Corsair</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>chris-craft-28-corsair</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/chris-craft-28-corsair" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443214525" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-7" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-7" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-7" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-7" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="7">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443214525" data-idx="8" data-tier="1">
+      <div class="card-num">#9</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_514b98f62b484650b785021269d670fa~mv2_d_5760_3840_s_4_2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Chris-Craft 28 Corsair</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2008</span>
+          <span><strong>Lengde:</strong> 28 fot</span>
+          <span><strong>Merke:</strong> Chris-Craft</span>
+          <span><strong>Modell:</strong> 28 Corsair</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>chris-craft-28-corsair</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/chris-craft-28-corsair" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443214525" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-8" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-8" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-8" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-8" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="8">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443229923" data-idx="9" data-tier="1">
+      <div class="card-num">#10</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_d6f3c900ea254755ad26e2e9af8bf264~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Colin Archer 40</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 1981</span>
+          <span><strong>Lengde:</strong> 40 fot</span>
+          <span><strong>Merke:</strong> Colin Archer</span>
+          <span><strong>Modell:</strong> 40</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>colin-archer-40</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/colin-archer-40" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443229923" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-9" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-9" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-9" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-9" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="9">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351414280413" data-idx="10" data-tier="1">
+      <div class="card-num">#11</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_59a62fc002fc4446b9a620e149b6c018~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Cormate T-27</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2019</span>
+          <span><strong>Lengde:</strong> 28 fot</span>
+          <span><strong>Merke:</strong> Cormate</span>
+          <span><strong>Modell:</strong> T-27</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>cormate-t-27</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/cormate-t-27" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351414280413" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-10" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-10" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-10" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-10" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="10">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351456244952" data-idx="11" data-tier="1">
+      <div class="card-num">#12</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/2f08e4_1f98fea43a214be5a2f645fc8e62a460~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Cranchi Mediterrane 47</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2006</span>
+          <span><strong>Lengde:</strong> 50 fot</span>
+          <span><strong>Merke:</strong> Cranchi</span>
+          <span><strong>Modell:</strong> Mediterrane 47</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>cranchi-mediterrane-47</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/cranchi-mediterrane-47" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351456244952" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-11" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-11" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-11" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-11" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="11">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351459866833" data-idx="12" data-tier="1">
+      <div class="card-num">#13</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_4088845c91e244f0973fec2c35ddffd6~mv2_d_5446_3631_s_4_2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG+SIG</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Fairline Phantom 48</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2007</span>
+          <span><strong>Lengde:</strong> 48 fot</span>
+          <span><strong>Merke:</strong> Fairline</span>
+          <span><strong>Modell:</strong> Phantom 48</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt slug-match + identisk signatur.</div>
+        <div class="hs-preview">HubSpot path: <code>fairline-phantom-48</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/fairline-phantom-48" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351459866833" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-12" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-12" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-12" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-12" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="12">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351417864402" data-idx="13" data-tier="1">
+      <div class="card-num">#14</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_c688f74b78b34e65bcad83b32eb4d662~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG+SIG</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Fjord 40 Open</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2007</span>
+          <span><strong>Lengde:</strong> 40 fot</span>
+          <span><strong>Merke:</strong> Fjord</span>
+          <span><strong>Modell:</strong> 40 Open</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt slug-match + identisk signatur.</div>
+        <div class="hs-preview">HubSpot path: <code>fjord-40-open</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/fjord-40-open" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351417864402" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-13" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-13" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-13" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-13" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="13">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351479119074" data-idx="14" data-tier="1">
+      <div class="card-num">#15</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_6b2cbd2981b148bba0bf8d353bce5f3c~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG+SIG</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Fjord Terne 24</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2006</span>
+          <span><strong>Lengde:</strong> 24 fot</span>
+          <span><strong>Merke:</strong> Fjord Terne </span>
+          <span><strong>Modell:</strong> 24</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt slug-match + identisk signatur.</div>
+        <div class="hs-preview">HubSpot path: <code>fjord-terne-24</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/fjord-terne-24" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351479119074" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-14" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-14" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-14" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-14" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="14">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443201226" data-idx="15" data-tier="1">
+      <div class="card-num">#16</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/b99d91_a091750c18e14821822ae694f4342987~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Glastron GS 259</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2006</span>
+          <span><strong>Lengde:</strong> 25 fot</span>
+          <span><strong>Merke:</strong> Glastron</span>
+          <span><strong>Modell:</strong> GS 259</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>glastron-gs-259</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/glastron-gs-259" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443201226" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-15" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-15" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-15" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-15" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="15">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443201222" data-idx="16" data-tier="1">
+      <div class="card-num">#17</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_7609db6be8fa4e6f9ede09a34852dfa6~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Goldfish 23 Tender</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2014</span>
+          <span><strong>Lengde:</strong> 25 fot</span>
+          <span><strong>Merke:</strong> Goldfish</span>
+          <span><strong>Modell:</strong> 23 Tender</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>goldfish-23-tender</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/goldfish-23-tender" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443201222" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-16" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-16" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-16" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-16" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="16">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443141853" data-idx="17" data-tier="1">
+      <div class="card-num">#18</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_bf4bed3b925c4269aa5ac5ed18d6e7c1~mv2_d_4724_3784_s_4_2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Goldfish 28 Tender</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2011</span>
+          <span><strong>Lengde:</strong> 30 fot</span>
+          <span><strong>Merke:</strong> Goldfish</span>
+          <span><strong>Modell:</strong> 28 Tender</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>goldfish-28-tender</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/goldfish-28-tender" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443141853" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-17" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-17" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-17" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-17" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="17">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351481042122" data-idx="18" data-tier="1">
+      <div class="card-num">#19</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_38303d0b1f78420b81c3f058ff6fe24a~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG+SIG</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Goldfish 30 Sport #002</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2021</span>
+          <span><strong>Lengde:</strong> 30 fot</span>
+          <span><strong>Merke:</strong> Goldfish </span>
+          <span><strong>Modell:</strong> 30 Sport</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt slug-match + identisk signatur.</div>
+        <div class="hs-preview">HubSpot path: <code>goldfish-30-sport</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/goldfish-30-sport" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351481042122" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-18" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-18" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-18" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-18" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="18">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351481042122" data-idx="19" data-tier="1">
+      <div class="card-num">#20</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_38303d0b1f78420b81c3f058ff6fe24a~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG+SIG</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Goldfish 30 Sport #002</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2021</span>
+          <span><strong>Lengde:</strong> 30 fot</span>
+          <span><strong>Merke:</strong> Goldfish </span>
+          <span><strong>Modell:</strong> 30 Sport</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt slug-match + identisk signatur.</div>
+        <div class="hs-preview">HubSpot path: <code>goldfish-30-sport</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/goldfish-30-sport" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351481042122" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-19" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-19" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-19" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-19" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="19">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351479119072" data-idx="20" data-tier="1">
+      <div class="card-num">#21</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_fc9db907148147b4a5c78695476cf4b9~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Goldfish 50 Ocean</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2013</span>
+          <span><strong>Lengde:</strong> 50 fot</span>
+          <span><strong>Merke:</strong> Goldfish </span>
+          <span><strong>Modell:</strong> 50 Ocean</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>goldfish-50-ocean</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/goldfish-50-ocean" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351479119072" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-20" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-20" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-20" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-20" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="20">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351479119078" data-idx="21" data-tier="1">
+      <div class="card-num">#22</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_59423122d2464cc7856baa0385c46f2b~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Grandezza 27S</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2016</span>
+          <span><strong>Lengde:</strong> 27 fot</span>
+          <span><strong>Merke:</strong> Grandezza </span>
+          <span><strong>Modell:</strong> 27S</span>
+          <span><strong>Pris:</strong> 1.030.000,-</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>grandezza-27s</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/grandezza-27s" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351479119078" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-21" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-21" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-21" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-21" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="21">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="350048534726" data-idx="22" data-tier="1">
+      <div class="card-num">#23</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_0d98b709b8194c64b7662ed1b6e7bc95~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG+SIG</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Grandezza 31 OC</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2011</span>
+          <span><strong>Lengde:</strong> 31 fot</span>
+          <span><strong>Merke:</strong> Grandezza</span>
+          <span><strong>Modell:</strong> 31 OC</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt slug-match + identisk signatur.</div>
+        <div class="hs-preview">HubSpot path: <code>grandezza-31-oc</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/grandezza-31-oc" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/350048534726" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-22" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-22" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-22" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-22" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="22">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351417864405" data-idx="23" data-tier="1">
+      <div class="card-num">#24</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_c98e1d90f9f64544921150d62b66616f~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Hanse 548</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2019</span>
+          <span><strong>Lengde:</strong> 53 fot</span>
+          <span><strong>Merke:</strong> Hanse</span>
+          <span><strong>Modell:</strong> 548</span>
+          <span><strong>Pris:</strong> 7.190.000,-</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>hanse-548</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/hanse-548" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351417864405" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-23" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-23" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-23" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-23" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="23">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351481095386" data-idx="24" data-tier="1">
+      <div class="card-num">#25</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_4455e8ed7ff9486bb48e32d116daa32c~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Hydrolift C-27</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2009</span>
+          <span><strong>Lengde:</strong> 27 fot</span>
+          <span><strong>Merke:</strong> Hydrolift</span>
+          <span><strong>Modell:</strong> C-27</span>
+          <span><strong>Pris:</strong> 999.000,-</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>hydrolift-c-27</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/hydrolift-c-27" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351481095386" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-24" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-24" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-24" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-24" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="24">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351484705000" data-idx="25" data-tier="1">
+      <div class="card-num">#26</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_f43bd2ca1c9a47f4ba8b37893774497b~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Hydrolift S24 Diablo</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2010</span>
+          <span><strong>Lengde:</strong> 24 fot</span>
+          <span><strong>Merke:</strong> Hydrolift</span>
+          <span><strong>Modell:</strong> S24 Diablo</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>hydrolift-s24-diablo</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/hydrolift-s24-diablo" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351484705000" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-25" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-25" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-25" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-25" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="25">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443214565" data-idx="26" data-tier="1">
+      <div class="card-num">#27</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_744b679fd9bd4f98bf0e8b1020735642~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Jeanneau Sun Odyssey 519</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2018</span>
+          <span><strong>Lengde:</strong> 51,8 fot</span>
+          <span><strong>Merke:</strong> Jeanneau</span>
+          <span><strong>Modell:</strong> SO 519</span>
+          <span><strong>Pris:</strong> EUR 185 000</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>jeanneau-sun-odyssey-519</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/jeanneau-sun-odyssey-519" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443214565" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-26" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-26" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-26" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-26" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="26">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443280103" data-idx="27" data-tier="1">
+      <div class="card-num">#28</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_0d856e7734d14707bfbefe8a54d7ac61~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Lagoon 560 S2</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2016</span>
+          <span><strong>Lengde:</strong> 56 fot</span>
+          <span><strong>Merke:</strong> Lagoon</span>
+          <span><strong>Modell:</strong> 560 S2</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>lagoon-560-s2</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/lagoon-560-s2" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443280103" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-27" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-27" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-27" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-27" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="27">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351482888426" data-idx="28" data-tier="1">
+      <div class="card-num">#29</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_03ccc354bd414e02b9f0828c1d31f8df~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Marex 280 Holiday</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2002</span>
+          <span><strong>Lengde:</strong> 29 fot</span>
+          <span><strong>Merke:</strong> Marex</span>
+          <span><strong>Modell:</strong> 280 Holiday</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>marex-280-holiday</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/marex-280-holiday" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351482888426" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-28" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-28" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-28" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-28" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="28">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351482888423" data-idx="29" data-tier="1">
+      <div class="card-num">#30</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_dc80f48490e641679da277d7431ba9af~mv2.jpeg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Marex 370 ACC</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2014</span>
+          <span><strong>Lengde:</strong> 37 fot</span>
+          <span><strong>Merke:</strong> Marex</span>
+          <span><strong>Modell:</strong> 370 ACC</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>marex-370-acc</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/marex-370-acc" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351482888423" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-29" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-29" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-29" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-29" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="29">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443214526" data-idx="30" data-tier="1">
+      <div class="card-num">#31</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_99f518dc34b147cbbe604af6c7b122fd~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nidelv 725 Sport</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2009</span>
+          <span><strong>Lengde:</strong> 24 fot</span>
+          <span><strong>Merke:</strong> Nidelv</span>
+          <span><strong>Modell:</strong> 725 Sport</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>nidelv-725-sport</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nidelv-725-sport" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443214526" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-30" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-30" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-30" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-30" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="30">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351388463331" data-idx="31" data-tier="1">
+      <div class="card-num">#32</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_6e2a3fabae824f1690332ea1c9dc7068~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG+SIG</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nimbus 230R</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2007</span>
+          <span><strong>Lengde:</strong> 23 fot</span>
+          <span><strong>Merke:</strong> Nimbus</span>
+          <span><strong>Modell:</strong> 230R</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt slug-match + identisk signatur.</div>
+        <div class="hs-preview">HubSpot path: <code>nimbus-230r</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nimbus-230r" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351388463331" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-31" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-31" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-31" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-31" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="31">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443213557" data-idx="32" data-tier="1">
+      <div class="card-num">#33</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_599b3f89ef0e4e78a1d42fde5c3a0d0b~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nimbus 250R</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2005</span>
+          <span><strong>Lengde:</strong> 25 fot</span>
+          <span><strong>Merke:</strong> Nimbus</span>
+          <span><strong>Modell:</strong> 250R</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>nimbus-250r</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nimbus-250r" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443213557" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-32" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-32" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-32" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-32" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="32">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443141857" data-idx="33" data-tier="1">
+      <div class="card-num">#34</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_7dca65d8f6204f389d5bc3e8f66c6358~mv2_d_5326_3551_s_4_2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nimbus 250R MKII</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2010</span>
+          <span><strong>Lengde:</strong> 25 fot</span>
+          <span><strong>Merke:</strong> Nimbus</span>
+          <span><strong>Modell:</strong> 250R MKII</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>nimbus-250r-mkii</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nimbus-250r-mkii" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443141857" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-33" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-33" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-33" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-33" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="33">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443141857" data-idx="34" data-tier="1">
+      <div class="card-num">#35</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_7dca65d8f6204f389d5bc3e8f66c6358~mv2_d_5326_3551_s_4_2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nimbus 250R MKII</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2010</span>
+          <span><strong>Lengde:</strong> 25 fot</span>
+          <span><strong>Merke:</strong> Nimbus</span>
+          <span><strong>Modell:</strong> 250R MKII</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>nimbus-250r-mkii</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nimbus-250r-mkii" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443141857" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-34" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-34" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-34" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-34" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="34">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443201223" data-idx="35" data-tier="1">
+      <div class="card-num">#36</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_e91b67bcae904179aebfeb21adc3deb7~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nimbus 29 Nova</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2001</span>
+          <span><strong>Lengde:</strong> 30 fot</span>
+          <span><strong>Merke:</strong> Nimbus</span>
+          <span><strong>Modell:</strong> 29 Nova </span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>nimbus-29-nova</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nimbus-29-nova" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443201223" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-35" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-35" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-35" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-35" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="35">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351388463332" data-idx="36" data-tier="1">
+      <div class="card-num">#37</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_a8eff096260c4c90a434641be45ff9d3~mv2_d_5736_3824_s_4_2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nimbus 33 Nova</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2000</span>
+          <span><strong>Lengde:</strong> 33 fot</span>
+          <span><strong>Merke:</strong> Nimbus</span>
+          <span><strong>Modell:</strong> 33 Nova</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>nimbus-33-nova</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nimbus-33-nova" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351388463332" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-36" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-36" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-36" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-36" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="36">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351388463320" data-idx="37" data-tier="1">
+      <div class="card-num">#38</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_8f099c2bc0d4469180165522a1ab992e~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nordkapp 705 Enduro</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2018</span>
+          <span><strong>Lengde:</strong> 23 fot</span>
+          <span><strong>Merke:</strong> Nordkapp</span>
+          <span><strong>Modell:</strong> 705 Enduro</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>nordkapp-705-enduro</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nordkapp-705-enduro" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351388463320" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-37" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-37" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-37" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-37" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="37">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351481058520" data-idx="38" data-tier="1">
+      <div class="card-num">#39</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_fba66475899148a69946a505113dca3b~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Paragon 25 Cabin</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2009</span>
+          <span><strong>Lengde:</strong> 25 fot</span>
+          <span><strong>Merke:</strong> Paragon</span>
+          <span><strong>Modell:</strong> 25 Cabin</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>paragon-25-cabin</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/paragon-25-cabin" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351481058520" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-38" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-38" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-38" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-38" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="38">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443214523" data-idx="39" data-tier="1">
+      <div class="card-num">#40</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_a6147f48933742aa91bf45491ae64116~mv2_d_5472_3648_s_4_2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Pershing 64</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2009</span>
+          <span><strong>Lengde:</strong> 64 fot</span>
+          <span><strong>Merke:</strong> Pershing</span>
+          <span><strong>Modell:</strong> 64</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>pershing-64</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/pershing-64" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443214523" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-39" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-39" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-39" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-39" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="39">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351417864409" data-idx="40" data-tier="1">
+      <div class="card-num">#41</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_e0205f8aa9b9431ab5eb6a08a42107b8~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Princess 415</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 1989</span>
+          <span><strong>Lengde:</strong> 42 fot</span>
+          <span><strong>Merke:</strong> Princess</span>
+          <span><strong>Modell:</strong> 415</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>princess-415</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/princess-415" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351417864409" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-40" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-40" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-40" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-40" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="40">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351456244966" data-idx="41" data-tier="1">
+      <div class="card-num">#42</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/b99d91_932406d6c47f425eb0f7e80ba6c2fdc8~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Riva Dolceriva 48</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2022</span>
+          <span><strong>Lengde:</strong> 49 fot</span>
+          <span><strong>Merke:</strong> Riva</span>
+          <span><strong>Modell:</strong> Dolceriva 48</span>
+          <span><strong>Pris:</strong> 18.900.000,-</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>riva-dolceriva-48</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/riva-dolceriva-48" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351456244966" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-41" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-41" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-41" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-41" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="41">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351482888434" data-idx="42" data-tier="1">
+      <div class="card-num">#43</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_a6bb8f3ae9e24c5b8ddcb39181e31fa4~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Sandvik 945</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2012</span>
+          <span><strong>Lengde:</strong> 34 fot</span>
+          <span><strong>Merke:</strong> Sandvik</span>
+          <span><strong>Modell:</strong> 945</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>sandvik-945</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/sandvik-945" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351482888434" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-42" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-42" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-42" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-42" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="42">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351482911937" data-idx="43" data-tier="1">
+      <div class="card-num">#44</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_322bd844a2714fe4a52777bee1354647~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Saxdor 320 GTC</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2023</span>
+          <span><strong>Lengde:</strong> 34 fot</span>
+          <span><strong>Merke:</strong> Saxdor</span>
+          <span><strong>Modell:</strong> 320 GTC</span>
+          <span><strong>Pris:</strong> 2.590.000,-</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>saxdor-320-gtc</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/saxdor-320-gtc" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351482911937" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-43" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-43" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-43" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-43" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="43">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351414280421" data-idx="44" data-tier="1">
+      <div class="card-num">#45</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_eacb88ebbd7644adbdcc241128054d42~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Scand Baltic 29</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2005</span>
+          <span><strong>Lengde:</strong> 29 fot</span>
+          <span><strong>Merke:</strong> Scand</span>
+          <span><strong>Modell:</strong> Baltic 29</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>scand-baltic-29</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/scand-baltic-29" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351414280421" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-44" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-44" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-44" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-44" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="44">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351417864418" data-idx="45" data-tier="1">
+      <div class="card-num">#46</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_fdc4120b19fc4b509768f08414d40e09~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG+SIG</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Seaside 23</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2023</span>
+          <span><strong>Lengde:</strong> 23 fot</span>
+          <span><strong>Merke:</strong> Seaside</span>
+          <span><strong>Modell:</strong> 23</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt slug-match + identisk signatur.</div>
+        <div class="hs-preview">HubSpot path: <code>seaside-23</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/seaside-23" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351417864418" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-45" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-45" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-45" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-45" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="45">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351481042110" data-idx="46" data-tier="1">
+      <div class="card-num">#47</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_6bc9cb12ba8a4713a1c6568abec0cac2~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Sunseeker 44 Camargue</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2000</span>
+          <span><strong>Lengde:</strong> 44 fot</span>
+          <span><strong>Merke:</strong> Sunseeker</span>
+          <span><strong>Modell:</strong> 44 Camargue</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>sunseeker-44-camargue</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/sunseeker-44-camargue" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351481042110" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-46" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-46" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-46" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-46" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="46">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351414280404" data-idx="47" data-tier="1">
+      <div class="card-num">#48</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/b99d91_9d8a871d021f4c7b83381936dd2856cd~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Windy 26 Kharma</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2012</span>
+          <span><strong>Lengde:</strong> 26 fot</span>
+          <span><strong>Merke:</strong> Windy</span>
+          <span><strong>Modell:</strong> 26 Kharma</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>windy-26-kharma</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/windy-26-kharma" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351414280404" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-47" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-47" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-47" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-47" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="47">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351414280438" data-idx="48" data-tier="1">
+      <div class="card-num">#49</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_d3eb2bed2a14496c9fcdd4c466cf55ec~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG+SIG</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Windy 39 Camira</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2014</span>
+          <span><strong>Lengde:</strong> 40 fot</span>
+          <span><strong>Merke:</strong> Windy</span>
+          <span><strong>Modell:</strong> 39 Camira</span>
+          <span><strong>Pris:</strong> 3.749.000,-</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt slug-match + identisk signatur.</div>
+        <div class="hs-preview">HubSpot path: <code>windy-39-camira</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/windy-39-camira" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351414280438" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-48" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-48" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-48" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-48" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="48">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443310788" data-idx="49" data-tier="1">
+      <div class="card-num">#50</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_5f05d220e9494c838ca29a755b86aba1~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#16a34a">SLUG-MATCH</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Wolstenholme 38</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2004</span>
+          <span><strong>Lengde:</strong> 38 fot</span>
+          <span><strong>Merke:</strong> Wolstenholme </span>
+          <span><strong>Modell:</strong> 38</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#16a34a">Eksakt samme URL-slug i Wix og HubSpot.</div>
+        <div class="hs-preview">HubSpot path: <code>wolstenholme-38</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/wolstenholme-38" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443310788" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-49" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-49" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-49" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-49" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="49">
+        </div>
+      </div>
+    </div>
+    <h2 class="tier-header" style="color:#0891b2">Tier 2 — Deal-verifisert (34 stk, du X-et opprinnelig men deal-assosiasjon peker entydig)</h2>
+    <div class="card" data-hs="351481028825" data-idx="50" data-tier="2">
+      <div class="card-num">#51</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_22eb54d30960402eba14fd3376d3e329~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Askeladden C80 Cruiser</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2021</span>
+          <span><strong>Lengde:</strong> 26 fot</span>
+          <span><strong>Merke:</strong> Askeladden</span>
+          <span><strong>Modell:</strong> C80 Cruiser</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>askeladden-c80-cruiser</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/askeladden-c80-cruiser" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351481028825" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-50" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-50" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-50" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-50" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="50">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351475308730" data-idx="51" data-tier="2">
+      <div class="card-num">#52</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_9c951f353b4f4a768d29015f4333da61~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Axopar 25 Cross Bow</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2023</span>
+          <span><strong>Lengde:</strong> 25 fot</span>
+          <span><strong>Merke:</strong> Axopar</span>
+          <span><strong>Modell:</strong> 25 Cross Bow</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>axopar-25-cross-bow</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/axopar-25-cross-bow" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351475308730" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-51" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-51" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-51" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-51" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="51">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="415023950012" data-idx="52" data-tier="2">
+      <div class="card-num">#53</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_8458ea53f00247acbd6e8372456916ed~mv2.jpeg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Axopar 28 Cabin</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2022</span>
+          <span><strong>Lengde:</strong> 28 fot</span>
+          <span><strong>Merke:</strong> Axopar</span>
+          <span><strong>Modell:</strong> 28 Cabin</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/axopar-28-cabin" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/415023950012" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-52" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-52" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-52" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-52" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="52">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351446910176" data-idx="53" data-tier="2">
+      <div class="card-num">#54</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_2346687eaedc4b6cb9d5e4bae7bf528b~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Bavaria 35 Sport</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2005</span>
+          <span><strong>Lengde:</strong> 35</span>
+          <span><strong>Merke:</strong> Bavaria</span>
+          <span><strong>Modell:</strong> 35 Sport</span>
+          <span><strong>Pris:</strong> 1.050.000,-</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>bavaria-35-sport-2</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/bavaria-35-sport" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351446910176" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-53" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-53" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-53" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-53" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="53">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443141854" data-idx="54" data-tier="2">
+      <div class="card-num">#55</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/b99d91_5c375f3698254f9cb7360fa7c29a7937~mv2_d_5760_3840_s_4_2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Bavaria 40 Cruiser</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2011</span>
+          <span><strong>Lengde:</strong> 41 fot</span>
+          <span><strong>Merke:</strong> Bavaria</span>
+          <span><strong>Modell:</strong> 40 Cruiser</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>bavaria-40-cruiser</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/bavaria-40-cruiser" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443141854" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-54" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-54" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-54" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-54" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="54">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443310801" data-idx="55" data-tier="2">
+      <div class="card-num">#56</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_e847ab0b1b844f0eb85b75288ab21d1e~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Bavaria 40 Vision</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2008</span>
+          <span><strong>Lengde:</strong> 40 fot</span>
+          <span><strong>Merke:</strong> Bavaria</span>
+          <span><strong>Modell:</strong> 40 Vision</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>bavaria-40-vision</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/bavaria-40-vision" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443310801" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-55" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-55" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-55" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-55" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="55">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351414280411" data-idx="56" data-tier="2">
+      <div class="card-num">#57</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_456da67996c04ce8b874357d2d32e4c9~mv2.jpeg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Bavaria 44 Vision</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2008</span>
+          <span><strong>Lengde:</strong> 44 fot</span>
+          <span><strong>Merke:</strong> Bavaria </span>
+          <span><strong>Modell:</strong> 44 Vision</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>bavaria-44-vision</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/bavaria-44-vision" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351414280411" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-56" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-56" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-56" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-56" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="56">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351456244953" data-idx="57" data-tier="2">
+      <div class="card-num">#58</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_f309418c8c3148a682b19d48b9d940b6~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Bavaria S36 HT</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2020</span>
+          <span><strong>Lengde:</strong> 38 fot</span>
+          <span><strong>Merke:</strong> Bavaria </span>
+          <span><strong>Modell:</strong> S36 HT</span>
+          <span><strong>Pris:</strong> 2.540.000,-</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>bavaria-s36-ht</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/bavaria-s36-ht" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351456244953" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-57" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-57" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-57" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-57" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="57">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443310800" data-idx="58" data-tier="2">
+      <div class="card-num">#59</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_d03166c6cf9543ef9f3a3e7a2672c509~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Beneteau Figaro 2</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2003</span>
+          <span><strong>Lengde:</strong> 33 fot</span>
+          <span><strong>Merke:</strong> Beneteau</span>
+          <span><strong>Modell:</strong> Figaro 2</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>beneteau-figaro-2</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/beneteau-figaro-2" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443310800" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-58" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-58" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-58" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-58" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="58">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351419699394" data-idx="59" data-tier="2">
+      <div class="card-num">#60</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_f4fd10eca0f841718dda089c59c26273~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Dufour 44 Performance</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2006</span>
+          <span><strong>Lengde:</strong> 44 fot</span>
+          <span><strong>Merke:</strong> Dufour</span>
+          <span><strong>Modell:</strong> 44 Performance</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>dufour-44-performance-2</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/dufour-44-performance" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351419699394" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-59" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-59" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-59" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-59" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="59">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351414280409" data-idx="60" data-tier="2">
+      <div class="card-num">#61</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/b99d91_299e1706368b4009a93099ed0439cace~mv2_d_5760_3840_s_4_2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Elan 37</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2006</span>
+          <span><strong>Lengde:</strong> 37 fot</span>
+          <span><strong>Merke:</strong> Elan</span>
+          <span><strong>Modell:</strong> 37</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>elan-37</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/elan-37" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351414280409" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-60" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-60" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-60" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-60" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="60">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351446910173" data-idx="61" data-tier="2">
+      <div class="card-num">#62</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_77846a55a08a4a4499602590e0a1860c~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Elan Power 35 HT</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2006</span>
+          <span><strong>Lengde:</strong> 36 fot</span>
+          <span><strong>Merke:</strong> Elan</span>
+          <span><strong>Modell:</strong> Power 35 HT</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>elan-power-35-ht</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/elan-power-35-ht" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351446910173" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-61" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-61" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-61" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-61" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="61">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351484704998" data-idx="62" data-tier="2">
+      <div class="card-num">#63</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_176e28bbf9b34b6d84a883882d744cae~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Fairline Squadron 55</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2002</span>
+          <span><strong>Lengde:</strong> 55 fot</span>
+          <span><strong>Merke:</strong> Fairline</span>
+          <span><strong>Modell:</strong> Squadron 55</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>fairline-squadron-55</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/fairline-squadron-55" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351484704998" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-62" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-62" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-62" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-62" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="62">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443263688" data-idx="63" data-tier="2">
+      <div class="card-num">#64</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_010d5e1fe03d4b2fbf09dbbcb3e401fa~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Goldfish 28 Bullet #024</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2021</span>
+          <span><strong>Lengde:</strong> 28 fot</span>
+          <span><strong>Merke:</strong> Goldfish </span>
+          <span><strong>Modell:</strong> 28 Bullet</span>
+          <span><strong>Pris:</strong> 1.340.000,-</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Flere kandidater opprinnelig, men re-match mot deal-båter ga én entydig.</div>
+        <div class="hs-preview">HubSpot path: <code>goldfish-28-bullet-024</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/goldfish-28-bullet-%23024" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443263688" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-63" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-63" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-63" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-63" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="63">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443310790" data-idx="64" data-tier="2">
+      <div class="card-num">#65</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_8db2f32c82d04620809b4acb8f59f93b~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Goldfish 28 RIB</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2004</span>
+          <span><strong>Lengde:</strong> 30 fot</span>
+          <span><strong>Merke:</strong> Goldfish</span>
+          <span><strong>Modell:</strong> 28 RIB</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>goldfish-28-rib</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/goldfish-28-rib" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443310790" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-64" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-64" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-64" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-64" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="64">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351419699407" data-idx="65" data-tier="2">
+      <div class="card-num">#66</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_7d4f892962164a6fb5b79425b306632f~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Goldfish 28 Tender #064</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2022</span>
+          <span><strong>Lengde:</strong> 30 fot</span>
+          <span><strong>Merke:</strong> Goldfish </span>
+          <span><strong>Modell:</strong> 28 Tender</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Flere kandidater opprinnelig, men re-match mot deal-båter ga én entydig.</div>
+        <div class="hs-preview">HubSpot path: <code>goldfish-28-tender-064</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/goldfish-28-tender-%23064" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351419699407" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-65" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-65" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-65" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-65" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="65">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351479078075" data-idx="66" data-tier="2">
+      <div class="card-num">#67</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_55652f40a626406bbbb3efaabf731666~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Goldfish 29 RIB Tender</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2011</span>
+          <span><strong>Lengde:</strong> 29 fot</span>
+          <span><strong>Merke:</strong> Goldfish</span>
+          <span><strong>Modell:</strong> 29 RIB Tender</span>
+          <span><strong>Pris:</strong> 850.000,-</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>goldfish-29-rib-tender</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/goldfish-29-rib-tender" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351479078075" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-66" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-66" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-66" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-66" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="66">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351479077102" data-idx="67" data-tier="2">
+      <div class="card-num">#68</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_652b05a4445549b19331b2dce5367136~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Goldfish 38 SuperSport #023</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2019</span>
+          <span><strong>Lengde:</strong> 38 fot</span>
+          <span><strong>Merke:</strong> Goldfish </span>
+          <span><strong>Modell:</strong> 38 SuperSport</span>
+          <span><strong>Pris:</strong> 2.500.000,-</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Flere kandidater opprinnelig, men re-match mot deal-båter ga én entydig.</div>
+        <div class="hs-preview">HubSpot path: <code>goldfish-38-supersport-023</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/goldfish-38-supersport-%23023" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351479077102" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-67" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-67" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-67" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-67" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="67">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443141855" data-idx="68" data-tier="2">
+      <div class="card-num">#69</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/b99d91_af1ed5d66f614a5690119674340b8826~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Hanse 355</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2011</span>
+          <span><strong>Lengde:</strong> 35 fot</span>
+          <span><strong>Merke:</strong> Hanse</span>
+          <span><strong>Modell:</strong> 355</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>hanse-355</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/hanse-355" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443141855" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-68" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-68" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-68" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-68" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="68">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351446935769" data-idx="69" data-tier="2">
+      <div class="card-num">#70</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_6db1b15895a64f65bc9c1e439d879f37~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Hydrolift X-32S R</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2021</span>
+          <span><strong>Lengde:</strong> 32 fot</span>
+          <span><strong>Merke:</strong> Hydrolift</span>
+          <span><strong>Modell:</strong> X-32S-R</span>
+          <span><strong>Pris:</strong> 3.400.000,-</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>hydrolift-x-32s-r</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/hydrolift-x-32s-r" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351446935769" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-69" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-69" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-69" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-69" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="69">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351361855723" data-idx="70" data-tier="2">
+      <div class="card-num">#71</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_7ed3f51abbef4ab0a53d2a0b149faa74~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Ibiza 811 Touring</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2017</span>
+          <span><strong>Lengde:</strong> 27,2 fot</span>
+          <span><strong>Merke:</strong> Ibiza</span>
+          <span><strong>Modell:</strong> 811 Touring</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/ibiza-811-touring" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351361855723" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-70" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-70" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-70" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-70" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="70">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351484705015" data-idx="71" data-tier="2">
+      <div class="card-num">#72</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_82f659391c3b468bb5898e13cd062657~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Jeanneau Cap Camarat 925 WA</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2008</span>
+          <span><strong>Lengde:</strong> 31 fot</span>
+          <span><strong>Merke:</strong> Jeanneau</span>
+          <span><strong>Modell:</strong> Cap Camarat 925 WA</span>
+          <span><strong>Pris:</strong> 475.000,-</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>jeanneau-cap-camarat-925-wa</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/jeanneau-cap-camarat-925-wa" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351484705015" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-71" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-71" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-71" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-71" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="71">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351482888417" data-idx="72" data-tier="2">
+      <div class="card-num">#73</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_e2f71f02809846c4be202be05839fd3b~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Marex 375</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2021</span>
+          <span><strong>Lengde:</strong> 40 fot</span>
+          <span><strong>Merke:</strong> Marex</span>
+          <span><strong>Modell:</strong> 375</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>marex-375</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/marex-375" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351482888417" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-72" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-72" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-72" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-72" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="72">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351414280417" data-idx="73" data-tier="2">
+      <div class="card-num">#74</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_7e00a1db39a84c9982b19669d200d822~mv2_d_5472_3648_s_4_2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nimbus 305 Drophead</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2019</span>
+          <span><strong>Lengde:</strong> 33 fot</span>
+          <span><strong>Merke:</strong> Nimbus</span>
+          <span><strong>Modell:</strong> 305 Drophead</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>nimbus-305-drophead</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nimbus-305-drophead" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351414280417" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-73" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-73" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-73" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-73" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="73">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351459866845" data-idx="74" data-tier="2">
+      <div class="card-num">#75</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_1e1139024cb445b8a3ba3cb2a26e6593~mv2_d_5472_3648_s_4_2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nimbus 30s</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2008</span>
+          <span><strong>Lengde:</strong> 30 fot</span>
+          <span><strong>Merke:</strong> Nimbus</span>
+          <span><strong>Modell:</strong> 30S</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>nimbus-30s</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nimbus-30s" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351459866845" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-74" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-74" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-74" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-74" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="74">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351388463332" data-idx="75" data-tier="2">
+      <div class="card-num">#76</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_a8eff096260c4c90a434641be45ff9d3~mv2_d_5736_3824_s_4_2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nimbus 33 Nova</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2000</span>
+          <span><strong>Lengde:</strong> 33 fot</span>
+          <span><strong>Merke:</strong> Nimbus</span>
+          <span><strong>Modell:</strong> 33 Nova</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>nimbus-33-nova</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nimbus-33-nova" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351388463332" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-75" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-75" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-75" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-75" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="75">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351456244950" data-idx="76" data-tier="2">
+      <div class="card-num">#77</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_2f1d7428bce74616affe82b43f008a7b~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nimbus T11</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2023</span>
+          <span><strong>Lengde:</strong> 40 fot</span>
+          <span><strong>Merke:</strong> Nimbus </span>
+          <span><strong>Modell:</strong> T11</span>
+          <span><strong>Pris:</strong> 4.490.000,-</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>nimbus-t11</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nimbus-t11" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351456244950" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-76" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-76" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-76" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-76" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="76">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351484705016" data-idx="77" data-tier="2">
+      <div class="card-num">#78</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_68066eb18eaa48c78d3f90785500fb8b~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nimbus T9</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2019</span>
+          <span><strong>Lengde:</strong> 31 fot</span>
+          <span><strong>Merke:</strong> Nimbus</span>
+          <span><strong>Modell:</strong> T9</span>
+          <span><strong>Pris:</strong> 1.490.000,-</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>nimbus-t9</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nimbus-t9" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351484705016" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-77" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-77" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-77" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-77" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="77">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443201238" data-idx="78" data-tier="2">
+      <div class="card-num">#79</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_e481821a6a4b4d1ca6f3515814b58561~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nimbus W9</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2022</span>
+          <span><strong>Lengde:</strong> 31 fot</span>
+          <span><strong>Merke:</strong> Nimbus</span>
+          <span><strong>Modell:</strong> W9</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>nimbus-w9</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nimbus-w9" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443201238" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-78" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-78" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-78" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-78" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="78">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443310789" data-idx="79" data-tier="2">
+      <div class="card-num">#80</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_49220baa64cb43b9b042d6c856571acb~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nordkapp 720 Noblesse</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2022</span>
+          <span><strong>Lengde:</strong> 23 fot</span>
+          <span><strong>Merke:</strong> Nordkapp</span>
+          <span><strong>Modell:</strong> 720 Noblesse</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>nordkapp-720-noblesse</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nordkapp-720-noblesse" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443310789" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-79" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-79" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-79" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-79" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="79">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443262703" data-idx="80" data-tier="2">
+      <div class="card-num">#81</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_877b37c67d694129ba56b15eceed8bcb~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Nordkapp 905 Grand Coupe</h3>
+          <span class="badge badge-active">AKTIV</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2021</span>
+          <span><strong>Lengde:</strong> 30 fot</span>
+          <span><strong>Merke:</strong> Nordkapp </span>
+          <span><strong>Modell:</strong> 905 Gran Coupe</span>
+          <span><strong>Pris:</strong> 1.490.000,-</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>nordkapp-905-grand-coupe-2</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/nordkapp-905-grand-coupe" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443262703" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-80" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-80" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-80" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-80" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="80">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351482888418" data-idx="81" data-tier="2">
+      <div class="card-num">#82</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/b99d91_254ab1f363394bec9d365c0102436964~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Princess 25M</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2003</span>
+          <span><strong>Lengde:</strong> 84 fot</span>
+          <span><strong>Merke:</strong> Princess</span>
+          <span><strong>Modell:</strong> 25M</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>princess-25m</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/princess-25m" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351482888418" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-81" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-81" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-81" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-81" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="81">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351414280421" data-idx="82" data-tier="2">
+      <div class="card-num">#83</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_eacb88ebbd7644adbdcc241128054d42~mv2.webp" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Scand Baltic 29</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2005</span>
+          <span><strong>Lengde:</strong> 29 fot</span>
+          <span><strong>Merke:</strong> Scand</span>
+          <span><strong>Modell:</strong> Baltic 29</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>scand-baltic-29</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/scand-baltic-29" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351414280421" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-82" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-82" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-82" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-82" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="82">
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="card" data-hs="351443214533" data-idx="83" data-tier="2">
+      <div class="card-num">#84</div>
+      <div class="img-col">
+        <img src="https://static.wixstatic.com/media/ad1ced_5f9f5effaf16408fbfbbcd87147b5366~mv2.jpg" alt="" loading="lazy">
+        <span class="conf-badge" style="background:#0891b2">DEAL-VER.</span>
+      </div>
+      <div class="info-col">
+        <div class="row1">
+          <h3>Windy 35 Khamsin</h3>
+          <span class="badge badge-sold">SOLGT</span>
+        </div>
+        <div class="meta">
+          <span><strong>År:</strong> 2007</span>
+          <span><strong>Lengde:</strong> 35 fot</span>
+          <span><strong>Merke:</strong> Windy </span>
+          <span><strong>Modell:</strong> 35 Khamsin</span>
+          <span><strong>Pris:</strong> Solgt!</span>
+        </div>
+        <div class="reason" style="border-left-color:#0891b2">Du markerte X — men re-match mot kun deal-assosierte båter ga én entydig match.</div>
+        <div class="hs-preview">HubSpot path: <code>windy-35-khamsin</code></div>
+        <div class="actions">
+          <a href="https://houseofyachts.no/Baater/windy-35-khamsin" target="_blank" rel="noopener" class="link-wix">Wix ↗</a>
+          <a href="https://app-eu1.hubspot.com/contacts/26753504/record/2-145214665/351443214533" target="_blank" rel="noopener" class="link-hs">HubSpot ↗</a>
+        </div>
+        <div class="decision">
+          <label><input type="radio" name="dec-83" value="APPROVE" checked> ✅ Riktig</label>
+          <label><input type="radio" name="dec-83" value="CHANGE"> 🔄 Feil →</label>
+          <label><input type="radio" name="dec-83" value="CREATE_NEW"> ➕ Ny</label>
+          <label><input type="radio" name="dec-83" value="SKIP"> ❌ Skip</label>
+          <input type="text" class="manual-id" placeholder="HubSpot ID/URL" data-idx="83">
+        </div>
+      </div>
+    </div>
+    </div>
+
+<script>
+const STORAGE_KEY = 'hoy-high-conf-update-review';
+function load() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch (e) { return {}; } }
+function save(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+const saved = load();
+document.querySelectorAll('.card').forEach(card => {
+  const hsId = card.dataset.hs;
+  const dec = saved[hsId] && saved[hsId].decision;
+  const manId = saved[hsId] && saved[hsId].manual;
+  if (dec) {
+    const r = card.querySelector('input[type=radio][value="' + dec + '"]');
+    if (r) r.checked = true;
+    card.dataset.decision = dec;
+  } else {
+    card.dataset.decision = 'APPROVE';
+  }
+  if (manId) card.querySelector('.manual-id').value = manId;
+});
+
+function updateCounts() {
+  let ok=0, ch=0, cr=0, sk=0;
+  document.querySelectorAll('.card').forEach(c => {
+    const d = c.dataset.decision;
+    if (d === 'SKIP') sk++;
+    else if (d === 'CHANGE') ch++;
+    else if (d === 'CREATE_NEW') cr++;
+    else ok++;
+  });
+  document.getElementById('cnt-ok').textContent = ok;
+  document.getElementById('cnt-change').textContent = ch;
+  document.getElementById('cnt-create').textContent = cr;
+  document.getElementById('cnt-skip').textContent = sk;
+}
+updateCounts();
+
+document.querySelectorAll('input[type=radio]').forEach(r => {
+  r.addEventListener('change', e => {
+    const card = e.target.closest('.card');
+    card.dataset.decision = e.target.value;
+    const data = load();
+    data[card.dataset.hs] = data[card.dataset.hs] || {};
+    data[card.dataset.hs].decision = e.target.value;
+    save(data);
+    updateCounts();
+  });
+});
+
+document.querySelectorAll('.manual-id').forEach(inp => {
+  inp.addEventListener('input', e => {
+    const card = e.target.closest('.card');
+    const data = load();
+    data[card.dataset.hs] = data[card.dataset.hs] || {};
+    data[card.dataset.hs].manual = e.target.value;
+    save(data);
+  });
+});
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', e => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const f = btn.dataset.filter;
+    document.querySelectorAll('.card').forEach(card => {
+      let show = false;
+      if (f === 'all') show = true;
+      else if (f === 'tier1') show = card.dataset.tier === '1';
+      else if (f === 'tier2') show = card.dataset.tier === '2';
+      else show = card.dataset.decision === f;
+      card.classList.toggle('hidden', !show);
+    });
+    document.querySelectorAll('.tier-header').forEach(h => {
+      const hideHeaders = ['APPROVE','CHANGE','CREATE_NEW','SKIP','tier1','tier2'].includes(f);
+      h.classList.toggle('hidden', hideHeaders);
+    });
+  });
+});
+
+function exportPicks() {
+  const data = load();
+  const lines = ['hs_id,decision,manual_id_or_url'];
+  document.querySelectorAll('.card').forEach(card => {
+    const hsId = card.dataset.hs;
+    const d = (data[hsId] && data[hsId].decision) || 'APPROVE';
+    const m = (data[hsId] && data[hsId].manual) || '';
+    lines.push(hsId + ',' + d + ',' + m);
+  });
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'high-conf-update-decisions.csv';
+  a.click();
+}
+</script>
+</body>
+</html>

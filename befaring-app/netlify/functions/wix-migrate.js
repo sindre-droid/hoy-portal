@@ -468,6 +468,40 @@ exports.handler = async (event) => {
         out.push({ id, ok: r.ok, properties: r.data?.properties });
       }
       return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify(out, null, 2) };
+    } else if (action === 'createredirects') {
+      // Bulk create URL redirects. Body: { redirects: [{ source, destination, code=301 }] }
+      const token = process.env.HUBSPOT_CONTENT_TOKEN;
+      if (!token) return { statusCode: 500, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'HUBSPOT_CONTENT_TOKEN not set' }) };
+      const body = JSON.parse(event.body || '{}');
+      const redirects = body.redirects || [];
+      const results = [];
+      for (const r of redirects) {
+        try {
+          const req = await fetch('https://api.hubapi.com/cms/v3/url-redirects/', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              routePrefix: r.source,
+              destination: r.destination,
+              redirectStyle: r.code || 301,
+              precedence: 1,
+              isOnlyAfterNotFound: false,
+              isMatchFullUrl: false,
+              isMatchQueryString: false,
+              isPattern: false,
+              isTrailingSlashOptional: true,
+              isProtocolAgnostic: true,
+            }),
+          });
+          const t = await req.text();
+          let data; try { data = JSON.parse(t); } catch { data = { raw: t.slice(0, 200) }; }
+          results.push({ ok: req.ok, status: req.status, source: r.source, destination: r.destination, id: data.id, error: req.ok ? null : (data.message || data.raw) });
+        } catch (e) {
+          results.push({ ok: false, source: r.source, error: e.message });
+        }
+      }
+      const ok = results.filter(x => x.ok).length;
+      return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ total: results.length, ok, failed: results.length - ok, results }, null, 2) };
     } else if (action === 'writetheme_raw') {
       // Write raw source to a theme path. Body: { path, source }
       const token = process.env.HUBSPOT_CONTENT_TOKEN;
