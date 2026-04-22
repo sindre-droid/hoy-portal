@@ -370,8 +370,22 @@ async function handleOneflowStatus(params) {
   const allContracts = await fetchAllOneflowContracts();
   const statuses = {};
 
+  // Debug: log first few contract names to verify fetch worked
+  console.log(`Oneflow status: ${allContracts.length} contracts fetched, checking ${dealNames.length} deals`);
+  if (allContracts.length > 0) {
+    console.log('Sample contracts:', allContracts.slice(0, 3).map(c => ({
+      name: c._private?.name || c.name,
+      state: c.state,
+      tid: c._private_ownerside?.template_id || c.template?._id || c.template?.id
+    })));
+  }
+
   for (const { deal_id, deal_name, boat_name } of dealNames) {
     const oneflow = matchOneflowForDeal(allContracts, deal_name, boat_name);
+    // Debug: log matches for deals that have contracts
+    if (oneflow.matched_contracts.length > 0) {
+      console.log(`Deal "${deal_name}" (boat: "${boat_name}") matched:`, oneflow.matched_contracts.map(c => c.name));
+    }
     statuses[deal_id] = {
       egenerklaring:  oneflow.egenerklaring === 'signed',
       oppdragsavtale: oneflow.oppdragsavtale === 'signed',
