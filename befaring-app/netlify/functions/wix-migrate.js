@@ -498,6 +498,55 @@ exports.handler = async (event) => {
         results.push({ id, status: r.status, ok: r.ok, error: r.ok ? null : t.slice(0, 200) });
       }
       return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ total: results.length, ok: results.filter(x => x.ok).length, results }, null, 2) };
+    } else if (action === 'salesstats') {
+      // Calculate real sales stats from boats with status=sold
+      const all = [];
+      let after;
+      do {
+        const q = after ? `?limit=100&after=${after}&properties=pris,status,sold_date_proxy,sold_date,batmerke,hs_createdate,arsmodell` : '?limit=100&properties=pris,status,sold_date_proxy,sold_date,batmerke,hs_createdate,arsmodell';
+        const res = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}${q}`, 'GET');
+        if (!res.ok) throw new Error(`list failed: ${res.status}`);
+        (res.data.results || []).forEach(r => {
+          const p = r.properties || {};
+          if (p.status === 'sold') all.push(p);
+        });
+        after = res.data.paging?.next?.after;
+      } while (after);
+
+      const now = Date.now();
+      const oneYearAgo = now - (365 * 24 * 3600 * 1000);
+      const soldLastYear = all.filter(b => {
+        const d = b.sold_date || b.sold_date_proxy;
+        if (!d) return false;
+        return new Date(d).getTime() > oneYearAgo;
+      });
+
+      const prices = all.map(b => parseFloat(b.pris) || 0).filter(p => p > 0);
+      const pricesLastYear = soldLastYear.map(b => parseFloat(b.pris) || 0).filter(p => p > 0);
+      const sum = arr => arr.reduce((a, b) => a + b, 0);
+      const median = arr => {
+        const s = arr.sort((a, b) => a - b);
+        return s.length ? s[Math.floor(s.length / 2)] : 0;
+      };
+      const priceBandCounts = {'<1M':0,'1-2M':0,'2-4M':0,'4-10M':0,'10M+':0};
+      prices.forEach(p => {
+        if (p < 1e6) priceBandCounts['<1M']++;
+        else if (p < 2e6) priceBandCounts['1-2M']++;
+        else if (p < 4e6) priceBandCounts['2-4M']++;
+        else if (p < 10e6) priceBandCounts['4-10M']++;
+        else priceBandCounts['10M+']++;
+      });
+
+      return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({
+        total_sold: all.length,
+        sold_last_12mo: soldLastYear.length,
+        sum_all_NOK: sum(prices),
+        sum_last_12mo_NOK: sum(pricesLastYear),
+        median_price_all: median(prices),
+        median_price_last_12mo: median(pricesLastYear),
+        price_band_counts_all: priceBandCounts,
+        unique_brands: [...new Set(all.map(b => b.batmerke).filter(Boolean))].length,
+      }, null, 2) };
     } else if (action === 'listpages') {
       // List all site pages
       const token = process.env.HUBSPOT_CONTENT_TOKEN;
