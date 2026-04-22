@@ -468,6 +468,28 @@ exports.handler = async (event) => {
         out.push({ id, ok: r.ok, properties: r.data?.properties });
       }
       return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify(out, null, 2) };
+    } else if (action === 'listpages') {
+      // List all site pages
+      const token = process.env.HUBSPOT_CONTENT_TOKEN;
+      if (!token) return { statusCode: 500, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'no token' }) };
+      const all = [];
+      let after;
+      do {
+        const q = after ? `?limit=100&after=${after}&archived=false` : '?limit=100&archived=false';
+        const r = await fetch(`https://api.hubapi.com/cms/v3/pages/site-pages${q}`, { headers: { Authorization: `Bearer ${token}` } });
+        const d = await r.json();
+        (d.results || []).forEach(p => all.push({
+          id: p.id,
+          name: p.name,
+          slug: p.slug,
+          url: p.url,
+          state: p.state,
+          updated: p.updated,
+          created: p.created,
+        }));
+        after = d.paging?.next?.after;
+      } while (after);
+      return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ total: all.length, pages: all }, null, 2) };
     } else if (action === 'createredirects') {
       // Bulk create URL redirects. Body: { redirects: [{ source, destination, code=301 }] }
       const token = process.env.HUBSPOT_CONTENT_TOKEN;
