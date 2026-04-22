@@ -205,7 +205,7 @@ async function fetchAllOneflowContracts() {
   while (offset < totalCount && offset < MAX_PAGES * 100) {
     const res = await ofApi(`/contracts?limit=100&offset=${offset}&sort=-updated_time`);
     if (!res.ok) {
-      console.error('Oneflow fetch feil:', res.status);
+      console.error('Oneflow fetch feil:', res.status, JSON.stringify(res.data));
       break;
     }
     totalCount = res.data?.count || 0;
