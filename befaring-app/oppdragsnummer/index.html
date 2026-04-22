@@ -86,6 +86,19 @@
     .assign-result.ok{display:block;background:var(--green-bg);color:var(--green)}
     .assign-result.error{display:block;background:var(--red-bg);color:var(--red)}
 
+    /* ── Matched contracts ── */
+    .matched-contracts{margin-top:8px;padding:10px 14px;background:var(--surface);border-radius:10px;font-size:12px}
+    .matched-contracts-title{font-weight:700;color:var(--gray-dark);margin-bottom:6px;font-size:11px;text-transform:uppercase;letter-spacing:0.5px}
+    .matched-contract{display:flex;align-items:center;gap:8px;padding:4px 0}
+    .matched-contract-name{color:var(--text);font-weight:600}
+    .matched-contract-state{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px}
+    .matched-contract-state.signed{background:var(--green-bg);color:var(--green)}
+    .matched-contract-state.pending{background:var(--yellow-bg);color:var(--yellow)}
+    .matched-contract-state.draft{background:#f1f5f9;color:#94a3b8}
+    .matched-contract a{color:var(--blue);text-decoration:none;font-weight:600}
+    .matched-contract a:hover{text-decoration:underline}
+    .matched-warning{margin-top:6px;padding:6px 10px;background:var(--yellow-bg);border-radius:8px;color:var(--yellow);font-size:11px;font-weight:700}
+
     /* ── Modal ── */
     .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px}
     .modal{background:white;border-radius:16px;padding:28px;max-width:440px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,0.25)}
@@ -457,6 +470,10 @@ function renderQueue(queue, filteredCount) {
           }
         </div>
       </div>
+      <div class="matched-contracts" id="matched-${deal.deal_id}" style="display:none">
+        <div class="matched-contracts-title">Matchede Oneflow-kontrakter</div>
+        <div id="matched-list-${deal.deal_id}"></div>
+      </div>
       <div class="assign-result" id="result-${deal.deal_id}"></div>
     </div>`;
   }).join('');
@@ -488,6 +505,27 @@ async function loadOneflowStatus(queue) {
 
         const oaEl = document.getElementById(`check-oa-${deal.deal_id}`);
         if (oaEl) oaEl.innerHTML = `<div class="check-icon ${s.oppdragsavtale ? 'check-ok' : 'check-missing'}">${s.oppdragsavtale ? '✓' : '—'}</div><span class="check-label ${s.oppdragsavtale ? '' : 'missing'}">Oppdragsavtale</span>`;
+
+        // Show matched contracts
+        const contracts = s.matched_contracts || [];
+        const matchedEl = document.getElementById(`matched-${deal.deal_id}`);
+        const matchedListEl = document.getElementById(`matched-list-${deal.deal_id}`);
+        if (matchedEl && matchedListEl && contracts.length) {
+          matchedEl.style.display = '';
+          const stateLabels = { signed: 'Signert', pending: 'Venter', draft: 'Utkast' };
+          matchedListEl.innerHTML = contracts.map(c => `
+            <div class="matched-contract">
+              <a href="https://app.oneflow.com/contracts/${c.id}" target="_blank" rel="noopener">${esc(c.name)}</a>
+              <span class="matched-contract-state ${c.state}">${stateLabels[c.state] || c.state}</span>
+            </div>
+          `).join('');
+          // Warn if multiple contracts share the same type (possible ambiguity)
+          const egCount = contracts.filter(c => c.type === 'egenerklaring').length;
+          const oaCount = contracts.filter(c => c.type === 'oppdragsavtale').length;
+          if (egCount > 1 || oaCount > 1) {
+            matchedListEl.innerHTML += `<div class="matched-warning">⚠️ Flere kontrakter av samme type matchet — verifiser at riktig kontrakt er koblet til denne dealen</div>`;
+          }
+        }
 
         // Update card border and button
         const card = document.getElementById(`card-${deal.deal_id}`);

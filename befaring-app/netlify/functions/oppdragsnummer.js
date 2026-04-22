@@ -175,14 +175,12 @@ async function checkOneflowStatus(dealName, boatName) {
 // Uses fetchAllOneflowContracts() for full coverage (up to 500 contracts)
 function findOneflowContractsInList(allContracts, dealName, boatName) {
   const found = [];
-  const normalise = s => (s || '').toLowerCase().replace(/[^a-zæøå0-9]/g, '');
-  const searchKeys = [boatName, dealName].filter(Boolean).map(normalise).filter(k => k.length > 2);
-  if (!searchKeys.length) return found;
+  const searchTerms = [boatName, dealName].filter(Boolean).filter(k => k.length > 2);
+  if (!searchTerms.length) return found;
 
   for (const c of allContracts) {
-    const cName = normalise(c._private?.name || c.name || '');
-    const matches = searchKeys.some(k => cName.includes(k));
-    if (!matches) continue;
+    const cName = (c._private?.name || c.name || '');
+    if (!fuzzyMatch(cName, searchTerms)) continue;
 
     const tid = parseInt(c._private_ownerside?.template_id || c.template?._id || c.template?.id || 0);
     const isRelevant = OF_TEMPLATES.egenerklaring.includes(tid) || OF_TEMPLATES.oppdragsavtale.includes(tid);
@@ -220,27 +218,65 @@ async function fetchAllOneflowContracts() {
 }
 
 // Match a deal against pre-fetched Oneflow contracts
+// Fuzzy word-matching: sjekker om nok ord fra søket finnes i kontraktnavnet
+// Tåler ulik rekkefølge, ekstra ord, og små skrivefeil
+function fuzzyMatch(contractName, searchTerms) {
+  const cWords = contractName.toLowerCase().replace(/[^a-zæøå0-9\s]/g, '').split(/\s+/).filter(w => w.length > 1);
+  for (const term of searchTerms) {
+    const tWords = term.toLowerCase().replace(/[^a-zæøå0-9\s]/g, '').split(/\s+/).filter(w => w.length > 1);
+    if (tWords.length === 0) continue;
+    // Tell hvor mange søkeord som finnes i kontraktnavnet
+    const matched = tWords.filter(tw => cWords.some(cw => cw === tw || (tw.length >= 4 && cw.includes(tw)) || (cw.length >= 4 && tw.includes(cw))));
+    // Krev at minst 2/3 av ordene matcher (minimum 2)
+    const threshold = Math.max(2, Math.ceil(tWords.length * 0.66));
+    if (matched.length >= threshold) return true;
+  }
+  return false;
+}
+
 function matchOneflowForDeal(allContracts, dealName, boatName) {
-  const status = { egenerklaring: null, oppdragsavtale: null };
-  const searchKeys = [boatName, dealName].filter(Boolean).map(s => s.toLowerCase()).filter(k => k.length > 2);
-  if (!searchKeys.length) return status;
+  const status = { egenerklaring: null, oppdragsavtale: null, matched_contracts: [] };
+  const searchTerms = [boatName, dealName].filter(Boolean).filter(k => k.length > 2);
+  if (!searchTerms.length) return status;
 
   for (const c of allContracts) {
-    const name = (c._private?.name || c.name || '').toLowerCase();
-    const matches = searchKeys.some(k => name.includes(k));
-    if (!matches) continue;
+    const displayName = c._private?.name || c.name || '';
+    const name = displayName.toLowerCase();
+    if (!fuzzyMatch(name, searchTerms)) continue;
 
     const tid = parseInt(c._private_ownerside?.template_id || c.template?._id || c.template?.id || 0);
     const isSigned = c.state === 3 || c.state === 'signed';
+    const stateLabel = isSigned ? 'signed' : (c.state === 2 ? 'pending' : 'draft');
 
+    let docType = null;
     if (tid) {
-      if (OF_TEMPLATES.egenerklaring.includes(tid) && isSigned)  status.egenerklaring  = 'signed';
-      if (OF_TEMPLATES.oppdragsavtale.includes(tid) && isSigned) status.oppdragsavtale = 'signed';
+      if (OF_TEMPLATES.egenerklaring.includes(tid)) {
+        docType = 'egenerklaring';
+        if (isSigned) status.egenerklaring = 'signed';
+      }
+      if (OF_TEMPLATES.oppdragsavtale.includes(tid)) {
+        docType = 'oppdragsavtale';
+        if (isSigned) status.oppdragsavtale = 'signed';
+      }
     } else {
-      if ((name.includes('egenerklær') || name.includes('egenerklaring')) && isSigned)
-        status.egenerklaring = 'signed';
-      if ((name.includes('salgsavtale') || name.includes('oppdragsavtale')) && isSigned)
-        status.oppdragsavtale = 'signed';
+      if (name.includes('egenerklær') || name.includes('egenerklaring')) {
+        docType = 'egenerklaring';
+        if (isSigned) status.egenerklaring = 'signed';
+      }
+      if (name.includes('salgsavtale') || name.includes('oppdragsavtale')) {
+        docType = 'oppdragsavtale';
+        if (isSigned) status.oppdragsavtale = 'signed';
+      }
+    }
+
+    if (docType) {
+      status.matched_contracts.push({
+        id: c.id,
+        name: displayName,
+        type: docType,
+        state: stateLabel,
+        updated: c.updated_time || null,
+      });
     }
   }
   return status;
@@ -299,6 +335,7 @@ async function handleQueue(sb) {
     const boatName = dealName
       .replace(/^listing\s*:\s*/i, '')
       .replace(/^\d{4,5}\s*[-–]\s*/, '')
+      .replace(/\s*#\d+\s*$/, '')        // Strip "#003" etc. fra slutten
       .trim();
 
     queue.push({
@@ -339,6 +376,7 @@ async function handleOneflowStatus(params) {
       egenerklaring:  oneflow.egenerklaring === 'signed',
       oppdragsavtale: oneflow.oppdragsavtale === 'signed',
       ready:          oneflow.egenerklaring === 'signed' && oneflow.oppdragsavtale === 'signed',
+      matched_contracts: oneflow.matched_contracts,
     };
   }
 
