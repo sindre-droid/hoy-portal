@@ -498,6 +498,14 @@ exports.handler = async (event) => {
         results.push({ id, status: r.status, ok: r.ok, error: r.ok ? null : t.slice(0, 200) });
       }
       return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ total: results.length, ok: results.filter(x => x.ok).length, results }, null, 2) };
+    } else if (action === 'pipelines') {
+      const r = await hs('/crm/v3/pipelines/deals', 'GET');
+      const simple = (r.data?.results || []).map(p => ({
+        id: p.id,
+        label: p.label,
+        stages: (p.stages || []).map(s => ({ id: s.id, label: s.label, metadata: s.metadata }))
+      }));
+      return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify(simple, null, 2) };
     } else if (action === 'salesstats') {
       // Calculate real sales stats from boats with status=sold
       const all = [];
