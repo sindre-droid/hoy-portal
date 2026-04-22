@@ -468,6 +468,21 @@ exports.handler = async (event) => {
         out.push({ id, ok: r.ok, properties: r.data?.properties });
       }
       return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify(out, null, 2) };
+    } else if (action === 'updatepage') {
+      // Update page meta (slug, title, etc). Body: { id, ...fields }
+      const token = process.env.HUBSPOT_CONTENT_TOKEN;
+      if (!token) return { statusCode: 500, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'no token' }) };
+      const body = JSON.parse(event.body || '{}');
+      const { id, ...fields } = body;
+      if (!id) return { statusCode: 400, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'missing id' }) };
+      const r = await fetch(`https://api.hubapi.com/cms/v3/pages/site-pages/${id}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(fields),
+      });
+      const t = await r.text();
+      let d; try { d = JSON.parse(t); } catch { d = { raw: t.slice(0, 200) }; }
+      return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ status: r.status, ok: r.ok, response: d }, null, 2) };
     } else if (action === 'archivepages') {
       const token = process.env.HUBSPOT_CONTENT_TOKEN;
       if (!token) return { statusCode: 500, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'no token' }) };
