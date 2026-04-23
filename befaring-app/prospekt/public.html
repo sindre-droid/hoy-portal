@@ -1,0 +1,1672 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Båtprospekt — House of Yachts</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap');
+
+  /* ══════════════════════════════════════════
+     DESIGN TOKENS
+     ══════════════════════════════════════════ */
+  :root {
+    --hoy-black: #0A0A0A;
+    --hoy-white: #FFFFFF;
+    --hoy-offwhite: #FAF9F7;
+    --hoy-cream: #F5F1EC;
+    --hoy-warm-gray: #E2DDD6;
+    --hoy-mid-gray: #9A9590;
+    --hoy-dark-gray: #3D3935;
+    --hoy-gold: #C4983E;
+    --hoy-gold-light: #D4AE62;
+    --hoy-gold-subtle: #F5EFE3;
+    --hoy-deep-teal: #1A3C34;
+    --hoy-teal: #2A5C4E;
+    --hoy-navy: #1B2B3A;
+
+    --font-display: 'Cormorant Garamond', 'Georgia', serif;
+    --font-body: 'Inter', -apple-system, sans-serif;
+
+    --page-w: 210mm;
+    --page-h: 297mm;
+  }
+
+  /* ══════════════════════════════════════════
+     PRINT / PUPPETEER — A4
+     ══════════════════════════════════════════ */
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  /* print reset is placed at bottom of stylesheet to win cascade */
+
+  /* ══════════════════════════════════════════
+     BASE & PREVIEW LAYOUT
+     ══════════════════════════════════════════ */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #D6D1CA;
+    font-family: var(--font-body);
+    color: var(--hoy-black);
+    -webkit-font-smoothing: antialiased;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .page-wrapper {
+    max-width: 900px;
+    margin: 40px auto;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    padding: 0 20px;
+  }
+
+  .page-label {
+    display: none;  /* Skjult i offentlig visning */
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--hoy-mid-gray);
+    margin-bottom: -20px;
+    padding-left: 4px;
+  }
+
+  .page {
+    width: 100%;
+    aspect-ratio: 210 / 297;
+    background: var(--hoy-white);
+    box-shadow: 0 4px 40px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.05);
+    overflow: hidden;
+    position: relative;
+    border-radius: 2px;
+  }
+
+  /* ── Shared inner-page footer ── */
+  .page-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 7%;
+    background: var(--hoy-deep-teal);
+    font-family: var(--font-body);
+    font-size: 8px;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.5px;
+  }
+
+  .page-footer-light {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 7%;
+    background: var(--hoy-offwhite);
+    border-top: 1px solid var(--hoy-warm-gray);
+    font-size: 8px;
+    color: var(--hoy-mid-gray);
+  }
+
+  .page-footer-accent {
+    width: 30px;
+    height: 2px;
+    background: var(--hoy-gold);
+    flex-shrink: 0;
+  }
+
+  /* ── Shared section headers ── */
+  .section-title {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--hoy-black);
+  }
+
+  .section-subtitle {
+    font-size: 10px;
+    color: var(--hoy-mid-gray);
+    font-weight: 300;
+  }
+
+  .category-label {
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--hoy-gold);
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--hoy-warm-gray);
+  }
+
+  .category-label-inline {
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--hoy-gold);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .category-label-inline::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--hoy-warm-gray);
+  }
+
+  /* ══════════════════════════════════════════
+     PAGE: COVER
+     ══════════════════════════════════════════ */
+  .cover {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-rows: 1fr 38mm 10mm; /* image fills rest, bottom 38mm, footer 10mm */
+    overflow: hidden;
+  }
+
+  .cover-image-area {
+    position: relative;
+    min-height: 0;
+    overflow: hidden;
+    background: var(--hoy-deep-teal);
+  }
+
+  .cover-image-area img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .cover-image-overlay {
+    position: absolute;
+    inset: 0;
+    background:
+      /* Dempet topp-wash — kun nok til at tynn tekst ikke forsvinner på
+         nøytrale bakgrunner. Logoen stoler på egen kant-definisjon. */
+      linear-gradient(
+        to bottom,
+        rgba(10,15,25,0.32) 0%,
+        rgba(10,15,25,0.18) 12%,
+        rgba(10,15,25,0.06) 24%,
+        transparent 38%,
+        transparent 72%,
+        rgba(0,0,0,0.52) 100%
+      );
+  }
+
+  .cover-logo {
+    position: absolute;
+    top: 5.5%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .cover-logo img {
+    height: 160px;
+    width: auto;
+    /* Tette, harde kantskygger som definerer bokstavene uten å lage halo.
+       Første lag: 1px hugging-shadow = kniv-skarp kontrast mot bakgrunn.
+       Andre lag: 2px ned for jording. Tredje: svak cast for lift. */
+    filter:
+      drop-shadow(0 0 1.5px rgba(0,0,0,0.60))
+      drop-shadow(0 0 3px rgba(0,0,0,0.40))
+      drop-shadow(0 2px 3px rgba(0,0,0,0.30))
+      drop-shadow(0 3px 6px rgba(0,0,0,0.18));
+  }
+
+  .cover-logo-accent {
+    width: 130px;
+    height: 2px;
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(196,152,62,0.35) 10%,
+      var(--hoy-gold) 50%,
+      rgba(196,152,62,0.35) 90%,
+      transparent 100%
+    );
+  }
+
+  .cover-bottom {
+    background: var(--hoy-white);
+    padding: 6mm 8% 4mm;
+    text-align: center;
+    box-sizing: border-box;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .cover-year {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    color: var(--hoy-mid-gray);
+    margin-bottom: 10px;
+  }
+
+  .cover-title {
+    font-family: var(--font-display);
+    font-size: 40px;
+    font-weight: 400;
+    color: var(--hoy-black);
+    letter-spacing: 1.2px;
+    line-height: 1.1;
+    margin-bottom: 12px;
+  }
+
+  .cover-price {
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--hoy-dark-gray);
+    letter-spacing: 1.5px;
+    margin-bottom: 18px;
+  }
+
+  .cover-divider {
+    width: 56px;
+    height: 2px;
+    background: var(--hoy-gold);
+    margin: 0 auto;
+  }
+
+  .cover-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 8%;
+    background: var(--hoy-deep-teal);
+    font-family: var(--font-body);
+    font-size: 9px;
+    color: rgba(255,255,255,0.7);
+    letter-spacing: 0.5px;
+    box-sizing: border-box;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .cover-footer strong {
+    color: rgba(255,255,255,0.9);
+  }
+
+  /* ══════════════════════════════════════════
+     PAGE: OVERVIEW
+     ══════════════════════════════════════════ */
+  .overview {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .overview-hero {
+    height: 36%;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .overview-hero img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .overview-hero-overlay {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 30%;
+    background: linear-gradient(to top, rgba(255,255,255,1), transparent);
+  }
+
+  .overview-content {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 35% 1fr;
+    gap: 0;
+    padding: 5% 7% 3%;
+  }
+
+  .specs-column {
+    padding-right: 6%;
+    border-right: 1px solid var(--hoy-warm-gray);
+  }
+
+  .specs-boat-name {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 400;
+    color: var(--hoy-black);
+    margin-bottom: 6px;
+  }
+
+  .specs-price {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--hoy-gold);
+    letter-spacing: 0.3px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--hoy-warm-gray);
+  }
+
+  .spec-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 4px 0;
+    font-size: 10px;
+    line-height: 1.6;
+  }
+
+  .spec-label { color: var(--hoy-mid-gray); font-weight: 400; }
+  .spec-value { color: var(--hoy-dark-gray); font-weight: 500; text-align: right; }
+
+  .spec-divider {
+    height: 1px;
+    background: var(--hoy-warm-gray);
+    margin: 8px 0;
+  }
+
+  .description-column { padding-left: 6%; }
+
+  .desc-intro {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--hoy-dark-gray);
+    line-height: 1.6;
+    margin-bottom: 18px;
+  }
+
+  .desc-body {
+    font-size: 10.5px;
+    line-height: 1.75;
+    color: var(--hoy-dark-gray);
+    font-weight: 300;
+  }
+
+  .desc-body p { margin-bottom: 12px; }
+
+  .desc-visning {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--hoy-warm-gray);
+    font-style: italic;
+    color: var(--hoy-mid-gray);
+  }
+
+  /* ══════════════════════════════════════════
+     PAGE: GALLERY
+     ══════════════════════════════════════════ */
+  .gallery {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 6% 6% 3%;
+  }
+
+  .gallery-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 4%;
+  }
+
+  .gallery-header h2 {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--hoy-black);
+  }
+
+  .gallery-header .gallery-subtitle {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--hoy-mid-gray);
+    font-weight: 500;
+  }
+
+  /* Alle gallery-grids skal flex:1 og min-height:0 for å unngå at
+     intrinsic content-høyde presser grid ut av page-overflow */
+  [class^="gallery-grid-"] {
+    flex: 1 1 0;
+    min-height: 0;
+    display: grid;
+    gap: 8px;
+  }
+
+  /* Liggende-dominerte layouts (foretrukket for båtbilder) */
+  .gallery-grid-2up_h {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+  .gallery-grid-3up_h {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+  }
+  .gallery-grid-4up_h {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr 1fr 1fr;
+  }
+  .gallery-grid-4up_sw {
+    /* Sandwich: liggende topp (full bredde) + to firkant-bilder + liggende bunn (full bredde) */
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1.2fr 1fr 1.2fr;
+  }
+
+  /* Originale layouts (beholdt for variasjon / høykant-bilder) */
+  .gallery-grid-5up {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1.4fr 1fr 1fr;
+  }
+
+  .gallery-grid-4up {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+
+  .gallery-grid-2up {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr;
+  }
+
+  .gallery-grid-1up {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+    gap: 0;
+  }
+
+  /* Hver grid-celle må også kunne krympe under sin intrinsic-innhold */
+  .gi {
+    overflow: hidden;
+    border-radius: 2px;
+    position: relative;
+    min-height: 0;
+    min-width: 0;
+  }
+
+  .gi img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  /* Wide-modifiers for full-bredde celler i gitter-layouts */
+  .gi-wide { grid-column: 1 / -1; }
+
+  /* Sandwich-layout (4up_sw): slot 0 topp, 1+2 midt, 3 bunn */
+  .gallery-grid-4up_sw > .gi:nth-child(1) { grid-column: 1 / -1; grid-row: 1; }
+  .gallery-grid-4up_sw > .gi:nth-child(2) { grid-column: 1; grid-row: 2; }
+  .gallery-grid-4up_sw > .gi:nth-child(3) { grid-column: 2; grid-row: 2; }
+  .gallery-grid-4up_sw > .gi:nth-child(4) { grid-column: 1 / -1; grid-row: 3; }
+
+  .gi-caption {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 20px 14px 8px;
+    background: linear-gradient(to top, rgba(0,0,0,0.5), transparent);
+    font-size: 9px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.85);
+    letter-spacing: 0.3px;
+  }
+
+  .gallery-page-indicator {
+    text-align: center;
+    padding-top: 3%;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: var(--hoy-mid-gray);
+  }
+
+  /* ══════════════════════════════════════════
+     PAGE: EQUIPMENT
+     ══════════════════════════════════════════ */
+  .equipment {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 6% 7% 3%;
+  }
+
+  .equipment-header { margin-bottom: 4%; }
+
+  .equipment-header h2 {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--hoy-black);
+    margin-bottom: 4px;
+  }
+
+  .equipment-body {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 8%;
+  }
+
+  .equip-category { margin-bottom: 22px; }
+
+  .equip-item {
+    font-size: 10px;
+    line-height: 1.5;
+    color: var(--hoy-dark-gray);
+    font-weight: 300;
+    padding: 3px 0;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .equip-item::before {
+    content: '';
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--hoy-gold);
+    flex-shrink: 0;
+    margin-top: 5px;
+  }
+
+  .equip-sub-item {
+    font-size: 9px;
+    color: var(--hoy-mid-gray);
+    font-style: italic;
+    font-weight: 300;
+    padding: 1px 0 3px 12px;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  .equip-sub-item::before {
+    content: '';
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--hoy-mid-gray);
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+
+  .equip-note {
+    font-size: 9px;
+    color: var(--hoy-mid-gray);
+    font-style: italic;
+    margin-left: 12px;
+  }
+
+  /* ══════════════════════════════════════════
+     PAGE: DECLARATION
+     ══════════════════════════════════════════ */
+  .declaration {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 0 0 3%;
+  }
+
+  /* Tyngre seksjonsheader (full-bredde teal-bånd) — markerer tydelig skille
+     fra forrige seksjon (typisk utstyrsliste på hvit bakgrunn) */
+  .declaration-header-band {
+    background: var(--hoy-deep-teal);
+    color: var(--hoy-white);
+    padding: 28px 7% 24px;
+    position: relative;
+    margin-bottom: 5%;
+  }
+
+  .declaration-header-band::after {
+    content: '';
+    position: absolute;
+    left: 7%;
+    bottom: 14px;
+    width: 50px;
+    height: 2px;
+    background: var(--hoy-gold);
+  }
+
+  .declaration-header-band .declaration-eyebrow {
+    font-family: var(--font-body);
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--hoy-gold);
+    margin-bottom: 6px;
+  }
+
+  .declaration-header-band .declaration-title {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--hoy-white);
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+
+  .declaration-header-band .declaration-lede {
+    font-family: var(--font-body);
+    font-size: 10.5px;
+    color: rgba(255,255,255,0.75);
+    max-width: 480px;
+    line-height: 1.55;
+    padding-bottom: 10px;
+  }
+
+  /* Kompakt header for "fortsettelse"-sider (mindre visuell vekt) */
+  .declaration-header-compact {
+    padding: 5% 7% 0;
+    margin-bottom: 2%;
+  }
+  .declaration-header-compact .section-subtitle {
+    color: var(--hoy-mid-gray);
+  }
+
+  .declaration-header { margin-bottom: 4%; }
+  .declaration-body { flex: 1; padding: 0 7%; }
+  .decl-section { margin-bottom: 20px; }
+
+  .decl-meta {
+    margin-bottom: 22px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--hoy-warm-gray);
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .decl-meta-title {
+    font-family: var(--font-body);
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--hoy-mid-gray);
+    margin-bottom: 10px;
+  }
+
+  .decl-meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 32px;
+    row-gap: 0;
+  }
+
+  .decl-meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    font-size: 10px;
+    line-height: 1.6;
+    padding: 3px 0;
+  }
+
+  .decl-meta-label {
+    color: var(--hoy-mid-gray);
+    font-weight: 400;
+  }
+
+  .decl-meta-value {
+    color: var(--hoy-dark-gray);
+    font-weight: 500;
+    text-align: right;
+  }
+
+  .decl-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    padding: 6px 0;
+    font-size: 10px;
+    border-bottom: 1px solid rgba(226, 221, 214, 0.5);
+  }
+
+  .decl-question { color: var(--hoy-dark-gray); font-weight: 300; line-height: 1.5; }
+  .decl-answer { font-weight: 500; color: var(--hoy-black); white-space: nowrap; }
+  .decl-answer.yes { color: var(--hoy-teal); }
+  .decl-answer.no { color: var(--hoy-mid-gray); }
+
+  .decl-comment {
+    grid-column: 1 / -1;
+    font-size: 9px;
+    color: var(--hoy-mid-gray);
+    font-style: italic;
+    padding: 2px 0 4px 12px;
+    border-left: 2px solid var(--hoy-gold);
+    margin-top: 2px;
+  }
+
+  .declaration-notice {
+    margin: auto 7% 0;
+    padding: 14px 16px;
+    background: var(--hoy-cream);
+    border-radius: 4px;
+    font-size: 8.5px;
+    color: var(--hoy-mid-gray);
+    line-height: 1.6;
+  }
+
+  /* ══════════════════════════════════════════
+     PAGE: FREETEXT
+     ══════════════════════════════════════════ */
+  .freetext {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 6% 7% 3%;
+  }
+
+  .freetext-header { margin-bottom: 4%; }
+
+  .freetext-body {
+    flex: 1;
+    font-size: 10.5px;
+    line-height: 1.75;
+    color: var(--hoy-dark-gray);
+    font-weight: 300;
+  }
+
+  .freetext-body p { margin-bottom: 14px; }
+
+  .freetext-body h3 {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 400;
+    color: var(--hoy-black);
+    margin-bottom: 10px;
+    margin-top: 20px;
+  }
+
+  .freetext-body h3:first-child { margin-top: 0; }
+
+  /* ══════════════════════════════════════════
+     PAGE: CONTACT
+     ══════════════════════════════════════════ */
+  .contact {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .contact-image-area {
+    height: 50%;
+    overflow: hidden;
+    position: relative;
+    background: var(--hoy-deep-teal);
+  }
+
+  .contact-image-area img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.9;
+  }
+
+  .contact-image-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      transparent 40%,
+      rgba(26, 60, 52, 0.95) 100%
+    );
+  }
+
+  .contact-image-text {
+    position: absolute;
+    bottom: 8%;
+    left: 8%;
+    right: 8%;
+    color: var(--hoy-white);
+  }
+
+  .contact-image-text h2 {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 300;
+    margin-bottom: 6px;
+  }
+
+  .contact-image-text p {
+    font-size: 11px;
+    font-weight: 300;
+    opacity: 0.8;
+    line-height: 1.6;
+  }
+
+  .contact-body {
+    flex: 1;
+    padding: 6% 8%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .contact-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 24px;
+    align-items: center;
+    margin-bottom: 30px;
+  }
+
+  .contact-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--hoy-gold);
+    flex-shrink: 0;
+  }
+
+  .contact-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 20%; /* Ansiktet er i øvre del av portrettbildene */
+  }
+
+  .contact-avatar-initials {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--hoy-gold-subtle);
+    border: 2px solid var(--hoy-gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 26px;
+    color: var(--hoy-gold);
+    flex-shrink: 0;
+  }
+
+  .contact-info h3 {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 400;
+    color: var(--hoy-black);
+    margin-bottom: 2px;
+  }
+
+  .contact-role {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--hoy-gold);
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+
+  .contact-detail {
+    font-size: 10.5px;
+    color: var(--hoy-dark-gray);
+    font-weight: 300;
+    line-height: 1.8;
+  }
+
+  .contact-cta {
+    text-align: center;
+    padding: 20px;
+    background: var(--hoy-cream);
+    border-radius: 4px;
+    border: 1px solid var(--hoy-warm-gray);
+  }
+
+  .contact-cta p {
+    font-size: 10px;
+    color: var(--hoy-mid-gray);
+    font-weight: 300;
+    margin-bottom: 10px;
+  }
+
+  .contact-cta .cta-text {
+    font-family: var(--font-display);
+    font-size: 18px;
+    color: var(--hoy-black);
+  }
+
+  /* ══════════════════════════════════════════
+     TOOLBAR (hidden in print)
+     ══════════════════════════════════════════ */
+  .render-toolbar {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    display: flex;
+    gap: 10px;
+    z-index: 999;
+  }
+
+  .render-toolbar button {
+    padding: 14px 28px;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    transition: transform 0.15s, opacity 0.15s;
+  }
+
+  .render-toolbar button:hover { transform: translateY(-2px); }
+
+  .btn-pdf {
+    background: #0a2140;
+    color: white;
+  }
+
+  .btn-back {
+    background: white;
+    color: #0a2140;
+    border: 2px solid #dde3ec !important;
+  }
+
+  /* ── Loading state ── */
+  .render-loading {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background: #D6D1CA;
+  }
+
+  .render-loading .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid rgba(0,0,0,0.12);
+    border-top-color: #C4983E;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .render-loading p {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--hoy-mid-gray);
+  }
+
+  .render-error {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: #D6D1CA;
+    text-align: center;
+  }
+
+  .render-error h2 {
+    font-size: 20px;
+    color: var(--hoy-dark-gray);
+  }
+
+  .render-error p {
+    font-size: 14px;
+    color: var(--hoy-mid-gray);
+  }
+
+  /* ══════════════════════════════════════════
+     PRINT RESET — placed last so it wins cascade over base rules
+     ══════════════════════════════════════════ */
+  @media print {
+    html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
+    .page-wrapper {
+      display: block !important;
+      gap: 0 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      max-width: none !important;
+    }
+    .page-label { display: none !important; }
+    .render-toolbar { display: none !important; }
+    .render-loading { display: none !important; }
+    .page {
+      box-shadow: none !important;
+      border-radius: 0 !important;
+      width: 210mm !important;
+      /* Slightly under A4 (297mm) to avoid Chrome's extra-blank-page bug
+         when content height == page height exactly */
+      height: 296mm !important;
+      aspect-ratio: auto !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      page-break-after: always;
+      page-break-inside: avoid;
+      break-after: page;
+      break-inside: avoid;
+    }
+    .page:last-child {
+      page-break-after: auto;
+      break-after: auto;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- Loading state -->
+<div class="render-loading" id="loadingState">
+  <div class="spinner"></div>
+  <p>Genererer prospekt&hellip;</p>
+</div>
+
+<!-- Error state -->
+<div class="render-error" id="errorState" style="display:none">
+  <h2>Prospektet er ikke tilgjengelig</h2>
+  <p id="errorMsg">Dette prospektet finnes ikke eller er ikke publisert ennå.</p>
+  <p style="font-size:13px;color:#9A9590;margin-top:8px">Kontakt oss på <a href="mailto:post@h-y.no" style="color:#C4983E">post@h-y.no</a> for spørsmål.</p>
+</div>
+
+<!-- Prospekt pages rendered here -->
+<div class="page-wrapper" id="pageWrapper" style="display:none"></div>
+
+<!-- Ingen toolbar for offentlig visning -->
+
+<script>
+// ════════════════════════════════════════════════════════════════════════════════
+// RENDER ENGINE — fetches prospekt data and builds all pages
+// ════════════════════════════════════════════════════════════════════════════════
+
+const API = '/.netlify/functions/prospekt';
+const OFFICE_ADDRESS = 'Dicks vei 12, 1366 Lysaker';
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+function formatPrice(v) {
+  if (!v) return '';
+  // If already formatted (contains space or period), pass through
+  const cleaned = String(v).replace(/[^0-9]/g, '');
+  if (!cleaned) return esc(v);
+  return new Intl.NumberFormat('nb-NO').format(Number(cleaned));
+}
+
+function getInitials(name) {
+  if (!name) return '?';
+  return name.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
+}
+
+function spaceYear(y) {
+  if (!y) return '';
+  return String(y).split('').join(' &nbsp;');
+}
+
+// ── Public API (ingen auth) ──────────────────────────────────────────────────
+async function api(params) {
+  // Bruk ?public=UUID i stedet for ?id=UUID
+  const publicParams = { public: params.id };
+  const qs = new URLSearchParams(publicParams).toString();
+  const r = await fetch(`${API}?${qs}`);
+  const text = await r.text();
+  try { return JSON.parse(text); }
+  catch { throw new Error(text); }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// PAGE BUILDERS
+// ════════════════════════════════════════════════════════════════════════════════
+
+function buildCoverPage(p) {
+  const cc = p.cover_image_crop || {};
+  const coverStyle = cc.posX !== undefined
+    ? ` style="object-position:${cc.posX}% ${cc.posY}%;${cc.zoom > 1 ? `transform:scale(${cc.zoom});` : ''}"`
+    : '';
+  const coverImg = p.cover_image_url
+    ? `<img src="${esc(p.cover_image_url)}" alt="${esc(p.boat_name)}"${coverStyle}>`
+    : '';
+
+  return `
+    <div class="page-label">Forside</div>
+    <div class="page">
+      <div class="cover">
+        <div class="cover-image-area">
+          ${coverImg}
+          <div class="cover-image-overlay"></div>
+          <div class="cover-logo">
+            <img src="/prospekt/logo-white-2x.png" alt="House of Yachts">
+            <div class="cover-logo-accent"></div>
+          </div>
+        </div>
+        <div class="cover-bottom">
+          <div class="cover-year">${spaceYear(p.model_year)}</div>
+          <h1 class="cover-title">${esc(p.boat_name)}</h1>
+          <div class="cover-price">NOK ${formatPrice(p.asking_price)},-</div>
+          <div class="cover-divider"></div>
+        </div>
+        <div class="cover-footer">
+          <span>${esc(OFFICE_ADDRESS)}</span>
+          <span><strong>${esc(p.broker_name)}</strong> &middot; ${esc(p.broker_phone || '')} &middot; ${esc(p.broker_email || '')}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function buildOverviewPage(p) {
+  const oc = p.overview_image_crop || {};
+  const overviewStyle = oc.posX !== undefined
+    ? ` style="object-position:${oc.posX}% ${oc.posY}%;${oc.zoom > 1 ? `transform:scale(${oc.zoom});` : ''}"`
+    : '';
+  const heroImg = p.overview_image_url
+    ? `<img src="${esc(p.overview_image_url)}" alt="${esc(p.boat_name)}"${overviewStyle}>`
+    : '';
+
+  const specs = (p.specs || []).map(s => {
+    if (s.divider) return '<div class="spec-divider"></div>';
+    return `<div class="spec-row"><span class="spec-label">${esc(s.label)}</span><span class="spec-value">${esc(s.value)}</span></div>`;
+  }).join('');
+
+  const caps = (p.capacities || []);
+  const capsHtml = caps.length > 0 ? `
+    <div class="spec-divider"></div>
+    <div style="margin-top:10px">
+      <div class="category-label-inline">Kapasiteter</div>
+      ${caps.map(c => `
+        <div class="spec-row">
+          <span class="spec-label">${esc(c.label)}</span>
+          <span class="spec-value">${esc(c.value)}</span>
+        </div>
+      `).join('')}
+    </div>
+  ` : '';
+
+  const descBody = p.description_body || '';
+  const visning = p.visning_text
+    ? `<p class="desc-visning">${esc(p.visning_text)}</p>`
+    : '';
+
+  return `
+    <div class="page-label">Oversikt</div>
+    <div class="page">
+      <div class="overview">
+        <div class="overview-hero">
+          ${heroImg}
+          <div class="overview-hero-overlay"></div>
+        </div>
+        <div class="overview-content">
+          <div class="specs-column">
+            <h2 class="specs-boat-name">${esc(p.boat_name)}</h2>
+            <div class="specs-price">Prisantydning: NOK ${formatPrice(p.asking_price)},-</div>
+            <div class="category-label-inline">Spesifikasjoner</div>
+            ${specs}
+            ${capsHtml}
+          </div>
+          <div class="description-column">
+            <p class="desc-intro">${esc(p.description_intro || '')}</p>
+            <div class="desc-body">
+              ${descBody}
+              ${visning}
+            </div>
+          </div>
+        </div>
+        <div class="page-footer-light">
+          <div class="page-footer-accent"></div>
+          <span>House of Yachts &middot; ${esc(OFFICE_ADDRESS)} &middot; houseofyachts.no</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function buildGalleryPages(p) {
+  const pages = (p.gallery_pages || []).filter(pg => (pg.images || []).some(img => img.url));
+  if (pages.length === 0) return '';
+
+  return pages.map((page, pi) => {
+    const layout = page.layout || '5up';
+    const images = (page.images || []).filter(img => img.url);
+    if (images.length === 0) return '';
+
+    const gridClass = `gallery-grid-${layout}`;
+
+    const imagesHtml = images.map((img, ii) => {
+      const wideClass = (layout === '5up' && ii === 0) ? 'gi-wide' : '';
+      const captionHtml = img.caption
+        ? `<div class="gi-caption">${esc(img.caption)}</div>` : '';
+      // Apply stored crop position if set
+      const posStyle = img.posX !== undefined ? `object-position:${img.posX}% ${img.posY}%;` : '';
+      const zoomStyle = img.zoom && img.zoom > 1 ? `transform:scale(${img.zoom});` : '';
+      const imgStyle = (posStyle || zoomStyle) ? ` style="${posStyle}${zoomStyle}"` : '';
+      return `
+        <div class="gi ${wideClass}">
+          <img src="${esc(img.url)}" alt="${esc(img.caption || '')}"${imgStyle}>
+          ${captionHtml}
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="page-label">Bildegalleri ${pi + 1}</div>
+      <div class="page">
+        <div class="gallery">
+          <div class="gallery-header">
+            <h2>Bildegalleri</h2>
+            <span class="gallery-subtitle">${esc(p.boat_name)} &middot; ${esc(String(p.model_year || ''))}</span>
+          </div>
+          <div class="${gridClass}">
+            ${imagesHtml}
+          </div>
+          <div class="gallery-page-indicator">${pi + 1} / ${pages.length}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function buildEquipmentPages(p) {
+  // Filter out empty categories
+  const cats = (p.equipment_categories || []).filter(c => c.items && c.items.length > 0);
+  if (cats.length === 0) return '';
+
+  // Split into two balanced columns (by item count, not category count)
+  const totalItems = cats.reduce((s, c) => s + (c.items||[]).length, 0);
+  const halfTarget = Math.ceil(totalItems / 2);
+  let leftCount = 0, splitAt = cats.length;
+  for (let i = 0; i < cats.length; i++) {
+    leftCount += (cats[i].items||[]).length;
+    if (leftCount >= halfTarget) { splitAt = i + 1; break; }
+  }
+  const leftCats = cats.slice(0, splitAt);
+  const rightCats = cats.slice(splitAt);
+
+  function renderColumn(categories) {
+    return categories.map(cat => `
+      <div class="equip-category">
+        <div class="category-label">${esc(cat.name)}</div>
+        ${(cat.items || []).map(item => {
+          const text = item.text || item;
+          // Support both old .sub (string) and new .subs (array)
+          let subsArr = [];
+          if (Array.isArray(item.subs)) subsArr = item.subs.filter(s => s);
+          else if (item.sub) subsArr = [item.sub];
+          const subHtml = subsArr.map(s =>
+            `<div class="equip-sub-item">${esc(s)}</div>`
+          ).join('');
+          return `<div class="equip-item">${esc(text)}</div>${subHtml}`;
+        }).join('')}
+      </div>
+    `).join('');
+  }
+
+  return `
+    <div class="page-label">Utstyrsliste</div>
+    <div class="page">
+      <div class="equipment">
+        <div class="equipment-header">
+          <h2>Utstyr og spesifikasjoner</h2>
+          <p class="section-subtitle">Komplett oversikt over utstyr og tilbeh&oslash;r</p>
+        </div>
+        <div class="equipment-body">
+          <div>${renderColumn(leftCats)}</div>
+          <div>${renderColumn(rightCats)}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function buildDeclarationPages(p) {
+  const sections = p.declaration_sections || [];
+  // Only render if at least one question has an answer
+  const hasAnswers = sections.some(sec =>
+    (sec.questions || []).some(q => q.answer)
+  );
+  if (!hasAnswers) return '';
+
+  // Filter to only show answered questions per section
+  const filteredSections = sections.map(sec => ({
+    ...sec,
+    questions: (sec.questions || []).filter(q => q.answer)
+  })).filter(sec => sec.questions.length > 0);
+
+  // Metadata-blokk (fra toppen av Oneflow-skjemaet) — vises øverst på side 1
+  // Selger anonymiseres (vises ikke) — resten av feltene er faktaopplysninger om båten
+  const meta = p.declaration_metadata || {};
+  const metaOrder = [
+    ['Merke',                     'Merke'],
+    ['Årsmodell',                 'Årsmodell'],
+    ['Kjøpt år',                  'Kjøpt år'],
+    ['HIN (CIN) nr.',             'HIN / CIN-nr.'],
+    ['Motornummer',               'Motornummer'],
+    ['Båtens registreringsnummer','Registreringsnr.'],
+    ['Oppdragsnummer',            'Oppdragsnr.'],
+  ];
+  const metaRows = metaOrder
+    .filter(([key]) => (meta[key] || '').toString().trim())
+    .map(([key, label]) =>
+      `<div class="decl-meta-row"><span class="decl-meta-label">${esc(label)}</span><span class="decl-meta-value">${esc(meta[key])}</span></div>`
+    ).join('');
+  const metaHtml = metaRows ? `
+    <div class="decl-meta">
+      <div class="decl-meta-title">Opplysninger oppgitt av selger</div>
+      <div class="decl-meta-grid">${metaRows}</div>
+    </div>
+  ` : '';
+
+  // Build section HTML blocks
+  const sectionBlocks = filteredSections.map(sec => `
+    <div class="decl-section">
+      <div class="category-label">${esc(sec.title)}</div>
+      ${sec.questions.map(q => {
+        const ansClass = q.answer === 'Ja' ? 'yes' : (q.answer === 'Nei' ? 'no' : '');
+        const commentHtml = q.comment ? `<div class="decl-comment">${esc(q.comment)}</div>` : '';
+        return `
+          <div class="decl-row">
+            <span class="decl-question">${esc(q.question)}</span>
+            <span class="decl-answer ${ansClass}">${esc(q.answer)}</span>
+          </div>
+          ${commentHtml}
+        `;
+      }).join('')}
+    </div>
+  `);
+
+  const otherNotes = p.declaration_other_notes;
+  const notesHtml = otherNotes ? `
+    <div class="decl-section">
+      <div class="category-label">Andre merknader</div>
+      <div style="font-size:10px;color:var(--hoy-dark-gray);font-weight:300;line-height:1.6;padding:6px 0">${esc(otherNotes)}</div>
+    </div>
+  ` : '';
+
+  // Count total question rows to decide on 1 or 2 pages
+  const totalQs = filteredSections.reduce((sum, s) => sum + s.questions.length, 0);
+  const needsTwoPages = totalQs > 18;
+
+  if (!needsTwoPages) {
+    return `
+      <div class="page-label">Egenerklæring</div>
+      <div class="page">
+        <div class="declaration">
+          <div class="declaration-header-band">
+            <div class="declaration-eyebrow">Seksjon</div>
+            <h2 class="declaration-title">Selgers egenerklæring</h2>
+            <p class="declaration-lede">Utfylt og signert av eier. Opplysningene gis i god tro og etter beste evne.</p>
+          </div>
+          <div class="declaration-body">
+            ${metaHtml}
+            ${sectionBlocks.join('')}
+            ${notesHtml}
+          </div>
+          <div class="declaration-notice">
+            Egenerklæringen er signert digitalt av selger via Oneflow. Originaldokumentet er tilgjengelig ved forespørsel til ansvarlig megler. Opplysningene erstatter ikke en uavhengig tilstandsvurdering.
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Two pages: split sections roughly in half
+  const midIdx = Math.ceil(filteredSections.length / 2);
+  const page1Blocks = sectionBlocks.slice(0, midIdx);
+  const page2Blocks = sectionBlocks.slice(midIdx);
+
+  return `
+    <div class="page-label">Egenerklæring</div>
+    <div class="page">
+      <div class="declaration">
+        <div class="declaration-header-band">
+          <div class="declaration-eyebrow">Seksjon</div>
+          <h2 class="declaration-title">Selgers egenerklæring</h2>
+          <p class="declaration-lede">Utfylt og signert av eier. Opplysningene gis i god tro og etter beste evne.</p>
+        </div>
+        <div class="declaration-body">
+          ${metaHtml}
+          ${page1Blocks.join('')}
+        </div>
+        <div class="page-footer-light">
+          <div class="page-footer-accent"></div>
+          <span>Egenerklæring · Fortsetter neste side</span>
+        </div>
+      </div>
+    </div>
+    <div class="page-label">Egenerklæring (forts.)</div>
+    <div class="page">
+      <div class="declaration">
+        <div class="declaration-header-compact">
+          <p class="section-subtitle">Selgers egenerklæring, fortsettelse</p>
+        </div>
+        <div class="declaration-body">
+          ${page2Blocks.join('')}
+          ${notesHtml}
+        </div>
+        <div class="declaration-notice">
+          Egenerklæringen er signert digitalt av selger via Oneflow. Originaldokumentet er tilgjengelig ved forespørsel til ansvarlig megler. Opplysningene erstatter ikke en uavhengig tilstandsvurdering.
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function buildFreetextPages(p) {
+  const pages = p.freetext_pages || [];
+  if (pages.length === 0) return '';
+
+  return pages.map(pg => {
+    const subtitleHtml = pg.subtitle
+      ? `<p class="section-subtitle">${esc(pg.subtitle)}</p>` : '';
+    return `
+      <div class="page-label">${esc(pg.heading || 'Fritekst')}</div>
+      <div class="page">
+        <div class="freetext">
+          <div class="freetext-header">
+            <h2 class="section-title">${esc(pg.heading || '')}</h2>
+            ${subtitleHtml}
+          </div>
+          <div class="freetext-body">
+            ${pg.content || ''}
+          </div>
+          <div class="page-footer-light">
+            <div class="page-footer-accent"></div>
+            <span>House of Yachts &middot; ${esc(OFFICE_ADDRESS)} &middot; houseofyachts.no</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function buildContactPage(p) {
+  const contactImg = p.contact_image_url
+    ? `<img src="${esc(p.contact_image_url)}" alt="${esc(p.boat_name)}">`
+    : '';
+
+  let avatarHtml;
+  if (p.broker_photo_url) {
+    avatarHtml = `
+      <div class="contact-avatar">
+        <img src="${esc(p.broker_photo_url)}" alt="${esc(p.broker_name)}">
+      </div>
+    `;
+  } else {
+    avatarHtml = `<div class="contact-avatar-initials">${esc(getInitials(p.broker_name))}</div>`;
+  }
+
+  return `
+    <div class="page-label">Kontakt</div>
+    <div class="page">
+      <div class="contact">
+        <div class="contact-image-area">
+          ${contactImg}
+          <div class="contact-image-overlay"></div>
+          <div class="contact-image-text">
+            <h2>Interessert?</h2>
+            <p>Ta kontakt for visning eller ytterligere informasjon om dette fart&oslash;yet. Vi er tilgjengelige for sp&oslash;rsm&aring;l og arrangerer gjerne en uforpliktende befaring.</p>
+          </div>
+        </div>
+        <div class="contact-body">
+          <div class="contact-card">
+            ${avatarHtml}
+            <div class="contact-info">
+              <h3>${esc(p.broker_name)}</h3>
+              <div class="contact-role">${esc(p.broker_role || 'Megler')}</div>
+              <div class="contact-detail">
+                ${esc(p.broker_phone || '')}<br>
+                ${esc(p.broker_email || '')}
+              </div>
+            </div>
+          </div>
+
+          <div class="contact-about">
+            <div class="category-label-inline" style="margin-bottom:8px">Om House of Yachts</div>
+            <p style="font-size:10px;line-height:1.6;color:var(--hoy-dark-gray);font-weight:300;margin-bottom:6px">
+              House of Yachts er et b&aring;tmeglerfirma i Oslofjord-regionen som spesialiserer seg p&aring; kj&oslash;p og salg av brukte fritidsb&aring;ter i premium-segmentet. Vi tilbyr full-service megling med profesjonell fotografering, markedsf&oslash;ring, visninger og trygg oppgj&oslash;rsh&aring;ndtering.
+            </p>
+            <p style="font-size:10px;line-height:1.6;color:var(--hoy-mid-gray);font-weight:300">
+              houseofyachts.no &nbsp;&middot;&nbsp; Instagram: @houseofyachts
+            </p>
+          </div>
+
+          <div class="contact-cta" style="margin-top:auto">
+            <p>${esc(p.cta_label || 'Besøk oss for visning')}</p>
+            <div class="cta-text">${esc(p.cta_address || OFFICE_ADDRESS)}</div>
+          </div>
+        </div>
+        <div class="page-footer">
+          <span>&copy; ${new Date().getFullYear()} House of Yachts &middot; houseofyachts.no</span>
+          <span>${esc(OFFICE_ADDRESS)}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// SECTION ORDERING & RENDERING
+// ════════════════════════════════════════════════════════════════════════════════
+
+const SECTION_BUILDERS = {
+  cover:       buildCoverPage,
+  overview:    buildOverviewPage,
+  gallery:     buildGalleryPages,
+  equipment:   buildEquipmentPages,
+  declaration: buildDeclarationPages,
+  freetext:    buildFreetextPages,
+  contact:     buildContactPage,
+};
+
+const DEFAULT_ORDER = ['cover', 'overview', 'gallery', 'equipment', 'declaration', 'freetext', 'contact'];
+
+function renderProspekt(p) {
+  const order = p.sections_order || DEFAULT_ORDER;
+
+  // Always include cover first and contact last, even if not in sections_order
+  const sections = [];
+  if (!order.includes('cover')) sections.push('cover');
+  for (const s of order) sections.push(s);
+  if (!order.includes('contact')) sections.push('contact');
+
+  let html = '';
+  for (const section of sections) {
+    const builder = SECTION_BUILDERS[section];
+    if (builder) html += builder(p);
+  }
+  return html;
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════════════════════
+
+async function init() {
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+
+  if (!id) {
+    showError('Mangler prospekt-ID i URL');
+    return;
+  }
+
+  try {
+    const data = await api({ id });
+    if (data.error) throw new Error(data.error);
+
+    // Update page title
+    document.title = `${data.boat_name || 'Prospekt'} — House of Yachts`;
+
+    // Render pages
+    const wrapper = document.getElementById('pageWrapper');
+    wrapper.innerHTML = renderProspekt(data);
+    wrapper.style.display = '';
+
+    // Hide loading
+    document.getElementById('loadingState').style.display = 'none';
+
+    // Vent til alle bilder har lastet ferdig før PDF-knappen aktiveres,
+    // og før evt. auto-print trigges. Tidligere ble print() kalt etter 600ms
+    // uavhengig av lastestatus — det forklarer at galleri-bilder av og til
+    // forsvant fra PDF-en mens de så korrekt ut i preview.
+    await waitForAllImages(wrapper);
+
+
+  } catch (e) {
+    console.error('Render error:', e);
+    showError(e.message);
+  }
+}
+
+// Vent til alle <img> inne i `root` har lastet (enten load eller error).
+// Returnerer Promise som alltid resolver — aldri rejecter — så én feilende
+// bilde-URL ikke blokkerer PDF-eksport.
+function waitForAllImages(root) {
+  const imgs = [...root.querySelectorAll('img')];
+  if (imgs.length === 0) return Promise.resolve();
+  return Promise.all(imgs.map(img => {
+    if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+    if (img.complete) return Promise.resolve(); // errored image — don't block
+    return new Promise(resolve => {
+      img.addEventListener('load', resolve, { once: true });
+      img.addEventListener('error', resolve, { once: true });
+      // Safety net: 15s timeout så én hengende bilde-URL aldri blokkerer evig
+      setTimeout(resolve, 15000);
+    });
+  }));
+}
+
+function exportPdf() {
+  // Bildene er allerede ventet på i init(). Men som ekstra garanti venter
+  // vi én gang til hvis brukeren trykket tidlig.
+  const wrapper = document.getElementById('pageWrapper');
+  waitForAllImages(wrapper).then(() => window.print());
+}
+
+function showError(msg) {
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('errorState').style.display = '';
+  document.getElementById('errorMsg').textContent = msg;
+}
+
+init();
+</script>
+</body>
+</html>

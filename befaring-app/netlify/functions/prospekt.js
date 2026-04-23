@@ -1,4 +1,5 @@
 // ── prospekt.js ─────────────────────────────────────────────────────────────
+// GET  ?public=UUID               → offentlig visning (kun publiserte, ingen auth)
 // GET  ?list=1                   → alle prospekter (id, deal_id, boat_name, status, updated_at)
 // GET  ?id=UUID                  → ett prospekt med all data
 // GET  ?deals=1                  → Pipeline B deals fra HubSpot for dropdown
@@ -743,6 +744,20 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS')
     return { statusCode: 204, headers: CORS, body: '' };
 
+  // ── Public endpoint (ingen auth) — kun publiserte prospekter ──
+  const qs0 = event.queryStringParameters || {};
+  if (event.httpMethod === 'GET' && qs0.public) {
+    const supabasePublic = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+    const { data, error } = await supabasePublic
+      .from('prospekter')
+      .select('*')
+      .eq('id', qs0.public)
+      .eq('status', 'published')
+      .single();
+    if (error || !data) return { statusCode: 404, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'Not found' }) };
+    return ok(data);
+  }
+
   // Auth
   const auth = (event.headers.authorization || '').replace('Bearer ', '');
   const jwt = parseJwt(auth);
@@ -1201,11 +1216,12 @@ exports.handler = async (event) => {
         return ok({ deleted: path });
       }
 
-      // ── Upload prospekt PDF to Supabase Storage (signert URL for klient) ──
-      if (action === 'upload_prospekt_pdf') {
-        const { id, file_name } = body;
-        if (!id || !file_name) return err(400, 'id and file_name required');
+      // ── Publish (sett offentlig URL på boat i HubSpot) ──
+      if (action === 'publish') {
+        const { id } = body;
+        if (!id) return err(400, 'id required');
 
+        // Hent prospekt for deal_id
         const { data: prospekt, error: pErr } = await supabase
           .from('prospekter')
           .select('deal_id')
@@ -1213,88 +1229,39 @@ exports.handler = async (event) => {
           .single();
         if (pErr) throw pErr;
 
-        const storagePath = `${prospekt.deal_id}/${file_name}`;
+        // Bygg offentlig URL
+        const siteUrl = process.env.URL || 'https://silver-puffpuff-8a67de.netlify.app';
+        const publicUrl = `${siteUrl}/prospekt/public.html?id=${id}`;
 
-        // Slett eksisterende fil hvis den finnes (overskriv)
-        try { await supabase.storage.from('prospekt-bilder').remove([storagePath]); } catch {}
-
-        const { data: signedData, error: signErr } = await supabase.storage
-          .from('prospekt-bilder')
-          .createSignedUploadUrl(storagePath, { upsert: true });
-        if (signErr) throw signErr;
-
-        return ok({
-          upload_url: signedData.signedUrl,
-          token: signedData.token,
-          storage_path: storagePath,
-        });
-      }
-
-      // ── Publish (+ upload PDF til HubSpot fra Supabase Storage) ──
-      if (action === 'publish') {
-        const { id, pdf_storage_path } = body;
-        if (!id) return err(400, 'id required');
-
-        // Hent prospekt for deal_id og båtnavn
-        const { data: prospekt, error: pErr } = await supabase
-          .from('prospekter')
-          .select('deal_id, boat_name, deal_name')
-          .eq('id', id)
-          .single();
-        if (pErr) throw pErr;
-
+        // Sett prospectus_pdf på boat-objektet i HubSpot (best-effort)
         let hubspotResult = null;
-
-        // Last opp PDF til HubSpot fra Supabase Storage
-        if (pdf_storage_path) {
-          try {
-            // Hent PDF fra Supabase Storage
-            const { data: fileData, error: dlErr } = await supabase.storage
-              .from('prospekt-bilder')
-              .download(pdf_storage_path);
-            if (dlErr) throw dlErr;
-
-            const pdfBuffer = Buffer.from(await fileData.arrayBuffer());
-            const safeName = (prospekt.boat_name || prospekt.deal_name || id)
-              .replace(/[^a-zA-ZæøåÆØÅ0-9_\- ]/g, '_').trim().slice(0, 80);
-            const filename = `Prospekt-${safeName}.pdf`;
-
-            console.log(`[prospekt] Uploading PDF (${pdfBuffer.length} bytes) to HubSpot: ${filename}`);
-            const { fileUrl, fileId } = await uploadPdfToHubSpot(pdfBuffer, filename);
-            console.log(`[prospekt] PDF uploaded: ${fileUrl} (id: ${fileId})`);
-
-            // Sett prospectus_pdf på boat-objektet
-            const boatId = await getBoatIdForDeal(prospekt.deal_id);
-            if (boatId) {
-              const patchRes = await hs(
-                `/crm/v3/objects/${BOAT_OBJ_TYPE}/${boatId}`,
-                'PATCH',
-                { properties: { prospectus_pdf: fileUrl } }
-              );
-              if (patchRes.ok) {
-                console.log(`[prospekt] Set prospectus_pdf on boat ${boatId}`);
-              } else {
-                console.warn(`[prospekt] Failed to set property on boat: ${patchRes.status}`, patchRes.data);
-              }
-              hubspotResult = { fileUrl, fileId, boatId, propertySet: patchRes.ok };
+        try {
+          const boatId = await getBoatIdForDeal(prospekt.deal_id);
+          if (boatId) {
+            const patchRes = await hs(
+              `/crm/v3/objects/${BOAT_OBJ_TYPE}/${boatId}`,
+              'PATCH',
+              { properties: { prospectus_pdf: publicUrl } }
+            );
+            if (patchRes.ok) {
+              console.log(`[prospekt] Set prospectus_pdf on boat ${boatId}: ${publicUrl}`);
             } else {
-              console.warn('[prospekt] No boat object found for deal', prospekt.deal_id);
-              hubspotResult = { fileUrl, fileId, boatId: null, propertySet: false };
+              console.warn(`[prospekt] Failed to set property on boat: ${patchRes.status}`, patchRes.data);
             }
-
-            // Rydd opp temp-fil i Supabase Storage
-            try { await supabase.storage.from('prospekt-bilder').remove([pdf_storage_path]); } catch {}
-          } catch (uploadErr) {
-            // Best-effort: PDF-opplasting feiler ikke hele publiseringen
-            console.error('[prospekt] HubSpot PDF upload failed:', uploadErr.message);
-            hubspotResult = { error: uploadErr.message };
+            hubspotResult = { publicUrl, boatId, propertySet: patchRes.ok };
+          } else {
+            console.warn('[prospekt] No boat object found for deal', prospekt.deal_id);
+            hubspotResult = { publicUrl, boatId: null, propertySet: false };
           }
+        } catch (hsErr) {
+          console.error('[prospekt] HubSpot update failed:', hsErr.message);
+          hubspotResult = { publicUrl, error: hsErr.message };
         }
 
-        // Sett status=published uansett
+        // Sett status=published
         const { data, error } = await supabase
           .from('prospekter')
-          .update({ status: 'published', pdf_url: hubspotResult?.fileUrl || null })
+          .update({ status: 'published', pdf_url: publicUrl })
           .eq('id', id)
           .select('id, status')
           .single();
