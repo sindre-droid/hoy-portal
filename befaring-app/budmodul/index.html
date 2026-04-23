@@ -720,7 +720,8 @@ function renderInteressenter(unlabeled = [], selgere = []) {
         <td><span style="font-size:12px;color:#f0b429">Ikke satt</span></td>
         <td>
           <button class="btn-outline btn-sm" style="margin-right:4px" onclick="setContactLabel('${hsIdSafe}','${nameSafe}','Interessent')">Interessent</button>
-          <button class="btn-outline btn-sm" onclick="setContactLabel('${hsIdSafe}','${nameSafe}','Seller')">Selger</button>
+          <button class="btn-outline btn-sm" style="margin-right:4px" onclick="setContactLabel('${hsIdSafe}','${nameSafe}','Seller')">Selger</button>
+          <button class="btn-outline btn-sm" onclick="setContactLabel('${hsIdSafe}','${nameSafe}','Co-owner')">Medeier</button>
         </td>
       </tr>`;
     }).join('');
@@ -770,7 +771,7 @@ function renderInteressenter(unlabeled = [], selgere = []) {
 }
 
 async function setContactLabel(hsId, name, label) {
-  const labelNo = label === 'Interessent' ? 'interessent' : 'selger';
+  const labelNo = label === 'Interessent' ? 'interessent' : label === 'Co-owner' ? 'medeier' : 'selger';
   if (!confirm(`Sett ${name} som ${labelNo} i HubSpot?`)) return;
   const r = await api({}, 'POST', {
     action: 'set_contact_label',
