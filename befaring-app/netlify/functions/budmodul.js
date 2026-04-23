@@ -428,15 +428,25 @@ async function applyAssocLabel(dealId, contactId, addLabel) {
 
     const assocItems = assocRes.data?.results || [];
     const existing   = assocItems.find(a => String(a.toObjectId) === String(contactId));
-    const existingIds = (existing?.associationTypes || [])
+    const existingUserIds = (existing?.associationTypes || [])
       .filter(t => t.category === 'USER_DEFINED')
       .map(t => t.typeId);
+    const existingHubspotIds = (existing?.associationTypes || [])
+      .filter(t => t.category === 'HUBSPOT_DEFINED')
+      .map(t => t.typeId);
 
-    const merged = [...new Set([...existingIds, newTypeId])];
-    const putBody = merged.map(typeId => ({ associationCategory: 'USER_DEFINED', associationTypeId: typeId }));
+    // Always include the HUBSPOT_DEFINED base type (deal→contact = 4) to preserve the association
+    const hubspotIds = existingHubspotIds.length ? existingHubspotIds : [4];
+    const merged = [...new Set([...existingUserIds, newTypeId])];
+    const putBody = [
+      ...hubspotIds.map(typeId => ({ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: typeId })),
+      ...merged.map(typeId => ({ associationCategory: 'USER_DEFINED', associationTypeId: typeId })),
+    ];
     const putRes  = await hs(`/crm/v4/objects/deals/${dealId}/associations/contacts/${contactId}`, 'PUT', putBody);
+    if (!putRes.ok) console.error('applyAssocLabel PUT feil:', putRes.status, JSON.stringify(putRes.data));
     return { ok: putRes.ok };
   } catch (e) {
+    console.error('applyAssocLabel exception:', e.message);
     return { ok: false, error: e.message };
   }
 }
