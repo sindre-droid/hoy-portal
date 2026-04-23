@@ -1305,10 +1305,16 @@ function buildEquipmentPages(p) {
   const cats = (p.equipment_categories || []).filter(c => c.items && c.items.length > 0);
   if (cats.length === 0) return '';
 
-  // Split into two columns
-  const mid = Math.ceil(cats.length / 2);
-  const leftCats = cats.slice(0, mid);
-  const rightCats = cats.slice(mid);
+  // Split into two balanced columns (by item count, not category count)
+  const totalItems = cats.reduce((s, c) => s + (c.items||[]).length, 0);
+  const halfTarget = Math.ceil(totalItems / 2);
+  let leftCount = 0, splitAt = cats.length;
+  for (let i = 0; i < cats.length; i++) {
+    leftCount += (cats[i].items||[]).length;
+    if (leftCount >= halfTarget) { splitAt = i + 1; break; }
+  }
+  const leftCats = cats.slice(0, splitAt);
+  const rightCats = cats.slice(splitAt);
 
   function renderColumn(categories) {
     return categories.map(cat => `

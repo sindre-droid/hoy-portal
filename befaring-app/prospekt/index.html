@@ -991,7 +991,7 @@ function renderEquipmentSection(p) {
   const cats = p.equipment_categories || [];
   const MAX_CATS = 8;
   const totalItems = cats.reduce((sum, c) => sum + (c.items||[]).length, 0);
-  const MAX_ITEMS = 40;
+  const MAX_ITEMS = 60;
   return `
     <div class="equip-ai-panel" id="equipAiPanel">
       <div class="equip-ai-header" onclick="toggleEquipAiPanel()" style="cursor:pointer">
