@@ -497,6 +497,7 @@ async function loadOneflowStatus(queue) {
         deal.egenerklaring = s.egenerklaring;
         deal.oppdragsavtale = s.oppdragsavtale;
         deal.ready = s.ready;
+        deal.matched_contracts = s.matched_contracts || [];
         if (s.ready) readyCount++;
 
         // Update checkmarks in DOM
@@ -561,7 +562,11 @@ async function assignNumber(dealId, btn, force = false) {
   resultEl.style.display = 'none';
 
   try {
-    const data = await api(`?action=assign`, 'POST', { deal_id: dealId, force });
+    // Send matched contract IDs so backend only renames the correct contracts
+    const deal = currentQueue.find(d => d.deal_id === dealId);
+    const matchedContracts = deal?.matched_contracts || [];
+    const oneflow_contract_ids = matchedContracts.map(c => c.id);
+    const data = await api(`?action=assign`, 'POST', { deal_id: dealId, force, oneflow_contract_ids });
 
     if (data.ok) {
       btn.textContent = `✓ ${data.assignment.number}`;

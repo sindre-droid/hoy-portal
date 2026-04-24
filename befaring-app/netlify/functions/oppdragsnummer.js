@@ -553,11 +553,23 @@ async function handleAssign(sb, body, adminEmail) {
     console.error('HubSpot sync exception:', e.message);
   }
 
-  // 6. Sync to Oneflow (rename contracts) — fetch ALL contracts for full coverage
+  // 6. Sync to Oneflow (rename contracts)
+  // If frontend sent specific contract IDs (from matched contracts UI), use those.
+  // Otherwise fall back to fuzzy matching (legacy behavior).
   try {
-    const allContracts = await fetchAllOneflowContracts();
-    const contracts = findOneflowContractsInList(allContracts, dealName, boatName);
-    console.log(`Oneflow rename: fant ${contracts.length} kontrakter for "${boatName}"`);
+    let contracts;
+    if (body.oneflow_contract_ids && body.oneflow_contract_ids.length > 0) {
+      // Frontend explicitly selected these contracts — fetch them by ID
+      const allContracts = await fetchAllOneflowContracts();
+      contracts = allContracts
+        .filter(c => body.oneflow_contract_ids.includes(c.id))
+        .map(c => ({ id: c.id, _id: c._id, name: c._private?.name || c.name || '' }));
+      console.log(`Oneflow rename: bruker ${contracts.length} eksplisitt valgte kontrakter`);
+    } else {
+      const allContracts = await fetchAllOneflowContracts();
+      contracts = findOneflowContractsInList(allContracts, dealName, boatName);
+      console.log(`Oneflow rename: fant ${contracts.length} kontrakter via matching for "${boatName}"`);
+    }
     let oneflowOk = false;
 
     for (const c of contracts) {
