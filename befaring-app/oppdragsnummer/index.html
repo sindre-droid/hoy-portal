@@ -846,6 +846,9 @@ async function loadStats() {
     return;
   }
 
+  // Previous year reference (needed early for warnings)
+  const prevYear = data.prev_year || (parseInt(year) - 1);
+
   // Show backfill banners if data is missing
   const backfillBar = document.getElementById('statsBackfillBar');
   const warnings = [];
@@ -894,7 +897,6 @@ async function loadStats() {
   const prevBrokers = data.prev_brokers || {};
   const prevTotals = data.prev_monthly_totals || {};
   const prevGrand = data.prev_grand_total || 0;
-  const prevYear = data.prev_year || (parseInt(year) - 1);
 
   // Delta helper: returns styled +N / -N or empty for 0/0
   function delta(current, previous) {
