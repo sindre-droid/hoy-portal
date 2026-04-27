@@ -1165,9 +1165,13 @@ async function handleBackfillSigningDates(sb) {
     }
   }
 
-  if (debugSamples.length) {
-    console.log('Backfill debug samples:', JSON.stringify(debugSamples, null, 2));
+  // Log year breakdown of not-found
+  const yearBreakdown = {};
+  for (const nf of notFound) {
+    const yr = '20' + nf.number.substring(0, 2);
+    yearBreakdown[yr] = (yearBreakdown[yr] || 0) + 1;
   }
+  console.log('Backfill not found by year:', JSON.stringify(yearBreakdown));
 
   // 4. Batch-update Supabase in parallel (groups of 10)
   let updated = 0;
