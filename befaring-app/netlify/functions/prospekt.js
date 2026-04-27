@@ -1014,7 +1014,7 @@ exports.handler = async (event) => {
           'cta_label', 'cta_address',
           'specs', 'capacities', 'gallery_pages', 'equipment_categories',
           'declaration_sections', 'declaration_other_notes', 'declaration_oneflow_id', 'declaration_oneflow_state',
-          'declaration_metadata',
+          'declaration_metadata', 'declaration_excluded',
           'freetext_pages', 'sections_order',
         ];
         const updates = {};

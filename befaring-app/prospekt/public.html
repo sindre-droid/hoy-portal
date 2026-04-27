@@ -1588,6 +1588,7 @@ function renderProspekt(p) {
 
   let html = '';
   for (const section of sections) {
+    if (section === 'declaration' && p.declaration_excluded) continue;
     const builder = SECTION_BUILDERS[section];
     if (builder) html += builder(p);
   }

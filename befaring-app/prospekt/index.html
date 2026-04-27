@@ -257,6 +257,11 @@
   /* ── Sortable drag ghost ── */
   .sec-card.dragging{opacity:0.5}
   .sec-card.drag-over{border-top:3px solid var(--gold)}
+  .sec-card.sec-excluded{opacity:0.5;border:2px dashed var(--gray)}
+  .sec-card.sec-excluded .sec-card-body{display:none!important}
+  .btn-excl{font-size:11px;padding:3px 10px;border-radius:16px;border:none;cursor:pointer;font-family:inherit;font-weight:600;margin-left:8px}
+  .btn-excl-on{background:var(--green-bg);color:var(--green)}
+  .btn-excl-off{background:var(--red-bg);color:var(--red)}
 
   .empty-state{text-align:center;padding:48px 20px;color:var(--gray-dark);font-size:15px}
 
@@ -592,10 +597,22 @@ function renderSections() {
     const def = SECTION_DEFS[key];
     if (!def) continue;
 
+    const isExcluded = key === 'declaration' && currentProspekt.declaration_excluded;
     const card = document.createElement('div');
-    card.className = 'sec-card';
+    card.className = 'sec-card' + (isExcluded ? ' sec-excluded' : '');
     card.dataset.section = key;
     card.draggable = !def.required;
+
+    // Declaration toggle button (only when declaration has data)
+    let excludeBtn = '';
+    if (key === 'declaration') {
+      const hasDecl = currentProspekt.declaration_oneflow_id || (currentProspekt.declaration_sections && currentProspekt.declaration_sections.length > 0);
+      if (hasDecl) {
+        excludeBtn = isExcluded
+          ? `<button class="btn-excl btn-excl-off" onclick="event.stopPropagation();toggleDeclarationExcluded()" title="Inkluder i prospektet">Ekskludert</button>`
+          : `<button class="btn-excl btn-excl-on" onclick="event.stopPropagation();toggleDeclarationExcluded()" title="Ekskluder fra prospektet">Inkludert ✓</button>`;
+      }
+    }
 
     card.innerHTML = `
       <div class="sec-card-header" onclick="toggleSection(this)">
@@ -603,6 +620,7 @@ function renderSections() {
           ${!def.required ? '<span class="drag-handle" title="Dra for å sortere">⠿</span>' : ''}
           <span>${def.icon} ${def.title}</span>
           ${def.required ? '<span style="font-size:11px;color:var(--gray-dark)">(obligatorisk)</span>' : ''}
+          ${excludeBtn}
         </div>
         <span class="sec-toggle">▾</span>
       </div>
@@ -1262,6 +1280,12 @@ async function fetchDeclaration() {
   } catch (e) {
     showError('Teknisk feil: ' + e.message, 'Prøv igjen om et par sekunder, eller kontakt utvikler hvis problemet vedvarer.');
   }
+}
+
+function toggleDeclarationExcluded() {
+  currentProspekt.declaration_excluded = !currentProspekt.declaration_excluded;
+  renderSections();
+  scheduleAutoSave();
 }
 
 function toggleDeclSection(si) {
@@ -2293,13 +2317,15 @@ function setupSectionDrag() {
     const target = e.target.closest('.sec-card');
     if (!target || target === dragEl || !dragEl) return;
 
-    // Get new order
     const cards = [...grid.querySelectorAll('.sec-card')];
     const fromIdx = cards.indexOf(dragEl);
     const toIdx = cards.indexOf(target);
 
-    // Don't allow moving before/after required sections at edges
+    // Count fixed (required) sections at the top — never allow dropping into those slots
     const order = currentProspekt.sections_order || Object.keys(SECTION_DEFS);
+    const fixedCount = order.filter((k, i) => SECTION_DEFS[k]?.required && i < 2).length;
+    if (toIdx < fixedCount) return; // can't drop before fixed sections
+
     const moved = order.splice(fromIdx, 1)[0];
     order.splice(toIdx, 0, moved);
     currentProspekt.sections_order = order;
