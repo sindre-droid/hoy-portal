@@ -141,8 +141,6 @@ async function checkOneflowStatus(dealName, boatName) {
       offset += 100;
     }
 
-    console.log(`Oneflow: ${contracts.length} kontrakter hentet, søker etter: ${JSON.stringify(searchKeys)}`);
-
     for (const c of contracts) {
       const name = cNameLower(c);
       const matches = searchKeys.some(k => name.includes(k));
@@ -150,8 +148,6 @@ async function checkOneflowStatus(dealName, boatName) {
 
       const tid = parseInt(c._private_ownerside?.template_id || c.template?._id || c.template?.id || 0);
       const isSigned = c.state === 3 || c.state === 'signed';
-
-      console.log(`Oneflow match: "${c._private?.name || c.name}" tid=${tid} state=${c.state} signed=${isSigned}`);
 
       if (tid) {
         if (OF_TEMPLATES.egenerklaring.includes(tid) && isSigned)  status.egenerklaring  = 'signed';
@@ -164,7 +160,6 @@ async function checkOneflowStatus(dealName, boatName) {
       }
     }
 
-    console.log(`Oneflow resultat for "${boatName}":`, JSON.stringify(status));
   } catch (e) {
     console.error('checkOneflowStatus feil:', e.message);
   }
@@ -388,22 +383,8 @@ async function handleOneflowStatus(params) {
   const allContracts = await fetchAllOneflowContracts();
   const statuses = {};
 
-  // Debug: log first few contract names to verify fetch worked
-  console.log(`Oneflow status: ${allContracts.length} contracts fetched, checking ${dealNames.length} deals`);
-  if (allContracts.length > 0) {
-    console.log('Sample contracts:', allContracts.slice(0, 3).map(c => ({
-      name: c._private?.name || c.name,
-      state: c.state,
-      tid: c._private_ownerside?.template_id || c.template?._id || c.template?.id
-    })));
-  }
-
   for (const { deal_id, deal_name, boat_name } of dealNames) {
     const oneflow = matchOneflowForDeal(allContracts, deal_name, boat_name);
-    // Debug: log matches for deals that have contracts
-    if (oneflow.matched_contracts.length > 0) {
-      console.log(`Deal "${deal_name}" (boat: "${boat_name}") matched:`, oneflow.matched_contracts.map(c => c.name));
-    }
     statuses[deal_id] = {
       egenerklaring:  oneflow.egenerklaring === 'signed',
       oppdragsavtale: oneflow.oppdragsavtale === 'signed',
@@ -482,9 +463,7 @@ async function handleSigningDates(sb, params) {
 
   // 3. Fetch Oneflow contracts — use more pages to reach older contracts
   try {
-    console.log(`Signing dates: looking up ${needsLookup.length} numbers, fetching deep...`);
     const allContracts = await fetchAllOneflowContracts(10); // Up to 1000
-    console.log(`Signing dates: ${allContracts.length} contracts fetched for matching`);
 
     for (const { number: num, boatName } of needsLookup) {
       let found = false;
@@ -529,9 +508,7 @@ async function handleSigningDates(sb, params) {
         break;
       }
 
-      if (!found) {
-        console.log(`Signing date not found for ${num} (boat: "${boatName}")`);
-      }
+      if (!found) { /* not found — user can set manually */ }
     }
   } catch (e) {
     console.error('Signing dates Oneflow feil:', e.message);
@@ -672,11 +649,9 @@ async function handleAssign(sb, body, adminEmail) {
       contracts = allContracts
         .filter(c => body.oneflow_contract_ids.includes(c.id))
         .map(c => ({ id: c.id, _id: c._id, name: c._private?.name || c.name || '' }));
-      console.log(`Oneflow rename: bruker ${contracts.length} eksplisitt valgte kontrakter`);
     } else {
       const allContracts = await fetchAllOneflowContracts();
       contracts = findOneflowContractsInList(allContracts, dealName, boatName);
-      console.log(`Oneflow rename: fant ${contracts.length} kontrakter via matching for "${boatName}"`);
     }
     let oneflowOk = false;
 
@@ -688,12 +663,9 @@ async function handleAssign(sb, body, adminEmail) {
         : `${number} - ${currentName}`;
 
       const contractId = c._id || c.id;
-      console.log(`Oneflow rename: "${currentName}" → "${newName}" (id=${c.id}, _id=${c._id}, using=${contractId})`);
       const renameRes = await ofApi(`/contracts/${contractId}`, 'PUT', {
         _private: { name: newName },
       });
-      console.log(`Oneflow rename resultat: ok=${renameRes.ok} status=${renameRes.status}`, JSON.stringify(renameRes.data).substring(0, 300));
-
       if (renameRes.ok) {
         oneflowOk = true;
       } else {
@@ -910,8 +882,6 @@ async function handleRetryOneflow(sb, body, adminEmail) {
   // Search all Oneflow contracts and rename matching ones
   const allContracts = await fetchAllOneflowContracts();
   const contracts = findOneflowContractsInList(allContracts, dealName, boatName);
-  console.log(`Retry Oneflow: fant ${contracts.length} kontrakter for "${boatName}" (number=${number})`);
-
   let renamed = 0;
   for (const c of contracts) {
     const currentName = c.name;
@@ -922,11 +892,9 @@ async function handleRetryOneflow(sb, body, adminEmail) {
     if (newName === currentName) { renamed++; continue; }
 
     const contractId = c._id || c.id;
-    console.log(`Retry rename: "${currentName}" → "${newName}" (id=${c.id}, _id=${c._id}, using=${contractId})`);
     const renameRes = await ofApi(`/contracts/${contractId}`, 'PUT', {
       _private: { name: newName },
     });
-    console.log(`Retry rename resultat: ok=${renameRes.ok} status=${renameRes.status}`, JSON.stringify(renameRes.data).substring(0, 300));
 
     if (renameRes.ok) {
       renamed++;
@@ -1105,22 +1073,17 @@ async function handleBackfillSigningDates(sb) {
     return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, updated: 0, message: 'Alle har dato' }) };
   }
 
-  console.log(`Backfill signing dates: ${missing.length} assignments missing dates`);
-
   // 2. Fetch ALL Oneflow contracts once (deep)
   const allContracts = await fetchAllOneflowContracts(10);
-  console.log(`Backfill signing dates: ${allContracts.length} Oneflow contracts fetched`);
 
   // 3. Match each assignment (in memory, no DB calls yet)
   const toUpdate = []; // { number, date }
   const notFound = [];
-  const debugSamples = []; // First 5 misses with detail
 
   for (const row of missing) {
     const num = row.number;
     const boatName = row.vessel_name || row.deal_name || '';
     let foundDate = null;
-    let debugInfo = null;
 
     for (const c of allContracts) {
       const cName = c._private?.name || c.name || '';
@@ -1139,11 +1102,6 @@ async function handleBackfillSigningDates(sb) {
 
       const isSigned = c.state === 3 || c.state === 'signed';
 
-      // Debug: capture why we skipped
-      if (!debugInfo) {
-        debugInfo = { contract: cName, tid, isOppdragsavtale, state: c.state, isSigned };
-      }
-
       if (!isOppdragsavtale) continue;
       if (!isSigned) continue;
 
@@ -1159,19 +1117,8 @@ async function handleBackfillSigningDates(sb) {
       toUpdate.push({ number: num, date: foundDate });
     } else {
       notFound.push({ number: num, boat: boatName });
-      if (debugSamples.length < 5) {
-        debugSamples.push({ number: num, boat: boatName, match: debugInfo || 'no name match at all' });
-      }
     }
   }
-
-  // Log year breakdown of not-found
-  const yearBreakdown = {};
-  for (const nf of notFound) {
-    const yr = '20' + nf.number.substring(0, 2);
-    yearBreakdown[yr] = (yearBreakdown[yr] || 0) + 1;
-  }
-  console.log('Backfill not found by year:', JSON.stringify(yearBreakdown));
 
   // 4. Batch-update Supabase in parallel (groups of 10)
   let updated = 0;
@@ -1184,8 +1131,6 @@ async function handleBackfillSigningDates(sb) {
     ));
     updated += results.filter(r => !r.error).length;
   }
-
-  console.log(`Backfill signing dates: ${updated} updated, ${notFound.length} not found`);
 
   return {
     statusCode: 200,
