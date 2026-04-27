@@ -857,9 +857,13 @@ async function loadStats() {
     </div>`);
   }
 
-  if (data.missing_signing_dates > 0) {
+  const totalMissing = (data.missing_signing_dates || 0) + (data.prev_missing_signing_dates || 0);
+  if (totalMissing > 0) {
+    const parts = [];
+    if (data.missing_signing_dates > 0) parts.push(`${data.missing_signing_dates} fra ${year}`);
+    if (data.prev_missing_signing_dates > 0) parts.push(`${data.prev_missing_signing_dates} fra ${prevYear}`);
     warnings.push(`<div class="backfill-bar">
-      <span>⚠️ ${data.missing_signing_dates} oppdrag mangler signeringsdato — månedstallene kan være upresise</span>
+      <span>⚠️ ${parts.join(' + ')} oppdrag mangler signeringsdato — månedstallene kan være upresise</span>
       <button id="backfillDatesBtn" onclick="runBackfillDates()">Hent datoer fra Oneflow</button>
     </div>`);
   }
@@ -977,13 +981,30 @@ async function runBackfillDates() {
   btn.textContent = 'Henter fra Oneflow...';
 
   try {
-    // Get all numbers for this year, then trigger signing_dates lookup
-    const year = document.getElementById('statsYearFilter').value || new Date().getFullYear();
-    const listData = await api(`?list=1&year=${year}`);
-    const numbers = (listData.assignments || []).map(a => a.number).filter(Boolean);
+    const year = parseInt(document.getElementById('statsYearFilter').value) || new Date().getFullYear();
+
+    // Fetch numbers for both selected year and previous year
+    const [currentData, prevData] = await Promise.all([
+      api(`?list=1&year=${year}`),
+      api(`?list=1&year=${year - 1}`),
+    ]);
+
+    // Collect numbers that are missing signing dates
+    const allAssignments = [...(currentData.assignments || []), ...(prevData.assignments || [])];
+    const numbers = allAssignments
+      .filter(a => !a.oppdragsavtale_signed_at)
+      .map(a => a.number)
+      .filter(Boolean);
+
+    btn.textContent = `Søker ${numbers.length} oppdrag...`;
 
     if (numbers.length) {
-      await api(`?signing_dates=1&numbers=${numbers.join(',')}`);
+      // Chunk into groups to avoid timeout — max 30 per call
+      for (let i = 0; i < numbers.length; i += 30) {
+        const chunk = numbers.slice(i, i + 30);
+        btn.textContent = `Henter ${i + chunk.length} av ${numbers.length}...`;
+        await api(`?signing_dates=1&numbers=${chunk.join(',')}`);
+      }
     }
 
     btn.textContent = '✓ Oppdatert';
