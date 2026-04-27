@@ -11,6 +11,10 @@
 [functions."prospekt"]
   timeout = 26
 
+# Oppdragsnummer: signing_dates og backfill kan ta tid med mange Oneflow-kontrakter
+[functions."oppdragsnummer"]
+  timeout = 26
+
 # Serve subfolder routes cleanly
 [[redirects]]
   from = "/befaring"

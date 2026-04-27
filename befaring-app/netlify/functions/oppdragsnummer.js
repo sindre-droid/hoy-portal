@@ -476,7 +476,9 @@ async function handleSigningDates(sb, params) {
 
   // 3. Fetch Oneflow contracts — use more pages to reach older contracts
   try {
+    console.log(`Signing dates: looking up ${needsLookup.length} numbers, fetching deep...`);
     const allContracts = await fetchAllOneflowContracts(10); // Up to 1000
+    console.log(`Signing dates: ${allContracts.length} contracts fetched for matching`);
 
     for (const { number: num, boatName } of needsLookup) {
       let found = false;
