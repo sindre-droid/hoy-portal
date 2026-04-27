@@ -729,6 +729,7 @@ async function loadList() {
           <th>Deal / Fartøy</th>
           <th>Megler</th>
           <th>Tildelt</th>
+          <th>Avtale signert</th>
           <th>HubSpot</th>
           <th>Oneflow</th>
           <th>PowerOffice</th>
@@ -741,6 +742,7 @@ async function loadList() {
             <td>${esc(a.vessel_name || a.deal_name || '—')}</td>
             <td>${esc(a.broker_email ? a.broker_email.split('@')[0] : '—')}</td>
             <td>${a.assigned_at ? new Date(a.assigned_at).toLocaleDateString('no-NO', { day: '2-digit', month: 'short' }) : '—'}</td>
+            <td id="signed-${esc(a.number)}" style="color:var(--gray-dark);font-size:13px">⏳</td>
             <td>${syncPill(a.hubspot_synced)}</td>
             <td>${a.oneflow_synced
               ? syncPill(true)
@@ -753,12 +755,44 @@ async function loadList() {
         `).join('')}
       </tbody>
     </table>`;
+
+  // Lazy-load signing dates from Oneflow
+  loadSigningDates(list.map(a => a.number).filter(Boolean));
 }
 
 function syncPill(ok) {
   return ok
     ? '<span class="pill pill-ok">Synket</span>'
     : '<span class="pill pill-no">Venter</span>';
+}
+
+// ── Signing dates ───────────────────────────────────────────────────────
+
+async function loadSigningDates(numbers) {
+  if (!numbers.length) return;
+  try {
+    const data = await api(`?signing_dates=1&numbers=${numbers.join(',')}`);
+    const dates = data.dates || {};
+    for (const [num, dateStr] of Object.entries(dates)) {
+      const el = document.getElementById(`signed-${num}`);
+      if (!el) continue;
+      if (dateStr) {
+        const d = new Date(dateStr);
+        el.textContent = d.toLocaleDateString('no-NO', { day: '2-digit', month: 'short', year: 'numeric' });
+        el.style.color = 'var(--green)';
+        el.style.fontWeight = '600';
+      } else {
+        el.textContent = '—';
+      }
+    }
+  } catch (e) {
+    console.error('Signing dates feil:', e);
+    // Fall back: show dash for all
+    for (const num of numbers) {
+      const el = document.getElementById(`signed-${num}`);
+      if (el) el.textContent = '—';
+    }
+  }
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

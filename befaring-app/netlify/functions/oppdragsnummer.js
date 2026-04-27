@@ -5,6 +5,7 @@
 //                           og har begge Oneflow-docs (egenerklæring + oppdragsavtale) signert.
 // GET  ?list=1            → Alle tildelte oppdragsnummer (erstatter Notion)
 // GET  ?next=1            → Neste ledige nummer for inneværende år
+// GET  ?signing_dates=1&numbers=26001,26002  → Signeringsdato for oppdragsavtaler
 // POST action=assign      → Tildel neste oppdragsnummer til deal. Synker til HubSpot + Oneflow.
 //
 // Kun admin-tilgang.
@@ -436,6 +437,56 @@ async function handleList(sb, params) {
   };
 }
 
+// ── GET ?signing_dates=1 — Oppdragsavtale signing dates for assigned numbers ─
+// Fetches all Oneflow contracts once and matches by oppdragsnummer prefix.
+// Returns { dates: { "26001": "2026-04-15T...", ... } }
+async function handleSigningDates(params) {
+  const numbers = params.numbers ? params.numbers.split(',').filter(Boolean) : [];
+  if (!numbers.length) {
+    return { statusCode: 200, headers: CORS, body: JSON.stringify({ dates: {} }) };
+  }
+
+  const allContracts = await fetchAllOneflowContracts();
+  const dates = {};
+
+  for (const num of numbers) {
+    dates[num] = null;
+    // Find oppdragsavtale contracts prefixed with this number
+    for (const c of allContracts) {
+      const cName = c._private?.name || c.name || '';
+      // Match contracts starting with the oppdragsnummer prefix (e.g. "26011 - ...")
+      if (!new RegExp(`^${num}\\s*[-–]`).test(cName.trim())) continue;
+
+      const tid = parseInt(c._private_ownerside?.template_id || c.template?._id || c.template?.id || 0);
+      const nameLower = cName.toLowerCase();
+      const isOppdragsavtale = OF_TEMPLATES.oppdragsavtale.includes(tid)
+        || nameLower.includes('salgsavtale')
+        || nameLower.includes('oppdragsavtale');
+
+      if (!isOppdragsavtale) continue;
+
+      const isSigned = c.state === 3 || c.state === 'signed';
+      if (!isSigned) continue;
+
+      // Use the contract's updated_time as signing timestamp
+      // Oneflow returns this as a Unix timestamp (seconds)
+      if (c.updated_time) {
+        const ts = typeof c.updated_time === 'number'
+          ? new Date(c.updated_time * 1000).toISOString()
+          : c.updated_time;
+        dates[num] = ts;
+      }
+      break; // Found the signed oppdragsavtale for this number
+    }
+  }
+
+  return {
+    statusCode: 200,
+    headers: CORS,
+    body: JSON.stringify({ dates }),
+  };
+}
+
 // ── POST action=assign — Assign number to deal ────────────────────────────
 // Accepts: { deal_id, force?: boolean, custom_number?: string }
 // force=true allows admin to assign even without both Oneflow docs signed.
@@ -862,6 +913,7 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'GET') {
     if (params.queue)           return handleQueue(sb);
     if (params.oneflow_status)  return handleOneflowStatus(params);
+    if (params.signing_dates)   return handleSigningDates(params);
     if (params.list)            return handleList(sb, params);
     if (params.next) {
       const next = await getNextNumber(sb);
