@@ -898,7 +898,7 @@ async function handleRetryOneflow(sb, body, adminEmail) {
 
 // ── POST action=backfill_brokers — Enrich old records with broker email ──
 // Bootstrap-imported records have broker_email=null. This fetches deal owners
-// from HubSpot and backfills them.
+// from HubSpot and backfills them. Uses batch search for speed.
 async function handleBackfillBrokers(sb) {
   const { data: missing, error } = await sb
     .from('assignment_numbers')
@@ -913,35 +913,50 @@ async function handleBackfillBrokers(sb) {
     return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, updated: 0, message: 'Alle har megler' }) };
   }
 
-  // Cache owner ID → email to avoid repeated lookups
-  const ownerCache = {};
+  // 1. Batch-fetch all deals with owner info in one HubSpot search
+  const dealIds = missing.map(r => r.deal_id);
+  const searchBody = {
+    filterGroups: [{
+      filters: [{ propertyName: 'hs_object_id', operator: 'IN', values: dealIds }],
+    }],
+    properties: ['hubspot_owner_id'],
+    limit: 100,
+  };
+  const hsRes = await hs('/crm/v3/objects/deals/search', 'POST', searchBody);
+  if (!hsRes.ok) {
+    console.error('Backfill HubSpot search feil:', JSON.stringify(hsRes.data));
+    return { statusCode: 502, headers: CORS, body: JSON.stringify({ error: 'HubSpot batch-søk feilet' }) };
+  }
+
+  // Map deal_id → owner_id
+  const dealOwnerMap = {};
+  for (const deal of (hsRes.data?.results || [])) {
+    const oid = deal.properties.hubspot_owner_id;
+    if (oid) dealOwnerMap[deal.id] = oid;
+  }
+
+  // 2. Get unique owner IDs and resolve emails (few calls)
+  const uniqueOwnerIds = [...new Set(Object.values(dealOwnerMap))];
+  const ownerEmails = {};
+  await Promise.all(uniqueOwnerIds.map(async (oid) => {
+    try {
+      const res = await hs(`/crm/v3/owners/${oid}`);
+      if (res.ok) ownerEmails[oid] = res.data.email;
+    } catch {}
+  }));
+
+  // 3. Update Supabase rows
   let updated = 0;
   const errors = [];
-
   for (const row of missing) {
-    try {
-      const dealRes = await hs(`/crm/v3/objects/deals/${row.deal_id}?properties=hubspot_owner_id`);
-      if (!dealRes.ok) { errors.push({ deal_id: row.deal_id, reason: 'deal not found' }); continue; }
+    const ownerId = dealOwnerMap[row.deal_id];
+    if (!ownerId) { errors.push({ deal_id: row.deal_id, reason: 'no owner' }); continue; }
+    const email = ownerEmails[ownerId];
+    if (!email) { errors.push({ deal_id: row.deal_id, reason: 'owner email not found' }); continue; }
 
-      const ownerId = dealRes.data.properties.hubspot_owner_id;
-      if (!ownerId) { errors.push({ deal_id: row.deal_id, reason: 'no owner' }); continue; }
-
-      let email = ownerCache[ownerId];
-      if (!email) {
-        const ownerRes = await hs(`/crm/v3/owners/${ownerId}`);
-        if (ownerRes.ok) {
-          email = ownerRes.data.email;
-          ownerCache[ownerId] = email;
-        }
-      }
-
-      if (email) {
-        await sb.from('assignment_numbers').update({ broker_email: email }).eq('id', row.id);
-        updated++;
-      }
-    } catch (e) {
-      errors.push({ deal_id: row.deal_id, reason: e.message });
-    }
+    const { error: updErr } = await sb.from('assignment_numbers').update({ broker_email: email }).eq('id', row.id);
+    if (updErr) { errors.push({ deal_id: row.deal_id, reason: updErr.message }); }
+    else { updated++; }
   }
 
   return {

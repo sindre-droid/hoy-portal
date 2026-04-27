@@ -893,21 +893,22 @@ async function runBackfill() {
   const btn = document.getElementById('backfillBtn');
   if (!btn) return;
   btn.disabled = true;
-  btn.textContent = 'Henter...';
+  btn.textContent = 'Henter fra HubSpot...';
 
   try {
     const data = await api('?action=backfill_brokers', 'POST', {});
     if (data.ok) {
       btn.textContent = `✓ ${data.updated} oppdatert`;
       btn.style.background = 'var(--green)';
-      // Reload stats after a moment
       setTimeout(() => loadStats(), 500);
     } else {
-      btn.textContent = 'Feilet';
+      console.error('Backfill feil:', data);
+      btn.textContent = `Feil: ${data.error || 'ukjent'}`;
       btn.disabled = false;
     }
   } catch (e) {
-    btn.textContent = 'Feil';
+    console.error('Backfill exception:', e);
+    btn.textContent = `Feil: ${e.message}`;
     btn.disabled = false;
   }
 }
