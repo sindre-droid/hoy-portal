@@ -1082,6 +1082,91 @@ async function handleStats(sb, params) {
   };
 }
 
+// ── POST action=backfill_signing_dates — Bulk-find signing dates from Oneflow ─
+// Fetches ALL Oneflow contracts once, matches all assignments missing dates.
+async function handleBackfillSigningDates(sb) {
+  // 1. Get all assignments missing signing date
+  const { data: missing, error } = await sb
+    .from('assignment_numbers')
+    .select('number, vessel_name, deal_name')
+    .is('oppdragsavtale_signed_at', null);
+
+  if (error) {
+    return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: error.message }) };
+  }
+
+  if (!missing || !missing.length) {
+    return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, updated: 0, message: 'Alle har dato' }) };
+  }
+
+  console.log(`Backfill signing dates: ${missing.length} assignments missing dates`);
+
+  // 2. Fetch ALL Oneflow contracts once (deep)
+  const allContracts = await fetchAllOneflowContracts(10);
+  console.log(`Backfill signing dates: ${allContracts.length} Oneflow contracts fetched`);
+
+  // 3. Match each assignment
+  let updated = 0;
+  const notFound = [];
+
+  for (const row of missing) {
+    const num = row.number;
+    const boatName = row.vessel_name || row.deal_name || '';
+    let foundDate = null;
+
+    for (const c of allContracts) {
+      const cName = c._private?.name || c.name || '';
+      const nameLower = cName.toLowerCase();
+
+      // Match by oppdragsnummer prefix OR boat name
+      const prefixMatch = new RegExp(`^${num}\\s*[-–]`).test(cName.trim());
+      const boatMatch = !prefixMatch && boatName && fuzzyMatch(cName, [boatName]);
+
+      if (!prefixMatch && !boatMatch) continue;
+
+      const tid = parseInt(c._private_ownerside?.template_id || c.template?._id || c.template?.id || 0);
+      const isOppdragsavtale = OF_TEMPLATES.oppdragsavtale.includes(tid)
+        || nameLower.includes('salgsavtale')
+        || nameLower.includes('oppdragsavtale');
+
+      if (!isOppdragsavtale) continue;
+
+      const isSigned = c.state === 3 || c.state === 'signed';
+      if (!isSigned) continue;
+
+      if (c.updated_time) {
+        foundDate = typeof c.updated_time === 'number'
+          ? new Date(c.updated_time * 1000).toISOString()
+          : c.updated_time;
+      }
+      break;
+    }
+
+    if (foundDate) {
+      await sb.from('assignment_numbers')
+        .update({ oppdragsavtale_signed_at: foundDate })
+        .eq('number', num);
+      updated++;
+    } else {
+      notFound.push({ number: num, boat: boatName });
+    }
+  }
+
+  console.log(`Backfill signing dates: ${updated} updated, ${notFound.length} not found`);
+
+  return {
+    statusCode: 200,
+    headers: CORS,
+    body: JSON.stringify({
+      ok: true,
+      total: missing.length,
+      updated,
+      not_found: notFound.length,
+      not_found_details: notFound,
+    }),
+  };
+}
+
 // ── POST action=set_signing_date — Manually set oppdragsavtale signing date ─
 async function handleSetSigningDate(sb, body) {
   const { number, signed_at } = body;
@@ -1139,7 +1224,8 @@ exports.handler = async (event) => {
     if (action === 'assign')         return handleAssign(sb, body, auth.email);
     if (action === 'bootstrap')        return handleBootstrap(sb, auth.email);
     if (action === 'backfill_brokers')  return handleBackfillBrokers(sb);
-    if (action === 'set_signing_date') return handleSetSigningDate(sb, body);
+    if (action === 'set_signing_date')       return handleSetSigningDate(sb, body);
+    if (action === 'backfill_signing_dates') return handleBackfillSigningDates(sb);
     if (action === 'retry_oneflow')   return handleRetryOneflow(sb, body, auth.email);
 
     return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: `Ukjent action: ${action}` }) };
