@@ -887,16 +887,27 @@ async function loadStats() {
   for (let m = 1; m <= currentMonth; m++) monthCols.push(m);
 
   // Previous year data
+  const prevBrokers = data.prev_brokers || {};
   const prevTotals = data.prev_monthly_totals || {};
   const prevGrand = data.prev_grand_total || 0;
   const prevYear = data.prev_year || (parseInt(year) - 1);
 
-  // Delta helper: returns styled +N / -N / ±0
+  // Delta helper: returns styled +N / -N or empty for 0/0
   function delta(current, previous) {
     const diff = current - previous;
-    if (diff > 0) return `<span style="color:var(--green);font-size:11px;font-weight:700">+${diff}</span>`;
-    if (diff < 0) return `<span style="color:var(--red);font-size:11px;font-weight:700">${diff}</span>`;
-    return `<span style="color:var(--gray-dark);font-size:11px">±0</span>`;
+    if (diff > 0) return `<div style="color:var(--green);font-size:10px;font-weight:700">+${diff}</div>`;
+    if (diff < 0) return `<div style="color:var(--red);font-size:10px;font-weight:700">${diff}</div>`;
+    if (current === 0 && previous === 0) return '';
+    return `<div style="color:var(--gray-dark);font-size:10px">±0</div>`;
+  }
+
+  // Cell helper: shows count + delta underneath
+  function cell(count, prevCount) {
+    const val = count || 0;
+    const prev = prevCount || 0;
+    const d = delta(val, prev);
+    if (val === 0 && prev === 0) return '<span style="color:var(--gray-dark)">–</span>';
+    return `${val || '<span style="color:var(--gray-dark)">–</span>'}${d}`;
   }
 
   content.innerHTML = `
@@ -912,30 +923,23 @@ async function loadStats() {
         <tbody>
           ${brokerEntries.map(([broker, info]) => {
             const displayName = broker === 'Ukjent' ? 'Ukjent megler' : broker.split('@')[0];
+            const prevInfo = prevBrokers[broker] || { months: {}, total: 0 };
             return `
               <tr>
                 <td>${esc(displayName)}</td>
-                ${monthCols.map(m => {
-                  const count = info.months[m] || 0;
-                  return `<td>${count || '<span style="color:var(--gray-dark)">–</span>'}</td>`;
-                }).join('')}
-                <td class="total-col">${info.total}</td>
+                ${monthCols.map(m => `<td>${cell(info.months[m], prevInfo.months[m])}</td>`).join('')}
+                <td class="total-col">${info.total}${delta(info.total, prevInfo.total)}</td>
               </tr>`;
           }).join('')}
           <tr class="total-row">
             <td>Totalt ${year}</td>
-            ${monthCols.map(m => `<td>${data.monthly_totals[m] || 0}</td>`).join('')}
-            <td class="total-col">${data.grand_total}</td>
+            ${monthCols.map(m => `<td>${cell(data.monthly_totals[m], prevTotals[m])}</td>`).join('')}
+            <td class="total-col">${data.grand_total}${delta(data.grand_total, prevGrand)}</td>
           </tr>
           <tr style="background:var(--surface)">
             <td style="color:var(--gray-dark);font-weight:600;font-size:13px">Totalt ${prevYear}</td>
             ${monthCols.map(m => `<td style="color:var(--gray-dark);font-size:13px">${prevTotals[m] || 0}</td>`).join('')}
             <td style="color:var(--gray-dark);font-weight:700;font-size:13px">${prevGrand}</td>
-          </tr>
-          <tr style="background:var(--surface)">
-            <td style="font-weight:600;font-size:13px">vs. ${prevYear}</td>
-            ${monthCols.map(m => `<td>${delta(data.monthly_totals[m] || 0, prevTotals[m] || 0)}</td>`).join('')}
-            <td>${delta(data.grand_total, prevGrand)}</td>
           </tr>
         </tbody>
       </table>

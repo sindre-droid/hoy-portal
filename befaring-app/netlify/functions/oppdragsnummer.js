@@ -199,8 +199,8 @@ function findOneflowContractsInList(allContracts, dealName, boatName) {
 }
 
 // ── Fetch all Oneflow contracts once (cached per request) ──────────────────
-async function fetchAllOneflowContracts() {
-  const MAX_PAGES = 3;  // Maks 300 — nyeste først, så vi trenger ikke mange
+async function fetchAllOneflowContracts(maxPages = 3) {
+  const MAX_PAGES = maxPages;  // Default 300, pass higher for deep lookups
   let contracts = [];
   let offset = 0;
   let totalCount = Infinity;
@@ -439,21 +439,22 @@ async function handleList(sb, params) {
 
 // ── GET ?signing_dates=1 — Oppdragsavtale signing dates for assigned numbers ─
 // First checks Supabase for cached dates. Only calls Oneflow for records
-// that don't have a date yet, then persists the result so it's never fetched again.
+// that don't have a date yet. Matches by oppdragsnummer prefix first,
+// then falls back to boat name matching for older contracts.
 async function handleSigningDates(sb, params) {
   const numbers = params.numbers ? params.numbers.split(',').filter(Boolean) : [];
   if (!numbers.length) {
     return { statusCode: 200, headers: CORS, body: JSON.stringify({ dates: {} }) };
   }
 
-  // 1. Check what we already have in Supabase
+  // 1. Check what we already have in Supabase (include vessel_name for fallback matching)
   const { data: rows } = await sb
     .from('assignment_numbers')
-    .select('number, oppdragsavtale_signed_at')
+    .select('number, vessel_name, deal_name, oppdragsavtale_signed_at')
     .in('number', numbers);
 
   const dates = {};
-  const needsLookup = [];
+  const needsLookup = []; // { number, boatName }
 
   for (const num of numbers) {
     const row = (rows || []).find(r => r.number === num);
@@ -461,7 +462,10 @@ async function handleSigningDates(sb, params) {
       dates[num] = row.oppdragsavtale_signed_at;
     } else {
       dates[num] = null;
-      needsLookup.push(num);
+      needsLookup.push({
+        number: num,
+        boatName: row?.vessel_name || row?.deal_name || '',
+      });
     }
   }
 
@@ -470,17 +474,29 @@ async function handleSigningDates(sb, params) {
     return { statusCode: 200, headers: CORS, body: JSON.stringify({ dates }) };
   }
 
-  // 3. Fetch Oneflow contracts only once for the missing ones
+  // 3. Fetch Oneflow contracts — use more pages to reach older contracts
   try {
-    const allContracts = await fetchAllOneflowContracts();
+    const allContracts = await fetchAllOneflowContracts(10); // Up to 1000
 
-    for (const num of needsLookup) {
+    for (const { number: num, boatName } of needsLookup) {
+      let found = false;
+
       for (const c of allContracts) {
         const cName = c._private?.name || c.name || '';
-        if (!new RegExp(`^${num}\\s*[-–]`).test(cName.trim())) continue;
+        const nameLower = cName.toLowerCase();
+
+        // Strategy A: match by oppdragsnummer prefix (e.g. "26011 - ...")
+        const prefixMatch = new RegExp(`^${num}\\s*[-–]`).test(cName.trim());
+
+        // Strategy B: match by boat name for older contracts without prefix
+        let boatMatch = false;
+        if (!prefixMatch && boatName) {
+          boatMatch = fuzzyMatch(cName, [boatName]);
+        }
+
+        if (!prefixMatch && !boatMatch) continue;
 
         const tid = parseInt(c._private_ownerside?.template_id || c.template?._id || c.template?.id || 0);
-        const nameLower = cName.toLowerCase();
         const isOppdragsavtale = OF_TEMPLATES.oppdragsavtale.includes(tid)
           || nameLower.includes('salgsavtale')
           || nameLower.includes('oppdragsavtale');
@@ -496,12 +512,17 @@ async function handleSigningDates(sb, params) {
             : c.updated_time;
           dates[num] = ts;
 
-          // 4. Persist to Supabase so we never look this up again
+          // Persist to Supabase so we never look this up again
           await sb.from('assignment_numbers')
             .update({ oppdragsavtale_signed_at: ts })
             .eq('number', num);
+          found = true;
         }
         break;
+      }
+
+      if (!found) {
+        console.log(`Signing date not found for ${num} (boat: "${boatName}")`);
       }
     }
   } catch (e) {
