@@ -917,6 +917,15 @@ async function loadStats() {
     return `${val || '<span style="color:var(--gray-dark)">–</span>'}${d}`;
   }
 
+  // YTD helper: sum months 1..currentMonth
+  function ytd(months) {
+    let sum = 0;
+    for (let m = 1; m <= currentMonth; m++) sum += (months[m] || 0);
+    return sum;
+  }
+  const prevYtdGrand = ytd(prevTotals);
+  const ytdGrand = ytd(data.monthly_totals);
+
   content.innerHTML = `
     <div style="overflow-x:auto">
       <table class="stats-table">
@@ -924,6 +933,7 @@ async function loadStats() {
           <tr>
             <th>Megler</th>
             ${monthCols.map(m => `<th>${MONTH_NAMES[m-1]}</th>`).join('')}
+            <th style="border-left:2px solid var(--border)">YTD</th>
             <th>Totalt</th>
           </tr>
         </thead>
@@ -931,21 +941,26 @@ async function loadStats() {
           ${brokerEntries.map(([broker, info]) => {
             const displayName = broker === 'Ukjent' ? 'Ukjent megler' : broker.split('@')[0];
             const prevInfo = prevBrokers[broker] || { months: {}, total: 0 };
+            const brokerYtd = ytd(info.months);
+            const prevBrokerYtd = ytd(prevInfo.months);
             return `
               <tr>
                 <td>${esc(displayName)}</td>
                 ${monthCols.map(m => `<td>${cell(info.months[m], prevInfo.months[m])}</td>`).join('')}
+                <td class="total-col" style="border-left:2px solid var(--border)">${brokerYtd}${delta(brokerYtd, prevBrokerYtd)}</td>
                 <td class="total-col">${info.total}${delta(info.total, prevInfo.total)}</td>
               </tr>`;
           }).join('')}
           <tr class="total-row">
             <td>Totalt ${year}</td>
             ${monthCols.map(m => `<td>${cell(data.monthly_totals[m], prevTotals[m])}</td>`).join('')}
+            <td class="total-col" style="border-left:2px solid var(--border)">${ytdGrand}${delta(ytdGrand, prevYtdGrand)}</td>
             <td class="total-col">${data.grand_total}${delta(data.grand_total, prevGrand)}</td>
           </tr>
           <tr style="background:var(--surface)">
             <td style="color:var(--gray-dark);font-weight:600;font-size:13px">Totalt ${prevYear}</td>
             ${monthCols.map(m => `<td style="color:var(--gray-dark);font-size:13px">${prevTotals[m] || 0}</td>`).join('')}
+            <td style="color:var(--gray-dark);font-weight:700;font-size:13px;border-left:2px solid var(--border)">${prevYtdGrand}</td>
             <td style="color:var(--gray-dark);font-weight:700;font-size:13px">${prevGrand}</td>
           </tr>
         </tbody>
