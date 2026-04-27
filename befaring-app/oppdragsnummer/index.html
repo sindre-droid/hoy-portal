@@ -137,6 +137,30 @@
     .pill-no{background:#f1f5f9;color:#94a3b8}
     .list-empty{text-align:center;padding:40px;color:var(--gray-dark);font-size:14px}
 
+    /* ── Stats ── */
+    .stats-card{background:white;border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+    .stats-header{padding:16px 20px;border-bottom:1px solid var(--gray);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+    .stats-header-title{font-size:15px;font-weight:700;color:var(--navy)}
+    .stats-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));gap:14px;padding:20px}
+    .broker-card{background:var(--surface);border-radius:12px;padding:16px 20px}
+    .broker-name{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:4px}
+    .broker-total{font-size:28px;font-weight:800;color:var(--navy);margin-bottom:8px}
+    .broker-total-label{font-size:11px;color:var(--gray-dark);font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+    .broker-months{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+    .month-chip{font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;background:white;color:var(--text)}
+    .month-chip .month-count{color:var(--navy);font-weight:800}
+    .stats-table{width:100%;border-collapse:collapse}
+    .stats-table th{font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--gray-dark);padding:10px 12px;text-align:center;border-bottom:2px solid var(--gray)}
+    .stats-table th:first-child{text-align:left}
+    .stats-table td{padding:10px 12px;border-bottom:1px solid var(--gray);font-size:14px;text-align:center}
+    .stats-table td:first-child{text-align:left;font-weight:700;color:var(--navy)}
+    .stats-table tr:last-child td{border-bottom:none}
+    .stats-table .total-col{font-weight:800;color:var(--navy);font-size:15px}
+    .stats-table .total-row td{border-top:2px solid var(--navy);font-weight:700;color:var(--navy);background:var(--surface)}
+    .backfill-bar{padding:14px 20px;background:var(--yellow-bg);border-bottom:1px solid var(--gray);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:13px;color:var(--yellow)}
+    .backfill-bar button{background:var(--navy);color:white;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+    .backfill-bar button:disabled{opacity:0.4;cursor:not-allowed}
+
     /* ── Responsive ── */
     @media(max-width:600px){
       .deal-card-top{flex-direction:column;align-items:flex-start}
@@ -208,6 +232,9 @@
       <button class="tab" data-tab="list" onclick="switchTab('list')">
         Tildelte numre
       </button>
+      <button class="tab" data-tab="stats" onclick="switchTab('stats')">
+        Statistikk
+      </button>
     </div>
 
     <!-- Queue view -->
@@ -228,6 +255,21 @@
           </select>
         </div>
         <div id="listContent">
+          <div class="list-empty">Laster...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats view -->
+    <div id="statsView" style="display:none">
+      <div class="stats-card">
+        <div class="stats-header">
+          <div class="stats-header-title">Oppdrag per megler</div>
+          <select class="filter-select" id="statsYearFilter" onchange="loadStats()">
+          </select>
+        </div>
+        <div id="statsBackfillBar" style="display:none"></div>
+        <div id="statsContent">
           <div class="list-empty">Laster...</div>
         </div>
       </div>
@@ -293,14 +335,16 @@ async function init() {
   document.getElementById('loadingScreen').style.display = 'none';
   document.getElementById('app').style.display = '';
 
-  // Populate year filter
+  // Populate year filters
   const currentYear = new Date().getFullYear();
   const select = document.getElementById('yearFilter');
+  const statsSelect = document.getElementById('statsYearFilter');
   for (let y = currentYear; y >= currentYear - 3; y--) {
     const opt = document.createElement('option');
     opt.value = y;
     opt.textContent = y;
     select.appendChild(opt);
+    statsSelect.appendChild(opt.cloneNode(true));
   }
 
   await loadNext();
@@ -387,8 +431,10 @@ function switchTab(tab) {
   });
   document.getElementById('queueView').style.display = tab === 'queue' ? '' : 'none';
   document.getElementById('listView').style.display = tab === 'list' ? '' : 'none';
+  document.getElementById('statsView').style.display = tab === 'stats' ? '' : 'none';
 
   if (tab === 'list') loadList();
+  if (tab === 'stats') loadStats();
 }
 
 // ── Queue ────────────────────────────────────────────────────────────────────
@@ -764,6 +810,106 @@ function syncPill(ok) {
   return ok
     ? '<span class="pill pill-ok">Synket</span>'
     : '<span class="pill pill-no">Venter</span>';
+}
+
+// ── Stats ───────────────────────────────────────────────────────────────
+
+const MONTH_NAMES = ['jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov','des'];
+
+async function loadStats() {
+  const content = document.getElementById('statsContent');
+  content.innerHTML = '<div class="list-empty">Laster statistikk...</div>';
+
+  const year = document.getElementById('statsYearFilter').value || new Date().getFullYear();
+  const data = await api(`?stats=1&year=${year}`);
+
+  if (!data.brokers || !Object.keys(data.brokers).length) {
+    content.innerHTML = '<div class="list-empty">Ingen oppdrag funnet for dette året</div>';
+    return;
+  }
+
+  // Check if any broker is "Ukjent" — offer backfill
+  const backfillBar = document.getElementById('statsBackfillBar');
+  if (data.brokers['Ukjent'] && data.brokers['Ukjent'].total > 0) {
+    backfillBar.style.display = '';
+    backfillBar.className = 'backfill-bar';
+    backfillBar.innerHTML = `
+      <span>⚠️ ${data.brokers['Ukjent'].total} oppdrag mangler meglerinfo (importert fra HubSpot)</span>
+      <button id="backfillBtn" onclick="runBackfill()">Hent meglere fra HubSpot</button>
+    `;
+  } else {
+    backfillBar.style.display = 'none';
+  }
+
+  // Current month for highlighting
+  const now = new Date();
+  const currentMonth = parseInt(year) === now.getFullYear() ? now.getMonth() + 1 : 12;
+
+  // Build table: rows = brokers, columns = months
+  const brokerEntries = Object.entries(data.brokers)
+    .filter(([name]) => name !== 'Ukjent')
+    .sort((a, b) => b[1].total - a[1].total);
+
+  // Also include Ukjent at the end if present
+  if (data.brokers['Ukjent']) brokerEntries.push(['Ukjent', data.brokers['Ukjent']]);
+
+  const monthCols = [];
+  for (let m = 1; m <= currentMonth; m++) monthCols.push(m);
+
+  content.innerHTML = `
+    <div style="overflow-x:auto">
+      <table class="stats-table">
+        <thead>
+          <tr>
+            <th>Megler</th>
+            ${monthCols.map(m => `<th>${MONTH_NAMES[m-1]}</th>`).join('')}
+            <th>Totalt</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${brokerEntries.map(([broker, info]) => {
+            const displayName = broker === 'Ukjent' ? 'Ukjent megler' : broker.split('@')[0];
+            return `
+              <tr>
+                <td>${esc(displayName)}</td>
+                ${monthCols.map(m => {
+                  const count = info.months[m] || 0;
+                  return `<td>${count || '<span style="color:var(--gray-dark)">–</span>'}</td>`;
+                }).join('')}
+                <td class="total-col">${info.total}</td>
+              </tr>`;
+          }).join('')}
+          <tr class="total-row">
+            <td>Totalt</td>
+            ${monthCols.map(m => `<td>${data.monthly_totals[m] || 0}</td>`).join('')}
+            <td class="total-col">${data.grand_total}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>`;
+}
+
+async function runBackfill() {
+  const btn = document.getElementById('backfillBtn');
+  if (!btn) return;
+  btn.disabled = true;
+  btn.textContent = 'Henter...';
+
+  try {
+    const data = await api('?action=backfill_brokers', 'POST', {});
+    if (data.ok) {
+      btn.textContent = `✓ ${data.updated} oppdatert`;
+      btn.style.background = 'var(--green)';
+      // Reload stats after a moment
+      setTimeout(() => loadStats(), 500);
+    } else {
+      btn.textContent = 'Feilet';
+      btn.disabled = false;
+    }
+  } catch (e) {
+    btn.textContent = 'Feil';
+    btn.disabled = false;
+  }
 }
 
 // ── Signing dates ───────────────────────────────────────────────────────

@@ -896,6 +896,111 @@ async function handleRetryOneflow(sb, body, adminEmail) {
 }
 
 
+// ── POST action=backfill_brokers — Enrich old records with broker email ──
+// Bootstrap-imported records have broker_email=null. This fetches deal owners
+// from HubSpot and backfills them.
+async function handleBackfillBrokers(sb) {
+  const { data: missing, error } = await sb
+    .from('assignment_numbers')
+    .select('id, deal_id')
+    .is('broker_email', null);
+
+  if (error) {
+    return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: error.message }) };
+  }
+
+  if (!missing || !missing.length) {
+    return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, updated: 0, message: 'Alle har megler' }) };
+  }
+
+  // Cache owner ID → email to avoid repeated lookups
+  const ownerCache = {};
+  let updated = 0;
+  const errors = [];
+
+  for (const row of missing) {
+    try {
+      const dealRes = await hs(`/crm/v3/objects/deals/${row.deal_id}?properties=hubspot_owner_id`);
+      if (!dealRes.ok) { errors.push({ deal_id: row.deal_id, reason: 'deal not found' }); continue; }
+
+      const ownerId = dealRes.data.properties.hubspot_owner_id;
+      if (!ownerId) { errors.push({ deal_id: row.deal_id, reason: 'no owner' }); continue; }
+
+      let email = ownerCache[ownerId];
+      if (!email) {
+        const ownerRes = await hs(`/crm/v3/owners/${ownerId}`);
+        if (ownerRes.ok) {
+          email = ownerRes.data.email;
+          ownerCache[ownerId] = email;
+        }
+      }
+
+      if (email) {
+        await sb.from('assignment_numbers').update({ broker_email: email }).eq('id', row.id);
+        updated++;
+      }
+    } catch (e) {
+      errors.push({ deal_id: row.deal_id, reason: e.message });
+    }
+  }
+
+  return {
+    statusCode: 200,
+    headers: CORS,
+    body: JSON.stringify({ ok: true, total: missing.length, updated, errors: errors.length, details: errors }),
+  };
+}
+
+// ── GET ?stats=1 — Broker stats for current year ─────────────────────────
+// Returns assignments per broker per month for the given year.
+async function handleStats(sb, params) {
+  const year = params.year ? parseInt(params.year) : new Date().getFullYear();
+
+  const { data, error } = await sb
+    .from('assignment_numbers')
+    .select('broker_email, assigned_at')
+    .eq('year', year);
+
+  if (error) {
+    return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: error.message }) };
+  }
+
+  // Aggregate: { broker: { month: count, total: count } }
+  const brokers = {};
+  let grandTotal = 0;
+
+  for (const row of (data || [])) {
+    const broker = row.broker_email || 'Ukjent';
+    if (!brokers[broker]) {
+      brokers[broker] = { months: {}, total: 0 };
+    }
+
+    const month = row.assigned_at
+      ? new Date(row.assigned_at).getMonth() + 1  // 1-12
+      : null;
+
+    if (month) {
+      brokers[broker].months[month] = (brokers[broker].months[month] || 0) + 1;
+    }
+    brokers[broker].total++;
+    grandTotal++;
+  }
+
+  // Monthly totals
+  const monthlyTotals = {};
+  for (const b of Object.values(brokers)) {
+    for (const [m, count] of Object.entries(b.months)) {
+      monthlyTotals[m] = (monthlyTotals[m] || 0) + count;
+    }
+  }
+
+  return {
+    statusCode: 200,
+    headers: CORS,
+    body: JSON.stringify({ year, brokers, monthly_totals: monthlyTotals, grand_total: grandTotal }),
+  };
+}
+
 // ── Handler ────────────────────────────────────────────────────────────────
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: CORS, body: '' };
@@ -914,6 +1019,7 @@ exports.handler = async (event) => {
     if (params.queue)           return handleQueue(sb);
     if (params.oneflow_status)  return handleOneflowStatus(params);
     if (params.signing_dates)   return handleSigningDates(params);
+    if (params.stats)           return handleStats(sb, params);
     if (params.list)            return handleList(sb, params);
     if (params.next) {
       const next = await getNextNumber(sb);
@@ -931,8 +1037,9 @@ exports.handler = async (event) => {
 
     const action = params.action || body.action;
     if (action === 'assign')         return handleAssign(sb, body, auth.email);
-    if (action === 'bootstrap')      return handleBootstrap(sb, auth.email);
-    if (action === 'retry_oneflow')  return handleRetryOneflow(sb, body, auth.email);
+    if (action === 'bootstrap')        return handleBootstrap(sb, auth.email);
+    if (action === 'backfill_brokers') return handleBackfillBrokers(sb);
+    if (action === 'retry_oneflow')   return handleRetryOneflow(sb, body, auth.email);
 
     return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: `Ukjent action: ${action}` }) };
   }
