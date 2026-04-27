@@ -1010,36 +1010,54 @@ async function handleStats(sb, params) {
     return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: currentRes.error.message }) };
   }
 
-  function aggregate(rows) {
+  // YTD cutoff: same month+day as today, applied to both years
+  const now = new Date();
+  const ytdMonth = now.getMonth() + 1; // 1-based
+  const ytdDay = now.getDate();
+
+  function aggregate(rows, forYear) {
     const brokers = {};
     let grandTotal = 0;
     let missingSigningDate = 0;
 
     for (const row of (rows || [])) {
       const broker = row.broker_email || 'Ukjent';
-      if (!brokers[broker]) brokers[broker] = { months: {}, total: 0 };
+      if (!brokers[broker]) brokers[broker] = { months: {}, total: 0, ytd: 0 };
 
       const dateStr = row.oppdragsavtale_signed_at || row.assigned_at;
       if (!row.oppdragsavtale_signed_at) missingSigningDate++;
 
-      const month = dateStr ? new Date(dateStr).getMonth() + 1 : null;
+      const d = dateStr ? new Date(dateStr) : null;
+      const month = d ? d.getMonth() + 1 : null;
       if (month) brokers[broker].months[month] = (brokers[broker].months[month] || 0) + 1;
+
+      // YTD: count if date is before or on today's month+day
+      if (d) {
+        const m = d.getMonth() + 1;
+        const day = d.getDate();
+        if (m < ytdMonth || (m === ytdMonth && day <= ytdDay)) {
+          brokers[broker].ytd++;
+        }
+      }
+
       brokers[broker].total++;
       grandTotal++;
     }
 
     const monthlyTotals = {};
+    let ytdTotal = 0;
     for (const b of Object.values(brokers)) {
+      ytdTotal += b.ytd;
       for (const [m, count] of Object.entries(b.months)) {
         monthlyTotals[m] = (monthlyTotals[m] || 0) + count;
       }
     }
 
-    return { brokers, monthly_totals: monthlyTotals, grand_total: grandTotal, missing_signing_dates: missingSigningDate };
+    return { brokers, monthly_totals: monthlyTotals, grand_total: grandTotal, ytd_total: ytdTotal, missing_signing_dates: missingSigningDate };
   }
 
-  const current = aggregate(currentRes.data);
-  const prev = aggregate(prevRes.data || []);
+  const current = aggregate(currentRes.data, year);
+  const prev = aggregate(prevRes.data || [], year - 1);
 
   return {
     statusCode: 200,
@@ -1047,10 +1065,12 @@ async function handleStats(sb, params) {
     body: JSON.stringify({
       year,
       ...current,
+      ytd_cutoff: `${ytdDay}. ${['jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov','des'][ytdMonth - 1]}`,
       prev_year: year - 1,
       prev_brokers: prev.brokers,
       prev_monthly_totals: prev.monthly_totals,
       prev_grand_total: prev.grand_total,
+      prev_ytd_total: prev.ytd_total,
       prev_missing_signing_dates: prev.missing_signing_dates,
     }),
   };

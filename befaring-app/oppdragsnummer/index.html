@@ -917,14 +917,10 @@ async function loadStats() {
     return `${val || '<span style="color:var(--gray-dark)">–</span>'}${d}`;
   }
 
-  // YTD helper: sum months 1..currentMonth
-  function ytd(months) {
-    let sum = 0;
-    for (let m = 1; m <= currentMonth; m++) sum += (months[m] || 0);
-    return sum;
-  }
-  const prevYtdGrand = ytd(prevTotals);
-  const ytdGrand = ytd(data.monthly_totals);
+  // YTD from backend (day-precise: same month+day cutoff both years)
+  const ytdCutoff = data.ytd_cutoff || '';
+  const ytdGrand = data.ytd_total || 0;
+  const prevYtdGrand = data.prev_ytd_total || 0;
 
   content.innerHTML = `
     <div style="overflow-x:auto">
@@ -933,16 +929,16 @@ async function loadStats() {
           <tr>
             <th>Megler</th>
             ${monthCols.map(m => `<th>${MONTH_NAMES[m-1]}</th>`).join('')}
-            <th style="border-left:2px solid var(--border)">YTD</th>
+            <th style="border-left:2px solid var(--border)" title="Per ${ytdCutoff}">YTD</th>
             <th>Totalt</th>
           </tr>
         </thead>
         <tbody>
           ${brokerEntries.map(([broker, info]) => {
             const displayName = broker === 'Ukjent' ? 'Ukjent megler' : broker.split('@')[0];
-            const prevInfo = prevBrokers[broker] || { months: {}, total: 0 };
-            const brokerYtd = ytd(info.months);
-            const prevBrokerYtd = ytd(prevInfo.months);
+            const prevInfo = prevBrokers[broker] || { months: {}, total: 0, ytd: 0 };
+            const brokerYtd = info.ytd || 0;
+            const prevBrokerYtd = prevInfo.ytd || 0;
             return `
               <tr>
                 <td>${esc(displayName)}</td>
