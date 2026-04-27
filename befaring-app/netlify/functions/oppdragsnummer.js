@@ -438,46 +438,74 @@ async function handleList(sb, params) {
 }
 
 // ── GET ?signing_dates=1 — Oppdragsavtale signing dates for assigned numbers ─
-// Fetches all Oneflow contracts once and matches by oppdragsnummer prefix.
-// Returns { dates: { "26001": "2026-04-15T...", ... } }
-async function handleSigningDates(params) {
+// First checks Supabase for cached dates. Only calls Oneflow for records
+// that don't have a date yet, then persists the result so it's never fetched again.
+async function handleSigningDates(sb, params) {
   const numbers = params.numbers ? params.numbers.split(',').filter(Boolean) : [];
   if (!numbers.length) {
     return { statusCode: 200, headers: CORS, body: JSON.stringify({ dates: {} }) };
   }
 
-  const allContracts = await fetchAllOneflowContracts();
+  // 1. Check what we already have in Supabase
+  const { data: rows } = await sb
+    .from('assignment_numbers')
+    .select('number, oppdragsavtale_signed_at')
+    .in('number', numbers);
+
   const dates = {};
+  const needsLookup = [];
 
   for (const num of numbers) {
-    dates[num] = null;
-    // Find oppdragsavtale contracts prefixed with this number
-    for (const c of allContracts) {
-      const cName = c._private?.name || c.name || '';
-      // Match contracts starting with the oppdragsnummer prefix (e.g. "26011 - ...")
-      if (!new RegExp(`^${num}\\s*[-–]`).test(cName.trim())) continue;
-
-      const tid = parseInt(c._private_ownerside?.template_id || c.template?._id || c.template?.id || 0);
-      const nameLower = cName.toLowerCase();
-      const isOppdragsavtale = OF_TEMPLATES.oppdragsavtale.includes(tid)
-        || nameLower.includes('salgsavtale')
-        || nameLower.includes('oppdragsavtale');
-
-      if (!isOppdragsavtale) continue;
-
-      const isSigned = c.state === 3 || c.state === 'signed';
-      if (!isSigned) continue;
-
-      // Use the contract's updated_time as signing timestamp
-      // Oneflow returns this as a Unix timestamp (seconds)
-      if (c.updated_time) {
-        const ts = typeof c.updated_time === 'number'
-          ? new Date(c.updated_time * 1000).toISOString()
-          : c.updated_time;
-        dates[num] = ts;
-      }
-      break; // Found the signed oppdragsavtale for this number
+    const row = (rows || []).find(r => r.number === num);
+    if (row && row.oppdragsavtale_signed_at) {
+      dates[num] = row.oppdragsavtale_signed_at;
+    } else {
+      dates[num] = null;
+      needsLookup.push(num);
     }
+  }
+
+  // 2. If all dates are cached, return immediately — no Oneflow call
+  if (!needsLookup.length) {
+    return { statusCode: 200, headers: CORS, body: JSON.stringify({ dates }) };
+  }
+
+  // 3. Fetch Oneflow contracts only once for the missing ones
+  try {
+    const allContracts = await fetchAllOneflowContracts();
+
+    for (const num of needsLookup) {
+      for (const c of allContracts) {
+        const cName = c._private?.name || c.name || '';
+        if (!new RegExp(`^${num}\\s*[-–]`).test(cName.trim())) continue;
+
+        const tid = parseInt(c._private_ownerside?.template_id || c.template?._id || c.template?.id || 0);
+        const nameLower = cName.toLowerCase();
+        const isOppdragsavtale = OF_TEMPLATES.oppdragsavtale.includes(tid)
+          || nameLower.includes('salgsavtale')
+          || nameLower.includes('oppdragsavtale');
+
+        if (!isOppdragsavtale) continue;
+
+        const isSigned = c.state === 3 || c.state === 'signed';
+        if (!isSigned) continue;
+
+        if (c.updated_time) {
+          const ts = typeof c.updated_time === 'number'
+            ? new Date(c.updated_time * 1000).toISOString()
+            : c.updated_time;
+          dates[num] = ts;
+
+          // 4. Persist to Supabase so we never look this up again
+          await sb.from('assignment_numbers')
+            .update({ oppdragsavtale_signed_at: ts })
+            .eq('number', num);
+        }
+        break;
+      }
+    }
+  } catch (e) {
+    console.error('Signing dates Oneflow feil:', e.message);
   }
 
   return {
@@ -913,26 +941,28 @@ async function handleBackfillBrokers(sb) {
     return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, updated: 0, message: 'Alle har megler' }) };
   }
 
-  // 1. Batch-fetch all deals with owner info in one HubSpot search
+  // 1. Batch-fetch all deals with owner info — chunk by 100 (HubSpot IN limit)
   const dealIds = missing.map(r => r.deal_id);
-  const searchBody = {
-    filterGroups: [{
-      filters: [{ propertyName: 'hs_object_id', operator: 'IN', values: dealIds }],
-    }],
-    properties: ['hubspot_owner_id'],
-    limit: 100,
-  };
-  const hsRes = await hs('/crm/v3/objects/deals/search', 'POST', searchBody);
-  if (!hsRes.ok) {
-    console.error('Backfill HubSpot search feil:', JSON.stringify(hsRes.data));
-    return { statusCode: 502, headers: CORS, body: JSON.stringify({ error: 'HubSpot batch-søk feilet' }) };
-  }
-
-  // Map deal_id → owner_id
   const dealOwnerMap = {};
-  for (const deal of (hsRes.data?.results || [])) {
-    const oid = deal.properties.hubspot_owner_id;
-    if (oid) dealOwnerMap[deal.id] = oid;
+
+  for (let i = 0; i < dealIds.length; i += 100) {
+    const chunk = dealIds.slice(i, i + 100);
+    const searchBody = {
+      filterGroups: [{
+        filters: [{ propertyName: 'hs_object_id', operator: 'IN', values: chunk }],
+      }],
+      properties: ['hubspot_owner_id'],
+      limit: 100,
+    };
+    const hsRes = await hs('/crm/v3/objects/deals/search', 'POST', searchBody);
+    if (!hsRes.ok) {
+      console.error('Backfill HubSpot search feil:', JSON.stringify(hsRes.data));
+      continue; // skip this chunk, try the rest
+    }
+    for (const deal of (hsRes.data?.results || [])) {
+      const oid = deal.properties.hubspot_owner_id;
+      if (oid) dealOwnerMap[deal.id] = oid;
+    }
   }
 
   // 2. Get unique owner IDs and resolve emails (few calls)
@@ -1033,7 +1063,7 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'GET') {
     if (params.queue)           return handleQueue(sb);
     if (params.oneflow_status)  return handleOneflowStatus(params);
-    if (params.signing_dates)   return handleSigningDates(params);
+    if (params.signing_dates)   return handleSigningDates(sb, params);
     if (params.stats)           return handleStats(sb, params);
     if (params.list)            return handleList(sb, params);
     if (params.next) {
