@@ -200,22 +200,28 @@ function findOneflowContractsInList(allContracts, dealName, boatName) {
 
 // ── Fetch all Oneflow contracts once (cached per request) ──────────────────
 async function fetchAllOneflowContracts(maxPages = 3) {
-  const MAX_PAGES = maxPages;  // Default 300, pass higher for deep lookups
-  let contracts = [];
-  let offset = 0;
-  let totalCount = Infinity;
-
-  while (offset < totalCount && offset < MAX_PAGES * 100) {
-    const res = await ofApi(`/contracts?limit=100&offset=${offset}`);
-    if (!res.ok) {
-      console.error('Oneflow fetch feil:', res.status, JSON.stringify(res.data));
-      break;
-    }
-    totalCount = res.data?.count || 0;
-    const page = res.data?.data || [];
-    contracts = [...contracts, ...page];
-    offset += 100;
+  // First page to get total count
+  const first = await ofApi(`/contracts?limit=100&offset=0`);
+  if (!first.ok) {
+    console.error('Oneflow fetch feil:', first.status, JSON.stringify(first.data));
+    return [];
   }
+  const totalCount = first.data?.count || 0;
+  let contracts = [...(first.data?.data || [])];
+
+  // Fetch remaining pages in parallel
+  const pagesToFetch = Math.min(maxPages, Math.ceil(totalCount / 100)) - 1;
+  if (pagesToFetch > 0) {
+    const fetches = [];
+    for (let i = 1; i <= pagesToFetch; i++) {
+      fetches.push(ofApi(`/contracts?limit=100&offset=${i * 100}`));
+    }
+    const results = await Promise.all(fetches);
+    for (const res of results) {
+      if (res.ok) contracts = [...contracts, ...(res.data?.data || [])];
+    }
+  }
+
   console.log(`Oneflow: hentet ${contracts.length} av ${totalCount} kontrakter`);
   return contracts;
 }
@@ -1105,8 +1111,8 @@ async function handleBackfillSigningDates(sb) {
   const allContracts = await fetchAllOneflowContracts(10);
   console.log(`Backfill signing dates: ${allContracts.length} Oneflow contracts fetched`);
 
-  // 3. Match each assignment
-  let updated = 0;
+  // 3. Match each assignment (in memory, no DB calls yet)
+  const toUpdate = []; // { number, date }
   const notFound = [];
 
   for (const row of missing) {
@@ -1118,7 +1124,6 @@ async function handleBackfillSigningDates(sb) {
       const cName = c._private?.name || c.name || '';
       const nameLower = cName.toLowerCase();
 
-      // Match by oppdragsnummer prefix OR boat name
       const prefixMatch = new RegExp(`^${num}\\s*[-–]`).test(cName.trim());
       const boatMatch = !prefixMatch && boatName && fuzzyMatch(cName, [boatName]);
 
@@ -1143,13 +1148,22 @@ async function handleBackfillSigningDates(sb) {
     }
 
     if (foundDate) {
-      await sb.from('assignment_numbers')
-        .update({ oppdragsavtale_signed_at: foundDate })
-        .eq('number', num);
-      updated++;
+      toUpdate.push({ number: num, date: foundDate });
     } else {
       notFound.push({ number: num, boat: boatName });
     }
+  }
+
+  // 4. Batch-update Supabase in parallel (groups of 10)
+  let updated = 0;
+  for (let i = 0; i < toUpdate.length; i += 10) {
+    const batch = toUpdate.slice(i, i + 10);
+    const results = await Promise.all(batch.map(({ number, date }) =>
+      sb.from('assignment_numbers')
+        .update({ oppdragsavtale_signed_at: date })
+        .eq('number', number)
+    ));
+    updated += results.filter(r => !r.error).length;
   }
 
   console.log(`Backfill signing dates: ${updated} updated, ${notFound.length} not found`);
