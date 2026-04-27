@@ -1114,11 +1114,13 @@ async function handleBackfillSigningDates(sb) {
   // 3. Match each assignment (in memory, no DB calls yet)
   const toUpdate = []; // { number, date }
   const notFound = [];
+  const debugSamples = []; // First 5 misses with detail
 
   for (const row of missing) {
     const num = row.number;
     const boatName = row.vessel_name || row.deal_name || '';
     let foundDate = null;
+    let debugInfo = null;
 
     for (const c of allContracts) {
       const cName = c._private?.name || c.name || '';
@@ -1129,14 +1131,20 @@ async function handleBackfillSigningDates(sb) {
 
       if (!prefixMatch && !boatMatch) continue;
 
+      // Found a name match — check if it's an oppdragsavtale
       const tid = parseInt(c._private_ownerside?.template_id || c.template?._id || c.template?.id || 0);
       const isOppdragsavtale = OF_TEMPLATES.oppdragsavtale.includes(tid)
         || nameLower.includes('salgsavtale')
         || nameLower.includes('oppdragsavtale');
 
-      if (!isOppdragsavtale) continue;
-
       const isSigned = c.state === 3 || c.state === 'signed';
+
+      // Debug: capture why we skipped
+      if (!debugInfo) {
+        debugInfo = { contract: cName, tid, isOppdragsavtale, state: c.state, isSigned };
+      }
+
+      if (!isOppdragsavtale) continue;
       if (!isSigned) continue;
 
       if (c.updated_time) {
@@ -1151,7 +1159,14 @@ async function handleBackfillSigningDates(sb) {
       toUpdate.push({ number: num, date: foundDate });
     } else {
       notFound.push({ number: num, boat: boatName });
+      if (debugSamples.length < 5) {
+        debugSamples.push({ number: num, boat: boatName, match: debugInfo || 'no name match at all' });
+      }
     }
+  }
+
+  if (debugSamples.length) {
+    console.log('Backfill debug samples:', JSON.stringify(debugSamples, null, 2));
   }
 
   // 4. Batch-update Supabase in parallel (groups of 10)
