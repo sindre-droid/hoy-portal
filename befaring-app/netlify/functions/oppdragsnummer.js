@@ -999,58 +999,62 @@ async function handleBackfillBrokers(sb) {
 // ── GET ?stats=1 — Broker stats for current year ─────────────────────────
 // Uses oppdragsavtale_signed_at (from Oneflow) as the source of truth for
 // when each deal was signed. Falls back to assigned_at only if no signing date.
+// Also returns previous year data for comparison.
 async function handleStats(sb, params) {
   const year = params.year ? parseInt(params.year) : new Date().getFullYear();
 
-  const { data, error } = await sb
-    .from('assignment_numbers')
-    .select('number, broker_email, assigned_at, oppdragsavtale_signed_at')
-    .eq('year', year);
+  // Fetch both current and previous year in parallel
+  const [currentRes, prevRes] = await Promise.all([
+    sb.from('assignment_numbers').select('number, broker_email, assigned_at, oppdragsavtale_signed_at').eq('year', year),
+    sb.from('assignment_numbers').select('number, broker_email, assigned_at, oppdragsavtale_signed_at').eq('year', year - 1),
+  ]);
 
-  if (error) {
-    return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: error.message }) };
+  if (currentRes.error) {
+    return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: currentRes.error.message }) };
   }
 
-  // Aggregate: { broker: { month: count, total: count } }
-  const brokers = {};
-  let grandTotal = 0;
-  let missingSigningDate = 0;
+  function aggregate(rows) {
+    const brokers = {};
+    let grandTotal = 0;
+    let missingSigningDate = 0;
 
-  for (const row of (data || [])) {
-    const broker = row.broker_email || 'Ukjent';
-    if (!brokers[broker]) {
-      brokers[broker] = { months: {}, total: 0 };
+    for (const row of (rows || [])) {
+      const broker = row.broker_email || 'Ukjent';
+      if (!brokers[broker]) brokers[broker] = { months: {}, total: 0 };
+
+      const dateStr = row.oppdragsavtale_signed_at || row.assigned_at;
+      if (!row.oppdragsavtale_signed_at) missingSigningDate++;
+
+      const month = dateStr ? new Date(dateStr).getMonth() + 1 : null;
+      if (month) brokers[broker].months[month] = (brokers[broker].months[month] || 0) + 1;
+      brokers[broker].total++;
+      grandTotal++;
     }
 
-    // Prefer Oneflow signing date, fall back to assigned_at
-    const dateStr = row.oppdragsavtale_signed_at || row.assigned_at;
-    if (!row.oppdragsavtale_signed_at) missingSigningDate++;
-
-    const month = dateStr
-      ? new Date(dateStr).getMonth() + 1  // 1-12
-      : null;
-
-    if (month) {
-      brokers[broker].months[month] = (brokers[broker].months[month] || 0) + 1;
+    const monthlyTotals = {};
+    for (const b of Object.values(brokers)) {
+      for (const [m, count] of Object.entries(b.months)) {
+        monthlyTotals[m] = (monthlyTotals[m] || 0) + count;
+      }
     }
-    brokers[broker].total++;
-    grandTotal++;
+
+    return { brokers, monthly_totals: monthlyTotals, grand_total: grandTotal, missing_signing_dates: missingSigningDate };
   }
 
-  // Monthly totals
-  const monthlyTotals = {};
-  for (const b of Object.values(brokers)) {
-    for (const [m, count] of Object.entries(b.months)) {
-      monthlyTotals[m] = (monthlyTotals[m] || 0) + count;
-    }
-  }
+  const current = aggregate(currentRes.data);
+  const prev = aggregate(prevRes.data || []);
 
   return {
     statusCode: 200,
     headers: CORS,
     body: JSON.stringify({
-      year, brokers, monthly_totals: monthlyTotals, grand_total: grandTotal,
-      missing_signing_dates: missingSigningDate,
+      year,
+      ...current,
+      prev_year: year - 1,
+      prev_brokers: prev.brokers,
+      prev_monthly_totals: prev.monthly_totals,
+      prev_grand_total: prev.grand_total,
+      prev_missing_signing_dates: prev.missing_signing_dates,
     }),
   };
 }
