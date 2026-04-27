@@ -359,7 +359,8 @@ async function init() {
     opt.value = y;
     opt.textContent = y;
     select.appendChild(opt);
-    statsSelect.appendChild(opt.cloneNode(true));
+    // Statistikk kun fra 2025+ (eldre data er upålitelig)
+    if (y >= 2025) statsSelect.appendChild(opt.cloneNode(true));
   }
 
   await loadNext();
