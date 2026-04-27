@@ -1055,6 +1055,25 @@ async function handleStats(sb, params) {
   };
 }
 
+// ── POST action=set_signing_date — Manually set oppdragsavtale signing date ─
+async function handleSetSigningDate(sb, body) {
+  const { number, signed_at } = body;
+  if (!number || !signed_at) {
+    return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'number og signed_at påkrevd' }) };
+  }
+
+  const { error } = await sb
+    .from('assignment_numbers')
+    .update({ oppdragsavtale_signed_at: signed_at })
+    .eq('number', number);
+
+  if (error) {
+    return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: error.message }) };
+  }
+
+  return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true }) };
+}
+
 // ── Handler ────────────────────────────────────────────────────────────────
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: CORS, body: '' };
@@ -1092,7 +1111,8 @@ exports.handler = async (event) => {
     const action = params.action || body.action;
     if (action === 'assign')         return handleAssign(sb, body, auth.email);
     if (action === 'bootstrap')        return handleBootstrap(sb, auth.email);
-    if (action === 'backfill_brokers') return handleBackfillBrokers(sb);
+    if (action === 'backfill_brokers')  return handleBackfillBrokers(sb);
+    if (action === 'set_signing_date') return handleSetSigningDate(sb, body);
     if (action === 'retry_oneflow')   return handleRetryOneflow(sb, body, auth.email);
 
     return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: `Ukjent action: ${action}` }) };

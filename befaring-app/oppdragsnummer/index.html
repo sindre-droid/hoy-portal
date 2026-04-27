@@ -294,6 +294,21 @@
   </div>
 </div>
 
+<!-- Set signing date modal -->
+<div class="modal-overlay" id="dateModal" style="display:none" onclick="if(event.target===this)closeDateModal()">
+  <div class="modal">
+    <h3>Sett signeringsdato</h3>
+    <div id="dateDealInfo" style="font-size:13px;color:var(--gray-dark);margin-bottom:12px"></div>
+    <label>Dato kunden signerte oppdragsavtalen</label>
+    <input type="date" id="dateInput">
+    <input type="hidden" id="dateNumber">
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeDateModal()">Avbryt</button>
+      <button class="btn-modal-ok" id="dateSubmitBtn" onclick="submitDate()">Lagre</button>
+    </div>
+  </div>
+</div>
+
 <script>
 'use strict';
 
@@ -782,13 +797,19 @@ async function loadList() {
         </tr>
       </thead>
       <tbody>
-        ${list.map(a => `
+        ${list.map(a => {
+          const signedDate = a.oppdragsavtale_signed_at
+            ? new Date(a.oppdragsavtale_signed_at).toLocaleDateString('no-NO', { day: '2-digit', month: 'short', year: 'numeric' })
+            : null;
+          return `
           <tr>
             <td class="num-cell">${esc(a.number)}</td>
             <td>${esc(a.vessel_name || a.deal_name || '—')}</td>
             <td>${esc(a.broker_email ? a.broker_email.split('@')[0] : '—')}</td>
             <td>${a.assigned_at ? new Date(a.assigned_at).toLocaleDateString('no-NO', { day: '2-digit', month: 'short' }) : '—'}</td>
-            <td id="signed-${esc(a.number)}" style="color:var(--gray-dark);font-size:13px">⏳</td>
+            <td id="signed-${esc(a.number)}" style="font-size:13px;${signedDate ? 'color:var(--green);font-weight:600' : ''}">
+              ${signedDate || `<span style="color:var(--blue);cursor:pointer;font-weight:600" onclick="openDateModal('${esc(a.number)}','${esc(a.vessel_name || a.deal_name || '')}')">+ Sett dato</span>`}
+            </td>
             <td>${syncPill(a.hubspot_synced)}</td>
             <td>${a.oneflow_synced
               ? syncPill(true)
@@ -797,13 +818,10 @@ async function loadList() {
                 : '<span class="pill pill-no">—</span>'
             }</td>
             <td>${syncPill(a.poweroffice_synced)}</td>
-          </tr>
-        `).join('')}
+          </tr>`;
+        }).join('')}
       </tbody>
     </table>`;
-
-  // Lazy-load signing dates from Oneflow
-  loadSigningDates(list.map(a => a.number).filter(Boolean));
 }
 
 function syncPill(ok) {
@@ -978,6 +996,58 @@ async function loadSigningDates(numbers) {
       const el = document.getElementById(`signed-${num}`);
       if (el) el.textContent = '—';
     }
+  }
+}
+
+// ── Set signing date modal ──────────────────────────────────────────────
+
+function openDateModal(number, dealName) {
+  document.getElementById('dateNumber').value = number;
+  document.getElementById('dateDealInfo').textContent = `${number} — ${dealName}`;
+  document.getElementById('dateInput').value = '';
+  document.getElementById('dateSubmitBtn').disabled = false;
+  document.getElementById('dateSubmitBtn').textContent = 'Lagre';
+  document.getElementById('dateModal').style.display = 'flex';
+  document.getElementById('dateInput').focus();
+}
+
+function closeDateModal() {
+  document.getElementById('dateModal').style.display = 'none';
+}
+
+async function submitDate() {
+  const number = document.getElementById('dateNumber').value;
+  const dateVal = document.getElementById('dateInput').value;
+  const btn = document.getElementById('dateSubmitBtn');
+
+  if (!dateVal) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Lagrer...';
+
+  try {
+    const data = await api('?action=set_signing_date', 'POST', {
+      number,
+      signed_at: new Date(dateVal + 'T12:00:00').toISOString(),
+    });
+
+    if (data.ok) {
+      closeDateModal();
+      // Update the cell in the list
+      const cell = document.getElementById(`signed-${number}`);
+      if (cell) {
+        const d = new Date(dateVal);
+        cell.textContent = d.toLocaleDateString('no-NO', { day: '2-digit', month: 'short', year: 'numeric' });
+        cell.style.color = 'var(--green)';
+        cell.style.fontWeight = '600';
+      }
+    } else {
+      btn.textContent = data.error || 'Feil';
+      btn.disabled = false;
+    }
+  } catch (e) {
+    btn.textContent = 'Feil';
+    btn.disabled = false;
   }
 }
 
