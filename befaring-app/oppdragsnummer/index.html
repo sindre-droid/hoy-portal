@@ -268,7 +268,7 @@
           <select class="filter-select" id="statsYearFilter" onchange="loadStats()">
           </select>
         </div>
-        <div id="statsBackfillBar" style="display:none"></div>
+        <div id="statsBackfillBar" style="display:none;flex-direction:column"></div>
         <div id="statsContent">
           <div class="list-empty">Laster...</div>
         </div>
@@ -828,17 +828,30 @@ async function loadStats() {
     return;
   }
 
-  // Check if any broker is "Ukjent" — offer backfill
+  // Show backfill banners if data is missing
   const backfillBar = document.getElementById('statsBackfillBar');
+  const warnings = [];
+
   if (data.brokers['Ukjent'] && data.brokers['Ukjent'].total > 0) {
-    backfillBar.style.display = '';
-    backfillBar.className = 'backfill-bar';
-    backfillBar.innerHTML = `
-      <span>⚠️ ${data.brokers['Ukjent'].total} oppdrag mangler meglerinfo (importert fra HubSpot)</span>
+    warnings.push(`<div class="backfill-bar">
+      <span>⚠️ ${data.brokers['Ukjent'].total} oppdrag mangler meglerinfo</span>
       <button id="backfillBtn" onclick="runBackfill()">Hent meglere fra HubSpot</button>
-    `;
+    </div>`);
+  }
+
+  if (data.missing_signing_dates > 0) {
+    warnings.push(`<div class="backfill-bar">
+      <span>⚠️ ${data.missing_signing_dates} oppdrag mangler signeringsdato — månedstallene kan være upresise</span>
+      <button id="backfillDatesBtn" onclick="runBackfillDates()">Hent datoer fra Oneflow</button>
+    </div>`);
+  }
+
+  if (warnings.length) {
+    backfillBar.style.display = '';
+    backfillBar.innerHTML = warnings.join('');
   } else {
     backfillBar.style.display = 'none';
+    backfillBar.innerHTML = '';
   }
 
   // Current month for highlighting
@@ -908,6 +921,32 @@ async function runBackfill() {
     }
   } catch (e) {
     console.error('Backfill exception:', e);
+    btn.textContent = `Feil: ${e.message}`;
+    btn.disabled = false;
+  }
+}
+
+async function runBackfillDates() {
+  const btn = document.getElementById('backfillDatesBtn');
+  if (!btn) return;
+  btn.disabled = true;
+  btn.textContent = 'Henter fra Oneflow...';
+
+  try {
+    // Get all numbers for this year, then trigger signing_dates lookup
+    const year = document.getElementById('statsYearFilter').value || new Date().getFullYear();
+    const listData = await api(`?list=1&year=${year}`);
+    const numbers = (listData.assignments || []).map(a => a.number).filter(Boolean);
+
+    if (numbers.length) {
+      await api(`?signing_dates=1&numbers=${numbers.join(',')}`);
+    }
+
+    btn.textContent = '✓ Oppdatert';
+    btn.style.background = 'var(--green)';
+    setTimeout(() => loadStats(), 500);
+  } catch (e) {
+    console.error('Backfill dates feil:', e);
     btn.textContent = `Feil: ${e.message}`;
     btn.disabled = false;
   }
