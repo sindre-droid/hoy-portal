@@ -857,7 +857,7 @@ function renderOverviewSection(p) {
         <button type="button" onclick="rteCmd('removeFormat')" title="Fjern formatering">✕ Fjern</button>
       </div>
       <div class="rte-editor" contenteditable="true" id="descBodyField"
-        oninput="handleRteInput()">${p.description_body||''}</div>
+        oninput="handleRteInput()" onpaste="handleRtePaste(event)">${p.description_body||''}</div>
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div class="field-hint">Marker tekst og bruk knappene over for formatering.</div>
         <div class="char-count ${bodyClass}" id="bodyCount">${bodyLen} / ${MAX_BODY} tegn</div>
@@ -891,6 +891,16 @@ function rteCmd(cmd, arg) {
   document.execCommand(cmd, false, arg || null);
   const el = document.getElementById('descBodyField');
   if (el) el.focus();
+}
+
+// Strip formatting on paste — keep only text and paragraph breaks
+function handleRtePaste(e) {
+  e.preventDefault();
+  const plain = (e.clipboardData || window.clipboardData).getData('text/plain');
+  // Split by double newlines → paragraphs, single newlines → <br>
+  const html = plain.split(/\n\n+/).map(p => p.trim()).filter(Boolean)
+    .map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
+  document.execCommand('insertHTML', false, html || plain);
 }
 
 function handleRteInput() {
