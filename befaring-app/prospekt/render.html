@@ -1592,22 +1592,86 @@ const SECTION_BUILDERS = {
   contact:     buildContactPage,
 };
 
+// Build a single gallery page by index
+function buildSingleGalleryPage(p, pageIdx) {
+  const pages = (p.gallery_pages || []).filter(pg => (pg.images || []).some(img => img.url));
+  const page = pages[pageIdx];
+  if (!page) return '';
+  const totalPages = pages.length;
+
+  const layout = page.layout || '5up';
+  const images = (page.images || []).filter(img => img.url);
+  if (images.length === 0) return '';
+
+  const gridClass = `gallery-grid-${layout}`;
+  const imagesHtml = images.map((img, ii) => {
+    const wideClass = (layout === '5up' && ii === 0) ? 'gi-wide' : '';
+    const captionHtml = img.caption ? `<div class="gi-caption">${esc(img.caption)}</div>` : '';
+    const posStyle = img.posX !== undefined ? `object-position:${img.posX}% ${img.posY}%;` : '';
+    const zoomStyle = img.zoom && img.zoom > 1 ? `transform:scale(${img.zoom});` : '';
+    const imgStyle = (posStyle || zoomStyle) ? ` style="${posStyle}${zoomStyle}"` : '';
+    return `<div class="gi ${wideClass}"><img src="${esc(img.url)}" alt="${esc(img.caption || '')}"${imgStyle}>${captionHtml}</div>`;
+  }).join('');
+
+  return `
+    <div class="page-label">Bildegalleri ${pageIdx + 1}</div>
+    <div class="page">
+      <div class="gallery">
+        <div class="gallery-header">
+          <h2>Bildegalleri</h2>
+          <span class="gallery-subtitle">${esc(p.boat_name)} &middot; ${esc(String(p.model_year || ''))}</span>
+        </div>
+        <div class="${gridClass}">${imagesHtml}</div>
+        <div class="gallery-page-indicator">${pageIdx + 1} / ${totalPages}</div>
+      </div>
+    </div>
+  `;
+}
+
 const DEFAULT_ORDER = ['cover', 'overview', 'gallery', 'equipment', 'declaration', 'freetext', 'contact'];
 
-function renderProspekt(p) {
-  const order = p.sections_order || DEFAULT_ORDER;
+function expandLegacyOrder(order, p) {
+  // Expand section-level entries like 'gallery' into page-level 'gallery:0', 'gallery:1', etc.
+  const expanded = [];
+  for (const entry of order) {
+    if (entry === 'gallery') {
+      const count = (p.gallery_pages || []).filter(pg => (pg.images || []).some(img => img.url)).length;
+      for (let i = 0; i < count; i++) expanded.push(`gallery:${i}`);
+    } else if (entry === 'freetext') {
+      expanded.push('freetext:0');
+    } else {
+      expanded.push(entry);
+    }
+  }
+  return expanded;
+}
 
-  // Always include cover first and contact last, even if not in sections_order
-  const sections = [];
-  if (!order.includes('cover')) sections.push('cover');
-  for (const s of order) sections.push(s);
-  if (!order.includes('contact')) sections.push('contact');
+function renderProspekt(p) {
+  const rawOrder = p.sections_order || DEFAULT_ORDER;
+  // Detect if order is page-level (has ':') or legacy section-level
+  const isPageLevel = rawOrder.some(e => e.includes(':'));
+  const order = isPageLevel ? rawOrder : expandLegacyOrder(rawOrder, p);
+
+  // Always include cover first and contact last
+  const entries = [];
+  if (!order.includes('cover')) entries.push('cover');
+  for (const e of order) entries.push(e);
+  if (!order.includes('contact')) entries.push('contact');
 
   let html = '';
-  for (const section of sections) {
+  for (const entry of entries) {
+    const parts = entry.split(':');
+    const section = parts[0];
+    const pageIdx = parts.length > 1 ? parseInt(parts[1]) : null;
+
     if (section === 'declaration' && p.declaration_excluded) continue;
-    const builder = SECTION_BUILDERS[section];
-    if (builder) html += builder(p);
+
+    if (section === 'gallery' && pageIdx !== null) {
+      html += buildSingleGalleryPage(p, pageIdx);
+    } else {
+      const builder = SECTION_BUILDERS[section];
+      if (builder) html += builder(p);
+    }
   }
   return html;
 }

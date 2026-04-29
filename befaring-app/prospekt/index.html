@@ -588,24 +588,89 @@ const SECTION_DEFS = {
   contact:     { title: 'Kontaktside',       icon: '📞', required: true },
 };
 
+// ── Page-level ordering helpers ──────────────────────────────────────────────
+// sections_order stores page-level entries like 'gallery:0', 'gallery:1', 'equipment', etc.
+// Legacy section-level entries ('gallery', 'freetext') are expanded on load.
+
+function buildPageOrder(p) {
+  const raw = p.sections_order || Object.keys(SECTION_DEFS);
+  const expanded = [];
+  for (const entry of raw) {
+    if (entry === 'gallery') {
+      // Legacy: expand to per-page entries
+      const count = (p.gallery_pages || []).length || 1;
+      for (let i = 0; i < count; i++) expanded.push(`gallery:${i}`);
+    } else if (entry === 'freetext') {
+      // Freetext currently only has 1 page, but keep expandable
+      expanded.push('freetext:0');
+    } else if (!entry.includes(':') && !SECTION_DEFS[entry]) {
+      continue; // skip unknown
+    } else {
+      expanded.push(entry);
+    }
+  }
+  // Ensure all gallery pages are represented (in case pages were added after order was saved)
+  const galCount = (p.gallery_pages || []).length;
+  for (let i = 0; i < galCount; i++) {
+    if (!expanded.includes(`gallery:${i}`)) {
+      // Insert after the last gallery entry, or after overview
+      const lastGal = expanded.reduce((acc, e, idx) => e.startsWith('gallery:') ? idx : acc, -1);
+      const insertAt = lastGal >= 0 ? lastGal + 1 : expanded.indexOf('overview') + 1 || 2;
+      expanded.splice(insertAt, 0, `gallery:${i}`);
+    }
+  }
+  // Ensure freetext is present
+  if (!expanded.some(e => e.startsWith('freetext'))) {
+    const contactIdx = expanded.indexOf('contact');
+    expanded.splice(contactIdx >= 0 ? contactIdx : expanded.length, 0, 'freetext:0');
+  }
+  return expanded;
+}
+
+function parseEntry(entry) {
+  // 'gallery:2' → { section: 'gallery', index: 2 }
+  // 'equipment' → { section: 'equipment', index: null }
+  const parts = entry.split(':');
+  return { section: parts[0], index: parts.length > 1 ? parseInt(parts[1]) : null };
+}
+
+function getEntryDef(entry) {
+  const { section, index } = parseEntry(entry);
+  const def = SECTION_DEFS[section];
+  if (!def) return null;
+  // For multi-page sections, create a modified title
+  if (section === 'gallery' && index !== null) {
+    const total = (currentProspekt.gallery_pages || []).length;
+    return { ...def, title: `Bildegalleri ${index + 1}`, required: false, isPage: true, pageIndex: index, section };
+  }
+  if (section === 'freetext' && index !== null) {
+    return { ...def, title: 'Fritekst', required: false, isPage: true, pageIndex: index, section };
+  }
+  return { ...def, isPage: false, pageIndex: null, section };
+}
+
 function renderSections() {
   const grid = $('sectionGrid');
   grid.innerHTML = '';
-  const order = currentProspekt.sections_order || Object.keys(SECTION_DEFS);
+  const order = buildPageOrder(currentProspekt);
+  // Store the page-level order back
+  currentProspekt.sections_order = order;
 
-  for (const key of order) {
-    const def = SECTION_DEFS[key];
+  for (const entry of order) {
+    const def = getEntryDef(entry);
     if (!def) continue;
+    const { section } = parseEntry(entry);
 
-    const isExcluded = key === 'declaration' && currentProspekt.declaration_excluded;
+    const isExcluded = section === 'declaration' && currentProspekt.declaration_excluded;
+    const isFixed = def.required; // cover, overview, contact
     const card = document.createElement('div');
     card.className = 'sec-card' + (isExcluded ? ' sec-excluded' : '');
-    card.dataset.section = key;
-    card.draggable = !def.required;
+    card.dataset.entry = entry;
+    card.draggable = !isFixed;
 
-    // Declaration toggle button (only when declaration has data)
+    // Declaration toggle button
     let excludeBtn = '';
-    if (key === 'declaration') {
+    if (section === 'declaration') {
       const hasDecl = currentProspekt.declaration_oneflow_id || (currentProspekt.declaration_sections && currentProspekt.declaration_sections.length > 0);
       if (hasDecl) {
         excludeBtn = isExcluded
@@ -617,22 +682,22 @@ function renderSections() {
     card.innerHTML = `
       <div class="sec-card-header" onclick="toggleSection(this)">
         <div class="sec-card-title">
-          ${!def.required ? '<span class="drag-handle" title="Dra for å sortere">⠿</span>' : ''}
+          ${!isFixed ? '<span class="drag-handle" title="Dra for å sortere">⠿</span>' : ''}
           <span>${def.icon} ${def.title}</span>
-          ${def.required ? '<span style="font-size:11px;color:var(--gray-dark)">(obligatorisk)</span>' : ''}
+          ${isFixed ? '<span style="font-size:11px;color:var(--gray-dark)">(obligatorisk)</span>' : ''}
           ${excludeBtn}
         </div>
         <span class="sec-toggle">▾</span>
       </div>
-      <div class="sec-card-body" id="sec-${key}"></div>
+      <div class="sec-card-body" id="sec-${entry.replace(':','-')}"></div>
     `;
     grid.appendChild(card);
 
     // Render section-specific content
-    renderSectionBody(key);
+    renderEntryBody(entry);
   }
 
-  // Set up drag & drop for section reordering
+  // Set up drag & drop
   setupSectionDrag();
 }
 
@@ -645,19 +710,29 @@ function toggleSection(header) {
 
 // ── Section body renderers ───────────────────────────────────────────────────
 
-function renderSectionBody(key) {
-  const el = $(`sec-${key}`);
+function renderEntryBody(entry) {
+  const el = $(`sec-${entry.replace(':','-')}`);
+  if (!el) return;
   const p = currentProspekt;
+  const { section, index } = parseEntry(entry);
 
-  switch (key) {
+  switch (section) {
     case 'cover': el.innerHTML = renderCoverSection(p); break;
     case 'overview': el.innerHTML = renderOverviewSection(p); break;
-    case 'gallery': el.innerHTML = renderGallerySection(p); break;
+    case 'gallery': el.innerHTML = renderGalleryPageEditor(p, index); break;
     case 'equipment': el.innerHTML = renderEquipmentSection(p); break;
     case 'declaration': el.innerHTML = renderDeclarationSection(p); break;
-    case 'freetext': el.innerHTML = renderFreetextSection(p); break;
+    case 'freetext': el.innerHTML = renderFreetextSection(p, index); break;
     case 'contact': el.innerHTML = renderContactSection(p); break;
   }
+}
+
+// Legacy wrapper — still used by fetchDeclaration etc.
+function renderSectionBody(key) {
+  // Find matching entry in current order
+  const order = currentProspekt.sections_order || [];
+  const entry = order.find(e => e === key || e.startsWith(key + ':')) || key;
+  renderEntryBody(entry);
 }
 
 function renderCoverSection(p) {
@@ -894,106 +969,92 @@ function renderSpecRows(rows, field) {
   }).join('');
 }
 
-function renderGallerySection(p) {
+const GALLERY_LAYOUTS = {
+  '1up':    { label: 'Full',         desc: '1 fullside',                    slots: 1 },
+  '2up_h':  { label: '2 stablet',    desc: '2 liggende over hverandre',     slots: 2 },
+  '3up_h':  { label: '3 stablet',    desc: '3 liggende stablet',            slots: 3 },
+  '4up_h':  { label: '4 stablet',    desc: '4 liggende stablet',            slots: 4 },
+  '4up_sw': { label: 'Sandwich',     desc: '1 topp + 2 firkant + 1 bunn',   slots: 4 },
+  '5up':    { label: '1+4',          desc: '1 stort + 4 små',               slots: 5 },
+  '4up':    { label: '2×2',          desc: '4 i rutenett (for miks)',       slots: 4 },
+  '2up':    { label: '2 høykant',    desc: '2 høykantbilder side om side',  slots: 2 },
+};
+
+function renderGalleryPageEditor(p, pageIdx) {
   const pages = p.gallery_pages || [];
+  const page = pages[pageIdx];
+  if (!page) return '<div class="empty-state" style="padding:20px">Ingen data for denne gallerisiden</div>';
 
-  // Layouts er sortert etter hvor godt de passer liggende bilder
-  // (nesten alle båtbilder er liggende). Høykant-varianter sist.
-  const LAYOUTS = {
-    '1up':    { label: 'Full',         desc: '1 fullside',                    slots: 1 },
-    '2up_h':  { label: '2 stablet',    desc: '2 liggende over hverandre',     slots: 2 },
-    '3up_h':  { label: '3 stablet',    desc: '3 liggende stablet',            slots: 3 },
-    '4up_h':  { label: '4 stablet',    desc: '4 liggende stablet',            slots: 4 },
-    '4up_sw': { label: 'Sandwich',     desc: '1 topp + 2 firkant + 1 bunn',   slots: 4 },
-    '5up':    { label: '1+4',          desc: '1 stort + 4 små',               slots: 5 },
-    '4up':    { label: '2×2',          desc: '4 i rutenett (for miks)',       slots: 4 },
-    '2up':    { label: '2 høykant',    desc: '2 høykantbilder side om side',  slots: 2 },
-  };
+  const pi = pageIdx;
+  const layout = page.layout || '5up';
+  const info = GALLERY_LAYOUTS[layout] || GALLERY_LAYOUTS['5up'];
+  const images = page.images || [];
 
-  const pagesHtml = pages.map((page, pi) => {
-    const layout = page.layout || '5up';
-    const info = LAYOUTS[layout] || LAYOUTS['5up'];
-    const images = page.images || [];
+  const layoutBtns = Object.entries(GALLERY_LAYOUTS).map(([key, l]) =>
+    `<button class="layout-opt ${key === layout ? 'active' : ''}" onclick="changeGalleryLayout(${pi},'${key}')">${l.label}</button>`
+  ).join('');
 
-    const layoutBtns = Object.entries(LAYOUTS).map(([key, l]) =>
-      `<button class="layout-opt ${key === layout ? 'active' : ''}" onclick="changeGalleryLayout(${pi},'${key}')">${l.label}</button>`
-    ).join('');
+  const slotCount = info.slots;
+  const slots = [];
+  for (let si = 0; si < slotCount; si++) {
+    const img = images[si];
+    const isWide = (layout === '5up' && si === 0)
+                || (layout === '4up_sw' && (si === 0 || si === 3));
+    const filled = img ? 'filled' : '';
+    const caption = img ? `<div class="slot-caption"><input type="text" value="${esc(img.caption||'')}" placeholder="Bildetekst…" onclick="event.stopPropagation()" onchange="updateGalleryCaption(${pi},${si},this.value)"></div>` : '';
+    const removeBtn = img ? `<button class="slot-remove" onclick="event.stopPropagation();removeGallerySlot(${pi},${si})">×</button>` : '';
+    const cropBtn = img ? `<button class="slot-remove" style="right:auto;left:4px;background:rgba(0,0,0,0.6);font-size:10px" onclick="event.stopPropagation();openCropModal(${pi},${si})" title="Juster bildeposisjon">✂</button>` : '';
+    const label = img ? '' : `<span class="slot-label">${isWide ? 'Stort bilde' : 'Velg bilde'}</span>`;
+    const posStyle = img?.posX !== undefined ? `object-position:${img.posX||50}% ${img.posY||50}%;` : '';
+    const zoomStyle = img?.zoom && img.zoom > 1 ? `transform:scale(${img.zoom});` : '';
+    const imgTagStyled = img ? `<img src="${esc(img.url)}" alt="" style="${posStyle}${zoomStyle}">` : '';
 
-    // Build slot grid based on layout
-    const slotCount = info.slots;
-    const slots = [];
-    for (let si = 0; si < slotCount; si++) {
-      const img = images[si];
-      const isWide = (layout === '5up' && si === 0)
-                  || (layout === '4up_sw' && (si === 0 || si === 3));
-      const filled = img ? 'filled' : '';
-      // imgTag built inline below with crop position styles
-      const caption = img ? `<div class="slot-caption"><input type="text" value="${esc(img.caption||'')}" placeholder="Bildetekst…" onclick="event.stopPropagation()" onchange="updateGalleryCaption(${pi},${si},this.value)"></div>` : '';
-      const removeBtn = img ? `<button class="slot-remove" onclick="event.stopPropagation();removeGallerySlot(${pi},${si})">×</button>` : '';
-      const cropBtn = img ? `<button class="slot-remove" style="right:auto;left:4px;background:rgba(0,0,0,0.6);font-size:10px" onclick="event.stopPropagation();openCropModal(${pi},${si})" title="Juster bildeposisjon">✂</button>` : '';
-      const label = img ? '' : `<span class="slot-label">${isWide ? 'Stort bilde' : 'Velg bilde'}</span>`;
+    let slotInline = '';
+    if (layout === '5up' && si === 0) slotInline = 'grid-column:1/-1';
+    else if (layout === '4up_sw' && si === 0) slotInline = 'grid-column:1/-1;grid-row:1';
+    else if (layout === '4up_sw' && si === 1) slotInline = 'grid-column:1;grid-row:2';
+    else if (layout === '4up_sw' && si === 2) slotInline = 'grid-column:2;grid-row:2';
+    else if (layout === '4up_sw' && si === 3) slotInline = 'grid-column:1/-1;grid-row:3';
 
-      // Apply stored crop position
-      const posStyle = img?.posX !== undefined ? `object-position:${img.posX||50}% ${img.posY||50}%;` : '';
-      const zoomStyle = img?.zoom && img.zoom > 1 ? `transform:scale(${img.zoom});` : '';
-      const imgTagStyled = img ? `<img src="${esc(img.url)}" alt="" style="${posStyle}${zoomStyle}">` : '';
+    slots.push(`<div class="gallery-slot ${filled} ${isWide ? 'wide' : ''}" style="${slotInline}" onclick="pickGallerySlot(${pi},${si})">${imgTagStyled}${label}${removeBtn}${cropBtn}${caption}</div>`);
+  }
 
-      // Sandwich layout: slot 0 = full top, slot 3 = full bottom
-      let slotInline = '';
-      if (layout === '5up' && si === 0) slotInline = 'grid-column:1/-1';
-      else if (layout === '4up_sw' && si === 0) slotInline = 'grid-column:1/-1;grid-row:1';
-      else if (layout === '4up_sw' && si === 1) slotInline = 'grid-column:1;grid-row:2';
-      else if (layout === '4up_sw' && si === 2) slotInline = 'grid-column:2;grid-row:2';
-      else if (layout === '4up_sw' && si === 3) slotInline = 'grid-column:1/-1;grid-row:3';
+  let gridStyle;
+  if (layout === '5up')         gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:140px 100px 100px';
+  else if (layout === '4up_sw') gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:110px 85px 110px';
+  else if (layout === '4up_h')  gridStyle = 'grid-template-columns:1fr;grid-template-rows:72px 72px 72px 72px';
+  else if (layout === '3up_h')  gridStyle = 'grid-template-columns:1fr;grid-template-rows:95px 95px 95px';
+  else if (layout === '2up_h')  gridStyle = 'grid-template-columns:1fr;grid-template-rows:140px 140px';
+  else if (layout === '4up')    gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:120px 120px';
+  else if (layout === '2up')    gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:160px';
+  else                          gridStyle = 'grid-template-columns:1fr;grid-template-rows:260px';
 
-      slots.push(`<div class="gallery-slot ${filled} ${isWide ? 'wide' : ''}" style="${slotInline}" onclick="pickGallerySlot(${pi},${si})">${imgTagStyled}${label}${removeBtn}${cropBtn}${caption}</div>`);
-    }
+  const filledCount = images.filter(im => im && im.url).length;
+  const previewBtn = filledCount > 0
+    ? `<button class="btn-outline" style="font-size:11px;padding:5px 10px" onclick="openGalleryPagePreview(${pi})" title="Forhåndsvis hvordan siden blir i PDF">👁 Forhåndsvis</button>`
+    : '';
 
-    // Kompakt editor-grid med pixel-høyder (preview-knapp viser eksakt PDF-utseende).
-    let gridStyle;
-    if (layout === '5up')         gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:140px 100px 100px';
-    else if (layout === '4up_sw') gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:110px 85px 110px';
-    else if (layout === '4up_h')  gridStyle = 'grid-template-columns:1fr;grid-template-rows:72px 72px 72px 72px';
-    else if (layout === '3up_h')  gridStyle = 'grid-template-columns:1fr;grid-template-rows:95px 95px 95px';
-    else if (layout === '2up_h')  gridStyle = 'grid-template-columns:1fr;grid-template-rows:140px 140px';
-    else if (layout === '4up')    gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:120px 120px';
-    else if (layout === '2up')    gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:160px';
-    else                          gridStyle = 'grid-template-columns:1fr;grid-template-rows:260px';
-
-    const filledCount = images.filter(im => im && im.url).length;
-    const previewBtn = filledCount > 0
-      ? `<button class="btn-outline" style="font-size:11px;padding:5px 10px" onclick="openGalleryPagePreview(${pi})" title="Forhåndsvis hvordan siden blir i PDF">👁 Forhåndsvis</button>`
-      : '';
-
-    return `
-      <div class="gallery-page-editor">
-        <div class="gallery-page-header">
-          <h4>Side ${pi + 1}</h4>
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <div class="layout-options">${layoutBtns}</div>
-            ${previewBtn}
-            ${pages.length > 1 ? `<button class="btn-icon btn-icon-del" onclick="removeGalleryPage(${pi})" title="Fjern side">×</button>` : ''}
-          </div>
-        </div>
-        <div class="gallery-slot-grid" style="${gridStyle}">
-          ${slots.join('')}
-        </div>
-      </div>
-    `;
-  }).join('');
+  const totalPages = pages.length;
 
   return `
-    <div class="field-hint" style="margin-bottom:12px">
-      Velg layout for hver side, klikk på en posisjon for å velge bilde. Maks 4 gallerisider.<br>
-      <strong>Tips:</strong> De fleste båtbilder er liggende — bruk «2 stablet», «3 stablet», «4 stablet» eller «Sandwich» for best resultat. «2×2» og «1+4» passer for miks, «2 side» og «Full» for høykant.
+    <div class="field-hint" style="margin-bottom:8px">
+      Klikk på en posisjon for å velge bilde. Dra kortet for å flytte denne siden i prospektet.
     </div>
-    <div id="galleryEditor">
-      ${pages.length === 0 ? '<div class="empty-state" style="padding:20px">Ingen gallerisider lagt til</div>' : ''}
-      ${pagesHtml}
+    <div class="gallery-page-editor">
+      <div class="gallery-page-header">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div class="layout-options">${layoutBtns}</div>
+          ${previewBtn}
+          ${totalPages > 1 ? `<button class="btn-icon btn-icon-del" onclick="removeGalleryPage(${pi})" title="Fjern side">×</button>` : ''}
+        </div>
+      </div>
+      <div class="gallery-slot-grid" style="${gridStyle}">
+        ${slots.join('')}
+      </div>
     </div>
-    <div style="margin-top:12px;display:flex;gap:10px;align-items:center">
-      ${pages.length < 4 ? `<button class="btn-outline" style="font-size:13px;padding:8px 16px" onclick="addGalleryPage()">+ Legg til galleriside</button>` : `<span class="field-hint" style="color:var(--yellow)">Maks 4 gallerisider</span>`}
-      <a href="/prospekt/bilder.html" target="_blank" style="font-size:12px;color:var(--gold)">Last opp bilder →</a>
+    <div style="margin-top:8px;display:flex;gap:10px;align-items:center">
+      ${totalPages < 4 ? `<button class="btn-outline" style="font-size:12px;padding:6px 12px" onclick="addGalleryPage()">+ Ny galleriside</button>` : ''}
+      <a href="/prospekt/bilder.html" target="_blank" style="font-size:11px;color:var(--gold)">Last opp bilder →</a>
     </div>
   `;
 }
@@ -1297,9 +1358,10 @@ function toggleDeclSection(si) {
   if (toggle) toggle.classList.toggle('open', !isOpen);
 }
 
-function renderFreetextSection(p) {
+function renderFreetextSection(p, pageIdx) {
   const pages = p.freetext_pages || [];
-  const pg = pages[0] || {};
+  const idx = pageIdx != null ? pageIdx : 0;
+  const pg = pages[idx] || {};
   return `
     <div class="field">
       <label>Overskrift</label>
@@ -1729,8 +1791,9 @@ function removeGallerySlot(pageIdx, slotIdx) {
   const pages = currentProspekt.gallery_pages || [];
   if (pages[pageIdx]?.images?.[slotIdx]) {
     pages[pageIdx].images.splice(slotIdx, 1);
-    renderSectionBody('gallery');
-    $('sec-gallery').classList.add('open');
+    renderEntryBody(`gallery:${pageIdx}`);
+    const bodyEl = $(`sec-gallery-${pageIdx}`);
+    if (bodyEl) bodyEl.classList.add('open');
     scheduleAutoSave();
   }
 }
@@ -1739,18 +1802,35 @@ function removeGalleryPage(pageIdx) {
   const pages = currentProspekt.gallery_pages || [];
   pages.splice(pageIdx, 1);
   currentProspekt.gallery_pages = pages;
-  renderSectionBody('gallery');
-  $('sec-gallery').classList.add('open');
+  // Remove from sections_order and renumber gallery entries
+  const order = currentProspekt.sections_order || [];
+  const entryToRemove = `gallery:${pageIdx}`;
+  const newOrder = order.filter(e => e !== entryToRemove).map(e => {
+    if (e.startsWith('gallery:')) {
+      const idx = parseInt(e.split(':')[1]);
+      if (idx > pageIdx) return `gallery:${idx - 1}`;
+    }
+    return e;
+  });
+  currentProspekt.sections_order = newOrder;
+  renderSections();
   scheduleAutoSave();
 }
 
 function addGalleryPage() {
   const pages = currentProspekt.gallery_pages || [];
   if (pages.length >= 4) return toast('Maks 4 gallerisider', 'error');
+  const newIdx = pages.length;
   pages.push({ layout: '4up', images: [] });
   currentProspekt.gallery_pages = pages;
-  renderSectionBody('gallery');
-  $('sec-gallery').classList.add('open');
+  // Add entry to sections_order after the last gallery entry
+  const order = currentProspekt.sections_order || [];
+  const lastGalIdx = order.reduce((acc, e, i) => e.startsWith('gallery:') ? i : acc, -1);
+  const insertAt = lastGalIdx >= 0 ? lastGalIdx + 1 : 2; // after overview if no gallery yet
+  order.splice(insertAt, 0, `gallery:${newIdx}`);
+  currentProspekt.sections_order = order;
+  renderSections();
+  scheduleAutoSave();
 }
 
 function changeGalleryLayout(pageIdx, newLayout) {
@@ -1767,8 +1847,9 @@ function changeGalleryLayout(pageIdx, newLayout) {
     pages[pageIdx].images = pages[pageIdx].images.slice(0, maxSlots);
   }
   currentProspekt.gallery_pages = pages;
-  renderSectionBody('gallery');
-  $('sec-gallery').classList.add('open');
+  renderEntryBody(`gallery:${pageIdx}`);
+  const bodyEl = $(`sec-gallery-${pageIdx}`);
+  if (bodyEl) bodyEl.classList.add('open');
   scheduleAutoSave();
 }
 
@@ -1858,8 +1939,9 @@ function pickGallerySlot(pageIdx, slotIdx) {
     }
     pages[pageIdx].images = images;
     currentProspekt.gallery_pages = pages;
-    renderSectionBody('gallery');
-    $('sec-gallery').classList.add('open');
+    renderEntryBody(`gallery:${pageIdx}`);
+    const bodyEl = $(`sec-gallery-${pageIdx}`);
+    if (bodyEl) bodyEl.classList.add('open');
     scheduleAutoSave();
     toast('Bilde valgt');
   }, false);  // single pick for specific slot
@@ -2040,8 +2122,9 @@ function applyCrop() {
     const img = pages[cropState.pi]?.images?.[cropState.si];
     if (img) { img.posX = posX; img.posY = posY; img.zoom = zoom; }
     closeCropModal();
-    renderSectionBody('gallery');
-    $('sec-gallery').classList.add('open');
+    renderEntryBody(`gallery:${cropState.pi}`);
+    const bodyEl = $(`sec-gallery-${cropState.pi}`);
+    if (bodyEl) bodyEl.classList.add('open');
   } else {
     // Single image (cover / overview)
     const cropField = cropState.field.replace('_url', '_crop');
@@ -2321,10 +2404,13 @@ function setupSectionDrag() {
     const fromIdx = cards.indexOf(dragEl);
     const toIdx = cards.indexOf(target);
 
-    // Count fixed (required) sections at the top — never allow dropping into those slots
-    const order = currentProspekt.sections_order || Object.keys(SECTION_DEFS);
-    const fixedCount = order.filter((k, i) => SECTION_DEFS[k]?.required && i < 2).length;
-    if (toIdx < fixedCount) return; // can't drop before fixed sections
+    // Count fixed entries at the top (cover, overview)
+    const order = currentProspekt.sections_order || [];
+    const fixedCount = order.filter((e, i) => {
+      const { section } = parseEntry(e);
+      return SECTION_DEFS[section]?.required && i < 2;
+    }).length;
+    if (toIdx < fixedCount) return; // can't drop before fixed entries
 
     const moved = order.splice(fromIdx, 1)[0];
     order.splice(toIdx, 0, moved);
