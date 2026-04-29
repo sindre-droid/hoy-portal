@@ -1115,8 +1115,10 @@ function renderEquipCategory(cat, ci) {
     }
     const hasSubs = subs.length > 0;
     itemRows.push(`
-      <div class="equip-item-row" ${isExisting ? `draggable="true" data-ci="${ci}" data-ii="${ii}"` : ''}>
-        ${isExisting ? '<span class="equip-drag" title="Dra for å sortere">⠿</span>' : '<span style="width:15px"></span>'}
+      <div class="equip-item-row" ${isExisting ? `data-ci="${ci}" data-ii="${ii}"` : ''}>
+        ${isExisting ? `<span class="equip-drag" title="Dra for å sortere"
+          onmousedown="this.parentElement.draggable=true"
+          onmouseup="this.parentElement.draggable=false">⠿</span>` : '<span style="width:15px"></span>'}
         <input type="text" value="${esc(text)}" placeholder="${isExisting ? 'Utstyr…' : 'Nytt utstyr…'}"
           onchange="handleEquipInput(${ci},${ii},this.value)" onkeydown="equipKeyDown(event,${ci},${ii})"
           style="${!isExisting ? 'border-style:dashed;opacity:0.7' : ''}">
@@ -1782,30 +1784,18 @@ function setupEquipDrag() {
   let dragRow = null;
 
   editor.addEventListener('dragstart', e => {
-    // Only allow drag from the handle (not inputs or buttons)
-    if (!e.target.classList.contains('equip-drag')) { e.preventDefault(); return; }
-    const row = e.target.closest('.equip-item-row[draggable]');
-    if (!row) return;
+    const row = e.target.closest('.equip-item-row[data-ci]');
+    if (!row || !row.draggable) { e.preventDefault(); return; }
     dragRow = row;
     row.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
-    // Hide sub-rows visually during drag
-    let next = row.nextElementSibling;
-    while (next && next.classList.contains('equip-sub-row')) {
-      next.style.opacity = '0.3';
-      next = next.nextElementSibling;
-    }
+    e.dataTransfer.setData('text/plain', ''); // Required for Firefox
   });
 
   editor.addEventListener('dragend', e => {
     if (dragRow) {
       dragRow.classList.remove('dragging');
-      // Restore sub-row opacity
-      let next = dragRow.nextElementSibling;
-      while (next && next.classList.contains('equip-sub-row')) {
-        next.style.opacity = '';
-        next = next.nextElementSibling;
-      }
+      dragRow.draggable = false;
       dragRow = null;
     }
     editor.querySelectorAll('.equip-item-row').forEach(r => {
@@ -1815,15 +1805,13 @@ function setupEquipDrag() {
 
   editor.addEventListener('dragover', e => {
     e.preventDefault();
-    const target = e.target.closest('.equip-item-row[draggable]');
+    const target = e.target.closest('.equip-item-row[data-ci]');
     if (!target || target === dragRow) return;
     editor.querySelectorAll('.equip-item-row').forEach(r => {
       r.classList.remove('drag-over-above', 'drag-over-below');
     });
-    // Determine if dropping above or below
     const rect = target.getBoundingClientRect();
-    const midY = rect.top + rect.height / 2;
-    if (e.clientY < midY) {
+    if (e.clientY < rect.top + rect.height / 2) {
       target.classList.add('drag-over-above');
     } else {
       target.classList.add('drag-over-below');
@@ -1832,7 +1820,7 @@ function setupEquipDrag() {
 
   editor.addEventListener('drop', e => {
     e.preventDefault();
-    const target = e.target.closest('.equip-item-row[draggable]');
+    const target = e.target.closest('.equip-item-row[data-ci]');
     if (!target || !dragRow || target === dragRow) return;
 
     const fromCi = parseInt(dragRow.dataset.ci);
@@ -1843,26 +1831,23 @@ function setupEquipDrag() {
     const cats = currentProspekt.equipment_categories || [];
     if (!cats[fromCi]?.items || !cats[toCi]?.items) return;
 
-    // Determine insert position (above or below target)
     const rect = target.getBoundingClientRect();
-    const midY = rect.top + rect.height / 2;
-    const insertBelow = e.clientY >= midY;
+    const insertBelow = e.clientY >= rect.top + rect.height / 2;
 
     // Remove from source
     const [moved] = cats[fromCi].items.splice(fromIi, 1);
 
-    // Calculate target index (adjust if same category and source was before target)
+    // Adjust target index
     let targetIdx = toIi;
     if (fromCi === toCi && fromIi < toIi) targetIdx--;
     if (insertBelow) targetIdx++;
 
-    // Insert at target
     cats[toCi].items.splice(targetIdx, 0, moved);
 
     currentProspekt.equipment_categories = cats;
     renderSectionBody('equipment');
     $('sec-equipment').classList.add('open');
-    // Re-open all categories that had items visible
+    // Keep all non-empty categories open
     cats.forEach((c, i) => {
       if ((c.items || []).length > 0) {
         const catEl = document.getElementById(`equipItems-${i}`);
