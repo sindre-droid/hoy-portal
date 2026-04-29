@@ -325,7 +325,7 @@ const SAIL_SECTIONS=[
   {key:'seil',title:'Seil',desc:'Slitasje, sømmer, lik/akterlik, UV-duk'},
 ];
 
-let currentUser=null,ownerRecord=null,allDeals=[],selectedDeal=null,ownersMap={};
+let currentUser=null,ownerRecord=null,allDeals=[],selectedDeal=null,ownersMap={},validBoatProps=new Set();
 let boatData={},boatId=null,isSailboat=false,isOnLand=false,motorCount=1,hasGenerator=false;
 let sections=[],currentSec=0,condState={},dealFieldData={},saved=false;
 let draftFieldValues=null,draftTimer=null;
@@ -638,7 +638,7 @@ async function selectDeal(dealId){
 async function loadBoatData(){
   try{
     let allProps=[];
-    try{const schema=await hs('GET',`/crm/v3/schemas/${BOAT_OBJECT_TYPE}`);if(schema?.properties)allProps=schema.properties.map(p=>p.name);}catch(e){}
+    try{const schema=await hs('GET',`/crm/v3/schemas/${BOAT_OBJECT_TYPE}`);if(schema?.properties){allProps=schema.properties.map(p=>p.name);validBoatProps=new Set(allProps);}}catch(e){}
     const propsParam=allProps.length?allProps.join(','):'batmerke,bat_modell,arsmodell,boat_type,kjenningssignal,hin__cin_nr,motorfabrikant,motorstorrelse,driftstimer_motor,location';
     const boat=await hs('GET',`/crm/v3/objects/${BOAT_OBJECT_TYPE}/${boatId}?properties=${propsParam}`);
     boatData=boat.properties||{};
@@ -1246,7 +1246,17 @@ async function saveBefaring(){
   const tasks=[
     hs('PATCH',`/crm/v3/objects/deals/${dealId}`,{properties:dp}).catch(e=>errors.push(`Deal: ${e.message}`)),
   ];
-  if(boatId&&Object.keys(bp).length>0)tasks.push(hs('PATCH',`/crm/v3/objects/${BOAT_OBJECT_TYPE}/${boatId}`,{properties:bp}).catch(e=>errors.push(`Boat: ${e.message}`)));
+  if(boatId&&Object.keys(bp).length>0){
+    // Filtrer bort properties som ikke eksisterer i HubSpot-skjemaet
+    const safeBp={};
+    const skippedProps=[];
+    for(const[k,v]of Object.entries(bp)){
+      if(!validBoatProps.size||validBoatProps.has(k))safeBp[k]=v;
+      else skippedProps.push(k);
+    }
+    if(skippedProps.length)console.warn('[Befaring] Boat-properties hoppet over (finnes ikke i skjema):',skippedProps.join(', '));
+    if(Object.keys(safeBp).length>0)tasks.push(hs('PATCH',`/crm/v3/objects/${BOAT_OBJECT_TYPE}/${boatId}`,{properties:safeBp}).catch(e=>errors.push(`Boat: ${e.message}`)));
+  }
   // Collect all uploaded file IDs for proper attachments in HubSpot
   const allFileIds=[];
   if(condState._hin_id)allFileIds.push({id:condState._hin_id});

@@ -51,3 +51,8 @@
   to = "/admin/"
   status = 301
 
+[[redirects]]
+  from = "/avspasering"
+  to = "/avspasering/"
+  status = 301
+
