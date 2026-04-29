@@ -135,6 +135,11 @@
   .equip-cat-name{font-size:13px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:1px}
   .equip-item-row{display:flex;gap:6px;margin-bottom:4px;align-items:center}
   .equip-item-row input{flex:1;padding:7px 10px;font-size:13px}
+  .equip-item-row.dragging{opacity:0.4}
+  .equip-item-row.drag-over-above{border-top:2px solid var(--gold);margin-top:-2px}
+  .equip-item-row.drag-over-below{border-bottom:2px solid var(--gold);margin-bottom:-2px}
+  .equip-drag{cursor:grab;color:var(--gray-dark);font-size:13px;user-select:none;padding:0 2px;line-height:1}
+  .equip-drag:active{cursor:grabbing}
 
   /* ── Gallery editor ── */
   .gallery-images-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:10px}
@@ -720,7 +725,7 @@ function renderEntryBody(entry) {
     case 'cover': el.innerHTML = renderCoverSection(p); break;
     case 'overview': el.innerHTML = renderOverviewSection(p); break;
     case 'gallery': el.innerHTML = renderGalleryPageEditor(p, index); break;
-    case 'equipment': el.innerHTML = renderEquipmentSection(p); break;
+    case 'equipment': el.innerHTML = renderEquipmentSection(p); setupEquipDrag(); break;
     case 'declaration': el.innerHTML = renderDeclarationSection(p); break;
     case 'freetext': el.innerHTML = renderFreetextSection(p, index); break;
     case 'contact': el.innerHTML = renderContactSection(p); break;
@@ -1110,7 +1115,8 @@ function renderEquipCategory(cat, ci) {
     }
     const hasSubs = subs.length > 0;
     itemRows.push(`
-      <div class="equip-item-row">
+      <div class="equip-item-row" ${isExisting ? `draggable="true" data-ci="${ci}" data-ii="${ii}"` : ''}>
+        ${isExisting ? '<span class="equip-drag" title="Dra for å sortere">⠿</span>' : '<span style="width:15px"></span>'}
         <input type="text" value="${esc(text)}" placeholder="${isExisting ? 'Utstyr…' : 'Nytt utstyr…'}"
           onchange="handleEquipInput(${ci},${ii},this.value)" onkeydown="equipKeyDown(event,${ci},${ii})"
           style="${!isExisting ? 'border-style:dashed;opacity:0.7' : ''}">
@@ -1118,14 +1124,14 @@ function renderEquipCategory(cat, ci) {
         ${isExisting ? `<button class="btn-icon btn-icon-del" onclick="removeEquipItem(${ci},${ii})" style="width:26px;height:26px;font-size:13px">×</button>` : '<div style="width:52px"></div>'}
       </div>
       ${isExisting && hasSubs ? subs.map((s, si) => `
-        <div class="equip-item-row" style="padding-left:20px">
+        <div class="equip-item-row equip-sub-row" style="padding-left:20px" data-parent-ii="${ii}">
           <input type="text" value="${esc(s)}" placeholder="Detalj…"
             style="font-size:12px;font-style:italic;border-style:dashed;opacity:0.7;padding:5px 8px"
             onchange="updateEquipSub(${ci},${ii},${si},this.value)">
           <button class="btn-icon btn-icon-del" onclick="removeEquipSub(${ci},${ii},${si})" style="width:22px;height:22px;font-size:11px">×</button>
         </div>
       `).join('') + `
-        <div class="equip-item-row" style="padding-left:20px">
+        <div class="equip-item-row equip-sub-row" style="padding-left:20px" data-parent-ii="${ii}">
           <input type="text" value="" placeholder="+ Ny detalj…"
             style="font-size:12px;font-style:italic;border-style:dashed;opacity:0.5;padding:5px 8px"
             onchange="addEquipSub(${ci},${ii},this.value)">
@@ -1767,6 +1773,104 @@ function removeEquipItem(ci, ii) {
   renderSectionBody('equipment');
   $('sec-equipment').classList.add('open');
   scheduleAutoSave();
+}
+
+// ── Equipment drag & drop (item reordering within/between categories) ──
+function setupEquipDrag() {
+  const editor = document.getElementById('equipEditor');
+  if (!editor) return;
+  let dragRow = null;
+
+  editor.addEventListener('dragstart', e => {
+    // Only allow drag from the handle (not inputs or buttons)
+    if (!e.target.classList.contains('equip-drag')) { e.preventDefault(); return; }
+    const row = e.target.closest('.equip-item-row[draggable]');
+    if (!row) return;
+    dragRow = row;
+    row.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    // Hide sub-rows visually during drag
+    let next = row.nextElementSibling;
+    while (next && next.classList.contains('equip-sub-row')) {
+      next.style.opacity = '0.3';
+      next = next.nextElementSibling;
+    }
+  });
+
+  editor.addEventListener('dragend', e => {
+    if (dragRow) {
+      dragRow.classList.remove('dragging');
+      // Restore sub-row opacity
+      let next = dragRow.nextElementSibling;
+      while (next && next.classList.contains('equip-sub-row')) {
+        next.style.opacity = '';
+        next = next.nextElementSibling;
+      }
+      dragRow = null;
+    }
+    editor.querySelectorAll('.equip-item-row').forEach(r => {
+      r.classList.remove('drag-over-above', 'drag-over-below');
+    });
+  });
+
+  editor.addEventListener('dragover', e => {
+    e.preventDefault();
+    const target = e.target.closest('.equip-item-row[draggable]');
+    if (!target || target === dragRow) return;
+    editor.querySelectorAll('.equip-item-row').forEach(r => {
+      r.classList.remove('drag-over-above', 'drag-over-below');
+    });
+    // Determine if dropping above or below
+    const rect = target.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    if (e.clientY < midY) {
+      target.classList.add('drag-over-above');
+    } else {
+      target.classList.add('drag-over-below');
+    }
+  });
+
+  editor.addEventListener('drop', e => {
+    e.preventDefault();
+    const target = e.target.closest('.equip-item-row[draggable]');
+    if (!target || !dragRow || target === dragRow) return;
+
+    const fromCi = parseInt(dragRow.dataset.ci);
+    const fromIi = parseInt(dragRow.dataset.ii);
+    const toCi = parseInt(target.dataset.ci);
+    const toIi = parseInt(target.dataset.ii);
+
+    const cats = currentProspekt.equipment_categories || [];
+    if (!cats[fromCi]?.items || !cats[toCi]?.items) return;
+
+    // Determine insert position (above or below target)
+    const rect = target.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    const insertBelow = e.clientY >= midY;
+
+    // Remove from source
+    const [moved] = cats[fromCi].items.splice(fromIi, 1);
+
+    // Calculate target index (adjust if same category and source was before target)
+    let targetIdx = toIi;
+    if (fromCi === toCi && fromIi < toIi) targetIdx--;
+    if (insertBelow) targetIdx++;
+
+    // Insert at target
+    cats[toCi].items.splice(targetIdx, 0, moved);
+
+    currentProspekt.equipment_categories = cats;
+    renderSectionBody('equipment');
+    $('sec-equipment').classList.add('open');
+    // Re-open all categories that had items visible
+    cats.forEach((c, i) => {
+      if ((c.items || []).length > 0) {
+        const catEl = document.getElementById(`equipItems-${i}`);
+        if (catEl) catEl.style.display = 'block';
+      }
+    });
+    scheduleAutoSave();
+  });
 }
 
 // ── Freetext ──
