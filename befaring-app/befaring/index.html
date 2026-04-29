@@ -1272,8 +1272,8 @@ async function saveBefaring(){
   }
   await Promise.all(tasks);
   saved=true;$('saveBtn').disabled=false;hide('navBar');
-  // Merk utkastet som ferdig lagret (sletter ikke — nyttig referanse ved neste befaring på samme deal)
-  fetch(DRAFT_BASE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deal_id:dealId,data:{...JSON.parse(JSON.stringify({isSailboat,motorCount,hasGenerator,isOnLand,condState})),dealName:dealFieldData?.dealname||selectedDeal?.properties?.dealname||'',brokerName:ownerRecord?.name||'',saved_at:new Date().toISOString()}})}).catch(()=>{});
+  // Merk utkastet som ferdig lagret — inkluder fields så data kan gjenopprettes ved neste åpning
+  fetch(DRAFT_BASE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deal_id:dealId,data:{...JSON.parse(JSON.stringify({isSailboat,motorCount,hasGenerator,isOnLand,condState})),fields:captureDraftFields(),dealName:dealFieldData?.dealname||selectedDeal?.properties?.dealname||'',brokerName:ownerRecord?.name||'',saved_at:new Date().toISOString()}})}).catch(()=>{});
 
   // Build PDF payload — used by "Generer PDF"-knappen på completion-screen
   const pdfPayload={
