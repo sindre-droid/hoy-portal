@@ -688,6 +688,15 @@ function renderSections() {
       }
     }
 
+    // Gallery page delete button (only when >1 gallery pages exist)
+    let deleteBtn = '';
+    if (section === 'gallery' && def.pageIndex !== null) {
+      const galPageCount = (currentProspekt.gallery_pages || []).length;
+      if (galPageCount > 1) {
+        deleteBtn = `<button class="btn-icon btn-icon-del" onclick="event.stopPropagation();removeGalleryPage(${def.pageIndex})" title="Fjern galleriside" style="width:26px;height:26px;font-size:14px;margin-left:4px">×</button>`;
+      }
+    }
+
     card.innerHTML = `
       <div class="sec-card-header" onclick="toggleSection(this)">
         <div class="sec-card-title">
@@ -696,7 +705,10 @@ function renderSections() {
           ${isFixed ? '<span style="font-size:11px;color:var(--gray-dark)">(obligatorisk)</span>' : ''}
           ${excludeBtn}
         </div>
-        <span class="sec-toggle">▾</span>
+        <div style="display:flex;align-items:center;gap:4px">
+          ${deleteBtn}
+          <span class="sec-toggle">▾</span>
+        </div>
       </div>
       <div class="sec-card-body" id="sec-${entry.replace(':','-')}"></div>
     `;
