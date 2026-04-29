@@ -1786,6 +1786,7 @@ function setupEquipDrag() {
   editor.addEventListener('dragstart', e => {
     const row = e.target.closest('.equip-item-row[data-ci]');
     if (!row || !row.draggable) { e.preventDefault(); return; }
+    e.stopPropagation(); // Prevent section-level drag from activating
     dragRow = row;
     row.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
