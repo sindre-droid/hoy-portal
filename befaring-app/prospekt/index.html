@@ -603,8 +603,12 @@ function buildPageOrder(p) {
   for (const entry of raw) {
     if (entry === 'gallery') {
       // Legacy: expand to per-page entries
-      const count = (p.gallery_pages || []).length || 1;
-      for (let i = 0; i < count; i++) expanded.push(`gallery:${i}`);
+      const count = (p.gallery_pages || []).length;
+      if (count === 0) {
+        expanded.push('gallery:0'); // Show one empty card so user can add pages
+      } else {
+        for (let i = 0; i < count; i++) expanded.push(`gallery:${i}`);
+      }
     } else if (entry === 'freetext') {
       // Freetext currently only has 1 page, but keep expandable
       expanded.push('freetext:0');
@@ -988,7 +992,15 @@ const GALLERY_LAYOUTS = {
 function renderGalleryPageEditor(p, pageIdx) {
   const pages = p.gallery_pages || [];
   const page = pages[pageIdx];
-  if (!page) return '<div class="empty-state" style="padding:20px">Ingen data for denne gallerisiden</div>';
+  if (!page) {
+    return `
+      <div style="text-align:center;padding:24px 16px">
+        <div class="field-hint" style="margin-bottom:12px">Ingen galleribilder lagt til ennå.</div>
+        <button class="btn-outline" style="font-size:13px;padding:8px 16px" onclick="addGalleryPage()">+ Legg til galleriside</button>
+        <a href="/prospekt/bilder.html" target="_blank" style="display:block;margin-top:8px;font-size:11px;color:var(--gold)">Last opp bilder →</a>
+      </div>
+    `;
+  }
 
   const pi = pageIdx;
   const layout = page.layout || '5up';
