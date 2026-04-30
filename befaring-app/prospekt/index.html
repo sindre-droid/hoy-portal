@@ -140,6 +140,9 @@
   .equip-item-row.drag-over-below{border-bottom:2px solid var(--gold);margin-bottom:-2px}
   .equip-drag{cursor:grab;color:var(--gray-dark);font-size:13px;user-select:none;padding:0 2px;line-height:1}
   .equip-drag:active{cursor:grabbing}
+  .spec-drag-row.dragging{opacity:0.4}
+  .spec-drag-row.drag-over-above{border-top:2px solid var(--gold);margin-top:-2px}
+  .spec-drag-row.drag-over-below{border-bottom:2px solid var(--gold);margin-bottom:-2px}
 
   /* ── Gallery editor ── */
   .gallery-images-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:10px}
@@ -739,7 +742,7 @@ function renderEntryBody(entry) {
 
   switch (section) {
     case 'cover': el.innerHTML = renderCoverSection(p); break;
-    case 'overview': el.innerHTML = renderOverviewSection(p); break;
+    case 'overview': el.innerHTML = renderOverviewSection(p); setupSpecDrag(); break;
     case 'gallery': el.innerHTML = renderGalleryPageEditor(p, index); break;
     case 'equipment': el.innerHTML = renderEquipmentSection(p); setupEquipDrag(); break;
     case 'declaration': el.innerHTML = renderDeclarationSection(p); break;
@@ -985,12 +988,14 @@ async function _generateText_legacy() {
 function renderSpecRows(rows, field) {
   return rows.map((r, i) => {
     if (r.divider) return `
-      <div class="spec-editor-row" style="justify-content:center;padding:4px 0">
+      <div class="spec-editor-row spec-drag-row" data-field="${field}" data-idx="${i}" style="justify-content:center;padding:4px 0">
+        <span class="equip-drag" title="Dra for å sortere" onmousedown="this.parentElement.draggable=true">⠿</span>
         <hr style="flex:1;border:none;border-top:1px solid var(--gray)">
         <button class="btn-icon btn-icon-del" style="width:24px;height:24px;font-size:12px" onclick="removeSpecRow('${field}',${i})">×</button>
       </div>`;
     return `
-      <div class="spec-editor-row">
+      <div class="spec-editor-row spec-drag-row" data-field="${field}" data-idx="${i}">
+        <span class="equip-drag" title="Dra for å sortere" onmousedown="this.parentElement.draggable=true">⠿</span>
         <input type="text" value="${esc(r.label||'')}" placeholder="Egenskap" style="font-size:13px;padding:7px 10px"
           onchange="updateSpecRow('${field}',${i},'label',this.value)">
         <input type="text" value="${esc(r.value||'')}" placeholder="Verdi" style="font-size:13px;padding:7px 10px"
@@ -1528,8 +1533,8 @@ function addSpecRow(field) {
   arr.push({ label: '', value: '' });
   currentProspekt[field] = arr;
   renderSectionBody('overview');
-  // Re-open section
   $('sec-overview').classList.add('open');
+  setupSpecDrag();
 }
 
 function addSpecDivider(field) {
@@ -1538,6 +1543,7 @@ function addSpecDivider(field) {
   currentProspekt[field] = arr;
   renderSectionBody('overview');
   $('sec-overview').classList.add('open');
+  setupSpecDrag();
 }
 
 function addSuggestedRow(field, label) {
@@ -1546,6 +1552,7 @@ function addSuggestedRow(field, label) {
   currentProspekt[field] = arr;
   renderSectionBody('overview');
   $('sec-overview').classList.add('open');
+  setupSpecDrag();
   scheduleAutoSave();
 }
 
@@ -1562,6 +1569,7 @@ async function refreshSpecsFromHubSpot() {
     currentProspekt.capacities = data.capacities || [];
     renderSectionBody('overview');
     $('sec-overview').classList.add('open');
+    setupSpecDrag();
     toast('Spesifikasjoner oppdatert fra HubSpot', 'success');
   } catch (e) {
     console.error('refresh-specs error:', e);
@@ -1575,7 +1583,84 @@ function removeSpecRow(field, idx) {
   currentProspekt[field] = arr;
   renderSectionBody('overview');
   $('sec-overview').classList.add('open');
+  setupSpecDrag();
   scheduleAutoSave();
+}
+
+function setupSpecDrag() {
+  ['specsEditor', 'capsEditor'].forEach(editorId => {
+    const editor = document.getElementById(editorId);
+    if (!editor) return;
+    let dragRow = null;
+
+    // Remove old listeners by cloning
+    const fresh = editor.cloneNode(true);
+    editor.parentNode.replaceChild(fresh, editor);
+
+    fresh.addEventListener('dragstart', e => {
+      const row = e.target.closest('.spec-drag-row');
+      if (!row || !row.draggable) { e.preventDefault(); return; }
+      e.stopPropagation();
+      dragRow = row;
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', '');
+    });
+
+    fresh.addEventListener('dragend', e => {
+      if (dragRow) {
+        dragRow.classList.remove('dragging');
+        dragRow.draggable = false;
+        dragRow = null;
+      }
+      fresh.querySelectorAll('.spec-drag-row').forEach(r => {
+        r.classList.remove('drag-over-above', 'drag-over-below');
+      });
+    });
+
+    fresh.addEventListener('dragover', e => {
+      e.preventDefault();
+      const target = e.target.closest('.spec-drag-row');
+      if (!target || target === dragRow) return;
+      fresh.querySelectorAll('.spec-drag-row').forEach(r => {
+        r.classList.remove('drag-over-above', 'drag-over-below');
+      });
+      const rect = target.getBoundingClientRect();
+      if (e.clientY < rect.top + rect.height / 2) {
+        target.classList.add('drag-over-above');
+      } else {
+        target.classList.add('drag-over-below');
+      }
+    });
+
+    fresh.addEventListener('drop', e => {
+      e.preventDefault();
+      const target = e.target.closest('.spec-drag-row');
+      if (!target || !dragRow || target === dragRow) return;
+
+      const field = dragRow.dataset.field;
+      const fromIdx = parseInt(dragRow.dataset.idx);
+      const toIdx = parseInt(target.dataset.idx);
+
+      const arr = currentProspekt[field] || [];
+      if (fromIdx < 0 || fromIdx >= arr.length) return;
+
+      const rect = target.getBoundingClientRect();
+      const insertBelow = e.clientY >= rect.top + rect.height / 2;
+
+      const [moved] = arr.splice(fromIdx, 1);
+      let targetIdx = toIdx;
+      if (fromIdx < toIdx) targetIdx--;
+      if (insertBelow) targetIdx++;
+      arr.splice(targetIdx, 0, moved);
+
+      currentProspekt[field] = arr;
+      renderSectionBody('overview');
+      $('sec-overview').classList.add('open');
+      setupSpecDrag();
+      scheduleAutoSave();
+    });
+  });
 }
 
 // ── Equipment AI ──
@@ -1948,11 +2033,14 @@ function addGalleryPage() {
   const newIdx = pages.length;
   pages.push({ layout: '4up', images: [] });
   currentProspekt.gallery_pages = pages;
-  // Add entry to sections_order after the last gallery entry
+  // Add entry to sections_order after the last gallery entry (skip if placeholder already exists)
   const order = currentProspekt.sections_order || [];
-  const lastGalIdx = order.reduce((acc, e, i) => e.startsWith('gallery:') ? i : acc, -1);
-  const insertAt = lastGalIdx >= 0 ? lastGalIdx + 1 : 2; // after overview if no gallery yet
-  order.splice(insertAt, 0, `gallery:${newIdx}`);
+  const entryKey = `gallery:${newIdx}`;
+  if (!order.includes(entryKey)) {
+    const lastGalIdx = order.reduce((acc, e, i) => e.startsWith('gallery:') ? i : acc, -1);
+    const insertAt = lastGalIdx >= 0 ? lastGalIdx + 1 : 2; // after overview if no gallery yet
+    order.splice(insertAt, 0, entryKey);
+  }
   currentProspekt.sections_order = order;
   renderSections();
   scheduleAutoSave();
