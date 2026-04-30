@@ -843,10 +843,9 @@ exports.handler = async (event) => {
         return ok(images);
       }
 
-      // ── Get Pipeline B deals for dropdown (kun aktive stages, egne + splits) ──
+      // ── Get Pipeline B deals for dropdown (egne + splits, eller alle for ikke-meglere) ──
       if (qs.deals) {
         const ownerId = KNOWN_OWNERS[jwt.email] || null;
-        if (!ownerId) return ok([]);
 
         // Hent stages for Pipeline B og filtrer til aktive
         const ACTIVE_KEYWORDS = ['prep','listing ready','klar','live','publisert','under offer','bud','forhandl','negotiation','in contract','kontrakt'];
@@ -858,29 +857,49 @@ exports.handler = async (event) => {
 
         if (activeStageIds.length === 0) return ok([]);
 
-        // Hent egne deals + deal splits i parallell
-        const ownerF = { propertyName: 'hubspot_owner_id', operator: 'EQ', value: ownerId };
-        const splitF = { propertyName: 'hs_all_deal_split_owner_ids', operator: 'CONTAINS_TOKEN', value: ownerId };
         const stageF = { propertyName: 'dealstage', operator: 'IN', values: activeStageIds };
         const pipeF  = { propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_B };
 
-        const [ownRes, splitRes] = await Promise.all([
-          hs(`/crm/v3/objects/deals/search`, 'POST', {
-            filterGroups: [{ filters: [pipeF, stageF, ownerF] }],
-            properties: ['dealname', 'dealstage', 'amount'],
-            sorts: [{ propertyName: 'dealname', direction: 'ASCENDING' }],
-            limit: 100,
-          }),
-          hs(`/crm/v3/objects/deals/search`, 'POST', {
-            filterGroups: [{ filters: [pipeF, stageF, splitF] }],
-            properties: ['dealname', 'dealstage', 'amount'],
-            sorts: [{ propertyName: 'dealname', direction: 'ASCENDING' }],
-            limit: 100,
-          }),
-        ]);
+        let allDeals;
+        if (ownerId) {
+          // Megler: kun egne deals + deal splits
+          const ownerF = { propertyName: 'hubspot_owner_id', operator: 'EQ', value: ownerId };
+          const splitF = { propertyName: 'hs_all_deal_split_owner_ids', operator: 'CONTAINS_TOKEN', value: ownerId };
 
-        // Kombiner og dedupliser
-        const allDeals = [...(ownRes.data?.results || []), ...(splitRes.data?.results || [])];
+          const [ownRes, splitRes] = await Promise.all([
+            hs(`/crm/v3/objects/deals/search`, 'POST', {
+              filterGroups: [{ filters: [pipeF, stageF, ownerF] }],
+              properties: ['dealname', 'dealstage', 'amount'],
+              sorts: [{ propertyName: 'dealname', direction: 'ASCENDING' }],
+              limit: 100,
+            }),
+            hs(`/crm/v3/objects/deals/search`, 'POST', {
+              filterGroups: [{ filters: [pipeF, stageF, splitF] }],
+              properties: ['dealname', 'dealstage', 'amount'],
+              sorts: [{ propertyName: 'dealname', direction: 'ASCENDING' }],
+              limit: 100,
+            }),
+          ]);
+          allDeals = [...(ownRes.data?.results || []), ...(splitRes.data?.results || [])];
+        } else {
+          // Ikke-megler (fotograf o.l.): kun tidlige faser (prep/klargjøring)
+          const EARLY_KEYWORDS = ['prep','listing ready','klar'];
+          const earlyStageIds = stages
+            .filter(s => EARLY_KEYWORDS.some(kw => (s.label||'').toLowerCase().includes(kw)))
+            .map(s => s.id);
+          if (earlyStageIds.length === 0) return ok([]);
+          const earlyStageF = { propertyName: 'dealstage', operator: 'IN', values: earlyStageIds };
+
+          const allRes = await hs(`/crm/v3/objects/deals/search`, 'POST', {
+            filterGroups: [{ filters: [pipeF, earlyStageF] }],
+            properties: ['dealname', 'dealstage', 'amount'],
+            sorts: [{ propertyName: 'dealname', direction: 'ASCENDING' }],
+            limit: 100,
+          });
+          allDeals = allRes.data?.results || [];
+        }
+
+        // Dedupliser
         const seen = new Set();
         const hsRes = { ok: true, data: { results: allDeals.filter(d => { if (seen.has(d.id)) return false; seen.add(d.id); return true; }) } };
 
