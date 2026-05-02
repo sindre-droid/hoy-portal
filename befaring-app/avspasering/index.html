@@ -142,6 +142,23 @@
     .year-btn:hover{border-color:var(--navy);color:var(--text)}
     .year-current{font-size:18px;font-weight:700;color:var(--navy);min-width:60px;text-align:center}
 
+    /* ── Admin: balanse per ansatt (kompakt) ─────────────────────────────── */
+    .emp-row{background:white;border-radius:12px;box-shadow:var(--shadow);padding:14px 18px;margin-bottom:10px;display:grid;grid-template-columns:160px 1fr;gap:14px;align-items:center}
+    .emp-name{font-size:15px;font-weight:700;color:var(--navy)}
+    .emp-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+    .emp-stat{padding:8px 10px;background:var(--surface);border-radius:8px;border-left:3px solid var(--gray)}
+    .emp-stat.s-time{border-left-color:var(--blue-mid)}
+    .emp-stat.s-vac{border-left-color:var(--green)}
+    .emp-stat.s-sick{border-left-color:#dc2626}
+    .emp-stat.s-child{border-left-color:#9333ea}
+    .emp-stat-label{font-size:10px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;color:var(--gray-dark)}
+    .emp-stat-val{font-size:18px;font-weight:800;color:var(--navy);margin-top:1px;line-height:1.1}
+    .emp-stat-sub{font-size:11px;color:var(--gray-dark);margin-top:2px}
+    @media(max-width:700px){
+      .emp-row{grid-template-columns:1fr;gap:8px}
+      .emp-stats{grid-template-columns:repeat(2,1fr)}
+    }
+
     /* ── Calendar (simple list view) ─────────────────────────────────────── */
     .cal-month{margin-bottom:24px}
     .cal-month-h{font-size:14px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.8px;margin:0 0 10px;padding:0 4px}
@@ -452,6 +469,20 @@
         <div id="adminPendingList">
           <div class="empty-state">Laster…</div>
         </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:24px 0 6px;flex-wrap:wrap;gap:10px">
+        <h2 style="margin:0;font-size:20px;font-weight:800;color:var(--navy)">📊 Saldo per ansatt</h2>
+        <div class="year-selector">
+          <button class="year-btn" onclick="changeAdminYear(-1)">←</button>
+          <div class="year-current" id="adminYearLabel">—</div>
+          <button class="year-btn" onclick="changeAdminYear(1)">→</button>
+        </div>
+      </div>
+      <div style="font-size:13px;color:var(--gray-dark);margin-bottom:14px">Saldo for alle ansatte i kalenderåret</div>
+
+      <div id="adminBalances" style="margin-bottom:24px">
+        <div class="empty-state">Laster…</div>
       </div>
 
       <h2 style="margin:24px 0 6px;font-size:20px;font-weight:800;color:var(--navy)">📚 Alle oppføringer</h2>
@@ -810,7 +841,7 @@ function setTab(name) {
   if (name === 'register')  ensureDealsLoaded();
   if (name === 'my')        loadMyEntries();
   if (name === 'calendar')  loadCalendar();
-  if (name === 'admin')     { loadAdminPending(); loadAllEntries(); }
+  if (name === 'admin')     { loadAdminPending(); loadAdminBalances(); loadAllEntries(); }
 }
 
 // ── Year selector ─────────────────────────────────────────────────────────────
@@ -1296,6 +1327,64 @@ function escapeHtml(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;',
   })[c]);
+}
+
+// ── Saldo per ansatt (admin) ─────────────────────────────────────────────────
+let adminYear = new Date().getFullYear();
+
+function changeAdminYear(delta) {
+  adminYear += delta;
+  $('adminYearLabel').textContent = adminYear;
+  loadAdminBalances();
+}
+
+async function loadAdminBalances() {
+  $('adminYearLabel').textContent = adminYear;
+  const wrap = $('adminBalances');
+  wrap.innerHTML = '<div class="empty-state">Laster…</div>';
+  try {
+    const r = await api('admin_balances', { year: adminYear });
+    const emps = r.employees || [];
+    if (emps.length === 0) { wrap.innerHTML = '<div class="empty-state">Ingen ansatte</div>'; return; }
+    wrap.innerHTML = emps.map(emp => renderEmpRow(emp)).join('');
+  } catch (e) {
+    wrap.innerHTML = `<div class="empty-state" style="color:var(--red)">Feil: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function renderEmpRow(emp) {
+  const b = emp.balance;
+  const pendingTimeNote = (b.overtime.pending_hours > 0 || b.timeoff.pending_hours > 0)
+    ? `+${fmtNumber(b.overtime.pending_hours)}/-${fmtNumber(b.timeoff.pending_hours)} venter`
+    : `${fmtNumber(b.overtime.approved_hours)} opptjent`;
+  const pendingVac = b.vacation.pending_days > 0 ? `${fmtNumber(b.vacation.pending_days)} venter` : `${fmtNumber(b.vacation.used_days)} brukt`;
+  return `
+    <div class="emp-row">
+      <div class="emp-name">${escapeHtml(emp.name)}</div>
+      <div class="emp-stats">
+        <div class="emp-stat s-time">
+          <div class="emp-stat-label">Avspasering</div>
+          <div class="emp-stat-val">${fmtNumber(b.avspasering_balance)} t</div>
+          <div class="emp-stat-sub">${pendingTimeNote}</div>
+        </div>
+        <div class="emp-stat s-vac">
+          <div class="emp-stat-label">Ferie igjen</div>
+          <div class="emp-stat-val">${fmtNumber(b.vacation.remaining)} / ${b.vacation.quota}</div>
+          <div class="emp-stat-sub">${pendingVac}</div>
+        </div>
+        <div class="emp-stat s-sick">
+          <div class="emp-stat-label">Egenmelding</div>
+          <div class="emp-stat-val">${fmtNumber(b.sick_self.used_days)} / ${b.sick_self.quota} d</div>
+          <div class="emp-stat-sub">${b.sick_self.periods_used ?? 0} av ${b.sick_self.periods_max ?? 4} perioder</div>
+        </div>
+        <div class="emp-stat s-child">
+          <div class="emp-stat-label">Sykt barn</div>
+          <div class="emp-stat-val">${fmtNumber(b.sick_child.used_days)} / ${b.sick_child.quota} d</div>
+          <div class="emp-stat-sub">${fmtNumber(b.sick_child.remaining)} igjen</div>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 // ── Alle oppføringer (admin) ─────────────────────────────────────────────────

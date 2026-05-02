@@ -667,6 +667,19 @@ exports.handler = async (event) => {
       return ok({ entry: data });
     }
 
+    // ─── GET ?action=admin_balances (admin only) ───────────────────────────
+    // Returnerer saldo for ALLE ansatte for et gitt år.
+    if (event.httpMethod === 'GET' && action === 'admin_balances') {
+      if (!isAdmin) return err(403, 'Admin only');
+      const year = parseInt(q.year, 10) || new Date().getFullYear();
+      const results = [];
+      for (const [email, emp] of Object.entries(EMPLOYEES)) {
+        const balance = await computeBalance(supabase, email, year);
+        results.push({ email, name: emp.name, balance });
+      }
+      return ok({ employees: results, year });
+    }
+
     // ─── GET ?action=admin_all_entries (admin only) ────────────────────────
     // Full oversikt over alle oppføringer. Filter: ?year, ?type, ?status, ?user_email
     if (event.httpMethod === 'GET' && action === 'admin_all_entries') {
