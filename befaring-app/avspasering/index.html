@@ -264,9 +264,10 @@
 
         <div class="balance-card bc-sick">
           <div class="balance-label">Egenmelding (egen)</div>
-          <div class="balance-val"><span id="bSickRemaining">–</span><span class="balance-unit"> dager</span></div>
+          <div class="balance-val"><span id="bSickRemaining">–</span><span class="balance-unit"> kal. dager</span></div>
           <div class="balance-sub">
             <strong id="bSickUsed">–</strong> brukt av <strong id="bSickQuota">–</strong>
+            <div style="margin-top:4px"><strong id="bSickPeriods">–</strong> av <strong id="bSickPeriodsMax">–</strong> perioder brukt</div>
           </div>
         </div>
 
@@ -391,10 +392,14 @@
 
           <div class="field" id="fSickTypeWrap" style="display:none">
             <label for="fSickType">Type</label>
-            <select id="fSickType">
+            <select id="fSickType" onchange="onSickTypeChange()">
               <option value="self">Egen sykdom</option>
               <option value="child">Sykt barn</option>
             </select>
+            <div class="field-help" id="fSickHelp" style="margin-top:8px;padding:10px 12px;background:#fef3c7;border-radius:8px;color:#92400e;line-height:1.55">
+              <strong>Egenmeldingsregler:</strong> Maks <strong>3 kalenderdager</strong> per periode (helg teller).
+              Maks <strong>4 perioder</strong> per kalenderår. Lengre fravær eller flere perioder krever sykmelding fra lege.
+            </div>
           </div>
 
           <div class="field">
@@ -715,6 +720,8 @@ async function loadSummary() {
     $('bSickRemaining').textContent = fmtNumber(t.sick_self.remaining);
     $('bSickUsed').textContent      = fmtNumber(t.sick_self.used_days);
     $('bSickQuota').textContent     = t.sick_self.quota;
+    $('bSickPeriods').textContent     = t.sick_self.periods_used ?? 0;
+    $('bSickPeriodsMax').textContent  = t.sick_self.periods_max ?? 4;
 
     // Sykt barn
     $('bChildRemaining').textContent = fmtNumber(t.sick_child.remaining);
@@ -765,6 +772,11 @@ function selectType(type) {
 
   // Reset deal-/description-state når man bytter type
   onDealChange();
+}
+
+function onSickTypeChange() {
+  const v = $('fSickType').value;
+  $('fSickHelp').style.display = v === 'self' ? 'block' : 'none';
 }
 
 function updateDuration() {
@@ -819,6 +831,7 @@ function resetForm() {
   $('fHalfDay').checked = false;
   $('fDeal').value = '';
   $('fSickType').value = 'self';
+  onSickTypeChange();
   $('fDesc').value = '';
   $('fError').style.display = 'none';
 }
@@ -900,6 +913,13 @@ async function submitEntry() {
       body.hours = hours;
     } else if (currentType === 'sick') {
       body.sick_type = $('fSickType').value;
+      // Egen sykdom: maks 3 kalenderdager per periode
+      if (body.sick_type === 'self') {
+        const calDays = daysBetween(startDate, endDate);
+        if (calDays > 3) {
+          throw new Error('Egenmelding er maks 3 kalenderdager (helg teller). Lengre fravær krever sykmelding fra lege.');
+        }
+      }
     }
 
     const r = await api('submit', {}, 'POST', body);

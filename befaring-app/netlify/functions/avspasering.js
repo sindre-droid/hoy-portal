@@ -21,8 +21,10 @@ const PIPELINE_B = process.env.PIPELINE_B || '3211644128';
 
 // Standard kvoter (kalenderår)
 const VACATION_DAYS_PER_YEAR  = 25;  // 5 uker norsk standard (virkedager)
-const SICK_DAYS_PER_YEAR      = 12;  // 3 dager × 4 ganger (egen sykdom)
-const SICK_CHILD_DAYS         = 10;  // Sykt barn (norsk hovedregel — opp til 12 år)
+const SICK_DAYS_PER_YEAR      = 12;  // 3 kalenderdager × 4 ganger (egen sykdom)
+const SICK_PERIODS_PER_YEAR   = 4;   // Maks antall påbegynte egenmeldingsperioder
+const SICK_MAX_DAYS_PER_PERIOD = 3;  // Maks kalenderdager per egenmeldingsperiode
+const SICK_CHILD_DAYS         = 10;  // Sykt barn (norsk hovedregel — opp til 12 år, virkedager)
 
 // Hardkodet ansatt-liste (dem som kan bruke modulen)
 // Disse må også finnes i Netlify Identity for at login skal fungere.
@@ -194,6 +196,14 @@ function hoursFromTimes(startTime, endTime) {
   return roundedMinutes / 60;                    // hours, f.eks. 3.75
 }
 
+// ── Tell kalenderdager (inkluderer helg + helligdag) ────────────────────────
+// Brukes for egenmelding der norsk lov teller kalenderdager.
+function countCalendarDays(startDate, endDate) {
+  const a = new Date(startDate + 'T00:00:00');
+  const b = new Date(endDate   + 'T00:00:00');
+  return Math.round((b - a) / 86400000) + 1;
+}
+
 // ── Beregn virkedager (mellom to datoer, ekskl. helg + helligdag) ────────────
 async function countWorkdays(supabase, startDate, endDate) {
   // Bruker SQL-funksjonen vi opprettet i schemaet
@@ -232,6 +242,7 @@ async function computeBalance(supabase, email, year) {
   let timeoffApproved = 0,  timeoffPending = 0;
   let vacationApproved = 0, vacationPending = 0;
   let sickSelfApproved = 0, sickSelfPending = 0;
+  let sickSelfPeriods = 0;                          // teller hver påbegynt egenmeldingsperiode
   let sickChildApproved = 0, sickChildPending = 0;
 
   for (const e of (entries || [])) {
@@ -246,11 +257,15 @@ async function computeBalance(supabase, email, year) {
       const days = e.half_day ? 0.5 : await countWorkdays(supabase, e.start_date, e.end_date);
       if (isApproved) vacationApproved += days; else vacationPending += days;
     } else if (e.type === 'sick') {
-      const days = await countWorkdays(supabase, e.start_date, e.end_date);
       if (e.sick_type === 'child') {
+        // Sykt barn: virkedager (folketrygdloven §9-6)
+        const days = await countWorkdays(supabase, e.start_date, e.end_date);
         if (isApproved) sickChildApproved += days; else sickChildPending += days;
       } else {
+        // Egenmelding (egen sykdom): kalenderdager (folketrygdloven §8-23)
+        const days = countCalendarDays(e.start_date, e.end_date);
         if (isApproved) sickSelfApproved += days; else sickSelfPending += days;
+        sickSelfPeriods += 1;                       // hver entry = én påbegynt periode
       }
     }
   }
@@ -277,6 +292,9 @@ async function computeBalance(supabase, email, year) {
       used_days:    sickSelfApproved,
       pending_days: sickSelfPending,
       remaining:    SICK_DAYS_PER_YEAR - sickSelfApproved - sickSelfPending,
+      periods_used: sickSelfPeriods,
+      periods_max:  SICK_PERIODS_PER_YEAR,
+      max_days_per_period: SICK_MAX_DAYS_PER_PERIOD,
     },
     sick_child: {
       quota: SICK_CHILD_DAYS,
@@ -505,6 +523,29 @@ exports.handler = async (event) => {
       } else if (type === 'sick') {
         if (!['self','child'].includes(body.sick_type)) return err(400, 'Egenmelding krever sick_type (self|child)');
         insert.sick_type = body.sick_type;
+
+        // Egen sykdom: håndhev norske egenmeldingsregler
+        if (body.sick_type === 'self') {
+          // 1. Maks 3 kalenderdager per periode
+          const days = countCalendarDays(startDate, endDate);
+          if (days > SICK_MAX_DAYS_PER_PERIOD) {
+            return err(400, `En egenmeldingsperiode kan være maks ${SICK_MAX_DAYS_PER_PERIOD} kalenderdager. Lengre fravær krever sykmelding fra lege.`);
+          }
+          // 2. Maks 4 påbegynte perioder per år
+          const year = startDate.slice(0, 4);
+          const { count } = await supabase
+            .from('time_entries')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_email', userEmail)
+            .eq('type', 'sick')
+            .eq('sick_type', 'self')
+            .in('status', ['pending', 'approved'])
+            .gte('start_date', `${year}-01-01`)
+            .lte('start_date', `${year}-12-31`);
+          if ((count || 0) >= SICK_PERIODS_PER_YEAR) {
+            return err(400, `Du har allerede brukt ${SICK_PERIODS_PER_YEAR} egenmeldingsperioder i ${year}. Nye perioder krever sykmelding fra lege.`);
+          }
+        }
       }
       // vacation: ingen ekstra felt påkrevd
 
