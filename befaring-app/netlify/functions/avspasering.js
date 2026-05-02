@@ -30,6 +30,7 @@ const EMPLOYEES = {
   'sindre@h-y.no': { name: 'Sindre Jacobsen', hubspot_id: '633479117' },
   'daniel@h-y.no': { name: 'Daniel Ruud',     hubspot_id: '29136352'  },
   'henrik@h-y.no': { name: 'Henrik Bratz',    hubspot_id: '77221549'  },
+  'marte@h-y.no':  { name: 'Marte',           hubspot_id: '77221549'  },  // assistent for Henrik — ser Henriks deals
 };
 
 const ADMIN_EMAIL = 'sindre@h-y.no';   // Mottaker av godkjenningsvarsel
@@ -396,6 +397,12 @@ exports.handler = async (event) => {
 
       // Admin kan be om alle deals (brukes ved historikk-import)
       const fetchAll = isAdmin && q.all === '1';
+
+      // Hvis bruker mangler HubSpot owner ID (ny ansatt ikke koblet ennå),
+      // returner tom liste — de må bruke "Annet"-valget inntil admin legger inn ID
+      if (!ownerId && !fetchAll) {
+        return ok({ deals: [], scope: 'no_owner_id', warning: 'Du har ikke koblet HubSpot-bruker ennå — bruk "Annet" for nå' });
+      }
 
       // Bygg filterGroups: alle filtere i samme group AND'es; flere groups OR'es
       let filterGroups;
