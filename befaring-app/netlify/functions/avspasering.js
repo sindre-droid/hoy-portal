@@ -367,22 +367,53 @@ exports.handler = async (event) => {
     }
 
     // ─── GET ?action=fetch_deals (for overtid-skjema) ──────────────────────
+    // Returnerer kun aktive Pipeline B-deals der bruker er primær- eller
+    // sekundær-megler (eier eller på hs_all_owner_ids). Admin ser alle.
     if (event.httpMethod === 'GET' && action === 'fetch_deals') {
-      // Henter åpne deals i Pipeline B (aktive oppdrag)
-      const r = await hs('/crm/v3/objects/deals/search', 'POST', {
-        filterGroups: [{ filters: [
+      const ownerId = employee.hubspot_id;
+
+      // Admin kan be om alle deals (brukes ved historikk-import)
+      const fetchAll = isAdmin && q.all === '1';
+
+      // Bygg filterGroups: alle filtere i samme group AND'es; flere groups OR'es
+      let filterGroups;
+      if (fetchAll) {
+        filterGroups = [{ filters: [
           { propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_B },
-        ]}],
-        properties: ['dealname','dealstage','pipeline'],
+        ]}];
+      } else {
+        filterGroups = [
+          { filters: [
+            { propertyName: 'pipeline',          operator: 'EQ', value: PIPELINE_B },
+            { propertyName: 'hubspot_owner_id',  operator: 'EQ', value: ownerId },
+          ]},
+          { filters: [
+            { propertyName: 'pipeline',          operator: 'EQ', value: PIPELINE_B },
+            { propertyName: 'hs_all_owner_ids',  operator: 'CONTAINS_TOKEN', value: ownerId },
+          ]},
+        ];
+      }
+
+      const r = await hs('/crm/v3/objects/deals/search', 'POST', {
+        filterGroups,
+        properties: ['dealname','dealstage','pipeline','hubspot_owner_id','hs_all_owner_ids'],
         limit: 100,
         sorts: [{ propertyName: 'dealname', direction: 'ASCENDING' }],
       });
       if (!r.ok) return err(502, 'HubSpot-feil ved deal-henting');
-      const deals = (r.data.results || []).map(d => ({
-        id:   d.id,
-        name: d.properties?.dealname || `Deal ${d.id}`,
-      }));
-      return ok({ deals });
+
+      // Dedupe (samme deal kan komme i begge filterGroups)
+      const seen = new Set();
+      const deals = [];
+      for (const d of (r.data.results || [])) {
+        if (seen.has(d.id)) continue;
+        seen.add(d.id);
+        deals.push({
+          id:   d.id,
+          name: d.properties?.dealname || `Deal ${d.id}`,
+        });
+      }
+      return ok({ deals, scope: fetchAll ? 'all' : 'mine' });
     }
 
     // ─── POST ?action=submit ────────────────────────────────────────────────
@@ -411,13 +442,25 @@ exports.handler = async (event) => {
       };
 
       if (type === 'overtime') {
-        if (!body.deal_id) return err(400, 'Overtid krever deal_id');
         if (!body.hours || Number(body.hours) <= 0) return err(400, 'Overtid krever timer > 0');
-        insert.deal_id   = String(body.deal_id);
-        insert.deal_name = body.deal_name || null;
-        insert.hours     = Number(body.hours);
+        const hasDeal = body.deal_id && String(body.deal_id) !== '__other__';
+        const hasDesc = body.description && String(body.description).trim().length > 0;
+        if (!hasDeal && !hasDesc) {
+          return err(400, 'Overtid må enten knyttes til oppdrag eller forklares i kommentarfeltet ("Annet")');
+        }
+        if (hasDeal) {
+          insert.deal_id   = String(body.deal_id);
+          insert.deal_name = body.deal_name || null;
+        }
+        insert.hours = Number(body.hours);
       } else if (type === 'timeoff') {
         if (!body.hours || Number(body.hours) <= 0) return err(400, 'Avspasering krever timer > 0');
+        // 48t-sperre: avspaseringsuttak må sendes inn senest 48 timer før uttak
+        const requestedStart = new Date(startDate + 'T00:00:00');
+        const minStart = new Date(Date.now() + 48 * 3600 * 1000);
+        if (requestedStart < minStart) {
+          return err(400, 'Avspasering må sendes inn senest 48 timer før uttak');
+        }
         insert.hours = Number(body.hours);
       } else if (type === 'sick') {
         if (!['self','child'].includes(body.sick_type)) return err(400, 'Egenmelding krever sick_type (self|child)');
@@ -458,6 +501,70 @@ exports.handler = async (event) => {
         .eq('id', body.id)
         .select().single();
       if (error) return err(500, error.message);
+      return ok({ entry: data });
+    }
+
+    // ─── POST ?action=admin_create (admin only — historikk) ───────────────
+    // Oppretter en oppføring på vegne av en ansatt med status='approved'.
+    // Brukes for å importere data som har skjedd før portalen ble tatt i bruk.
+    // Ingen e-postvarsling, ingen 48t-sperre.
+    if (event.httpMethod === 'POST' && action === 'admin_create') {
+      if (!isAdmin) return err(403, 'Admin only');
+      const body = JSON.parse(event.body || '{}');
+
+      const targetEmail = String(body.user_email || '').toLowerCase();
+      const targetEmp   = EMPLOYEES[targetEmail];
+      if (!targetEmp) return err(400, 'Ukjent ansatt');
+
+      const type = body.type;
+      if (!['overtime','timeoff','vacation','sick'].includes(type)) {
+        return err(400, 'Ugyldig type');
+      }
+
+      const startDate = body.start_date;
+      const endDate   = body.end_date || body.start_date;
+      if (!startDate || !/^\d{4}-\d{2}-\d{2}$/.test(startDate)) return err(400, 'Mangler/ugyldig start_date');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(endDate)) return err(400, 'Ugyldig end_date');
+      if (endDate < startDate) return err(400, 'end_date må være ≥ start_date');
+
+      const insert = {
+        user_email:    targetEmail,
+        user_name:     targetEmp.name,
+        type,
+        start_date:    startDate,
+        end_date:      endDate,
+        half_day:      !!body.half_day,
+        description:   body.description || 'Historikk-import',
+        status:        'approved',
+        decided_by:    userEmail,
+        decided_at:    new Date().toISOString(),
+        decision_note: 'Importert som historikk',
+      };
+
+      if (type === 'overtime') {
+        if (!body.hours || Number(body.hours) <= 0) return err(400, 'Overtid krever timer > 0');
+        if (body.deal_id && String(body.deal_id) !== '__other__') {
+          insert.deal_id   = String(body.deal_id);
+          insert.deal_name = body.deal_name || null;
+        }
+        insert.hours = Number(body.hours);
+      } else if (type === 'timeoff') {
+        if (!body.hours || Number(body.hours) <= 0) return err(400, 'Avspasering krever timer > 0');
+        insert.hours = Number(body.hours);
+      } else if (type === 'sick') {
+        if (!['self','child'].includes(body.sick_type)) return err(400, 'Egenmelding krever sick_type (self|child)');
+        insert.sick_type = body.sick_type;
+      }
+
+      const { data, error } = await supabase
+        .from('time_entries')
+        .insert(insert)
+        .select()
+        .single();
+      if (error) {
+        console.error('admin_create error:', error);
+        return err(500, error.message);
+      }
       return ok({ entry: data });
     }
 

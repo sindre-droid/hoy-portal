@@ -361,11 +361,11 @@
           </div>
 
           <div class="field" id="fDealWrap">
-            <label for="fDeal">Oppdrag (påkrevd) <span style="color:var(--red)">*</span></label>
-            <select id="fDeal">
+            <label for="fDeal">Oppdrag <span style="color:var(--red)">*</span></label>
+            <select id="fDeal" onchange="onDealChange()">
               <option value="">— Laster oppdrag… —</option>
             </select>
-            <div class="field-help">All overtid må knyttes til et aktivt oppdrag</div>
+            <div class="field-help">Velg et av dine aktive oppdrag, eller "Annet" hvis det ikke gjelder et spesifikt oppdrag</div>
           </div>
 
           <div class="field" id="fSickTypeWrap" style="display:none">
@@ -377,8 +377,9 @@
           </div>
 
           <div class="field">
-            <label for="fDesc">Beskrivelse / kommentar</label>
+            <label for="fDesc"><span id="fDescLabel">Beskrivelse / kommentar</span></label>
             <textarea id="fDesc" placeholder="Hva ble gjort eller hvorfor? (valgfritt)"></textarea>
+            <div class="field-help" id="fDescHelp" style="display:none;color:var(--red)">Påkrevd når du velger "Annet"</div>
           </div>
 
           <div class="modal-error" id="fError"></div>
@@ -421,9 +422,85 @@
     <div class="tab-panel" id="panel-admin" style="display:none">
       <h2 style="margin:0 0 6px;font-size:20px;font-weight:800;color:var(--navy)">🔐 Ventende godkjenninger</h2>
       <div style="font-size:13px;color:var(--gray-dark);margin-bottom:18px">Alle innsendinger som venter på din godkjenning</div>
-      <div class="card" style="padding:0;overflow:hidden">
+      <div class="card" style="padding:0;overflow:hidden;margin-bottom:24px">
         <div id="adminPendingList">
           <div class="empty-state">Laster…</div>
+        </div>
+      </div>
+
+      <h2 style="margin:24px 0 6px;font-size:20px;font-weight:800;color:var(--navy)">📥 Importer historikk</h2>
+      <div style="font-size:13px;color:var(--gray-dark);margin-bottom:18px">Registrer overtid, ferie, avspasering eller egenmelding på vegne av en ansatt for tidligere datoer. Lagres som godkjent uten e-postvarsling.</div>
+
+      <div class="card">
+        <div class="field">
+          <label for="hUser">Ansatt <span style="color:var(--red)">*</span></label>
+          <select id="hUser">
+            <option value="sindre@h-y.no">Sindre Jacobsen</option>
+            <option value="daniel@h-y.no">Daniel Ruud</option>
+            <option value="henrik@h-y.no">Henrik Bratz</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Type <span style="color:var(--red)">*</span></label>
+          <div class="seg" id="hTypeSeg">
+            <button class="seg-btn active" data-htype="overtime" onclick="hSelectType('overtime')">
+              <div class="seg-btn-icon">⏰</div>Overtid
+            </button>
+            <button class="seg-btn" data-htype="timeoff" onclick="hSelectType('timeoff')">
+              <div class="seg-btn-icon">🌴</div>Avspasering
+            </button>
+            <button class="seg-btn" data-htype="vacation" onclick="hSelectType('vacation')">
+              <div class="seg-btn-icon">🏖️</div>Ferie
+            </button>
+            <button class="seg-btn" data-htype="sick" onclick="hSelectType('sick')">
+              <div class="seg-btn-icon">🤒</div>Egenmelding
+            </button>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="hStart">Fra-dato <span style="color:var(--red)">*</span></label>
+            <input type="date" id="hStart">
+          </div>
+          <div class="field" id="hEndWrap">
+            <label for="hEnd">Til-dato</label>
+            <input type="date" id="hEnd">
+            <div class="field-help">La være tom for én dag</div>
+          </div>
+        </div>
+
+        <div class="field" id="hHoursWrap">
+          <label for="hHours">Antall timer</label>
+          <input type="number" id="hHours" min="0.5" step="0.5" placeholder="F.eks. 4">
+        </div>
+
+        <div class="field" id="hHalfWrap" style="display:none">
+          <label class="checkbox-row">
+            <input type="checkbox" id="hHalfDay">
+            <span>Halv dag (4 t / 0.5 dag)</span>
+          </label>
+        </div>
+
+        <div class="field" id="hSickTypeWrap" style="display:none">
+          <label for="hSickType">Type fravær</label>
+          <select id="hSickType">
+            <option value="self">Egen sykdom</option>
+            <option value="child">Sykt barn</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="hDesc">Notat / beskrivelse</label>
+          <textarea id="hDesc" placeholder="F.eks. 'Visning Drøbak 14. mars' eller 'Vinterferie uke 8' (valgfritt)"></textarea>
+        </div>
+
+        <div class="modal-error" id="hError"></div>
+
+        <div class="modal-actions">
+          <button class="btn-cancel" onclick="hResetForm()">Tøm skjema</button>
+          <button class="btn-primary" id="hSubmitBtn" onclick="hSubmit()">Lagre som godkjent</button>
         </div>
       </div>
     </div>
@@ -651,6 +728,31 @@ function selectType(type) {
   $('fSickTypeWrap').style.display = (type === 'sick') ? 'block' : 'none';
   $('fEndWrap').style.display      = (type === 'overtime') ? 'none' : 'block';
   if (type === 'overtime') $('fEnd').value = '';
+
+  // 48t-sperre: timeoff må være minst 2 dager fram
+  const startInput = $('fStart');
+  if (type === 'timeoff') {
+    const min = new Date(Date.now() + 48 * 3600 * 1000);
+    startInput.min = min.toISOString().slice(0, 10);
+    $('fEndHelp').textContent = 'La være tom for én dag · Avspasering må sendes inn senest 48t før uttak';
+  } else {
+    startInput.removeAttribute('min');
+    $('fEndHelp').textContent = 'La være tom for én dag';
+  }
+
+  // Reset deal-/description-state når man bytter type
+  onDealChange();
+}
+
+function onDealChange() {
+  const isOther = currentType === 'overtime' && $('fDeal').value === '__other__';
+  $('fDescHelp').style.display = isOther ? 'block' : 'none';
+  $('fDescLabel').innerHTML = isOther
+    ? 'Beskrivelse <span style="color:var(--red)">*</span>'
+    : 'Beskrivelse / kommentar';
+  $('fDesc').placeholder = isOther
+    ? 'Hva gjaldt overtiden? (påkrevd)'
+    : 'Hva ble gjort eller hvorfor? (valgfritt)';
 }
 
 function openSubmit(type) {
@@ -683,6 +785,11 @@ async function ensureDealsLoaded() {
       opt.textContent = d.name;
       sel.appendChild(opt);
     }
+    // "Annet"-valg helt nederst
+    const otherOpt = document.createElement('option');
+    otherOpt.value = '__other__';
+    otherOpt.textContent = '— Annet (krever kommentar) —';
+    sel.appendChild(otherOpt);
     dealsLoaded = true;
   } catch (e) {
     console.error('fetch_deals failed', e);
@@ -707,17 +814,31 @@ async function submitEntry() {
 
     if (currentType === 'overtime') {
       const dealId = $('fDeal').value;
-      if (!dealId) throw new Error('Velg oppdrag (overtid krever deal-link)');
-      const dealName = $('fDeal').options[$('fDeal').selectedIndex]?.textContent || '';
+      if (!dealId) throw new Error('Velg oppdrag eller "Annet"');
+      const isOther = dealId === '__other__';
+      if (isOther) {
+        if (!body.description || !body.description.trim()) {
+          throw new Error('Kommentar er påkrevd når du velger "Annet"');
+        }
+        body.deal_id = null;
+      } else {
+        const dealName = $('fDeal').options[$('fDeal').selectedIndex]?.textContent || '';
+        body.deal_id = dealId;
+        body.deal_name = dealName;
+      }
       const hours = parseFloat($('fHours').value);
       if (!hours || hours <= 0) throw new Error('Antall timer må være > 0');
-      body.deal_id = dealId;
-      body.deal_name = dealName;
       body.hours = hours;
       body.end_date = startDate;  // Overtid logges per dag
     } else if (currentType === 'timeoff') {
       const hours = parseFloat($('fHours').value);
       if (!hours || hours <= 0) throw new Error('Antall timer må være > 0');
+      // Frontend 48t-sperre (backend dobbeltsjekker)
+      const reqStart = new Date(startDate + 'T00:00:00');
+      const minStart = new Date(Date.now() + 48 * 3600 * 1000);
+      if (reqStart < minStart) {
+        throw new Error('Avspasering må sendes inn senest 48 timer før uttak');
+      }
       body.hours = hours;
     } else if (currentType === 'sick') {
       body.sick_type = $('fSickType').value;
@@ -960,6 +1081,66 @@ function escapeHtml(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;',
   })[c]);
+}
+
+// ── Historikk-import (admin) ─────────────────────────────────────────────────
+let hCurrentType = 'overtime';
+
+function hSelectType(type) {
+  hCurrentType = type;
+  document.querySelectorAll('#hTypeSeg .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.htype === type));
+  $('hHoursWrap').style.display    = (type === 'overtime' || type === 'timeoff') ? 'block' : 'none';
+  $('hHalfWrap').style.display     = (type === 'vacation' || type === 'timeoff') ? 'block' : 'none';
+  $('hSickTypeWrap').style.display = (type === 'sick') ? 'block' : 'none';
+  $('hEndWrap').style.display      = (type === 'overtime') ? 'none' : 'block';
+  if (type === 'overtime') $('hEnd').value = '';
+}
+
+function hResetForm() {
+  $('hStart').value = '';
+  $('hEnd').value = '';
+  $('hHours').value = '';
+  $('hHalfDay').checked = false;
+  $('hSickType').value = 'self';
+  $('hDesc').value = '';
+  $('hError').style.display = 'none';
+}
+
+async function hSubmit() {
+  const err = $('hError'); err.style.display = 'none';
+  const btn = $('hSubmitBtn'); btn.disabled = true; btn.textContent = 'Lagrer…';
+  try {
+    const startDate = $('hStart').value;
+    if (!startDate) throw new Error('Velg fra-dato');
+    const endDate = $('hEnd').value || startDate;
+
+    const body = {
+      user_email: $('hUser').value,
+      type:       hCurrentType,
+      start_date: startDate,
+      end_date:   endDate,
+      half_day:   $('hHalfDay').checked,
+      description: $('hDesc').value.trim() || null,
+    };
+
+    if (hCurrentType === 'overtime' || hCurrentType === 'timeoff') {
+      const hours = parseFloat($('hHours').value);
+      if (!hours || hours <= 0) throw new Error('Antall timer må være > 0');
+      body.hours = hours;
+      if (hCurrentType === 'overtime') body.end_date = startDate;
+    } else if (hCurrentType === 'sick') {
+      body.sick_type = $('hSickType').value;
+    }
+
+    await api('admin_create', {}, 'POST', body);
+    btn.textContent = '✅ Lagret!';
+    setTimeout(() => { btn.textContent = 'Lagre som godkjent'; btn.disabled = false; }, 1200);
+    hResetForm();
+    loadSummary();         // oppdater badge
+  } catch (e) {
+    err.textContent = e.message; err.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Lagre som godkjent';
+  }
 }
 
 // Initial type select
