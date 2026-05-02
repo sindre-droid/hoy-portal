@@ -1,0 +1,501 @@
+// ── avspasering.js ──────────────────────────────────────────────────────────
+// Modul for "Avspasering, Ferie og Fravær".
+//
+// GET  ?action=summary           → Saldo for innlogget bruker (timer + dager)
+// GET  ?action=my_entries&year=… → Egne oppføringer (alle statuser)
+// GET  ?action=team_calendar&from=YYYY-MM-DD&to=YYYY-MM-DD
+//                                → Team-kalender: hvem er borte når (uten lønnsdetaljer)
+// GET  ?action=admin_pending     → Alle ventende oppføringer (admin only)
+// GET  ?action=fetch_deals       → Deal-liste til overtid-skjema (Pipeline B aktive)
+// POST ?action=submit            → Ny oppføring
+//        { type, start_date, end_date, hours?, half_day?, deal_id?, deal_name?,
+//          sick_type?, description }
+// POST ?action=cancel            → Trekk egen pending-oppføring (id)
+// POST ?action=approve           → Admin: godkjenn (id, decision_note?)
+// POST ?action=reject            → Admin: avvis (id, decision_note?)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const { createClient } = require('@supabase/supabase-js');
+
+const PIPELINE_B = process.env.PIPELINE_B || '3211644128';
+
+// Standard kvoter (kalenderår)
+const VACATION_DAYS_PER_YEAR  = 25;  // 5 uker norsk standard (virkedager)
+const SICK_DAYS_PER_YEAR      = 12;  // 3 dager × 4 ganger (egen sykdom)
+const SICK_CHILD_DAYS         = 10;  // Sykt barn (norsk hovedregel — opp til 12 år)
+
+// Hardkodet ansatt-liste (dem som kan bruke modulen)
+// Disse må også finnes i Netlify Identity for at login skal fungere.
+const EMPLOYEES = {
+  'sindre@h-y.no': { name: 'Sindre Jacobsen', hubspot_id: '633479117' },
+  'daniel@h-y.no': { name: 'Daniel Ruud',     hubspot_id: '29136352'  },
+  'henrik@h-y.no': { name: 'Henrik Bratz',    hubspot_id: '77221549'  },
+};
+
+const ADMIN_EMAIL = 'sindre@h-y.no';   // Mottaker av godkjenningsvarsel
+const FROM_EMAIL  = process.env.RESEND_FROM || 'portal@h-y.no';
+const PORTAL_URL  = 'https://silver-puffpuff-8a67de.netlify.app';
+
+const CORS = {
+  'Access-Control-Allow-Origin':  '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+const JSON_H = { 'Content-Type': 'application/json' };
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function parseJwt(token) {
+  try {
+    const b = (token || '').split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(Buffer.from(b, 'base64').toString('utf8'));
+  } catch { return null; }
+}
+
+function ok(payload)  { return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify(payload) }; }
+function err(code, m) { return { statusCode: code, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: m }) }; }
+
+async function hs(path, method = 'GET', body = null) {
+  const res = await fetch(`https://api.hubapi.com${path}`, {
+    method,
+    headers: {
+      Authorization:  `Bearer ${process.env.HUBSPOT_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  const text = await res.text();
+  try { return { ok: res.ok, status: res.status, data: JSON.parse(text) }; }
+  catch { return { ok: false, status: res.status, data: { raw: text } }; }
+}
+
+// ── Resend e-post (best-effort: feil her stopper ikke requesten) ────────────
+async function sendMail({ to, subject, html }) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.warn('avspasering: RESEND_API_KEY ikke satt — hopper over varsling til', to);
+    return { skipped: true };
+  }
+  try {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: FROM_EMAIL, to, subject, html }),
+    });
+    if (!r.ok) {
+      const t = await r.text().catch(() => '');
+      console.error('avspasering: Resend feil', r.status, t.slice(0, 300));
+      return { ok: false, status: r.status };
+    }
+    return { ok: true };
+  } catch (e) {
+    console.error('avspasering: sendMail throw', e.message);
+    return { ok: false, error: e.message };
+  }
+}
+
+// ── E-postmaler ─────────────────────────────────────────────────────────────
+const TYPE_LABEL = {
+  overtime: 'Overtid',
+  timeoff:  'Avspaseringsuttak',
+  vacation: 'Ferie',
+  sick:     'Egenmelding',
+};
+
+function fmtNo(d) {
+  if (!d) return '';
+  return new Date(d + 'T00:00:00').toLocaleDateString('no-NO', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function entrySummary(e) {
+  const label = TYPE_LABEL[e.type] || e.type;
+  const periode = e.start_date === e.end_date
+    ? fmtNo(e.start_date) + (e.half_day ? ' (halv dag)' : '')
+    : `${fmtNo(e.start_date)} – ${fmtNo(e.end_date)}`;
+  const detalj = e.type === 'overtime'
+    ? ` • ${e.hours} t • Oppdrag: ${e.deal_name || e.deal_id || '—'}`
+    : e.type === 'timeoff'
+    ? ` • ${e.hours} t`
+    : e.type === 'sick'
+    ? ` • ${e.sick_type === 'child' ? 'Sykt barn' : 'Egen sykdom'}`
+    : '';
+  return `${label}: ${periode}${detalj}`;
+}
+
+function emailToAdminOnSubmit(entry) {
+  const link = `${PORTAL_URL}/avspasering/?tab=admin`;
+  return {
+    to: ADMIN_EMAIL,
+    subject: `Ny innsending: ${TYPE_LABEL[entry.type] || entry.type} fra ${entry.user_name}`,
+    html: `
+      <div style="font-family:-apple-system,Segoe UI,sans-serif;max-width:560px;margin:0 auto;padding:24px">
+        <div style="background:#0a2140;color:#fff;padding:18px 22px;border-radius:10px 10px 0 0">
+          <div style="font-size:12px;letter-spacing:1.5px;color:#c9a84c;text-transform:uppercase">House of Yachts</div>
+          <div style="font-size:18px;font-weight:700;margin-top:4px">Ventende godkjenning</div>
+        </div>
+        <div style="background:#fff;border:1px solid #dde3ec;border-top:none;padding:22px;border-radius:0 0 10px 10px">
+          <p style="margin:0 0 14px"><strong>${entry.user_name}</strong> har sendt inn:</p>
+          <p style="margin:0 0 18px;background:#f5f7fa;padding:12px 14px;border-radius:8px">${entrySummary(entry)}</p>
+          ${entry.description ? `<p style="margin:0 0 18px;color:#6b7a8d;font-size:14px"><em>«${escapeHtml(entry.description)}»</em></p>` : ''}
+          <a href="${link}" style="display:inline-block;background:#0a2140;color:#fff;padding:11px 22px;border-radius:8px;text-decoration:none;font-weight:600">Åpne portal for godkjenning →</a>
+        </div>
+      </div>`,
+  };
+}
+
+function emailToEmployeeOnDecision(entry, status, decisionNote) {
+  const isApproved = status === 'approved';
+  const link = `${PORTAL_URL}/avspasering/`;
+  return {
+    to: entry.user_email,
+    subject: `${isApproved ? '✅ Godkjent' : '❌ Avvist'}: ${TYPE_LABEL[entry.type] || entry.type}`,
+    html: `
+      <div style="font-family:-apple-system,Segoe UI,sans-serif;max-width:560px;margin:0 auto;padding:24px">
+        <div style="background:#0a2140;color:#fff;padding:18px 22px;border-radius:10px 10px 0 0">
+          <div style="font-size:12px;letter-spacing:1.5px;color:#c9a84c;text-transform:uppercase">House of Yachts</div>
+          <div style="font-size:18px;font-weight:700;margin-top:4px">${isApproved ? 'Innsending godkjent' : 'Innsending avvist'}</div>
+        </div>
+        <div style="background:#fff;border:1px solid #dde3ec;border-top:none;padding:22px;border-radius:0 0 10px 10px">
+          <p style="margin:0 0 14px">Hei ${entry.user_name.split(' ')[0]},</p>
+          <p style="margin:0 0 14px">Innsendingen din er <strong>${isApproved ? 'godkjent' : 'avvist'}</strong>:</p>
+          <p style="margin:0 0 18px;background:#f5f7fa;padding:12px 14px;border-radius:8px">${entrySummary(entry)}</p>
+          ${decisionNote ? `<p style="margin:0 0 18px;color:#6b7a8d;font-size:14px;border-left:3px solid #c9a84c;padding-left:12px"><em>${escapeHtml(decisionNote)}</em></p>` : ''}
+          <a href="${link}" style="display:inline-block;background:#0a2140;color:#fff;padding:11px 22px;border-radius:8px;text-decoration:none;font-weight:600">Åpne portal →</a>
+        </div>
+      </div>`,
+  };
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;',
+  })[c]);
+}
+
+// ── Beregn virkedager (mellom to datoer, ekskl. helg + helligdag) ────────────
+async function countWorkdays(supabase, startDate, endDate) {
+  // Bruker SQL-funksjonen vi opprettet i schemaet
+  const { data, error } = await supabase.rpc('count_workdays', { d_start: startDate, d_end: endDate });
+  if (error) {
+    console.error('countWorkdays error:', error.message);
+    // Fallback: tell uten helligdager
+    const start = new Date(startDate + 'T00:00:00');
+    const end   = new Date(endDate + 'T00:00:00');
+    let n = 0;
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const dow = d.getDay();
+      if (dow !== 0 && dow !== 6) n++;
+    }
+    return n;
+  }
+  return Number(data) || 0;
+}
+
+// ── Beregn saldo for én bruker for ett år ───────────────────────────────────
+async function computeBalance(supabase, email, year) {
+  const yearStart = `${year}-01-01`;
+  const yearEnd   = `${year}-12-31`;
+
+  // Hent alle approved og pending entries for året
+  const { data: entries, error } = await supabase
+    .from('time_entries')
+    .select('*')
+    .eq('user_email', email)
+    .gte('start_date', yearStart)
+    .lte('start_date', yearEnd)
+    .in('status', ['pending', 'approved']);
+  if (error) throw new Error(error.message);
+
+  let overtimeApproved = 0, overtimePending = 0;
+  let timeoffApproved = 0,  timeoffPending = 0;
+  let vacationApproved = 0, vacationPending = 0;
+  let sickSelfApproved = 0, sickSelfPending = 0;
+  let sickChildApproved = 0, sickChildPending = 0;
+
+  for (const e of (entries || [])) {
+    const isApproved = e.status === 'approved';
+    if (e.type === 'overtime') {
+      const hrs = Number(e.hours) || 0;
+      if (isApproved) overtimeApproved += hrs; else overtimePending += hrs;
+    } else if (e.type === 'timeoff') {
+      const hrs = Number(e.hours) || 0;
+      if (isApproved) timeoffApproved += hrs; else timeoffPending += hrs;
+    } else if (e.type === 'vacation') {
+      const days = e.half_day ? 0.5 : await countWorkdays(supabase, e.start_date, e.end_date);
+      if (isApproved) vacationApproved += days; else vacationPending += days;
+    } else if (e.type === 'sick') {
+      const days = await countWorkdays(supabase, e.start_date, e.end_date);
+      if (e.sick_type === 'child') {
+        if (isApproved) sickChildApproved += days; else sickChildPending += days;
+      } else {
+        if (isApproved) sickSelfApproved += days; else sickSelfPending += days;
+      }
+    }
+  }
+
+  return {
+    year,
+    overtime: {
+      approved_hours: overtimeApproved,
+      pending_hours:  overtimePending,
+    },
+    timeoff: {
+      approved_hours: timeoffApproved,
+      pending_hours:  timeoffPending,
+    },
+    avspasering_balance: overtimeApproved - timeoffApproved, // disponibel timebank
+    vacation: {
+      quota: VACATION_DAYS_PER_YEAR,
+      used_days:    vacationApproved,
+      pending_days: vacationPending,
+      remaining:    VACATION_DAYS_PER_YEAR - vacationApproved - vacationPending,
+    },
+    sick_self: {
+      quota: SICK_DAYS_PER_YEAR,
+      used_days:    sickSelfApproved,
+      pending_days: sickSelfPending,
+      remaining:    SICK_DAYS_PER_YEAR - sickSelfApproved - sickSelfPending,
+    },
+    sick_child: {
+      quota: SICK_CHILD_DAYS,
+      used_days:    sickChildApproved,
+      pending_days: sickChildPending,
+      remaining:    SICK_CHILD_DAYS - sickChildApproved - sickChildPending,
+    },
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+exports.handler = async (event) => {
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: CORS, body: '' };
+
+  // ── Auth ───────────────────────────────────────────────────────────────────
+  const authHeader = event.headers.authorization || event.headers.Authorization || '';
+  if (!authHeader.startsWith('Bearer ')) return err(401, 'Unauthorized');
+  const jwt = parseJwt(authHeader.slice(7));
+  if (!jwt?.email) return err(401, 'Invalid token');
+
+  const userEmail = String(jwt.email).toLowerCase();
+  const employee  = EMPLOYEES[userEmail];
+  if (!employee) return err(403, 'Du har ikke tilgang til denne modulen');
+  const userName  = employee.name;
+  const isAdmin   = userEmail === ADMIN_EMAIL;
+
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
+
+  const q      = event.queryStringParameters || {};
+  const action = q.action || '';
+
+  try {
+    // ─── GET ?action=summary ────────────────────────────────────────────────
+    if (event.httpMethod === 'GET' && action === 'summary') {
+      const year = parseInt(q.year, 10) || new Date().getFullYear();
+      const balance = await computeBalance(supabase, userEmail, year);
+
+      // Antall ventende godkjenninger (admin)
+      let pendingCount = 0;
+      if (isAdmin) {
+        const { count } = await supabase
+          .from('time_entries')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'pending');
+        pendingCount = count || 0;
+      }
+
+      return ok({
+        user: { email: userEmail, name: userName, is_admin: isAdmin },
+        balance,
+        admin_pending_count: pendingCount,
+      });
+    }
+
+    // ─── GET ?action=my_entries ─────────────────────────────────────────────
+    if (event.httpMethod === 'GET' && action === 'my_entries') {
+      const year = parseInt(q.year, 10) || new Date().getFullYear();
+      const yearStart = `${year}-01-01`;
+      const yearEnd   = `${year}-12-31`;
+
+      const { data, error } = await supabase
+        .from('time_entries')
+        .select('*')
+        .eq('user_email', userEmail)
+        .gte('start_date', yearStart)
+        .lte('start_date', yearEnd)
+        .order('start_date', { ascending: false });
+      if (error) return err(500, error.message);
+      return ok({ entries: data || [] });
+    }
+
+    // ─── GET ?action=team_calendar ─────────────────────────────────────────
+    if (event.httpMethod === 'GET' && action === 'team_calendar') {
+      const from = q.from || new Date().toISOString().slice(0, 10);
+      const to   = q.to   || new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10);
+
+      const { data, error } = await supabase
+        .from('time_entries')
+        .select('id, user_email, user_name, type, start_date, end_date, half_day, status')
+        .in('type', ['vacation', 'timeoff', 'sick'])     // ikke vis overtid på team-kalender
+        .in('status', ['approved', 'pending'])
+        .gte('end_date', from)
+        .lte('start_date', to)
+        .order('start_date', { ascending: true });
+      if (error) return err(500, error.message);
+
+      // Skjul evt. detaljer om sykdom (anonymiser type for andre brukere)
+      const sanitized = (data || []).map(e => {
+        if (e.type === 'sick' && e.user_email !== userEmail && !isAdmin) {
+          return { ...e, type: 'sick', _label: 'Fravær' };
+        }
+        return e;
+      });
+
+      return ok({ entries: sanitized, from, to });
+    }
+
+    // ─── GET ?action=admin_pending (admin only) ────────────────────────────
+    if (event.httpMethod === 'GET' && action === 'admin_pending') {
+      if (!isAdmin) return err(403, 'Admin only');
+      const { data, error } = await supabase
+        .from('time_entries')
+        .select('*')
+        .eq('status', 'pending')
+        .order('submitted_at', { ascending: true });
+      if (error) return err(500, error.message);
+      return ok({ entries: data || [] });
+    }
+
+    // ─── GET ?action=fetch_deals (for overtid-skjema) ──────────────────────
+    if (event.httpMethod === 'GET' && action === 'fetch_deals') {
+      // Henter åpne deals i Pipeline B (aktive oppdrag)
+      const r = await hs('/crm/v3/objects/deals/search', 'POST', {
+        filterGroups: [{ filters: [
+          { propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_B },
+        ]}],
+        properties: ['dealname','dealstage','pipeline'],
+        limit: 100,
+        sorts: [{ propertyName: 'dealname', direction: 'ASCENDING' }],
+      });
+      if (!r.ok) return err(502, 'HubSpot-feil ved deal-henting');
+      const deals = (r.data.results || []).map(d => ({
+        id:   d.id,
+        name: d.properties?.dealname || `Deal ${d.id}`,
+      }));
+      return ok({ deals });
+    }
+
+    // ─── POST ?action=submit ────────────────────────────────────────────────
+    if (event.httpMethod === 'POST' && action === 'submit') {
+      const body = JSON.parse(event.body || '{}');
+      const type = body.type;
+      if (!['overtime','timeoff','vacation','sick'].includes(type)) {
+        return err(400, 'Ugyldig type');
+      }
+
+      const startDate = body.start_date;
+      const endDate   = body.end_date || body.start_date;
+      if (!startDate || !/^\d{4}-\d{2}-\d{2}$/.test(startDate)) return err(400, 'Mangler/ugyldig start_date');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(endDate)) return err(400, 'Ugyldig end_date');
+      if (endDate < startDate) return err(400, 'end_date må være ≥ start_date');
+
+      const insert = {
+        user_email:  userEmail,
+        user_name:   userName,
+        type,
+        start_date:  startDate,
+        end_date:    endDate,
+        half_day:    !!body.half_day,
+        description: body.description || null,
+        status:      'pending',
+      };
+
+      if (type === 'overtime') {
+        if (!body.deal_id) return err(400, 'Overtid krever deal_id');
+        if (!body.hours || Number(body.hours) <= 0) return err(400, 'Overtid krever timer > 0');
+        insert.deal_id   = String(body.deal_id);
+        insert.deal_name = body.deal_name || null;
+        insert.hours     = Number(body.hours);
+      } else if (type === 'timeoff') {
+        if (!body.hours || Number(body.hours) <= 0) return err(400, 'Avspasering krever timer > 0');
+        insert.hours = Number(body.hours);
+      } else if (type === 'sick') {
+        if (!['self','child'].includes(body.sick_type)) return err(400, 'Egenmelding krever sick_type (self|child)');
+        insert.sick_type = body.sick_type;
+      }
+      // vacation: ingen ekstra felt påkrevd
+
+      const { data, error } = await supabase
+        .from('time_entries')
+        .insert(insert)
+        .select()
+        .single();
+      if (error) {
+        console.error('submit insert error:', error);
+        return err(500, error.message);
+      }
+
+      // Send varsling til admin (best-effort)
+      sendMail(emailToAdminOnSubmit(data)).catch(e => console.error('mail to admin failed', e));
+
+      return ok({ entry: data });
+    }
+
+    // ─── POST ?action=cancel (egen pending) ────────────────────────────────
+    if (event.httpMethod === 'POST' && action === 'cancel') {
+      const body = JSON.parse(event.body || '{}');
+      if (!body.id) return err(400, 'Mangler id');
+
+      const { data: existing } = await supabase
+        .from('time_entries').select('*').eq('id', body.id).maybeSingle();
+      if (!existing) return err(404, 'Ikke funnet');
+      if (existing.user_email !== userEmail) return err(403, 'Kan kun trekke egne oppføringer');
+      if (existing.status !== 'pending') return err(400, 'Kan kun trekke ventende oppføringer');
+
+      const { data, error } = await supabase
+        .from('time_entries')
+        .update({ status: 'cancelled' })
+        .eq('id', body.id)
+        .select().single();
+      if (error) return err(500, error.message);
+      return ok({ entry: data });
+    }
+
+    // ─── POST ?action=approve / reject (admin only) ────────────────────────
+    if (event.httpMethod === 'POST' && (action === 'approve' || action === 'reject')) {
+      if (!isAdmin) return err(403, 'Admin only');
+      const body = JSON.parse(event.body || '{}');
+      if (!body.id) return err(400, 'Mangler id');
+
+      const newStatus = action === 'approve' ? 'approved' : 'rejected';
+
+      const { data: existing } = await supabase
+        .from('time_entries').select('*').eq('id', body.id).maybeSingle();
+      if (!existing) return err(404, 'Ikke funnet');
+      if (existing.status !== 'pending') return err(400, 'Kun ventende kan godkjennes/avvises');
+
+      const { data, error } = await supabase
+        .from('time_entries')
+        .update({
+          status:        newStatus,
+          decided_by:    userEmail,
+          decided_at:    new Date().toISOString(),
+          decision_note: body.decision_note || null,
+        })
+        .eq('id', body.id)
+        .select().single();
+      if (error) return err(500, error.message);
+
+      // Send varsling til ansatt (best-effort)
+      sendMail(emailToEmployeeOnDecision(data, newStatus, body.decision_note))
+        .catch(e => console.error('mail to employee failed', e));
+
+      return ok({ entry: data });
+    }
+
+    return err(400, 'Ukjent action');
+  } catch (e) {
+    console.error('avspasering error:', e);
+    return err(500, e.message);
+  }
+};

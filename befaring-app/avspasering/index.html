@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Avspasering, Ferie og Fravær — House of Yachts</title>
+  <style>
+    :root{
+      --navy:#0a2140;--gold:#c9a84c;--white:#fff;--surface:#f5f7fa;
+      --gray:#dde3ec;--gray-dark:#6b7a8d;--text:#12233a;
+      --green:#166534;--green-bg:#dcfce7;
+      --red:#991b1b;--red-bg:#fee2e2;
+      --yellow:#92400e;--yellow-bg:#fef3c7;
+      --blue:#1e40af;--blue-bg:#dbeafe;--blue-mid:#3b82f6;
+      --purple:#6b21a8;--purple-bg:#f3e8ff;
+      --radius:12px;--shadow:0 2px 16px rgba(10,33,64,0.10);
+    }
+    *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--surface);color:var(--text);margin:0;padding:0;min-height:100vh}
+
+    /* ── Loading / Login ────────────────────────────────────────────────── */
+    .loading-screen,.login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy)}
+    .loading-text{color:rgba(255,255,255,0.5);font-size:15px}
+    .login-box{background:white;border-radius:20px;padding:40px 36px;max-width:400px;width:calc(100% - 32px);text-align:center;box-shadow:0 8px 40px rgba(0,0,0,0.3)}
+    .login-logo{font-size:22px;font-weight:800;color:var(--navy);margin-bottom:4px}
+    .login-sub{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:28px}
+    .login-form{display:flex;flex-direction:column;gap:12px;text-align:left;margin-bottom:20px}
+    .login-form label{font-size:13px;font-weight:600;color:var(--navy);display:block;margin-bottom:4px}
+    .login-form input{width:100%;padding:13px 15px;border:2px solid var(--gray);border-radius:10px;font-size:16px;font-family:inherit}
+    .login-form input:focus{outline:none;border-color:var(--navy)}
+    .btn-login{width:100%;padding:15px;background:var(--navy);color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer}
+    .login-error{color:#991b1b;font-size:13px;font-weight:600;margin-top:10px;display:none}
+
+    /* ── Header ──────────────────────────────────────────────────────────── */
+    .header{background:var(--navy);color:white;padding:14px 20px;position:sticky;top:0;z-index:200;box-shadow:0 2px 16px rgba(0,0,0,0.35)}
+    .header-inner{max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .brand{display:flex;flex-direction:column}
+    .brand-name{font-size:14px;font-weight:800;letter-spacing:0.8px}
+    .brand-sub{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--gold)}
+    .header-title{font-size:16px;font-weight:700;color:rgba(255,255,255,0.9)}
+    .header-right{display:flex;align-items:center;gap:12px}
+    .user-label{font-size:12px;color:rgba(255,255,255,0.55)}
+    .btn-nav{background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.18);border-radius:20px;color:rgba(255,255,255,0.85);padding:6px 14px;font-size:12px;font-family:inherit;cursor:pointer;text-decoration:none;display:inline-block}
+    .btn-nav:hover{background:rgba(255,255,255,0.2)}
+
+    /* ── Tab nav ──────────────────────────────────────────────────────────── */
+    .tabnav{background:white;border-bottom:1px solid var(--gray);position:sticky;top:53px;z-index:100;box-shadow:0 1px 3px rgba(10,33,64,0.05)}
+    .tabnav-inner{max-width:1100px;margin:0 auto;padding:0 16px;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+    .tabnav-inner::-webkit-scrollbar{display:none}
+    .tab{padding:14px 18px;font-size:14px;font-weight:600;color:var(--gray-dark);cursor:pointer;border-bottom:3px solid transparent;font-family:inherit;background:none;border-top:none;border-left:none;border-right:none;white-space:nowrap;transition:color 0.15s,border-color 0.15s;display:flex;align-items:center;gap:6px}
+    .tab:hover{color:var(--text)}
+    .tab.active{color:var(--navy);border-bottom-color:var(--gold)}
+    .tab-badge{display:inline-block;background:var(--red);color:white;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:700}
+
+    /* ── Page wrap ───────────────────────────────────────────────────────── */
+    .wrap{max-width:1100px;margin:0 auto;padding:24px 16px 80px}
+
+    /* ── Cards & balances ────────────────────────────────────────────────── */
+    .card{background:white;border-radius:14px;box-shadow:var(--shadow);padding:20px 24px;margin-bottom:18px}
+    .card-h{font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gray-dark);margin:0 0 14px}
+    .balance-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:18px}
+    .balance-card{background:white;border-radius:14px;padding:20px;box-shadow:var(--shadow);border-top:4px solid var(--gold)}
+    .balance-card.bc-time{border-top-color:var(--blue-mid)}
+    .balance-card.bc-vacation{border-top-color:var(--green)}
+    .balance-card.bc-sick{border-top-color:#dc2626}
+    .balance-card.bc-child{border-top-color:#9333ea}
+    .balance-label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gray-dark);margin:0 0 6px}
+    .balance-val{font-size:34px;font-weight:800;color:var(--navy);line-height:1;margin-bottom:4px}
+    .balance-unit{font-size:13px;color:var(--gray-dark);font-weight:500}
+    .balance-sub{font-size:12px;color:var(--gray-dark);margin-top:8px}
+    .balance-sub strong{color:var(--text)}
+
+    /* ── Quick actions ───────────────────────────────────────────────────── */
+    .actions-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+    .action-btn{background:white;border:2px solid var(--gray);border-radius:12px;padding:18px 20px;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:14px;transition:border-color 0.15s,box-shadow 0.15s,transform 0.1s}
+    .action-btn:hover{border-color:var(--navy);box-shadow:0 4px 16px rgba(10,33,64,0.10);transform:translateY(-1px)}
+    .action-icon{font-size:24px}
+    .action-text{display:flex;flex-direction:column;gap:2px}
+    .action-title{font-size:14px;font-weight:700;color:var(--navy)}
+    .action-desc{font-size:12px;color:var(--gray-dark)}
+
+    /* ── Tables ──────────────────────────────────────────────────────────── */
+    .data-table{width:100%;border-collapse:collapse;background:white}
+    .data-table th{font-size:11px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;color:var(--gray-dark);padding:11px 14px;text-align:left;border-bottom:2px solid var(--gray);background:#fafbfc}
+    .data-table td{padding:13px 14px;border-bottom:1px solid var(--gray);font-size:14px;vertical-align:middle}
+    .data-table tr:last-child td{border-bottom:none}
+
+    /* Pills */
+    .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:0.3px}
+    .pill-pending{background:var(--yellow-bg);color:var(--yellow)}
+    .pill-approved{background:var(--green-bg);color:var(--green)}
+    .pill-rejected{background:var(--red-bg);color:var(--red)}
+    .pill-cancelled{background:#f1f5f9;color:#64748b}
+    .pill-overtime{background:var(--blue-bg);color:var(--blue)}
+    .pill-timeoff{background:#e0f2fe;color:#075985}
+    .pill-vacation{background:var(--green-bg);color:var(--green)}
+    .pill-sick{background:var(--red-bg);color:var(--red)}
+    .pill-child{background:var(--purple-bg);color:var(--purple)}
+
+    /* ── Buttons ─────────────────────────────────────────────────────────── */
+    .btn-primary{background:var(--navy);color:white;border:none;border-radius:10px;padding:11px 22px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity 0.15s}
+    .btn-primary:hover{opacity:0.88}
+    .btn-primary:disabled{opacity:0.4;cursor:not-allowed}
+    .btn-gold{background:var(--gold);color:var(--navy);border:none;border-radius:10px;padding:11px 22px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+    .btn-gold:hover{opacity:0.88}
+    .btn-outline{background:white;color:var(--navy);border:2px solid var(--gray);border-radius:10px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+    .btn-outline:hover{border-color:var(--navy)}
+    .btn-approve{background:var(--green);color:white;border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+    .btn-approve:hover{opacity:0.88}
+    .btn-reject{background:white;color:var(--red);border:2px solid var(--red);border-radius:8px;padding:5px 12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+    .btn-reject:hover{background:var(--red-bg)}
+    .btn-cancel-entry{background:none;color:var(--gray-dark);border:1px solid var(--gray);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit}
+    .btn-cancel-entry:hover{border-color:var(--red);color:var(--red)}
+
+    /* ── Modal ───────────────────────────────────────────────────────────── */
+    .modal-overlay{position:fixed;inset:0;background:rgba(10,33,64,0.55);z-index:500;display:none;align-items:center;justify-content:center;padding:16px;overflow-y:auto}
+    .modal-overlay.show{display:flex}
+    .modal{background:white;border-radius:16px;max-width:560px;width:100%;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,0.35);max-height:calc(100vh - 32px);overflow-y:auto}
+    .modal h3{font-size:18px;font-weight:800;color:var(--navy);margin:0 0 6px}
+    .modal-sub{font-size:13px;color:var(--gray-dark);margin-bottom:18px}
+    .field{margin-bottom:14px}
+    .field label{display:block;font-size:13px;font-weight:600;color:var(--navy);margin-bottom:5px}
+    .field input,.field select,.field textarea{width:100%;padding:11px 13px;border:2px solid var(--gray);border-radius:8px;font-size:15px;font-family:inherit;color:var(--text);background:white}
+    .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--navy)}
+    .field textarea{resize:vertical;min-height:80px}
+    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .field-help{font-size:12px;color:var(--gray-dark);margin-top:4px}
+    .checkbox-row{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text)}
+    .checkbox-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--navy)}
+    .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap}
+    .btn-cancel{background:white;color:var(--gray-dark);border:2px solid var(--gray);border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+    .modal-error{color:var(--red);font-size:13px;margin-top:10px;display:none;font-weight:600}
+
+    /* ── Empty state ─────────────────────────────────────────────────────── */
+    .empty-state{text-align:center;padding:48px 20px;color:var(--gray-dark);font-size:15px}
+    .empty-state-icon{font-size:40px;margin-bottom:12px}
+
+    /* ── Year selector ───────────────────────────────────────────────────── */
+    .year-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px}
+    .year-selector{display:flex;align-items:center;gap:6px}
+    .year-btn{background:white;border:1px solid var(--gray);border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer;font-family:inherit;color:var(--gray-dark)}
+    .year-btn:hover{border-color:var(--navy);color:var(--text)}
+    .year-current{font-size:18px;font-weight:700;color:var(--navy);min-width:60px;text-align:center}
+
+    /* ── Calendar (simple list view) ─────────────────────────────────────── */
+    .cal-month{margin-bottom:24px}
+    .cal-month-h{font-size:14px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.8px;margin:0 0 10px;padding:0 4px}
+    .cal-entry{display:flex;align-items:center;gap:12px;padding:10px 14px;background:white;border-radius:8px;margin-bottom:6px;border-left:4px solid var(--gold);box-shadow:0 1px 3px rgba(0,0,0,0.04)}
+    .cal-entry.entry-vacation{border-left-color:var(--green)}
+    .cal-entry.entry-timeoff{border-left-color:var(--blue-mid)}
+    .cal-entry.entry-sick{border-left-color:#dc2626}
+    .cal-entry-date{font-size:13px;font-weight:600;color:var(--navy);min-width:140px}
+    .cal-entry-name{font-size:14px;font-weight:600;color:var(--text);flex:1}
+    .cal-entry-meta{font-size:12px;color:var(--gray-dark)}
+
+    /* ── Type segmented selector (in form) ───────────────────────────────── */
+    .seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:var(--surface);padding:5px;border-radius:10px;border:1px solid var(--gray)}
+    .seg-btn{padding:10px;font-size:13px;font-weight:600;color:var(--gray-dark);background:transparent;border:none;border-radius:7px;cursor:pointer;font-family:inherit;transition:all 0.15s;display:flex;flex-direction:column;align-items:center;gap:4px}
+    .seg-btn:hover{color:var(--navy)}
+    .seg-btn.active{background:white;color:var(--navy);box-shadow:0 1px 4px rgba(10,33,64,0.10)}
+    .seg-btn-icon{font-size:18px}
+
+    /* ── Mobile ──────────────────────────────────────────────────────────── */
+    @media(max-width:600px){
+      .wrap{padding:16px 12px 80px}
+      .card{padding:16px}
+      .balance-val{font-size:28px}
+      .data-table th,.data-table td{padding:9px 10px;font-size:13px}
+      .field-row{grid-template-columns:1fr}
+      .header-title{display:none}
+      .tab{padding:12px 14px;font-size:13px}
+    }
+  </style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loadingScreen" class="loading-screen" style="display:none">
+  <div class="loading-text" id="loadingText">Starter…</div>
+</div>
+
+<!-- Login -->
+<div id="loginScreen" class="login-screen" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">HOUSE OF YACHTS</div>
+    <div class="login-sub">Avspasering, Ferie og Fravær</div>
+    <div class="login-form">
+      <div><label for="loginEmail">E-post</label>
+        <input type="email" id="loginEmail" placeholder="navn@h-y.no" autocomplete="email"></div>
+      <div><label for="loginPassword">Passord</label>
+        <input type="password" id="loginPassword" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter')doLogin()"></div>
+    </div>
+    <div class="login-error" id="loginError"></div>
+    <button class="btn-login" id="loginBtn" onclick="doLogin()">🔐 Logg inn</button>
+  </div>
+</div>
+
+<!-- App -->
+<div id="appScreen" style="display:none">
+
+  <div class="header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-name">HOUSE OF YACHTS</div>
+        <div class="brand-sub">Internportal</div>
+      </div>
+      <div class="header-title">Avspasering, Ferie og Fravær</div>
+      <div class="header-right">
+        <span class="user-label" id="userLabel"></span>
+        <a href="/" class="btn-nav">← Portal</a>
+        <button class="btn-nav" onclick="doLogout()">Logg ut</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab nav -->
+  <div class="tabnav">
+    <div class="tabnav-inner">
+      <button class="tab active" data-tab="overview" onclick="setTab('overview')">📊 Min oversikt</button>
+      <button class="tab" data-tab="register" onclick="setTab('register')">➕ Registrer</button>
+      <button class="tab" data-tab="my" onclick="setTab('my')">📋 Mine oppføringer</button>
+      <button class="tab" data-tab="calendar" onclick="setTab('calendar')">📅 Team-kalender</button>
+      <button class="tab" data-tab="admin" id="adminTab" onclick="setTab('admin')" style="display:none">
+        🔐 Admin <span class="tab-badge" id="adminBadge" style="display:none">0</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="wrap">
+
+    <!-- ── Tab: Min oversikt ─────────────────────────────────────────────── -->
+    <div class="tab-panel" id="panel-overview">
+      <div class="year-bar">
+        <div>
+          <h2 style="margin:0;font-size:20px;font-weight:800;color:var(--navy)">Min oversikt</h2>
+          <div style="font-size:13px;color:var(--gray-dark);margin-top:4px">Saldo og status for kalenderåret</div>
+        </div>
+        <div class="year-selector">
+          <button class="year-btn" onclick="changeYear(-1)">←</button>
+          <div class="year-current" id="currentYear">—</div>
+          <button class="year-btn" onclick="changeYear(1)">→</button>
+        </div>
+      </div>
+
+      <div class="balance-grid">
+        <div class="balance-card bc-time">
+          <div class="balance-label">Avspaseringssaldo</div>
+          <div class="balance-val"><span id="bTimeBalance">–</span><span class="balance-unit"> t</span></div>
+          <div class="balance-sub">
+            <strong id="bOvertime">–</strong> t opptjent · <strong id="bTimeoff">–</strong> t tatt ut
+            <div id="bOvertimePending" style="margin-top:4px;color:var(--yellow);display:none"></div>
+          </div>
+        </div>
+
+        <div class="balance-card bc-vacation">
+          <div class="balance-label">Feriedager igjen</div>
+          <div class="balance-val"><span id="bVacRemaining">–</span><span class="balance-unit"> dager</span></div>
+          <div class="balance-sub">
+            <strong id="bVacUsed">–</strong> brukt av <strong id="bVacQuota">–</strong>
+            <div id="bVacPending" style="margin-top:4px;color:var(--yellow);display:none"></div>
+          </div>
+        </div>
+
+        <div class="balance-card bc-sick">
+          <div class="balance-label">Egenmelding (egen)</div>
+          <div class="balance-val"><span id="bSickRemaining">–</span><span class="balance-unit"> dager</span></div>
+          <div class="balance-sub">
+            <strong id="bSickUsed">–</strong> brukt av <strong id="bSickQuota">–</strong>
+          </div>
+        </div>
+
+        <div class="balance-card bc-child">
+          <div class="balance-label">Sykt barn</div>
+          <div class="balance-val"><span id="bChildRemaining">–</span><span class="balance-unit"> dager</span></div>
+          <div class="balance-sub">
+            <strong id="bChildUsed">–</strong> brukt av <strong id="bChildQuota">–</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h">Hva vil du gjøre?</div>
+        <div class="actions-grid">
+          <button class="action-btn" onclick="openSubmit('overtime')">
+            <div class="action-icon">⏰</div>
+            <div class="action-text">
+              <div class="action-title">Logg overtid</div>
+              <div class="action-desc">Registrer overtidstimer på et oppdrag</div>
+            </div>
+          </button>
+          <button class="action-btn" onclick="openSubmit('timeoff')">
+            <div class="action-icon">🌴</div>
+            <div class="action-text">
+              <div class="action-title">Be om avspasering</div>
+              <div class="action-desc">Bruk av timer fra timebanken</div>
+            </div>
+          </button>
+          <button class="action-btn" onclick="openSubmit('vacation')">
+            <div class="action-icon">🏖️</div>
+            <div class="action-text">
+              <div class="action-title">Be om ferie</div>
+              <div class="action-desc">Send ferieønske til godkjenning</div>
+            </div>
+          </button>
+          <button class="action-btn" onclick="openSubmit('sick')">
+            <div class="action-icon">🤒</div>
+            <div class="action-text">
+              <div class="action-title">Logg egenmelding</div>
+              <div class="action-desc">Egen sykdom eller sykt barn</div>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab: Registrer ────────────────────────────────────────────────── -->
+    <div class="tab-panel" id="panel-register" style="display:none">
+      <div class="card">
+        <h2 style="margin:0 0 6px;font-size:18px;font-weight:800;color:var(--navy)">Ny oppføring</h2>
+        <div style="font-size:13px;color:var(--gray-dark);margin-bottom:18px">Velg type og fyll inn detaljer</div>
+
+        <div class="seg" id="typeSeg">
+          <button class="seg-btn active" data-type="overtime" onclick="selectType('overtime')">
+            <div class="seg-btn-icon">⏰</div>Overtid
+          </button>
+          <button class="seg-btn" data-type="timeoff" onclick="selectType('timeoff')">
+            <div class="seg-btn-icon">🌴</div>Avspasering
+          </button>
+          <button class="seg-btn" data-type="vacation" onclick="selectType('vacation')">
+            <div class="seg-btn-icon">🏖️</div>Ferie
+          </button>
+          <button class="seg-btn" data-type="sick" onclick="selectType('sick')">
+            <div class="seg-btn-icon">🤒</div>Egenmelding
+          </button>
+        </div>
+
+        <div style="margin-top:20px">
+          <div class="field-row">
+            <div class="field">
+              <label for="fStart">Fra-dato</label>
+              <input type="date" id="fStart">
+            </div>
+            <div class="field" id="fEndWrap">
+              <label for="fEnd">Til-dato</label>
+              <input type="date" id="fEnd">
+              <div class="field-help" id="fEndHelp">La være tom for én dag</div>
+            </div>
+          </div>
+
+          <div class="field" id="fHoursWrap">
+            <label for="fHours">Antall timer</label>
+            <input type="number" id="fHours" min="0.5" step="0.5" placeholder="F.eks. 3.5">
+          </div>
+
+          <div class="field" id="fHalfWrap" style="display:none">
+            <label class="checkbox-row">
+              <input type="checkbox" id="fHalfDay">
+              <span>Halv dag (4 t / 0.5 dag)</span>
+            </label>
+          </div>
+
+          <div class="field" id="fDealWrap">
+            <label for="fDeal">Oppdrag (påkrevd) <span style="color:var(--red)">*</span></label>
+            <select id="fDeal">
+              <option value="">— Laster oppdrag… —</option>
+            </select>
+            <div class="field-help">All overtid må knyttes til et aktivt oppdrag</div>
+          </div>
+
+          <div class="field" id="fSickTypeWrap" style="display:none">
+            <label for="fSickType">Type</label>
+            <select id="fSickType">
+              <option value="self">Egen sykdom</option>
+              <option value="child">Sykt barn</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="fDesc">Beskrivelse / kommentar</label>
+            <textarea id="fDesc" placeholder="Hva ble gjort eller hvorfor? (valgfritt)"></textarea>
+          </div>
+
+          <div class="modal-error" id="fError"></div>
+
+          <div class="modal-actions">
+            <button class="btn-cancel" onclick="resetForm()">Tøm skjema</button>
+            <button class="btn-primary" id="fSubmit" onclick="submitEntry()">Send inn</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab: Mine oppføringer ─────────────────────────────────────────── -->
+    <div class="tab-panel" id="panel-my" style="display:none">
+      <div class="year-bar">
+        <h2 style="margin:0;font-size:20px;font-weight:800;color:var(--navy)">Mine oppføringer</h2>
+        <div class="year-selector">
+          <button class="year-btn" onclick="changeYear(-1)">←</button>
+          <div class="year-current" id="currentYearMy">—</div>
+          <button class="year-btn" onclick="changeYear(1)">→</button>
+        </div>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <div id="myEntriesList">
+          <div class="empty-state">Laster…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab: Team-kalender ────────────────────────────────────────────── -->
+    <div class="tab-panel" id="panel-calendar" style="display:none">
+      <h2 style="margin:0 0 6px;font-size:20px;font-weight:800;color:var(--navy)">Team-kalender</h2>
+      <div style="font-size:13px;color:var(--gray-dark);margin-bottom:18px">Hvem er borte de neste 90 dagene</div>
+      <div id="calendarList">
+        <div class="empty-state">Laster…</div>
+      </div>
+    </div>
+
+    <!-- ── Tab: Admin ────────────────────────────────────────────────────── -->
+    <div class="tab-panel" id="panel-admin" style="display:none">
+      <h2 style="margin:0 0 6px;font-size:20px;font-weight:800;color:var(--navy)">🔐 Ventende godkjenninger</h2>
+      <div style="font-size:13px;color:var(--gray-dark);margin-bottom:18px">Alle innsendinger som venter på din godkjenning</div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <div id="adminPendingList">
+          <div class="empty-state">Laster…</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Decision modal (admin) ───────────────────────────────────────────── -->
+<div class="modal-overlay" id="decisionModal">
+  <div class="modal">
+    <h3 id="decisionTitle">Godkjenn oppføring</h3>
+    <div class="modal-sub" id="decisionSummary"></div>
+    <div class="field">
+      <label for="dNote">Kommentar (valgfritt)</label>
+      <textarea id="dNote" placeholder="Beskjed til ansatt…"></textarea>
+    </div>
+    <div class="modal-error" id="decisionError"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeDecision()">Avbryt</button>
+      <button class="btn-primary" id="decisionConfirm" onclick="confirmDecision()">Bekreft</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+const API      = '/.netlify/functions/avspasering';
+const IDENTITY = location.origin + '/.netlify/identity';
+const $        = id => document.getElementById(id);
+
+let accessToken = null;
+let currentUser = null;
+let isAdmin     = false;
+let currentYear = new Date().getFullYear();
+let currentTab  = 'overview';
+let currentType = 'overtime';
+let dealsLoaded = false;
+
+let myEntries     = [];
+let adminPending  = [];
+let teamCalendar  = [];
+
+let pendingDecision = null;  // { id, action, summary }
+
+function showScreen(id) {
+  ['loadingScreen','loginScreen','appScreen'].forEach(s => $(s).style.display = 'none');
+  $(id).style.display = (id === 'appScreen') ? 'block' : 'flex';
+}
+
+function parseJwt(t) {
+  try { return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))); }
+  catch { return {}; }
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  showScreen('loadingScreen');
+  const tok = localStorage.getItem('hoy_access_token');
+  if (tok) {
+    try {
+      const u = await fetchUser(tok);
+      accessToken = tok;
+      onLogin(u);
+      return;
+    } catch { localStorage.removeItem('hoy_access_token'); }
+  }
+  showScreen('loginScreen');
+});
+
+async function fetchUser(tok) {
+  const r = await fetch(`${IDENTITY}/user`, { headers: { Authorization: `Bearer ${tok}` } });
+  if (!r.ok) throw new Error('Session utløpt');
+  return r.json();
+}
+
+async function doLogin() {
+  const email = $('loginEmail').value.trim();
+  const pass  = $('loginPassword').value;
+  const err   = $('loginError'); err.style.display = 'none';
+  const btn   = $('loginBtn'); btn.disabled = true; btn.textContent = 'Logger inn…';
+  try {
+    const r = await fetch(`${IDENTITY}/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `grant_type=password&username=${encodeURIComponent(email)}&password=${encodeURIComponent(pass)}`,
+    });
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error_description || 'Feil passord eller e-post'); }
+    const data = await r.json();
+    accessToken = data.access_token;
+    localStorage.setItem('hoy_access_token', accessToken);
+    const u = await fetchUser(accessToken);
+    onLogin(u);
+  } catch (e) {
+    err.textContent = e.message; err.style.display = 'block';
+    btn.disabled = false; btn.textContent = '🔐 Logg inn';
+  }
+}
+
+function doLogout() {
+  if (!confirm('Logg ut?')) return;
+  localStorage.removeItem('hoy_access_token');
+  location.reload();
+}
+
+async function onLogin(user) {
+  currentUser = user;
+  $('userLabel').textContent = user.user_metadata?.full_name || user.email || '';
+  showScreen('appScreen');
+
+  // Load summary first (also tells us if we're admin and pending count)
+  await loadSummary();
+
+  // Show admin tab if applicable
+  if (isAdmin) $('adminTab').style.display = '';
+
+  // Pre-load my entries (default tab will fetch when clicked, but speeds up first switch)
+}
+
+// ── API helper ────────────────────────────────────────────────────────────────
+async function api(action, params = {}, method = 'GET', body = null) {
+  const url = `${API}?action=${action}` + (Object.keys(params).length
+    ? '&' + new URLSearchParams(params)
+    : '');
+  const opts = {
+    method,
+    headers: { Authorization: `Bearer ${accessToken}` },
+  };
+  if (body) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(body);
+  }
+  const r = await fetch(url, opts);
+  let data;
+  try { data = await r.json(); } catch { data = { error: 'Ugyldig svar fra server' }; }
+  if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+  return data;
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function setTab(name) {
+  currentTab = name;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+  $('panel-' + name).style.display = 'block';
+
+  if (name === 'overview')  loadSummary();
+  if (name === 'register')  ensureDealsLoaded();
+  if (name === 'my')        loadMyEntries();
+  if (name === 'calendar')  loadCalendar();
+  if (name === 'admin')     loadAdminPending();
+}
+
+// ── Year selector ─────────────────────────────────────────────────────────────
+function changeYear(delta) {
+  currentYear += delta;
+  $('currentYear').textContent = currentYear;
+  $('currentYearMy').textContent = currentYear;
+  if (currentTab === 'overview') loadSummary();
+  if (currentTab === 'my')       loadMyEntries();
+}
+
+// ── Summary / balances ────────────────────────────────────────────────────────
+async function loadSummary() {
+  try {
+    const r = await api('summary', { year: currentYear });
+    isAdmin = !!r.user.is_admin;
+    $('currentYear').textContent = r.balance.year;
+    $('currentYearMy').textContent = r.balance.year;
+
+    // Avspasering
+    const t = r.balance;
+    $('bTimeBalance').textContent = fmtNumber(t.avspasering_balance);
+    $('bOvertime').textContent    = fmtNumber(t.overtime.approved_hours);
+    $('bTimeoff').textContent     = fmtNumber(t.timeoff.approved_hours);
+    if (t.overtime.pending_hours > 0 || t.timeoff.pending_hours > 0) {
+      $('bOvertimePending').textContent = `+${fmtNumber(t.overtime.pending_hours)} t / -${fmtNumber(t.timeoff.pending_hours)} t venter`;
+      $('bOvertimePending').style.display = 'block';
+    } else $('bOvertimePending').style.display = 'none';
+
+    // Ferie
+    $('bVacRemaining').textContent = fmtNumber(t.vacation.remaining);
+    $('bVacUsed').textContent      = fmtNumber(t.vacation.used_days);
+    $('bVacQuota').textContent     = t.vacation.quota;
+    if (t.vacation.pending_days > 0) {
+      $('bVacPending').textContent = `${fmtNumber(t.vacation.pending_days)} dager venter på godkjenning`;
+      $('bVacPending').style.display = 'block';
+    } else $('bVacPending').style.display = 'none';
+
+    // Egenmelding
+    $('bSickRemaining').textContent = fmtNumber(t.sick_self.remaining);
+    $('bSickUsed').textContent      = fmtNumber(t.sick_self.used_days);
+    $('bSickQuota').textContent     = t.sick_self.quota;
+
+    // Sykt barn
+    $('bChildRemaining').textContent = fmtNumber(t.sick_child.remaining);
+    $('bChildUsed').textContent      = fmtNumber(t.sick_child.used_days);
+    $('bChildQuota').textContent     = t.sick_child.quota;
+
+    // Admin badge
+    if (r.user.is_admin) {
+      $('adminTab').style.display = '';
+      const c = r.admin_pending_count || 0;
+      $('adminBadge').textContent = c;
+      $('adminBadge').style.display = c > 0 ? 'inline-block' : 'none';
+    }
+  } catch (e) {
+    console.error('loadSummary failed', e);
+  }
+}
+
+function fmtNumber(n) {
+  if (n === null || n === undefined) return '–';
+  const v = Number(n);
+  if (Math.abs(v - Math.round(v)) < 0.01) return Math.round(v).toString();
+  return v.toFixed(1);
+}
+
+// ── Form: register ────────────────────────────────────────────────────────────
+function selectType(type) {
+  currentType = type;
+  document.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+  $('fHoursWrap').style.display    = (type === 'overtime' || type === 'timeoff') ? 'block' : 'none';
+  $('fDealWrap').style.display     = (type === 'overtime') ? 'block' : 'none';
+  $('fHalfWrap').style.display     = (type === 'vacation' || type === 'timeoff') ? 'block' : 'none';
+  $('fSickTypeWrap').style.display = (type === 'sick') ? 'block' : 'none';
+  $('fEndWrap').style.display      = (type === 'overtime') ? 'none' : 'block';
+  if (type === 'overtime') $('fEnd').value = '';
+}
+
+function openSubmit(type) {
+  setTab('register');
+  selectType(type);
+  $('fStart').value = new Date().toISOString().slice(0, 10);
+  $('fStart').focus();
+}
+
+function resetForm() {
+  $('fStart').value = '';
+  $('fEnd').value = '';
+  $('fHours').value = '';
+  $('fHalfDay').checked = false;
+  $('fDeal').value = '';
+  $('fSickType').value = 'self';
+  $('fDesc').value = '';
+  $('fError').style.display = 'none';
+}
+
+async function ensureDealsLoaded() {
+  if (dealsLoaded) return;
+  try {
+    const r = await api('fetch_deals');
+    const sel = $('fDeal');
+    sel.innerHTML = '<option value="">— Velg oppdrag —</option>';
+    for (const d of (r.deals || [])) {
+      const opt = document.createElement('option');
+      opt.value = d.id;
+      opt.textContent = d.name;
+      sel.appendChild(opt);
+    }
+    dealsLoaded = true;
+  } catch (e) {
+    console.error('fetch_deals failed', e);
+  }
+}
+
+async function submitEntry() {
+  const err = $('fError'); err.style.display = 'none';
+  const btn = $('fSubmit'); btn.disabled = true; btn.textContent = 'Sender…';
+  try {
+    const startDate = $('fStart').value;
+    const endDate   = $('fEnd').value || $('fStart').value;
+    if (!startDate) throw new Error('Velg fra-dato');
+
+    const body = {
+      type: currentType,
+      start_date: startDate,
+      end_date:   endDate,
+      half_day:   $('fHalfDay').checked,
+      description: $('fDesc').value.trim() || null,
+    };
+
+    if (currentType === 'overtime') {
+      const dealId = $('fDeal').value;
+      if (!dealId) throw new Error('Velg oppdrag (overtid krever deal-link)');
+      const dealName = $('fDeal').options[$('fDeal').selectedIndex]?.textContent || '';
+      const hours = parseFloat($('fHours').value);
+      if (!hours || hours <= 0) throw new Error('Antall timer må være > 0');
+      body.deal_id = dealId;
+      body.deal_name = dealName;
+      body.hours = hours;
+      body.end_date = startDate;  // Overtid logges per dag
+    } else if (currentType === 'timeoff') {
+      const hours = parseFloat($('fHours').value);
+      if (!hours || hours <= 0) throw new Error('Antall timer må være > 0');
+      body.hours = hours;
+    } else if (currentType === 'sick') {
+      body.sick_type = $('fSickType').value;
+    }
+
+    const r = await api('submit', {}, 'POST', body);
+    alert('✅ Sendt inn for godkjenning!');
+    resetForm();
+    setTab('my');
+  } catch (e) {
+    err.textContent = e.message; err.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Send inn';
+  }
+}
+
+// ── My entries ────────────────────────────────────────────────────────────────
+async function loadMyEntries() {
+  const wrap = $('myEntriesList');
+  wrap.innerHTML = '<div class="empty-state">Laster…</div>';
+  try {
+    const r = await api('my_entries', { year: currentYear });
+    myEntries = r.entries || [];
+    if (myEntries.length === 0) {
+      wrap.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div>Ingen oppføringer for ' + currentYear + '</div>';
+      return;
+    }
+    wrap.innerHTML = renderEntriesTable(myEntries, { ownEntries: true });
+  } catch (e) {
+    wrap.innerHTML = `<div class="empty-state" style="color:var(--red)">Feil: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function renderEntriesTable(entries, opts = {}) {
+  const userCol = opts.adminMode ? '<th>Ansatt</th>' : '';
+  const userTd  = (e) => opts.adminMode
+    ? `<td><strong>${escapeHtml(e.user_name)}</strong></td>` : '';
+
+  return `
+    <table class="data-table">
+      <thead><tr>
+        ${userCol}
+        <th>Type</th><th>Periode</th><th>Mengde</th><th>Detaljer</th><th>Status</th><th></th>
+      </tr></thead>
+      <tbody>
+        ${entries.map(e => `
+          <tr>
+            ${userTd(e)}
+            <td>${typePill(e)}</td>
+            <td>${formatPeriod(e)}</td>
+            <td>${formatAmount(e)}</td>
+            <td style="color:var(--gray-dark);font-size:13px">${escapeHtml(e.deal_name || e.description || '')}</td>
+            <td>${statusPill(e.status)}</td>
+            <td style="text-align:right">
+              ${opts.ownEntries && e.status === 'pending'
+                ? `<button class="btn-cancel-entry" onclick="cancelEntry('${e.id}')">Trekk</button>`
+                : opts.adminMode && e.status === 'pending'
+                ? `<button class="btn-approve" onclick="askDecide('${e.id}','approve')">✓ Godkjenn</button>
+                   <button class="btn-reject" onclick="askDecide('${e.id}','reject')">✗ Avvis</button>`
+                : (e.decision_note ? `<span title="${escapeHtml(e.decision_note)}" style="color:var(--gray-dark);font-size:12px;cursor:help">💬</span>` : '')}
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function typePill(e) {
+  const labels = {
+    overtime: ['⏰ Overtid', 'pill-overtime'],
+    timeoff:  ['🌴 Avspasering', 'pill-timeoff'],
+    vacation: ['🏖️ Ferie', 'pill-vacation'],
+    sick:     [e.sick_type === 'child' ? '👶 Sykt barn' : '🤒 Egenmelding',
+               e.sick_type === 'child' ? 'pill-child' : 'pill-sick'],
+  };
+  const [label, cls] = labels[e.type] || [e.type, ''];
+  return `<span class="pill ${cls}">${label}</span>`;
+}
+
+function statusPill(s) {
+  const labels = {
+    pending:   ['⏳ Venter',    'pill-pending'],
+    approved:  ['✅ Godkjent',  'pill-approved'],
+    rejected:  ['❌ Avvist',    'pill-rejected'],
+    cancelled: ['↩️ Trukket',   'pill-cancelled'],
+  };
+  const [label, cls] = labels[s] || [s, ''];
+  return `<span class="pill ${cls}">${label}</span>`;
+}
+
+function formatPeriod(e) {
+  if (e.start_date === e.end_date) {
+    const d = fmtDateNo(e.start_date);
+    return e.half_day ? `${d} <span style="color:var(--gray-dark);font-size:11px">(½ dag)</span>` : d;
+  }
+  return `${fmtDateNo(e.start_date)} – ${fmtDateNo(e.end_date)}`;
+}
+
+function formatAmount(e) {
+  if (e.type === 'overtime' || e.type === 'timeoff') {
+    return `<strong>${fmtNumber(e.hours)}</strong> t`;
+  }
+  // Ferie/sykdom: vi har ikke beregnet dager her, vis bare periode-lengde
+  const days = daysBetween(e.start_date, e.end_date);
+  if (e.half_day) return '<strong>0.5</strong> dag';
+  return `<strong>${days}</strong> dag${days === 1 ? '' : 'er'}`;
+}
+
+function daysBetween(a, b) {
+  const da = new Date(a + 'T00:00:00');
+  const db = new Date(b + 'T00:00:00');
+  return Math.round((db - da) / 86400000) + 1;
+}
+
+function fmtDateNo(d) {
+  if (!d) return '';
+  return new Date(d + 'T00:00:00').toLocaleDateString('no-NO', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+async function cancelEntry(id) {
+  if (!confirm('Trekke denne oppføringen?')) return;
+  try {
+    await api('cancel', {}, 'POST', { id });
+    loadMyEntries();
+    loadSummary();
+  } catch (e) { alert('Feil: ' + e.message); }
+}
+
+// ── Calendar ──────────────────────────────────────────────────────────────────
+async function loadCalendar() {
+  const wrap = $('calendarList');
+  wrap.innerHTML = '<div class="empty-state">Laster…</div>';
+  try {
+    const today = new Date();
+    const ninety = new Date(Date.now() + 90 * 86400000);
+    const r = await api('team_calendar', {
+      from: today.toISOString().slice(0, 10),
+      to:   ninety.toISOString().slice(0, 10),
+    });
+    teamCalendar = r.entries || [];
+    if (teamCalendar.length === 0) {
+      wrap.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📅</div>Ingen registrert ferie/fravær de neste 90 dagene</div>';
+      return;
+    }
+    // Group by month
+    const groups = {};
+    for (const e of teamCalendar) {
+      const monthKey = e.start_date.slice(0, 7);
+      (groups[monthKey] = groups[monthKey] || []).push(e);
+    }
+    const html = Object.entries(groups).map(([mk, list]) => {
+      const monthName = new Date(mk + '-01T00:00:00').toLocaleDateString('no-NO', { month: 'long', year: 'numeric' });
+      return `
+        <div class="cal-month">
+          <h3 class="cal-month-h">${monthName}</h3>
+          ${list.map(e => `
+            <div class="cal-entry entry-${e.type}">
+              <div class="cal-entry-date">${formatPeriod(e)}</div>
+              <div class="cal-entry-name">${escapeHtml(e.user_name)}</div>
+              <div class="cal-entry-meta">${e._label || calLabel(e)}</div>
+              <div>${statusPill(e.status)}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }).join('');
+    wrap.innerHTML = html;
+  } catch (e) {
+    wrap.innerHTML = `<div class="empty-state" style="color:var(--red)">Feil: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function calLabel(e) {
+  if (e.type === 'vacation') return '🏖️ Ferie';
+  if (e.type === 'timeoff')  return '🌴 Avspasering';
+  if (e.type === 'sick')     return '🤒 Fravær';
+  return e.type;
+}
+
+// ── Admin pending ─────────────────────────────────────────────────────────────
+async function loadAdminPending() {
+  const wrap = $('adminPendingList');
+  wrap.innerHTML = '<div class="empty-state">Laster…</div>';
+  try {
+    const r = await api('admin_pending');
+    adminPending = r.entries || [];
+    if (adminPending.length === 0) {
+      wrap.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🎉</div>Ingen ventende godkjenninger</div>';
+      return;
+    }
+    wrap.innerHTML = renderEntriesTable(adminPending, { adminMode: true });
+  } catch (e) {
+    wrap.innerHTML = `<div class="empty-state" style="color:var(--red)">Feil: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+// ── Decision modal ────────────────────────────────────────────────────────────
+function askDecide(id, action) {
+  const entry = adminPending.find(e => e.id === id);
+  if (!entry) return;
+  pendingDecision = { id, action, entry };
+  $('decisionTitle').textContent = action === 'approve' ? '✅ Godkjenn oppføring' : '❌ Avvis oppføring';
+  $('decisionSummary').innerHTML = `<strong>${escapeHtml(entry.user_name)}</strong> — ${typePill(entry)} · ${formatPeriod(entry)} · ${formatAmount(entry)}`;
+  $('dNote').value = '';
+  $('decisionError').style.display = 'none';
+  $('decisionConfirm').textContent = action === 'approve' ? 'Godkjenn' : 'Avvis';
+  $('decisionConfirm').className = action === 'approve' ? 'btn-primary' : 'btn-reject';
+  $('decisionConfirm').style.padding = '11px 22px';
+  $('decisionModal').classList.add('show');
+}
+
+function closeDecision() {
+  $('decisionModal').classList.remove('show');
+  pendingDecision = null;
+}
+
+async function confirmDecision() {
+  if (!pendingDecision) return;
+  const err = $('decisionError'); err.style.display = 'none';
+  const btn = $('decisionConfirm'); btn.disabled = true; btn.textContent = 'Sender…';
+  try {
+    await api(pendingDecision.action, {}, 'POST', {
+      id: pendingDecision.id,
+      decision_note: $('dNote').value.trim() || null,
+    });
+    closeDecision();
+    loadAdminPending();
+    loadSummary();
+  } catch (e) {
+    err.textContent = e.message; err.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = pendingDecision.action === 'approve' ? 'Godkjenn' : 'Avvis';
+  }
+}
+
+// ── Util ──────────────────────────────────────────────────────────────────────
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;',
+  })[c]);
+}
+
+// Initial type select
+selectType('overtime');
+
+// Deep link: ?tab=admin
+const urlTab = new URLSearchParams(location.search).get('tab');
+if (urlTab && ['overview','register','my','calendar','admin'].includes(urlTab)) {
+  // Wait for login, then setTab
+  const id = setInterval(() => {
+    if (currentUser) { clearInterval(id); setTab(urlTab); }
+  }, 200);
+}
+</script>
+</body>
+</html>
