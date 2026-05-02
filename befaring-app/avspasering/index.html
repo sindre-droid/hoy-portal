@@ -919,13 +919,15 @@ function askDecide(id, action) {
   const entry = adminPending.find(e => e.id === id);
   if (!entry) return;
   pendingDecision = { id, action, entry };
+  const btn = $('decisionConfirm');
   $('decisionTitle').textContent = action === 'approve' ? '✅ Godkjenn oppføring' : '❌ Avvis oppføring';
   $('decisionSummary').innerHTML = `<strong>${escapeHtml(entry.user_name)}</strong> — ${typePill(entry)} · ${formatPeriod(entry)} · ${formatAmount(entry)}`;
   $('dNote').value = '';
   $('decisionError').style.display = 'none';
-  $('decisionConfirm').textContent = action === 'approve' ? 'Godkjenn' : 'Avvis';
-  $('decisionConfirm').className = action === 'approve' ? 'btn-primary' : 'btn-reject';
-  $('decisionConfirm').style.padding = '11px 22px';
+  btn.textContent = action === 'approve' ? 'Godkjenn' : 'Avvis';
+  btn.className = action === 'approve' ? 'btn-primary' : 'btn-reject';
+  btn.style.padding = '11px 22px';
+  btn.disabled = false;                       // ← reset i tilfelle forrige forsøk hang
   $('decisionModal').classList.add('show');
 }
 
@@ -962,6 +964,10 @@ function escapeHtml(s) {
 
 // Initial type select
 selectType('overtime');
+
+// Esc + klikk-utenfor lukker modalen
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDecision(); });
+$('decisionModal').addEventListener('click', e => { if (e.target.id === 'decisionModal') closeDecision(); });
 
 // Deep link: ?tab=admin
 const urlTab = new URLSearchParams(location.search).get('tab');
