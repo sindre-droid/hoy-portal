@@ -348,6 +348,27 @@
             </div>
           </div>
 
+          <div id="fTimeWrap" style="display:none">
+            <div class="field-row">
+              <div class="field">
+                <label for="fStartTime">Fra kl. <span style="color:var(--red)">*</span></label>
+                <input type="time" id="fStartTime" step="60" oninput="updateDuration()">
+              </div>
+              <div class="field">
+                <label for="fEndTime">Til kl. <span style="color:var(--red)">*</span></label>
+                <input type="time" id="fEndTime" step="60" oninput="updateDuration()">
+              </div>
+            </div>
+            <div class="field" style="margin-top:-6px">
+              <div id="fDuration" style="background:var(--surface);padding:10px 14px;border-radius:8px;font-size:14px;color:var(--gray-dark);display:none">
+                <strong id="fDurRaw">—</strong>
+                <span style="margin:0 8px;color:var(--gray)">→</span>
+                <strong id="fDurRounded" style="color:var(--navy)">—</strong>
+                <span style="font-size:12px;margin-left:6px">(avrundet opp til nærmeste kvarter)</span>
+              </div>
+            </div>
+          </div>
+
           <div class="field" id="fHoursWrap">
             <label for="fHours">Antall timer</label>
             <input type="number" id="fHours" min="0.5" step="0.5" placeholder="F.eks. 3.5">
@@ -722,7 +743,8 @@ function fmtNumber(n) {
 function selectType(type) {
   currentType = type;
   document.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
-  $('fHoursWrap').style.display    = (type === 'overtime' || type === 'timeoff') ? 'block' : 'none';
+  $('fTimeWrap').style.display     = (type === 'overtime') ? 'block' : 'none';
+  $('fHoursWrap').style.display    = (type === 'timeoff') ? 'block' : 'none';
   $('fDealWrap').style.display     = (type === 'overtime') ? 'block' : 'none';
   $('fHalfWrap').style.display     = (type === 'vacation' || type === 'timeoff') ? 'block' : 'none';
   $('fSickTypeWrap').style.display = (type === 'sick') ? 'block' : 'none';
@@ -742,6 +764,30 @@ function selectType(type) {
 
   // Reset deal-/description-state når man bytter type
   onDealChange();
+}
+
+function updateDuration() {
+  const s = $('fStartTime').value;
+  const e = $('fEndTime').value;
+  const out = $('fDuration');
+  if (!s || !e) { out.style.display = 'none'; return; }
+  try {
+    const [sh, sm] = s.split(':').map(Number);
+    const [eh, em] = e.split(':').map(Number);
+    let startMin = sh * 60 + sm;
+    let endMin   = eh * 60 + em;
+    if (endMin <= startMin) endMin += 24 * 60;          // krysser midnatt
+    const totalMin = endMin - startMin;
+    if (totalMin <= 0) { out.style.display = 'none'; return; }
+    const quarters = Math.ceil(totalMin / 15);
+    const roundedMin = quarters * 15;
+    const hRaw = Math.floor(totalMin / 60);
+    const mRaw = totalMin % 60;
+    const hours = roundedMin / 60;
+    $('fDurRaw').textContent = `${hRaw}t ${mRaw}min`;
+    $('fDurRounded').textContent = `${hours.toFixed(2).replace(/\.?0+$/, '')} t (${quarters} kvarter)`;
+    out.style.display = 'block';
+  } catch { out.style.display = 'none'; }
 }
 
 function onDealChange() {
@@ -766,6 +812,9 @@ function resetForm() {
   $('fStart').value = '';
   $('fEnd').value = '';
   $('fHours').value = '';
+  $('fStartTime').value = '';
+  $('fEndTime').value = '';
+  $('fDuration').style.display = 'none';
   $('fHalfDay').checked = false;
   $('fDeal').value = '';
   $('fSickType').value = 'self';
@@ -826,10 +875,18 @@ async function submitEntry() {
         body.deal_id = dealId;
         body.deal_name = dealName;
       }
-      const hours = parseFloat($('fHours').value);
-      if (!hours || hours <= 0) throw new Error('Antall timer må være > 0');
-      body.hours = hours;
-      body.end_date = startDate;  // Overtid logges per dag
+      const startT = $('fStartTime').value;
+      const endT   = $('fEndTime').value;
+      if (!startT || !endT) throw new Error('Velg fra- og til-klokkeslett');
+      // Sanity-check (server beregner endelig)
+      const [sh, sm] = startT.split(':').map(Number);
+      const [eh, em] = endT.split(':').map(Number);
+      let mins = (eh * 60 + em) - (sh * 60 + sm);
+      if (mins <= 0) mins += 24 * 60;
+      if (mins <= 0) throw new Error('Slutt må være etter start');
+      body.start_time = startT;
+      body.end_time   = endT;
+      body.end_date   = startDate;  // Overtid logges per dag
     } else if (currentType === 'timeoff') {
       const hours = parseFloat($('fHours').value);
       if (!hours || hours <= 0) throw new Error('Antall timer må være > 0');
@@ -938,9 +995,13 @@ function formatPeriod(e) {
 }
 
 function formatAmount(e) {
-  if (e.type === 'overtime' || e.type === 'timeoff') {
-    return `<strong>${fmtNumber(e.hours)}</strong> t`;
+  if (e.type === 'overtime') {
+    const timeRange = (e.start_time && e.end_time)
+      ? ` <span style="color:var(--gray-dark);font-size:11px">(${e.start_time.slice(0,5)}–${e.end_time.slice(0,5)})</span>`
+      : '';
+    return `<strong>${fmtNumber(e.hours)}</strong> t${timeRange}`;
   }
+  if (e.type === 'timeoff') return `<strong>${fmtNumber(e.hours)}</strong> t`;
   // Ferie/sykdom: vi har ikke beregnet dager her, vis bare periode-lengde
   const days = daysBetween(e.start_date, e.end_date);
   if (e.half_day) return '<strong>0.5</strong> dag';

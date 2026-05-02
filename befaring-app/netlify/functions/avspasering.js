@@ -171,6 +171,28 @@ function escapeHtml(s) {
   })[c]);
 }
 
+// ── Tidsbasert overtidsberegning med kvartereretning oppover ───────────────
+// Hvert påbegynte kvarter (15 min) teller som ett helt kvarter.
+// Returnerer { hours, minutes } eller kaster ved ugyldig input.
+function hoursFromTimes(startTime, endTime) {
+  const re = /^([01]\d|2[0-3]):([0-5]\d)$/;
+  if (!re.test(startTime || '') || !re.test(endTime || '')) {
+    throw new Error('Ugyldig klokkeslett (forventer HH:MM)');
+  }
+  const [sh, sm] = startTime.split(':').map(Number);
+  const [eh, em] = endTime.split(':').map(Number);
+  let startMin = sh * 60 + sm;
+  let endMin   = eh * 60 + em;
+  if (endMin <= startMin) endMin += 24 * 60;     // krysser midnatt
+  const totalMin = endMin - startMin;
+  if (totalMin <= 0 || totalMin > 24 * 60) {
+    throw new Error('Slutt må være etter start, og perioden må være < 24 timer');
+  }
+  const quarters       = Math.ceil(totalMin / 15);
+  const roundedMinutes = quarters * 15;
+  return roundedMinutes / 60;                    // hours, f.eks. 3.75
+}
+
 // ── Beregn virkedager (mellom to datoer, ekskl. helg + helligdag) ────────────
 async function countWorkdays(supabase, startDate, endDate) {
   // Bruker SQL-funksjonen vi opprettet i schemaet
@@ -442,7 +464,18 @@ exports.handler = async (event) => {
       };
 
       if (type === 'overtime') {
-        if (!body.hours || Number(body.hours) <= 0) return err(400, 'Overtid krever timer > 0');
+        // Beregn timer enten fra klokkeslett (preferert) eller fra body.hours
+        let hours;
+        if (body.start_time && body.end_time) {
+          try { hours = hoursFromTimes(body.start_time, body.end_time); }
+          catch (e) { return err(400, e.message); }
+          insert.start_time = body.start_time;
+          insert.end_time   = body.end_time;
+        } else if (body.hours && Number(body.hours) > 0) {
+          hours = Number(body.hours);
+        } else {
+          return err(400, 'Overtid krever klokkeslett (fra/til) eller antall timer');
+        }
         const hasDeal = body.deal_id && String(body.deal_id) !== '__other__';
         const hasDesc = body.description && String(body.description).trim().length > 0;
         if (!hasDeal && !hasDesc) {
@@ -452,7 +485,7 @@ exports.handler = async (event) => {
           insert.deal_id   = String(body.deal_id);
           insert.deal_name = body.deal_name || null;
         }
-        insert.hours = Number(body.hours);
+        insert.hours = hours;
       } else if (type === 'timeoff') {
         if (!body.hours || Number(body.hours) <= 0) return err(400, 'Avspasering krever timer > 0');
         // 48t-sperre: avspaseringsuttak må sendes inn senest 48 timer før uttak
@@ -542,12 +575,22 @@ exports.handler = async (event) => {
       };
 
       if (type === 'overtime') {
-        if (!body.hours || Number(body.hours) <= 0) return err(400, 'Overtid krever timer > 0');
+        let hours;
+        if (body.start_time && body.end_time) {
+          try { hours = hoursFromTimes(body.start_time, body.end_time); }
+          catch (e) { return err(400, e.message); }
+          insert.start_time = body.start_time;
+          insert.end_time   = body.end_time;
+        } else if (body.hours && Number(body.hours) > 0) {
+          hours = Number(body.hours);
+        } else {
+          return err(400, 'Overtid krever klokkeslett eller antall timer');
+        }
         if (body.deal_id && String(body.deal_id) !== '__other__') {
           insert.deal_id   = String(body.deal_id);
           insert.deal_name = body.deal_name || null;
         }
-        insert.hours = Number(body.hours);
+        insert.hours = hours;
       } else if (type === 'timeoff') {
         if (!body.hours || Number(body.hours) <= 0) return err(400, 'Avspasering krever timer > 0');
         insert.hours = Number(body.hours);
