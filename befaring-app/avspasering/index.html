@@ -454,6 +454,54 @@
         </div>
       </div>
 
+      <h2 style="margin:24px 0 6px;font-size:20px;font-weight:800;color:var(--navy)">📚 Alle oppføringer</h2>
+      <div style="font-size:13px;color:var(--gray-dark);margin-bottom:14px">Full oversikt over alle ansattes oppføringer med filter, redigering og sletting</div>
+
+      <div class="card" style="padding:16px 18px;margin-bottom:14px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--gray-dark);text-transform:uppercase;letter-spacing:0.6px">År</label>
+            <select id="aoYear" onchange="loadAllEntries()" style="width:100%;padding:8px 10px;border:1.5px solid var(--gray);border-radius:6px;font-size:13px;font-family:inherit;margin-top:4px"></select>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--gray-dark);text-transform:uppercase;letter-spacing:0.6px">Ansatt</label>
+            <select id="aoUser" onchange="loadAllEntries()" style="width:100%;padding:8px 10px;border:1.5px solid var(--gray);border-radius:6px;font-size:13px;font-family:inherit;margin-top:4px">
+              <option value="">Alle</option>
+              <option value="sindre@h-y.no">Sindre Jacobsen</option>
+              <option value="daniel@h-y.no">Daniel Ruud</option>
+              <option value="henrik@h-y.no">Henrik Bratz</option>
+              <option value="marte@h-y.no">Marte</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--gray-dark);text-transform:uppercase;letter-spacing:0.6px">Type</label>
+            <select id="aoType" onchange="loadAllEntries()" style="width:100%;padding:8px 10px;border:1.5px solid var(--gray);border-radius:6px;font-size:13px;font-family:inherit;margin-top:4px">
+              <option value="">Alle</option>
+              <option value="overtime">⏰ Overtid</option>
+              <option value="timeoff">🌴 Avspasering</option>
+              <option value="vacation">🏖️ Ferie</option>
+              <option value="sick">🤒 Egenmelding</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--gray-dark);text-transform:uppercase;letter-spacing:0.6px">Status</label>
+            <select id="aoStatus" onchange="loadAllEntries()" style="width:100%;padding:8px 10px;border:1.5px solid var(--gray);border-radius:6px;font-size:13px;font-family:inherit;margin-top:4px">
+              <option value="">Alle</option>
+              <option value="pending">⏳ Venter</option>
+              <option value="approved">✅ Godkjent</option>
+              <option value="rejected">❌ Avvist</option>
+              <option value="cancelled">↩️ Trukket</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden;margin-bottom:24px">
+        <div id="allEntriesList">
+          <div class="empty-state">Velg filter for å laste oppføringer…</div>
+        </div>
+      </div>
+
       <h2 style="margin:24px 0 6px;font-size:20px;font-weight:800;color:var(--navy)">📥 Importer historikk</h2>
       <div style="font-size:13px;color:var(--gray-dark);margin-bottom:18px">Registrer overtid, ferie, avspasering eller egenmelding på vegne av en ansatt for tidligere datoer. Lagres som godkjent uten e-postvarsling.</div>
 
@@ -532,6 +580,91 @@
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- ── Edit modal (admin) ───────────────────────────────────────────────── -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal" style="max-width:620px">
+    <h3>✏️ Rediger oppføring</h3>
+    <div class="modal-sub" id="editMeta"></div>
+
+    <div class="field">
+      <label>Ansatt</label>
+      <select id="eUser">
+        <option value="sindre@h-y.no">Sindre Jacobsen</option>
+        <option value="daniel@h-y.no">Daniel Ruud</option>
+        <option value="henrik@h-y.no">Henrik Bratz</option>
+        <option value="marte@h-y.no">Marte</option>
+      </select>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Fra-dato</label>
+        <input type="date" id="eStart">
+      </div>
+      <div class="field">
+        <label>Til-dato</label>
+        <input type="date" id="eEnd">
+      </div>
+    </div>
+
+    <div class="field-row" id="eTimeWrap" style="display:none">
+      <div class="field">
+        <label>Fra kl.</label>
+        <input type="time" id="eStartTime" step="60">
+      </div>
+      <div class="field">
+        <label>Til kl.</label>
+        <input type="time" id="eEndTime" step="60">
+      </div>
+    </div>
+
+    <div class="field" id="eHoursWrap">
+      <label>Antall timer</label>
+      <input type="number" id="eHours" min="0" step="0.25">
+    </div>
+
+    <div class="field" id="eHalfWrap" style="display:none">
+      <label class="checkbox-row">
+        <input type="checkbox" id="eHalfDay">
+        <span>Halv dag</span>
+      </label>
+    </div>
+
+    <div class="field" id="eSickTypeWrap" style="display:none">
+      <label>Type fravær</label>
+      <select id="eSickType">
+        <option value="self">Egen sykdom</option>
+        <option value="child">Sykt barn</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Beskrivelse</label>
+      <textarea id="eDesc" rows="2"></textarea>
+    </div>
+
+    <div class="field">
+      <label>Status</label>
+      <select id="eStatus">
+        <option value="pending">⏳ Venter</option>
+        <option value="approved">✅ Godkjent</option>
+        <option value="rejected">❌ Avvist</option>
+        <option value="cancelled">↩️ Trukket</option>
+      </select>
+    </div>
+
+    <div class="modal-error" id="editError"></div>
+
+    <div class="modal-actions" style="justify-content:space-between">
+      <button class="btn-reject" onclick="deleteEntry()" style="padding:9px 18px">🗑️ Slett</button>
+      <div style="display:flex;gap:10px">
+        <button class="btn-cancel" onclick="closeEdit()">Avbryt</button>
+        <button class="btn-primary" id="editSaveBtn" onclick="saveEdit()" style="padding:11px 22px">Lagre</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -677,7 +810,7 @@ function setTab(name) {
   if (name === 'register')  ensureDealsLoaded();
   if (name === 'my')        loadMyEntries();
   if (name === 'calendar')  loadCalendar();
-  if (name === 'admin')     loadAdminPending();
+  if (name === 'admin')     { loadAdminPending(); loadAllEntries(); }
 }
 
 // ── Year selector ─────────────────────────────────────────────────────────────
@@ -1165,6 +1298,151 @@ function escapeHtml(s) {
   })[c]);
 }
 
+// ── Alle oppføringer (admin) ─────────────────────────────────────────────────
+let allEntries = [];
+let editingEntry = null;
+
+function initYearFilter() {
+  const sel = $('aoYear');
+  if (sel.options.length > 0) return;  // already initialized
+  const cur = new Date().getFullYear();
+  for (let y = cur + 1; y >= cur - 3; y--) {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    if (y === cur) opt.selected = true;
+    sel.appendChild(opt);
+  }
+}
+
+async function loadAllEntries() {
+  initYearFilter();
+  const wrap = $('allEntriesList');
+  wrap.innerHTML = '<div class="empty-state">Laster…</div>';
+  try {
+    const params = { year: $('aoYear').value };
+    if ($('aoUser').value)   params.user_email = $('aoUser').value;
+    if ($('aoType').value)   params.type       = $('aoType').value;
+    if ($('aoStatus').value) params.status     = $('aoStatus').value;
+    const r = await api('admin_all_entries', params);
+    allEntries = r.entries || [];
+    if (allEntries.length === 0) {
+      wrap.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div>Ingen oppføringer matcher filteret</div>';
+      return;
+    }
+    wrap.innerHTML = renderAllEntriesTable(allEntries);
+  } catch (e) {
+    wrap.innerHTML = `<div class="empty-state" style="color:var(--red)">Feil: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function renderAllEntriesTable(entries) {
+  return `
+    <table class="data-table">
+      <thead><tr>
+        <th>Ansatt</th><th>Type</th><th>Periode</th><th>Mengde</th><th>Detaljer</th><th>Status</th><th></th>
+      </tr></thead>
+      <tbody>
+        ${entries.map(e => `
+          <tr>
+            <td><strong>${escapeHtml(e.user_name)}</strong></td>
+            <td>${typePill(e)}</td>
+            <td>${formatPeriod(e)}</td>
+            <td>${formatAmount(e)}</td>
+            <td style="color:var(--gray-dark);font-size:13px">${escapeHtml(e.deal_name || e.description || '')}</td>
+            <td>${statusPill(e.status)}</td>
+            <td style="text-align:right;white-space:nowrap">
+              <button class="btn-cancel-entry" onclick="openEdit('${e.id}')" style="border-color:var(--navy);color:var(--navy)">✏️ Rediger</button>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function openEdit(id) {
+  const e = allEntries.find(x => x.id === id);
+  if (!e) return;
+  editingEntry = e;
+  $('editMeta').innerHTML = `${typePill(e)} · ID: <code style="font-size:11px">${e.id.slice(0,8)}…</code>`;
+  $('eUser').value = e.user_email;
+  $('eStart').value = e.start_date;
+  $('eEnd').value = e.end_date;
+  $('eHours').value = e.hours ?? '';
+  $('eHalfDay').checked = !!e.half_day;
+  $('eSickType').value = e.sick_type || 'self';
+  $('eDesc').value = e.description || '';
+  $('eStatus').value = e.status;
+  $('eStartTime').value = (e.start_time || '').slice(0,5);
+  $('eEndTime').value   = (e.end_time   || '').slice(0,5);
+
+  // Vis felter avhengig av type
+  $('eTimeWrap').style.display     = (e.type === 'overtime' && (e.start_time || e.end_time)) ? 'grid' : 'none';
+  $('eHoursWrap').style.display    = (e.type === 'overtime' || e.type === 'timeoff') ? 'block' : 'none';
+  $('eHalfWrap').style.display     = (e.type === 'vacation' || e.type === 'timeoff') ? 'block' : 'none';
+  $('eSickTypeWrap').style.display = (e.type === 'sick') ? 'block' : 'none';
+
+  $('editError').style.display = 'none';
+  $('editSaveBtn').disabled = false;
+  $('editSaveBtn').textContent = 'Lagre';
+  $('editModal').classList.add('show');
+}
+
+function closeEdit() {
+  $('editModal').classList.remove('show');
+  editingEntry = null;
+}
+
+async function saveEdit() {
+  if (!editingEntry) return;
+  const err = $('editError'); err.style.display = 'none';
+  const btn = $('editSaveBtn'); btn.disabled = true; btn.textContent = 'Lagrer…';
+  try {
+    const body = {
+      id: editingEntry.id,
+      user_email: $('eUser').value,
+      start_date: $('eStart').value,
+      end_date:   $('eEnd').value || $('eStart').value,
+      half_day:   $('eHalfDay').checked,
+      description: $('eDesc').value.trim() || null,
+      status:     $('eStatus').value,
+    };
+    if (editingEntry.type === 'overtime' || editingEntry.type === 'timeoff') {
+      const h = parseFloat($('eHours').value);
+      if (!isNaN(h)) body.hours = h;
+    }
+    if (editingEntry.type === 'overtime') {
+      body.start_time = $('eStartTime').value || null;
+      body.end_time   = $('eEndTime').value || null;
+    }
+    if (editingEntry.type === 'sick') {
+      body.sick_type = $('eSickType').value;
+    }
+    await api('admin_update', {}, 'POST', body);
+    closeEdit();
+    loadAllEntries();
+    loadSummary();
+  } catch (e) {
+    err.textContent = e.message; err.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Lagre';
+  }
+}
+
+async function deleteEntry() {
+  if (!editingEntry) return;
+  if (!confirm(`Slette denne oppføringen permanent?\n\n${editingEntry.user_name} — ${editingEntry.start_date}\n\nKan ikke angres.`)) return;
+  const btn = $('editSaveBtn'); btn.disabled = true;
+  try {
+    await api('admin_delete', {}, 'POST', { id: editingEntry.id });
+    closeEdit();
+    loadAllEntries();
+    loadSummary();
+  } catch (e) {
+    $('editError').textContent = e.message;
+    $('editError').style.display = 'block';
+    btn.disabled = false;
+  }
+}
+
 // ── Historikk-import (admin) ─────────────────────────────────────────────────
 let hCurrentType = 'overtime';
 
@@ -1228,9 +1506,12 @@ async function hSubmit() {
 // Initial type select
 selectType('overtime');
 
-// Esc + klikk-utenfor lukker modalen
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDecision(); });
+// Esc + klikk-utenfor lukker modaler
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeDecision(); closeEdit(); }
+});
 $('decisionModal').addEventListener('click', e => { if (e.target.id === 'decisionModal') closeDecision(); });
+$('editModal').addEventListener('click', e => { if (e.target.id === 'editModal') closeEdit(); });
 
 // Deep link: ?tab=admin
 const urlTab = new URLSearchParams(location.search).get('tab');

@@ -645,6 +645,14 @@ exports.handler = async (event) => {
       } else if (type === 'sick') {
         if (!['self','child'].includes(body.sick_type)) return err(400, 'Egenmelding krever sick_type (self|child)');
         insert.sick_type = body.sick_type;
+        // Også for historikk-import: maks 3 kalenderdager per egenmeldingsperiode
+        // (typo-vern — fanger opp f.eks. feil til-dato)
+        if (body.sick_type === 'self') {
+          const days = countCalendarDays(startDate, endDate);
+          if (days > SICK_MAX_DAYS_PER_PERIOD) {
+            return err(400, `En egenmeldingsperiode kan være maks ${SICK_MAX_DAYS_PER_PERIOD} kalenderdager (du forsøker å registrere ${days} dager). Sjekk fra-/til-dato.`);
+          }
+        }
       }
 
       const { data, error } = await supabase
@@ -657,6 +665,93 @@ exports.handler = async (event) => {
         return err(500, error.message);
       }
       return ok({ entry: data });
+    }
+
+    // ─── GET ?action=admin_all_entries (admin only) ────────────────────────
+    // Full oversikt over alle oppføringer. Filter: ?year, ?type, ?status, ?user_email
+    if (event.httpMethod === 'GET' && action === 'admin_all_entries') {
+      if (!isAdmin) return err(403, 'Admin only');
+      let qb = supabase.from('time_entries').select('*');
+      if (q.year) {
+        qb = qb.gte('start_date', `${q.year}-01-01`).lte('start_date', `${q.year}-12-31`);
+      }
+      if (q.type)       qb = qb.eq('type', q.type);
+      if (q.status)     qb = qb.eq('status', q.status);
+      if (q.user_email) qb = qb.eq('user_email', q.user_email.toLowerCase());
+      qb = qb.order('start_date', { ascending: false });
+      const { data, error } = await qb;
+      if (error) return err(500, error.message);
+      return ok({ entries: data || [] });
+    }
+
+    // ─── POST ?action=admin_update (admin only) ────────────────────────────
+    // Endre felt på en eksisterende oppføring. Bevarer type — bytt heller status
+    // til cancelled og lag ny entry hvis du må endre type.
+    if (event.httpMethod === 'POST' && action === 'admin_update') {
+      if (!isAdmin) return err(403, 'Admin only');
+      const body = JSON.parse(event.body || '{}');
+      if (!body.id) return err(400, 'Mangler id');
+
+      const { data: existing } = await supabase.from('time_entries').select('*').eq('id', body.id).maybeSingle();
+      if (!existing) return err(404, 'Ikke funnet');
+
+      const update = {};
+      // Bytt user_email/name (sjelden men nyttig hvis registrert på feil person)
+      if (body.user_email !== undefined) {
+        const targetEmp = EMPLOYEES[String(body.user_email).toLowerCase()];
+        if (!targetEmp) return err(400, 'Ukjent ansatt');
+        update.user_email = body.user_email.toLowerCase();
+        update.user_name  = targetEmp.name;
+      }
+      if (body.start_date !== undefined) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(body.start_date)) return err(400, 'Ugyldig start_date');
+        update.start_date = body.start_date;
+      }
+      if (body.end_date !== undefined) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(body.end_date)) return err(400, 'Ugyldig end_date');
+        update.end_date = body.end_date;
+      }
+      if (body.hours !== undefined)      update.hours = body.hours === null ? null : Number(body.hours);
+      if (body.half_day !== undefined)   update.half_day = !!body.half_day;
+      if (body.deal_id !== undefined)    update.deal_id = body.deal_id || null;
+      if (body.deal_name !== undefined)  update.deal_name = body.deal_name || null;
+      if (body.sick_type !== undefined)  update.sick_type = body.sick_type || null;
+      if (body.description !== undefined) update.description = body.description || null;
+      if (body.start_time !== undefined) update.start_time = body.start_time || null;
+      if (body.end_time !== undefined)   update.end_time = body.end_time || null;
+      if (body.status !== undefined && ['pending','approved','rejected','cancelled'].includes(body.status)) {
+        update.status = body.status;
+      }
+
+      // Valider sluttilstand: 3-dagers-regelen for egen sykdom
+      const merged = { ...existing, ...update };
+      if (merged.type === 'sick' && merged.sick_type === 'self') {
+        const days = countCalendarDays(merged.start_date, merged.end_date);
+        if (days > SICK_MAX_DAYS_PER_PERIOD) {
+          return err(400, `Egenmelding kan være maks ${SICK_MAX_DAYS_PER_PERIOD} kalenderdager (resultatet ville blitt ${days} dager).`);
+        }
+      }
+
+      const { data, error } = await supabase
+        .from('time_entries')
+        .update(update)
+        .eq('id', body.id)
+        .select().single();
+      if (error) {
+        console.error('admin_update error:', error);
+        return err(500, error.message);
+      }
+      return ok({ entry: data });
+    }
+
+    // ─── POST ?action=admin_delete (admin only) ────────────────────────────
+    if (event.httpMethod === 'POST' && action === 'admin_delete') {
+      if (!isAdmin) return err(403, 'Admin only');
+      const body = JSON.parse(event.body || '{}');
+      if (!body.id) return err(400, 'Mangler id');
+      const { error } = await supabase.from('time_entries').delete().eq('id', body.id);
+      if (error) return err(500, error.message);
+      return ok({ deleted: body.id });
     }
 
     // ─── POST ?action=approve / reject (admin only) ────────────────────────
