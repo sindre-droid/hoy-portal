@@ -260,6 +260,12 @@
         </div>
       </div>
 
+      <div style="background:#f0f4f8;border-left:3px solid var(--navy);padding:10px 14px;border-radius:6px;margin-bottom:14px;font-size:12px;color:var(--gray-dark);line-height:1.55">
+        <strong style="color:var(--navy)">Telleregler (10,2 % feriepenger):</strong>
+        Ferie regnes etter ferieloven §5 — <strong>lørdag teller</strong>, kun søndag og lovbestemte helligdager ekskluderes (25 dager = 4 uker + 1 dag).
+        Egenmelding teller kalenderdager (helg inkludert). Sykt barn teller Mon–Fri.
+      </div>
+
       <div class="balance-grid">
         <div class="balance-card bc-time">
           <div class="balance-label">Avspaseringssaldo</div>
@@ -1187,10 +1193,17 @@ function formatAmount(e) {
     return `<strong>${fmtNumber(e.hours)}</strong> t${timeRange}`;
   }
   if (e.type === 'timeoff') return `<strong>${fmtNumber(e.hours)}</strong> t`;
-  // Ferie/sykdom: vi har ikke beregnet dager her, vis bare periode-lengde
-  const days = daysBetween(e.start_date, e.end_date);
+
+  // Ferie/sykdom: bruk cost_days fra backend (saldo-trukket dager)
+  // Med fallback til kalenderdager hvis cost_days mangler (gamle entries)
+  const days = e.cost_days != null ? Number(e.cost_days) : daysBetween(e.start_date, e.end_date);
   if (e.half_day) return '<strong>0.5</strong> dag';
-  return `<strong>${days}</strong> dag${days === 1 ? '' : 'er'}`;
+  // Vis også kalenderperiode i grått hvis cost_days < kalenderdager
+  const calDays = daysBetween(e.start_date, e.end_date);
+  const extra = (calDays !== days)
+    ? ` <span style="color:var(--gray-dark);font-size:11px">(${calDays} kal.dager)</span>`
+    : '';
+  return `<strong>${fmtNumber(days)}</strong> dag${days === 1 ? '' : 'er'}${extra}`;
 }
 
 function daysBetween(a, b) {

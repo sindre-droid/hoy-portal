@@ -204,23 +204,70 @@ function countCalendarDays(startDate, endDate) {
   return Math.round((b - a) / 86400000) + 1;
 }
 
-// ── Beregn virkedager (mellom to datoer, ekskl. helg + helligdag) ────────────
-async function countWorkdays(supabase, startDate, endDate) {
-  // Bruker SQL-funksjonen vi opprettet i schemaet
-  const { data, error } = await supabase.rpc('count_workdays', { d_start: startDate, d_end: endDate });
-  if (error) {
-    console.error('countWorkdays error:', error.message);
-    // Fallback: tell uten helligdager
-    const start = new Date(startDate + 'T00:00:00');
-    const end   = new Date(endDate + 'T00:00:00');
-    let n = 0;
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const dow = d.getDay();
-      if (dow !== 0 && dow !== 6) n++;
-    }
-    return n;
+// ── Hent helligdager én gang per request ────────────────────────────────────
+async function fetchHolidaysSet(supabase) {
+  const { data } = await supabase.from('norwegian_holidays').select('date');
+  return new Set((data || []).map(h => h.date));
+}
+
+// ── Tell ferie-virkedager (ferieloven §5: kun søn + helligdag ekskluderes) ──
+// Lørdag TELLER som virkedag. 25 virkedager/år = 4 uker + 1 dag.
+function countFerieDays(startDate, endDate, holidaysSet) {
+  const start = new Date(startDate + 'T00:00:00');
+  const end   = new Date(endDate   + 'T00:00:00');
+  let n = 0;
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    if (d.getDay() === 0) continue;                // kun søndag eks.
+    const iso = d.toISOString().slice(0, 10);
+    if (holidaysSet.has(iso)) continue;            // helligdag
+    n++;
   }
-  return Number(data) || 0;
+  return n;
+}
+
+// ── Tell Mon-Fri-dager (sykt barn etter folketrygdloven §9-6) ───────────────
+// Brukes for sykt barn og evt. fremtidig "stønadsdager"-telling.
+function countMonFriDays(startDate, endDate, holidaysSet) {
+  const start = new Date(startDate + 'T00:00:00');
+  const end   = new Date(endDate   + 'T00:00:00');
+  let n = 0;
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const dow = d.getDay();
+    if (dow === 0 || dow === 6) continue;          // søn + lør eks.
+    const iso = d.toISOString().slice(0, 10);
+    if (holidaysSet.has(iso)) continue;            // helligdag
+    n++;
+  }
+  return n;
+}
+
+// ── Beregn hva en oppføring "koster" i saldoen ──────────────────────────────
+function computeCostDays(entry, holidaysSet) {
+  if (entry.type === 'overtime' || entry.type === 'timeoff') {
+    return Number(entry.hours) || 0;
+  }
+  if (entry.type === 'vacation') {
+    if (entry.half_day) return 0.5;
+    return countFerieDays(entry.start_date, entry.end_date, holidaysSet);
+  }
+  if (entry.type === 'sick') {
+    if (entry.sick_type === 'self') {
+      // Egenmelding (egen sykdom): kalenderdager (ferieloven §8-23)
+      return countCalendarDays(entry.start_date, entry.end_date);
+    }
+    // Sykt barn: Mon-Fri (folketrygdloven §9-6 — stønadsdager)
+    return countMonFriDays(entry.start_date, entry.end_date, holidaysSet);
+  }
+  return 0;
+}
+
+// ── Berik en liste med entries med cost_days ────────────────────────────────
+async function enrichEntries(supabase, entries) {
+  if (!entries || entries.length === 0) return entries;
+  // Trenger bare helligdager hvis det finnes ferie eller sykt barn i lista
+  const needs = entries.some(e => e.type === 'vacation' || (e.type === 'sick' && e.sick_type === 'child'));
+  const holidays = needs ? await fetchHolidaysSet(supabase) : new Set();
+  return entries.map(e => ({ ...e, cost_days: computeCostDays(e, holidays) }));
 }
 
 // ── Beregn saldo for én bruker for ett år ───────────────────────────────────
@@ -238,6 +285,9 @@ async function computeBalance(supabase, email, year) {
     .in('status', ['pending', 'approved']);
   if (error) throw new Error(error.message);
 
+  // Hent helligdager én gang for hele beregningen
+  const holidays = await fetchHolidaysSet(supabase);
+
   let overtimeApproved = 0, overtimePending = 0;
   let timeoffApproved = 0,  timeoffPending = 0;
   let vacationApproved = 0, vacationPending = 0;
@@ -254,15 +304,16 @@ async function computeBalance(supabase, email, year) {
       const hrs = Number(e.hours) || 0;
       if (isApproved) timeoffApproved += hrs; else timeoffPending += hrs;
     } else if (e.type === 'vacation') {
-      const days = e.half_day ? 0.5 : await countWorkdays(supabase, e.start_date, e.end_date);
+      // Ferie: ferieloven §5 — lørdag teller, kun søn + helligdag ekskluderes
+      const days = e.half_day ? 0.5 : countFerieDays(e.start_date, e.end_date, holidays);
       if (isApproved) vacationApproved += days; else vacationPending += days;
     } else if (e.type === 'sick') {
       if (e.sick_type === 'child') {
-        // Sykt barn: virkedager (folketrygdloven §9-6)
-        const days = await countWorkdays(supabase, e.start_date, e.end_date);
+        // Sykt barn: Mon-Fri (folketrygdloven §9-6 — stønadsdager)
+        const days = countMonFriDays(e.start_date, e.end_date, holidays);
         if (isApproved) sickChildApproved += days; else sickChildPending += days;
       } else {
-        // Egenmelding (egen sykdom): kalenderdager (folketrygdloven §8-23)
+        // Egenmelding (egen sykdom): kalenderdager (ferieloven §8-23)
         const days = countCalendarDays(e.start_date, e.end_date);
         if (isApproved) sickSelfApproved += days; else sickSelfPending += days;
         sickSelfPeriods += 1;                       // hver entry = én påbegynt periode
@@ -366,7 +417,7 @@ exports.handler = async (event) => {
         .lte('start_date', yearEnd)
         .order('start_date', { ascending: false });
       if (error) return err(500, error.message);
-      return ok({ entries: data || [] });
+      return ok({ entries: await enrichEntries(supabase, data || []) });
     }
 
     // ─── GET ?action=team_calendar ─────────────────────────────────────────
@@ -404,7 +455,7 @@ exports.handler = async (event) => {
         .eq('status', 'pending')
         .order('submitted_at', { ascending: true });
       if (error) return err(500, error.message);
-      return ok({ entries: data || [] });
+      return ok({ entries: await enrichEntries(supabase, data || []) });
     }
 
     // ─── GET ?action=fetch_deals (for overtid-skjema) ──────────────────────
@@ -694,7 +745,7 @@ exports.handler = async (event) => {
       qb = qb.order('start_date', { ascending: false });
       const { data, error } = await qb;
       if (error) return err(500, error.message);
-      return ok({ entries: data || [] });
+      return ok({ entries: await enrichEntries(supabase, data || []) });
     }
 
     // ─── POST ?action=admin_update (admin only) ────────────────────────────
