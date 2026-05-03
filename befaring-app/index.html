@@ -58,6 +58,12 @@
     .badge-live{background:var(--green-bg);color:var(--green)}
     .badge-soon{background:#f1f5f9;color:#64748b}
     .badge-admin{background:#fef3c7;color:#92400e}
+    .badge-pending{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:#fee2e2;color:#991b1b;animation:pulse 2s ease-in-out infinite}
+    .badge-pending::before{content:'';width:6px;height:6px;border-radius:50%;background:#dc2626}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.7}}
+    /* Også et lite "dot" på selve kortet (i hjørnet) for ekstra synlighet */
+    .tool-card.has-pending{position:relative}
+    .tool-card.has-pending::after{content:'';position:absolute;top:12px;right:12px;width:10px;height:10px;background:#dc2626;border-radius:50%;box-shadow:0 0 0 3px rgba(220,38,38,0.18);animation:pulse 2s ease-in-out infinite}
     .card-arrow{font-size:16px;color:var(--gray);transition:color 0.2s,transform 0.2s}
     .tool-card.active:hover .card-arrow{color:var(--navy);transform:translateX(3px)}
   </style>
@@ -184,12 +190,13 @@
         <div class="tool-footer"><span class="badge badge-soon">Kommer snart</span></div>
       </div>
 
-      <a class="tool-card active" href="/avspasering/">
+      <a class="tool-card active" id="avspaseringCard" href="/avspasering/">
         <div class="tool-icon">⏱️</div>
         <div class="tool-title">Avspasering, Ferie og Fravær</div>
         <div class="tool-desc">Logg overtid, ferieønsker og egenmelding — alt med godkjenningsflyt og e-postvarsling.</div>
         <div class="tool-footer">
           <span class="badge badge-live">Aktiv</span>
+          <span id="avspaseringPending" class="badge-pending" style="display:none">0 venter</span>
           <span class="card-arrow">→</span>
         </div>
       </a>
@@ -369,7 +376,8 @@ function onLogin(user){
   // Show admin section if user has admin role in JWT
   const claims=parseJwt(accessToken||'');
   const roles=claims.app_metadata?.roles||[];
-  if(roles.includes('admin'))show('adminSection');
+  const isAdmin=roles.includes('admin');
+  if(isAdmin)show('adminSection');
   trackEvent('login','portal');
   showScreen('dashboardScreen');
 
@@ -380,6 +388,32 @@ function onLogin(user){
       trackEvent('page_view',mod);
     });
   });
+
+  // Hent ventende godkjenninger for admin (best-effort — feil ignoreres)
+  if(isAdmin) loadPendingBadges();
+}
+
+async function loadPendingBadges(){
+  try{
+    const r=await fetch('/.netlify/functions/avspasering?action=summary',{
+      headers:{Authorization:`Bearer ${accessToken}`}
+    });
+    if(!r.ok)return;
+    const d=await r.json();
+    const n=d.admin_pending_count||0;
+    if(n>0){
+      const badge=$('avspaseringPending');
+      const card=$('avspaseringCard');
+      if(badge){
+        badge.textContent=`${n} venter`;
+        badge.style.display='inline-flex';
+      }
+      if(card)card.classList.add('has-pending');
+    }
+  }catch(e){
+    // best-effort — hvis avspasering-modulen er nede, vis siden uten badge
+    console.warn('loadPendingBadges failed',e);
+  }
 }
 
 async function doForgot(){
