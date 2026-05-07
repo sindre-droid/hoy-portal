@@ -480,20 +480,20 @@ async function loadQueue() {
     return;
   }
 
-  // Check if any deals already have a number in the name but missing property
-  const alreadyNumbered = queue.filter(d => /^\d{5}\s*[-–]/.test((d.deal_name || '').trim()));
-  if (alreadyNumbered.length > 0) {
-    content.innerHTML = `
-      <div class="backfill-bar" style="margin-bottom:16px">
-        <span>⚠️ ${alreadyNumbered.length} deal${alreadyNumbered.length > 1 ? 's' : ''} har nummer i navnet men mangler HubSpot-property</span>
-        <button id="backfillPropertyBtn" onclick="runBackfillProperty()">Fiks HubSpot-property</button>
-      </div>`;
-  }
-
   // Sort by created date (newest first)
   queue.sort((a, b) => new Date(b.created_date || 0) - new Date(a.created_date || 0));
 
   renderQueue(queue, data.filtered);
+
+  // Check if any deals already have a number in the name but missing property
+  const alreadyNumbered = queue.filter(d => /^\d{5}\s*[-–]/.test((d.deal_name || '').trim()));
+  if (alreadyNumbered.length > 0) {
+    content.insertAdjacentHTML('afterbegin', `
+      <div class="backfill-bar" style="margin-bottom:16px">
+        <span>⚠️ ${alreadyNumbered.length} deal${alreadyNumbered.length > 1 ? 's' : ''} har nummer i navnet men mangler HubSpot-property</span>
+        <button id="backfillPropertyBtn" onclick="runBackfillProperty()">Fiks HubSpot-property</button>
+      </div>`);
+  }
 
   // Lazy-load Oneflow status in background
   loadOneflowStatus(queue);
