@@ -1165,6 +1165,70 @@ async function handleBackfillSigningDates(sb) {
   };
 }
 
+// ── POST action=backfill_hubspot_property — Fix deals where dealname has number but property is empty ─
+async function handleBackfillHubspotProperty(sb) {
+  // 1. Find Pipeline B deals without oppdragsnummer property
+  let after = null;
+  const toFix = []; // { deal_id, dealname, number }
+
+  do {
+    const searchBody = {
+      filterGroups: [{
+        filters: [
+          { propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_B },
+          { propertyName: 'oppdragsnummer', operator: 'NOT_HAS_PROPERTY' },
+        ],
+      }],
+      properties: ['dealname'],
+      limit: 100,
+      ...(after ? { after } : {}),
+    };
+
+    const res = await hs('/crm/v3/objects/deals/search', 'POST', searchBody);
+    if (!res.ok) break;
+
+    for (const deal of (res.data?.results || [])) {
+      const name = (deal.properties.dealname || '').trim();
+      // Check if dealname starts with 5-digit number (e.g. "25078 - Goldfish 28 Bullet")
+      const m = name.match(/^(\d{5})\s*[-–]/);
+      if (m) {
+        toFix.push({ deal_id: deal.id, dealname: name, number: m[1] });
+      }
+    }
+
+    after = res.data?.paging?.next?.after || null;
+  } while (after);
+
+  if (!toFix.length) {
+    return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, updated: 0, message: 'Ingen deals å fikse' }) };
+  }
+
+  // 2. Update HubSpot property for each deal (parallel, groups of 10)
+  let updated = 0;
+  const failed = [];
+
+  for (let i = 0; i < toFix.length; i += 10) {
+    const batch = toFix.slice(i, i + 10);
+    const results = await Promise.all(batch.map(async ({ deal_id, number }) => {
+      const res = await hs(`/crm/v3/objects/deals/${deal_id}`, 'PATCH', {
+        properties: { oppdragsnummer: number },
+      });
+      return { deal_id, number, ok: res.ok };
+    }));
+
+    for (const r of results) {
+      if (r.ok) updated++;
+      else failed.push(r);
+    }
+  }
+
+  return {
+    statusCode: 200,
+    headers: CORS,
+    body: JSON.stringify({ ok: true, found: toFix.length, updated, failed: failed.length }),
+  };
+}
+
 // ── POST action=set_signing_date — Manually set oppdragsavtale signing date ─
 async function handleSetSigningDate(sb, body) {
   const { number, signed_at } = body;
@@ -1223,7 +1287,8 @@ exports.handler = async (event) => {
     if (action === 'bootstrap')        return handleBootstrap(sb, auth.email);
     if (action === 'backfill_brokers')  return handleBackfillBrokers(sb);
     if (action === 'set_signing_date')       return handleSetSigningDate(sb, body);
-    if (action === 'backfill_signing_dates') return handleBackfillSigningDates(sb);
+    if (action === 'backfill_signing_dates')    return handleBackfillSigningDates(sb);
+    if (action === 'backfill_hubspot_property') return handleBackfillHubspotProperty(sb);
     if (action === 'retry_oneflow')   return handleRetryOneflow(sb, body, auth.email);
 
     return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: `Ukjent action: ${action}` }) };

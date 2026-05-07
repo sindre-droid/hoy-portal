@@ -480,6 +480,16 @@ async function loadQueue() {
     return;
   }
 
+  // Check if any deals already have a number in the name but missing property
+  const alreadyNumbered = queue.filter(d => /^\d{5}\s*[-–]/.test((d.deal_name || '').trim()));
+  if (alreadyNumbered.length > 0) {
+    content.innerHTML = `
+      <div class="backfill-bar" style="margin-bottom:16px">
+        <span>⚠️ ${alreadyNumbered.length} deal${alreadyNumbered.length > 1 ? 's' : ''} har nummer i navnet men mangler HubSpot-property</span>
+        <button id="backfillPropertyBtn" onclick="runBackfillProperty()">Fiks HubSpot-property</button>
+      </div>`;
+  }
+
   // Sort by created date (newest first)
   queue.sort((a, b) => new Date(b.created_date || 0) - new Date(a.created_date || 0));
 
@@ -1009,6 +1019,29 @@ async function runBackfillDates() {
     }
   } catch (e) {
     console.error('Backfill dates feil:', e);
+    btn.textContent = `Feil: ${e.message}`;
+    btn.disabled = false;
+  }
+}
+
+async function runBackfillProperty() {
+  const btn = document.getElementById('backfillPropertyBtn');
+  if (!btn) return;
+  btn.disabled = true;
+  btn.textContent = 'Oppdaterer HubSpot...';
+
+  try {
+    const data = await api('?action=backfill_hubspot_property', 'POST', {});
+    if (data.ok) {
+      btn.textContent = `✓ ${data.updated} deals fikset`;
+      btn.style.background = 'var(--green)';
+      setTimeout(() => loadQueue(), 500);
+    } else {
+      btn.textContent = data.error || 'Feilet';
+      btn.disabled = false;
+    }
+  } catch (e) {
+    console.error('Backfill property feil:', e);
     btn.textContent = `Feil: ${e.message}`;
     btn.disabled = false;
   }
