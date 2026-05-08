@@ -1034,7 +1034,7 @@ exports.handler = async (event) => {
           'specs', 'capacities', 'gallery_pages', 'equipment_categories',
           'declaration_sections', 'declaration_other_notes', 'declaration_oneflow_id', 'declaration_oneflow_state',
           'declaration_metadata', 'declaration_excluded',
-          'freetext_pages', 'sections_order',
+          'freetext_pages', 'sections_order', 'cobrand', 'prospekt_nr',
         ];
         const updates = {};
         for (const k of allowed) {

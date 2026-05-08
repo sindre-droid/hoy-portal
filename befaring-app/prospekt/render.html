@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Prospekt — House of Yachts</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&family=Manrope:wght@200;300;400;500;600;700;800&display=swap');
 
   /* ══════════════════════════════════════════
      DESIGN TOKENS
@@ -953,6 +953,154 @@
   }
 
   /* ══════════════════════════════════════════
+     CO-BRAND: CORMATE VARIANT
+     ══════════════════════════════════════════ */
+  .mark-hoy {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 12px;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    line-height: 1;
+    display: inline-block;
+  }
+  .mark-cormate {
+    height: 1em;
+    display: inline-block;
+    vertical-align: middle;
+  }
+  .mark-cormate.light { filter: brightness(0) invert(1); }
+  .mark-cormate.dark { filter: brightness(0); }
+
+  /* Co-brand cover (full-bleed photo) */
+  .cover-cobrand { position:relative; background:#000; color:#fff; width:100%; height:100%; }
+  .cover-cobrand .photo-bg { position:absolute; inset:0; overflow:hidden; }
+  .cover-cobrand .photo-bg img { width:100%; height:100%; object-fit:cover; }
+  .cover-cobrand .photo-bg::after {
+    content:''; position:absolute; inset:0;
+    background: linear-gradient(135deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.18) 35%, transparent 60%, rgba(0,0,0,0.4) 100%);
+  }
+  .cover-cobrand .cover-top {
+    position:absolute; top:32px; left:32px; right:32px;
+    display:flex; justify-content:space-between; align-items:center; gap:24px;
+  }
+  .cover-cobrand .cover-top .mark-hoy { color:#fff; }
+  .cover-cobrand .cobrand-partner {
+    text-align:right; font-family:'Manrope',var(--font-body);
+    font-size:8.5px; font-weight:500; letter-spacing:2.8px; text-transform:uppercase;
+    color: rgba(255,255,255,0.7); line-height:1.7;
+    display:flex; align-items:center; gap:14px;
+  }
+  .cover-cobrand .cobrand-partner .mark-cormate { height: 22px; }
+  .cover-cobrand .vertical-tag {
+    position:absolute; left:18px; top:50%;
+    transform: translateY(-50%) rotate(180deg);
+    writing-mode: vertical-rl;
+    font-family: 'Manrope',var(--font-body);
+    font-size:9px; font-weight:500; letter-spacing:5px;
+    text-transform:uppercase; color: rgba(255,255,255,0.55);
+  }
+  .cover-cobrand .cover-main {
+    position:absolute; left:48px; right:32px; bottom:32px;
+    display:flex; justify-content:space-between; align-items:flex-end; gap:24px;
+  }
+  .cover-cobrand .cover-name {
+    font-family: var(--font-display); font-weight:300;
+    font-size:64px; line-height:0.95; letter-spacing:-0.01em;
+    color:#fff; margin:0; max-width:60%;
+  }
+  .cover-cobrand .cover-name em { font-style:italic; font-weight:300; }
+  .cover-cobrand .cover-meta {
+    text-align:right; font-family:'Manrope',var(--font-body); min-width:180px;
+  }
+  .cover-cobrand .cover-meta .row {
+    display:flex; justify-content:space-between; align-items:baseline;
+    padding:6px 0; font-size:10px; letter-spacing:1.5px; text-transform:uppercase;
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+  }
+  .cover-cobrand .cover-meta .row:last-child { border-bottom: none; }
+  .cover-cobrand .cover-meta .l { color: rgba(255,255,255,0.6); font-weight:400; font-size:8.5px; letter-spacing:2.5px; }
+  .cover-cobrand .cover-meta .v { color:#fff; font-weight:500; font-size:11px; letter-spacing:0.5px; }
+
+  /* Co-brand contact (full-bleed dark page) */
+  .contact-cobrand { position:relative; background:#000; color:#fff; display:flex; flex-direction:column; height:100%; font-family:'Manrope',var(--font-body); }
+  .contact-cobrand .photo-bg { position:absolute; inset:0; }
+  .contact-cobrand .photo-bg img { width:100%; height:100%; object-fit:cover; object-position:center 60%; }
+  .contact-cobrand .photo-bg::after {
+    content:''; position:absolute; inset:0;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.2) 30%, rgba(0,0,0,0.6) 80%, rgba(0,0,0,0.85) 100%);
+  }
+  .contact-cobrand .contact-top {
+    position:relative; display:flex; justify-content:space-between; align-items:center;
+    padding: 24px 32px 18px; border-bottom: 1px solid rgba(255,255,255,0.18);
+  }
+  .contact-cobrand .contact-top .mark-hoy { color:#fff; }
+  .contact-cobrand .contact-top .cobrand-partner {
+    text-align:right; font-family:'Manrope',var(--font-body);
+    font-size:8.5px; font-weight:500; letter-spacing:2.8px; text-transform:uppercase;
+    color: rgba(255,255,255,0.65); display:flex; align-items:center; gap:12px; line-height:1.7;
+  }
+  .contact-cobrand .contact-top .cobrand-partner .mark-cormate { height: 18px; }
+  .contact-cobrand .contact-stage {
+    position:relative; flex:1; display:flex; flex-direction:column; justify-content:flex-end; padding:32px;
+  }
+  .contact-cobrand .contact-eyebrow {
+    font-family: 'Manrope',var(--font-body);
+    font-size:9px; font-weight:500; letter-spacing:3.5px; text-transform:uppercase;
+    color: rgba(255,255,255,0.7); margin-bottom:12px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .contact-cobrand .contact-eyebrow::before { content:''; width:24px; height:1px; background:var(--hoy-gold); }
+  .contact-cobrand .contact-stage h2 {
+    font-family: var(--font-display); font-weight:300;
+    font-size:54px; line-height:0.95; letter-spacing:-0.015em;
+    margin:0 0 28px; color:#fff; max-width:80%;
+  }
+  .contact-cobrand .contact-stage h2 em { font-style:italic; font-weight:300; }
+  .contact-cobrand .contact-broker {
+    display:grid; grid-template-columns:1fr 1fr; gap:20px;
+    border-top:1px solid rgba(255,255,255,0.25); padding-top:18px;
+  }
+  .contact-cobrand .contact-broker .col .l {
+    font-size:8px; font-weight:500; letter-spacing:2.8px; text-transform:uppercase;
+    color: rgba(255,255,255,0.55); margin-bottom:5px;
+  }
+  .contact-cobrand .contact-broker .col .v {
+    font-size:13px; font-weight:400; color:#fff; line-height:1.45; letter-spacing:0.2px;
+  }
+  .contact-cobrand .contact-broker .col .v strong { font-weight:600; }
+  .contact-cobrand .contact-foot {
+    position:relative; padding:14px 32px;
+    border-top:1px solid rgba(255,255,255,0.18);
+    display:flex; justify-content:space-between; align-items:center;
+    font-family:'Manrope',var(--font-body);
+    font-size:8.5px; font-weight:500; letter-spacing:2.5px; text-transform:uppercase;
+    color: rgba(255,255,255,0.55);
+  }
+
+  /* Co-brand page footer (light, for content pages) */
+  .page-footer-cobrand {
+    margin-top:auto; padding:14px 7% 0;
+    display:flex; align-items:center; gap:10px;
+    font-family:'Manrope',var(--font-body); font-size:8.5px; font-weight:500;
+    letter-spacing:2px; text-transform:uppercase; color:var(--hoy-mid-gray);
+  }
+  .page-footer-cobrand .accent { width:24px; height:1px; background:var(--hoy-gold); }
+  .page-footer-cobrand .num { margin-left:auto; color:var(--hoy-black); font-weight:600; letter-spacing:0.5px; font-size:10px; }
+
+  /* Co-brand declaration header (simplified, no teal band) */
+  .declaration-header-cobrand { padding:6% 7% 0; margin-bottom:4%; }
+  .declaration-header-cobrand h2 {
+    font-family: var(--font-display); font-weight:300; font-size:28px;
+    color: var(--hoy-black); margin:0 0 4px; letter-spacing:-0.01em;
+  }
+  .declaration-header-cobrand h2 em { font-style:italic; font-weight:300; }
+  .declaration-header-cobrand .section-subtitle {
+    font-family:'Manrope',var(--font-body); font-size:9px; font-weight:500;
+    letter-spacing:2.5px; text-transform:uppercase; color:var(--hoy-mid-gray); margin:0;
+  }
+
+  /* ══════════════════════════════════════════
      TOOLBAR (hidden in print)
      ══════════════════════════════════════════ */
   .render-toolbar {
@@ -1155,6 +1303,110 @@ async function api(params) {
 // PAGE BUILDERS
 // ════════════════════════════════════════════════════════════════════════════════
 
+// ════════════════════════════════════════════════════════════════════════════════
+// CO-BRAND BUILDERS (Cormate variant)
+// ════════════════════════════════════════════════════════════════════════════════
+
+function cobrandPartnerHtml(p, variant) {
+  const cb = p.cobrand || {};
+  const cls = variant === 'light' ? 'light' : 'dark';
+  const label = cb.relationship_text || 'i samarbeid med';
+  return `
+    <div class="cobrand-partner">
+      <span>${esc(label)}</span>
+      <img class="mark-cormate ${cls}" src="/prospekt/assets/cormate.svg" alt="Cormate">
+    </div>
+  `;
+}
+
+function buildCobrandCoverPage(p) {
+  const cc = p.cover_image_crop || {};
+  const coverStyle = cc.posX !== undefined
+    ? `object-position:${cc.posX}% ${cc.posY}%;${cc.zoom > 1 ? `transform:scale(${cc.zoom});` : ''}`
+    : '';
+  const coverImg = p.cover_image_url
+    ? `<img src="${esc(p.cover_image_url)}" alt="${esc(p.boat_name)}" style="${coverStyle}">`
+    : '';
+
+  // Split boat name into brand + model for two-line display
+  const name = p.boat_name || '';
+  const parts = name.split(/\s+/);
+  const brand = parts[0] || '';
+  const model = parts.slice(1).join(' ') || '';
+
+  // Meta rows from specs
+  const year = p.model_year || '';
+  const price = formatPrice(p.asking_price);
+  const lengde = (p.specs || []).find(s => (s.label||'').toLowerCase().includes('lengde'));
+  const timer = (p.specs || []).find(s => (s.label||'').toLowerCase().includes('timer'));
+
+  const metaRows = [
+    year ? { l: 'Modellår', v: year } : null,
+    timer ? { l: 'Timer', v: timer.value } : null,
+    lengde ? { l: 'Lengde', v: lengde.value } : null,
+    price ? { l: 'Pris', v: price } : null,
+  ].filter(Boolean).map(r =>
+    `<div class="row"><span class="l">${esc(r.l)}</span><span class="v">${esc(String(r.v))}</span></div>`
+  ).join('');
+
+  const nr = p.prospekt_nr || '';
+  const tagText = nr ? `Salgsoppgave · ${esc(nr)} · ${year}` : '';
+
+  return `
+    <div class="page-label">Forside</div>
+    <div class="page">
+      <div class="cover-cobrand">
+        <div class="photo-bg">${coverImg}</div>
+        <div class="cover-top">
+          <div class="mark-hoy">House of Yachts</div>
+          ${cobrandPartnerHtml(p, 'light')}
+        </div>
+        ${tagText ? `<div class="vertical-tag">${tagText}</div>` : ''}
+        <div class="cover-main">
+          <h1 class="cover-name">${esc(brand)}${model ? `<br><em>${esc(model)}</em>` : ''}</h1>
+          <div class="cover-meta">${metaRows}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function buildCobrandContactPage(p) {
+  const contactImg = p.contact_image_url
+    ? `<img src="${esc(p.contact_image_url)}" alt="${esc(p.boat_name)}">`
+    : (p.cover_image_url ? `<img src="${esc(p.cover_image_url)}" alt="${esc(p.boat_name)}">` : '');
+
+  return `
+    <div class="page-label">Kontakt</div>
+    <div class="page">
+      <div class="contact-cobrand">
+        <div class="photo-bg">${contactImg}</div>
+        <div class="contact-top">
+          <div class="mark-hoy">House of Yachts</div>
+          ${cobrandPartnerHtml(p, 'light')}
+        </div>
+        <div class="contact-stage">
+          <div class="contact-eyebrow">Visning og kontakt</div>
+          <h2>Bestill <em>privat visning</em></h2>
+          <div class="contact-broker">
+            <div class="col">
+              <div class="l">Ansvarlig megler</div>
+              <div class="v"><strong>${esc(p.broker_name)}</strong><br>${esc(p.broker_phone || '')}<br>${esc(p.broker_email || '')}</div>
+            </div>
+            <div class="col">
+              <div class="l">Showroom</div>
+              <div class="v"><strong>House of Yachts</strong><br>${esc(OFFICE_ADDRESS)}</div>
+            </div>
+          </div>
+        </div>
+        <div class="contact-foot">
+          <span>&copy; ${new Date().getFullYear()} House of Yachts &middot; houseofyachts.no</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function buildCoverPage(p) {
   const cc = p.cover_image_crop || {};
   const coverStyle = cc.posX !== undefined
@@ -1192,6 +1444,7 @@ function buildCoverPage(p) {
 }
 
 function buildOverviewPage(p) {
+  const isCobrand = p.cobrand?.partner === 'cormate';
   const oc = p.overview_image_crop || {};
   const overviewStyle = oc.posX !== undefined
     ? ` style="object-position:${oc.posX}% ${oc.posY}%;${oc.zoom > 1 ? `transform:scale(${oc.zoom});` : ''}"`
@@ -1224,6 +1477,18 @@ function buildOverviewPage(p) {
     ? `<p class="desc-visning">${esc(p.visning_text)}</p>`
     : '';
 
+  const footerHtml = isCobrand ? `
+        <div class="page-footer-cobrand">
+          <div class="accent"></div>
+          <span>House of Yachts &middot; i samarbeid med Cormate &middot; houseofyachts.no</span>
+        </div>
+  ` : `
+        <div class="page-footer-light">
+          <div class="page-footer-accent"></div>
+          <span>House of Yachts &middot; ${esc(OFFICE_ADDRESS)} &middot; houseofyachts.no</span>
+        </div>
+  `;
+
   return `
     <div class="page-label">Oversikt</div>
     <div class="page">
@@ -1248,10 +1513,7 @@ function buildOverviewPage(p) {
             </div>
           </div>
         </div>
-        <div class="page-footer-light">
-          <div class="page-footer-accent"></div>
-          <span>House of Yachts &middot; ${esc(OFFICE_ADDRESS)} &middot; houseofyachts.no</span>
-        </div>
+        ${footerHtml}
       </div>
     </div>
   `;
@@ -1355,6 +1617,7 @@ function buildEquipmentPages(p) {
 }
 
 function buildDeclarationPages(p) {
+  const isCobrand = p.cobrand?.partner === 'cormate';
   const sections = p.declaration_sections || [];
   // Only render if at least one question has an answer
   const hasAnswers = sections.some(sec =>
@@ -1422,16 +1685,25 @@ function buildDeclarationPages(p) {
   const totalQs = filteredSections.reduce((sum, s) => sum + s.questions.length, 0);
   const needsTwoPages = totalQs > 18;
 
+  const declHeader = isCobrand ? `
+    <div class="declaration-header-cobrand">
+      <h2>Selgers <em>egenerklæring</em></h2>
+      <p class="section-subtitle">Utfylt og signert av eier</p>
+    </div>
+  ` : `
+    <div class="declaration-header-band">
+      <div class="declaration-eyebrow">Seksjon</div>
+      <h2 class="declaration-title">Selgers egenerklæring</h2>
+      <p class="declaration-lede">Utfylt og signert av eier. Opplysningene gis i god tro og etter beste evne.</p>
+    </div>
+  `;
+
   if (!needsTwoPages) {
     return `
       <div class="page-label">Egenerklæring</div>
       <div class="page">
         <div class="declaration">
-          <div class="declaration-header-band">
-            <div class="declaration-eyebrow">Seksjon</div>
-            <h2 class="declaration-title">Selgers egenerklæring</h2>
-            <p class="declaration-lede">Utfylt og signert av eier. Opplysningene gis i god tro og etter beste evne.</p>
-          </div>
+          ${declHeader}
           <div class="declaration-body">
             ${metaHtml}
             ${sectionBlocks.join('')}
@@ -1454,11 +1726,7 @@ function buildDeclarationPages(p) {
     <div class="page-label">Egenerklæring</div>
     <div class="page">
       <div class="declaration">
-        <div class="declaration-header-band">
-          <div class="declaration-eyebrow">Seksjon</div>
-          <h2 class="declaration-title">Selgers egenerklæring</h2>
-          <p class="declaration-lede">Utfylt og signert av eier. Opplysningene gis i god tro og etter beste evne.</p>
-        </div>
+        ${declHeader}
         <div class="declaration-body">
           ${metaHtml}
           ${page1Blocks.join('')}
@@ -1668,7 +1936,13 @@ function renderProspekt(p) {
 
     if (section === 'declaration' && p.declaration_excluded) continue;
 
-    if (section === 'gallery' && pageIdx !== null) {
+    const isCobrand = p.cobrand?.partner === 'cormate';
+
+    if (section === 'cover' && isCobrand) {
+      html += buildCobrandCoverPage(p);
+    } else if (section === 'contact' && isCobrand) {
+      html += buildCobrandContactPage(p);
+    } else if (section === 'gallery' && pageIdx !== null) {
       html += buildSingleGalleryPage(p, pageIdx);
     } else {
       const builder = SECTION_BUILDERS[section];
