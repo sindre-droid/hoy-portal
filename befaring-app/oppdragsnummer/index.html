@@ -586,17 +586,24 @@ async function loadOneflowStatus(queue) {
         if (matchedEl && matchedListEl && contracts.length) {
           matchedEl.style.display = '';
           const stateLabels = { signed: 'Signert', pending: 'Venter', draft: 'Utkast' };
+
+          // Check for ambiguity (multiple contracts of same type)
+          const egCount = contracts.filter(c => c.type === 'egenerklaring').length;
+          const oaCount = contracts.filter(c => c.type === 'oppdragsavtale').length;
+          const hasAmbiguity = egCount > 1 || oaCount > 1;
+
           matchedListEl.innerHTML = contracts.map(c => `
             <div class="matched-contract">
-              <a href="https://app.oneflow.com/contracts/${c.id}" target="_blank" rel="noopener">${esc(c.name)}</a>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+                <input type="checkbox" class="contract-check" data-deal="${deal.deal_id}" data-contract-id="${c.id}" ${hasAmbiguity ? (c.state === 'signed' ? 'checked' : '') : 'checked'}>
+                <a href="https://app.oneflow.com/contracts/${c.id}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(c.name)}</a>
+              </label>
               <span class="matched-contract-state ${c.state}">${stateLabels[c.state] || c.state}</span>
             </div>
           `).join('');
-          // Warn if multiple contracts share the same type (possible ambiguity)
-          const egCount = contracts.filter(c => c.type === 'egenerklaring').length;
-          const oaCount = contracts.filter(c => c.type === 'oppdragsavtale').length;
-          if (egCount > 1 || oaCount > 1) {
-            matchedListEl.innerHTML += `<div class="matched-warning">⚠️ Flere kontrakter av samme type matchet — verifiser at riktig kontrakt er koblet til denne dealen</div>`;
+
+          if (hasAmbiguity) {
+            matchedListEl.innerHTML += `<div class="matched-warning">⚠️ Flere kontrakter av samme type — velg hvilke som hører til denne dealen</div>`;
           }
         }
 
@@ -634,10 +641,9 @@ async function assignNumber(dealId, btn, force = false) {
   resultEl.style.display = 'none';
 
   try {
-    // Send matched contract IDs so backend only renames the correct contracts
-    const deal = currentQueue.find(d => d.deal_id === dealId);
-    const matchedContracts = deal?.matched_contracts || [];
-    const oneflow_contract_ids = matchedContracts.map(c => c.id);
+    // Send only checked contract IDs so backend renames the correct contracts
+    const checkboxes = document.querySelectorAll(`.contract-check[data-deal="${dealId}"]:checked`);
+    const oneflow_contract_ids = Array.from(checkboxes).map(cb => cb.dataset.contractId);
     const data = await api(`?action=assign`, 'POST', { deal_id: dealId, force, oneflow_contract_ids });
 
     if (data.ok) {

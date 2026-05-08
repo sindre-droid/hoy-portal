@@ -662,9 +662,10 @@ async function handleAssign(sb, body, adminEmail) {
     let contracts;
     if (body.oneflow_contract_ids && body.oneflow_contract_ids.length > 0) {
       // Frontend explicitly selected these contracts — fetch them by ID
+      const selectedIds = body.oneflow_contract_ids.map(String);
       const allContracts = await fetchAllOneflowContracts();
       contracts = allContracts
-        .filter(c => body.oneflow_contract_ids.includes(c.id))
+        .filter(c => selectedIds.includes(String(c.id)))
         .map(c => ({ id: c.id, _id: c._id, name: c._private?.name || c.name || '' }));
     } else {
       const allContracts = await fetchAllOneflowContracts();
