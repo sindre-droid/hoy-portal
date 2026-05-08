@@ -1069,6 +1069,30 @@
     font-size:13px; font-weight:400; color:#fff; line-height:1.45; letter-spacing:0.2px;
   }
   .contact-cobrand .contact-broker .col .v strong { font-weight:600; }
+  .contact-cobrand .broker-card {
+    display:flex; align-items:center; gap:18px; margin-bottom:6px;
+  }
+  .contact-cobrand .broker-avatar {
+    width:64px; height:64px; border-radius:50%; overflow:hidden;
+    border:2px solid rgba(255,255,255,0.3); flex-shrink:0;
+  }
+  .contact-cobrand .broker-avatar img { width:100%; height:100%; object-fit:cover; object-position:center 20%; }
+  .contact-cobrand .broker-avatar-initials {
+    width:64px; height:64px; border-radius:50%; flex-shrink:0;
+    border:2px solid rgba(255,255,255,0.3);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-size:22px; color:rgba(255,255,255,0.7);
+  }
+  .contact-cobrand .broker-meta .broker-name {
+    font-size:16px; font-weight:600; color:#fff; letter-spacing:0.2px;
+  }
+  .contact-cobrand .broker-meta .broker-role {
+    font-size:8px; font-weight:500; letter-spacing:2.5px; text-transform:uppercase;
+    color:var(--hoy-gold); margin-top:2px;
+  }
+  .contact-cobrand .broker-meta .broker-detail {
+    font-size:12px; font-weight:400; color:rgba(255,255,255,0.8); line-height:1.5; margin-top:6px;
+  }
   .contact-cobrand .contact-foot {
     position:relative; padding:14px 32px;
     border-top:1px solid rgba(255,255,255,0.18);
@@ -1376,6 +1400,13 @@ function buildCobrandContactPage(p) {
     ? `<img src="${esc(p.contact_image_url)}" alt="${esc(p.boat_name)}">`
     : (p.cover_image_url ? `<img src="${esc(p.cover_image_url)}" alt="${esc(p.boat_name)}">` : '');
 
+  let avatarHtml;
+  if (p.broker_photo_url) {
+    avatarHtml = `<div class="broker-avatar"><img src="${esc(p.broker_photo_url)}" alt="${esc(p.broker_name)}"></div>`;
+  } else {
+    avatarHtml = `<div class="broker-avatar-initials">${esc(getInitials(p.broker_name))}</div>`;
+  }
+
   return `
     <div class="page-label">Kontakt</div>
     <div class="page">
@@ -1390,11 +1421,17 @@ function buildCobrandContactPage(p) {
           <h2>Bestill <em>privat visning</em></h2>
           <div class="contact-broker">
             <div class="col">
-              <div class="l">Ansvarlig megler</div>
-              <div class="v"><strong>${esc(p.broker_name)}</strong><br>${esc(p.broker_phone || '')}<br>${esc(p.broker_email || '')}</div>
+              <div class="broker-card">
+                ${avatarHtml}
+                <div class="broker-meta">
+                  <div class="broker-name">${esc(p.broker_name)}</div>
+                  <div class="broker-role">${esc(p.broker_role || 'Båtmegler')}</div>
+                  <div class="broker-detail">${esc(p.broker_phone || '')}<br>${esc(p.broker_email || '')}</div>
+                </div>
+              </div>
             </div>
             <div class="col">
-              <div class="l">Showroom</div>
+              <div class="l">Kontor</div>
               <div class="v"><strong>House of Yachts</strong><br>${esc(OFFICE_ADDRESS)}</div>
             </div>
           </div>
@@ -1685,12 +1722,7 @@ function buildDeclarationPages(p) {
   const totalQs = filteredSections.reduce((sum, s) => sum + s.questions.length, 0);
   const needsTwoPages = totalQs > 18;
 
-  const declHeader = isCobrand ? `
-    <div class="declaration-header-cobrand">
-      <h2>Selgers <em>egenerklæring</em></h2>
-      <p class="section-subtitle">Utfylt og signert av eier</p>
-    </div>
-  ` : `
+  const declHeader = `
     <div class="declaration-header-band">
       <div class="declaration-eyebrow">Seksjon</div>
       <h2 class="declaration-title">Selgers egenerklæring</h2>
