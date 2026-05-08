@@ -224,13 +224,25 @@ async function fetchAllOneflowContracts(maxPages = 3) {
 // Match a deal against pre-fetched Oneflow contracts
 // Fuzzy word-matching: sjekker om nok ord fra søket finnes i kontraktnavnet
 // Tåler ulik rekkefølge, ekstra ord, og små skrivefeil
+// Normalize: strip all spaces, hyphens, and special chars for containment check
+function normalize(str) {
+  return str.toLowerCase().replace(/[^a-zæøå0-9]/g, '');
+}
+
 function fuzzyMatch(contractName, searchTerms) {
   const cWords = contractName.toLowerCase().replace(/[^a-zæøå0-9\s]/g, '').split(/\s+/).filter(w => w.length > 1);
+  const cNorm = normalize(contractName);
+
   for (const term of searchTerms) {
+    if (term.length < 3) continue;
+
+    // Strategy 1: normalized containment (catches "SU23-36" vs "SU 23-36")
+    const tNorm = normalize(term);
+    if (tNorm.length >= 5 && cNorm.includes(tNorm)) return true;
+
+    // Strategy 2: word-level fuzzy match (original logic)
     const tWords = term.toLowerCase().replace(/[^a-zæøå0-9\s]/g, '').split(/\s+/).filter(w => w.length > 1);
     if (tWords.length === 0) continue;
-    // Tell hvor mange søkeord som finnes i kontraktnavnet
-    // Substring-match kun hvis ordene ligner i lengde (minste >= 70% av lengste)
     const matched = tWords.filter(tw => cWords.some(cw => {
       if (cw === tw) return true;
       const shorter = Math.min(tw.length, cw.length);
@@ -238,7 +250,6 @@ function fuzzyMatch(contractName, searchTerms) {
       if (shorter < 4 || shorter / longer < 0.7) return false;
       return cw.includes(tw) || tw.includes(cw);
     }));
-    // Krev at minst 2/3 av ordene matcher (minimum 2)
     const threshold = Math.max(2, Math.ceil(tWords.length * 0.66));
     if (matched.length >= threshold) return true;
   }
