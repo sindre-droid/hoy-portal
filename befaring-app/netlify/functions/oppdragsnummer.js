@@ -240,9 +240,15 @@ function fuzzyMatch(contractName, searchTerms) {
     const tNorm = normalize(term);
     if (tNorm.length >= 5 && cNorm.includes(tNorm)) return true;
 
-    // Strategy 2: word-level fuzzy match (original logic)
+    // Strategy 2: word-level fuzzy match
     const tWords = term.toLowerCase().replace(/[^a-zæøå0-9\s]/g, '').split(/\s+/).filter(w => w.length > 1);
     if (tWords.length === 0) continue;
+
+    // Numeric words (model numbers like "3407") must match exactly — they distinguish similar boats
+    const numericWords = tWords.filter(w => /^\d+$/.test(w));
+    const numericOk = numericWords.every(tw => cWords.includes(tw));
+    if (!numericOk) continue; // Skip if any model number doesn't match
+
     const matched = tWords.filter(tw => cWords.some(cw => {
       if (cw === tw) return true;
       const shorter = Math.min(tw.length, cw.length);
