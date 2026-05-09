@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Servicehistorikk — House of Yachts</title>
+<style>
+  :root {
+    --navy:#0a2140; --gold:#c9a84c; --white:#fff; --surface:#f5f7fa;
+    --gray:#dde3ec; --gray-dark:#6b7a8d; --text:#12233a;
+    --green:#166534; --green-bg:#dcfce7;
+    --red:#991b1b; --red-bg:#fee2e2;
+    --yellow:#92400e; --yellow-bg:#fef3c7;
+    --blue:#1e40af; --blue-bg:#dbeafe;
+    --radius:12px; --shadow:0 2px 16px rgba(10,33,64,0.10);
+  }
+  *,*::before,*::after { box-sizing:border-box; -webkit-tap-highlight-color:transparent }
+  body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+         background:var(--surface); color:var(--text); margin:0; padding:0; min-height:100vh }
+
+  /* ── Loading / Login ── */
+  .loading-screen,.login-screen { min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--navy) }
+  .loading-text { color:rgba(255,255,255,0.5); font-size:15px }
+  .login-box { background:white; border-radius:20px; padding:40px 36px; max-width:400px; width:calc(100% - 32px); text-align:center; box-shadow:0 8px 40px rgba(0,0,0,0.3) }
+  .login-logo { font-size:22px; font-weight:800; color:var(--navy); margin-bottom:4px }
+  .login-sub { font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--gold); margin-bottom:28px }
+  .login-form { display:flex; flex-direction:column; gap:12px; text-align:left; margin-bottom:20px }
+  .login-form label { font-size:13px; font-weight:600; color:var(--navy); display:block; margin-bottom:4px }
+  .login-form input { width:100%; padding:13px 15px; border:2px solid var(--gray); border-radius:10px; font-size:16px; font-family:inherit }
+  .login-form input:focus { outline:none; border-color:var(--navy) }
+  .btn-login { width:100%; padding:15px; background:var(--navy); color:white; border:none; border-radius:10px; font-size:16px; font-weight:700; cursor:pointer }
+  .login-error { color:var(--red); font-size:13px; font-weight:600; margin-top:10px; display:none }
+
+  /* ── Header ── */
+  .header { background:var(--navy); color:white; padding:14px 20px; position:sticky; top:0; z-index:200; box-shadow:0 2px 16px rgba(0,0,0,0.35) }
+  .header-inner { max-width:1100px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; gap:12px }
+  .brand { display:flex; flex-direction:column }
+  .brand-name { font-size:14px; font-weight:800; letter-spacing:0.8px }
+  .brand-sub { font-size:10px; letter-spacing:1.8px; text-transform:uppercase; color:var(--gold) }
+  .header-title { font-size:16px; font-weight:700; color:rgba(255,255,255,0.9) }
+  .header-right { display:flex; align-items:center; gap:12px }
+  .user-label { font-size:12px; color:rgba(255,255,255,0.55) }
+  .btn-nav { background:rgba(255,255,255,0.10); border:1px solid rgba(255,255,255,0.18); border-radius:20px; color:rgba(255,255,255,0.85); padding:6px 14px; font-size:12px; font-family:inherit; cursor:pointer; text-decoration:none }
+  .btn-nav:hover { background:rgba(255,255,255,0.2) }
+
+  /* ── Layout ── */
+  .wrap { max-width:900px; margin:0 auto; padding:24px 16px 80px }
+
+  /* ── Picker view ── */
+  .picker-title { font-size:22px; font-weight:800; color:var(--navy); margin:8px 0 4px }
+  .picker-sub { font-size:13px; color:var(--gray-dark); margin-bottom:20px }
+  .deal-select { width:100%; padding:14px 16px; border:2px solid var(--gray); border-radius:12px; font-size:16px; font-family:inherit; color:var(--text); background:white; cursor:pointer }
+  .deal-select:focus { outline:none; border-color:var(--navy) }
+
+  /* ── Buttons ── */
+  .btn-primary { background:var(--navy); color:white; border:none; border-radius:10px; padding:13px 24px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; transition:opacity 0.18s }
+  .btn-primary:hover { opacity:0.9 }
+  .btn-primary:disabled { opacity:0.4; cursor:not-allowed }
+  .btn-gold { background:var(--gold); color:var(--navy); border:none; border-radius:10px; padding:13px 24px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit }
+  .btn-gold:hover { opacity:0.9 }
+  .btn-gold:disabled { opacity:0.4; cursor:not-allowed }
+  .btn-outline { background:white; color:var(--navy); border:2px solid var(--gray); border-radius:10px; padding:11px 20px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit }
+  .btn-outline:hover { border-color:var(--navy) }
+  .btn-danger { background:white; color:var(--red); border:2px solid var(--red); border-radius:10px; padding:11px 20px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit }
+  .btn-danger:hover { background:var(--red-bg) }
+
+  /* ── Run-list cards ── */
+  .runlist { margin-top:30px }
+  .runlist h3 { font-size:13px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--gray-dark); margin-bottom:12px }
+  .run-card { background:white; border:2px solid var(--gray); border-radius:12px; padding:14px 18px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; transition:border-color 0.15s }
+  .run-card:hover { border-color:var(--navy) }
+  .run-card-main { flex:1; min-width:0 }
+  .run-card-title { font-size:14px; font-weight:700; color:var(--navy); margin-bottom:2px }
+  .run-card-meta { font-size:12px; color:var(--gray-dark) }
+  .run-card-actions { display:flex; align-items:center; gap:10px; flex-shrink:0 }
+
+  /* ── Status badges ── */
+  .badge { padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px }
+  .badge.draft { background:var(--yellow-bg); color:var(--yellow) }
+  .badge.written { background:var(--green-bg); color:var(--green) }
+  .badge.failed { background:var(--red-bg); color:var(--red) }
+  .badge.archived { background:var(--gray); color:var(--gray-dark) }
+
+  /* ── Run-editor ── */
+  .editor-header { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:8px; flex-wrap:wrap }
+  .editor-title { font-size:22px; font-weight:800; color:var(--navy); margin:0 }
+  .editor-sub { font-size:13px; color:var(--gray-dark); margin-bottom:20px }
+  .editor-actions { display:flex; gap:8px; flex-wrap:wrap }
+
+  .section { background:white; border-radius:14px; box-shadow:var(--shadow); padding:20px 22px; margin-bottom:16px }
+  .section-title { font-size:15px; font-weight:800; color:var(--navy); display:flex; align-items:center; gap:8px; margin-bottom:14px }
+  .section-title .step { width:24px; height:24px; background:var(--navy); color:white; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:800 }
+  .section-title.done .step { background:var(--green) }
+  .section-hint { font-size:12px; color:var(--gray-dark); margin-bottom:14px; line-height:1.5 }
+
+  /* ── Drop zone ── */
+  .dropzone { border:2px dashed var(--gray); border-radius:10px; padding:30px 20px; text-align:center; cursor:pointer; transition:all 0.15s; background:#fafbfd }
+  .dropzone:hover, .dropzone.drag { border-color:var(--navy); background:#f0f4fa }
+  .dropzone-icon { font-size:32px; color:var(--gray-dark); margin-bottom:6px }
+  .dropzone-text { font-size:14px; color:var(--text); font-weight:600 }
+  .dropzone-sub { font-size:12px; color:var(--gray-dark); margin-top:4px }
+
+  /* ── File list ── */
+  .filelist { margin-top:14px }
+  .file-row { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--gray); border-radius:8px; margin-bottom:6px; background:white }
+  .file-icon { font-size:18px; flex-shrink:0 }
+  .file-info { flex:1; min-width:0 }
+  .file-name { font-size:13px; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+  .file-meta { font-size:11px; color:var(--gray-dark) }
+  .file-row .uploading { font-size:11px; color:var(--blue) }
+  .file-row .file-error { font-size:11px; color:var(--red); font-weight:600 }
+  .file-remove { background:none; border:none; color:var(--gray-dark); cursor:pointer; font-size:18px; padding:4px 8px; border-radius:4px }
+  .file-remove:hover { background:var(--red-bg); color:var(--red) }
+
+  /* ── Generate panel ── */
+  .gen-bar { display:flex; align-items:center; gap:14px; flex-wrap:wrap }
+  .gen-meta { font-size:12px; color:var(--gray-dark); flex:1; min-width:200px }
+  .gen-meta strong { color:var(--text); font-weight:700 }
+  .spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,0.4); border-top-color:white; border-radius:50%; animation:spin 0.8s linear infinite; vertical-align:-2px; margin-right:6px }
+  @keyframes spin { to { transform:rotate(360deg) } }
+
+  /* ── Field editing ── */
+  .field { margin-bottom:18px }
+  .field-label { display:block; font-size:13px; font-weight:700; color:var(--navy); margin-bottom:6px }
+  .field-hint { font-size:11px; color:var(--gray-dark); margin-bottom:6px; font-weight:400 }
+  .field textarea, .field input[type=text] { width:100%; padding:11px 13px; border:2px solid var(--gray); border-radius:8px; font-size:14px; font-family:inherit; color:var(--text); resize:vertical }
+  .field textarea:focus, .field input[type=text]:focus { outline:none; border-color:var(--navy) }
+  .field textarea.ta-short { min-height:80px }
+  .field textarea.ta-medium { min-height:140px }
+  .field textarea.ta-long { min-height:220px }
+
+  .highlights-listing { display:grid; gap:8px }
+  .highlight-row { display:flex; align-items:center; gap:8px }
+  .highlight-row .pill { width:28px; flex-shrink:0; text-align:center; font-size:12px; font-weight:700; color:var(--gold) }
+  .highlight-row input { flex:1 }
+
+  /* ── Status banner ── */
+  .status-banner { padding:12px 16px; border-radius:10px; margin-bottom:16px; font-size:13px; display:flex; align-items:center; gap:10px }
+  .status-banner.ok      { background:var(--green-bg); color:var(--green); border:1px solid var(--green) }
+  .status-banner.warn    { background:var(--yellow-bg); color:var(--yellow); border:1px solid var(--yellow) }
+  .status-banner.error   { background:var(--red-bg);   color:var(--red);   border:1px solid var(--red) }
+  .status-banner .b-icon { font-size:18px }
+  .status-banner .b-text { flex:1 }
+
+  /* ── Toast ── */
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(60px); background:var(--navy); color:white; padding:14px 22px; border-radius:10px; font-weight:600; font-size:14px; box-shadow:0 8px 30px rgba(0,0,0,0.25); opacity:0; transition:all 0.25s; z-index:1000; max-width:90vw }
+  .toast.show { transform:translateX(-50%) translateY(0); opacity:1 }
+  .toast.error { background:var(--red) }
+  .toast.success { background:var(--green) }
+
+  /* ── Cost-snippet ── */
+  .cost-pill { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:20px; background:var(--blue-bg); color:var(--blue); font-size:11px; font-weight:700 }
+
+  @media (max-width:640px) {
+    .wrap { padding:16px 12px 60px }
+    .editor-title { font-size:18px }
+    .section { padding:16px 14px }
+    .editor-header { flex-direction:column }
+    .editor-actions { width:100%; justify-content:flex-start }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Loading ── -->
+<div id="loadingScreen" class="loading-screen">
+  <div class="loading-text">Laster…</div>
+</div>
+
+<!-- ── Login ── -->
+<div id="loginScreen" class="login-screen" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">HOUSE OF YACHTS</div>
+    <div class="login-sub">Servicehistorikk</div>
+    <div class="login-form">
+      <div><label for="loginEmail">E-post</label>
+        <input type="email" id="loginEmail" placeholder="navn@h-y.no" autocomplete="email"></div>
+      <div><label for="loginPassword">Passord</label>
+        <input type="password" id="loginPassword" autocomplete="current-password"></div>
+    </div>
+    <div class="login-error" id="loginError"></div>
+    <button class="btn-login" id="loginBtn" onclick="doLogin()">Logg inn</button>
+  </div>
+</div>
+
+<!-- ── App ── -->
+<div id="appScreen" style="display:none">
+  <header class="header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-name">HOUSE OF YACHTS</div>
+        <div class="brand-sub">Servicehistorikk</div>
+      </div>
+      <div class="header-right">
+        <span class="user-label" id="userLabel"></span>
+        <a class="btn-nav" href="/">← Portal</a>
+        <button class="btn-nav" onclick="doLogout()">Logg ut</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- ── Picker view ── -->
+    <div id="pickerView">
+      <div class="picker-title">Servicehistorikk-generator</div>
+      <div class="picker-sub">Velg oppdrag, last opp fakturaer/rapporter, og la AI sammenstille service­historikken til boat-kortet i HubSpot. Alt redigeres før det skrives.</div>
+
+      <select class="deal-select" id="dealSelect" onchange="onDealChange()">
+        <option value="">Laster oppdrag…</option>
+      </select>
+
+      <div class="runlist" id="runListWrap" style="display:none">
+        <h3>Tidligere kjøringer for valgt oppdrag</h3>
+        <div id="runList"></div>
+        <button class="btn-primary" id="newRunBtn" onclick="createRun()" style="margin-top:6px">+ Ny kjøring</button>
+      </div>
+    </div>
+
+    <!-- ── Run editor ── -->
+    <div id="runView" style="display:none">
+      <div class="editor-header">
+        <div>
+          <h2 class="editor-title" id="runTitle"></h2>
+          <div class="editor-sub" id="runSub"></div>
+        </div>
+        <div class="editor-actions">
+          <button class="btn-outline" onclick="backToPicker()">← Tilbake</button>
+          <button class="btn-danger" id="deleteRunBtn" onclick="deleteCurrentRun()" style="display:none">Slett kjøring</button>
+        </div>
+      </div>
+
+      <div id="statusBanner"></div>
+
+      <!-- Step 1: Documents -->
+      <div class="section">
+        <div class="section-title" id="step1Title"><span class="step">1</span> Dokumenter</div>
+        <div class="section-hint">Last opp fakturaer, kvitteringer og servicerapporter (PDF, PNG, JPEG, HEIC, WebP). Maks 25&nbsp;MB per fil, 30&nbsp;MB samlet.</div>
+
+        <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+          <div class="dropzone-icon">📄</div>
+          <div class="dropzone-text">Dra og slipp filer her</div>
+          <div class="dropzone-sub">eller klikk for å velge</div>
+          <input type="file" id="fileInput" multiple accept=".pdf,.png,.jpg,.jpeg,.heic,.webp" style="display:none">
+        </div>
+
+        <div class="filelist" id="fileList"></div>
+      </div>
+
+      <!-- Step 2: Generate -->
+      <div class="section">
+        <div class="section-title" id="step2Title"><span class="step">2</span> Generer servicehistorikk</div>
+        <div class="section-hint">Claude leser dokumentene og sammenstiller seks felter (tilstandsoppsummering, servicelogg, oppgraderinger, anmerkninger, lange og listingvennlige highlights). Aldri dikter, aldri legger til arbeid som ikke står i kildene.</div>
+
+        <div class="gen-bar">
+          <button class="btn-gold" id="generateBtn" onclick="runGenerate()">Generer</button>
+          <div class="gen-meta" id="genMeta">Last opp minst ett dokument først.</div>
+        </div>
+      </div>
+
+      <!-- Step 3: Review/Edit -->
+      <div class="section" id="reviewSection" style="display:none">
+        <div class="section-title" id="step3Title"><span class="step">3</span> Gjennomgå og rediger</div>
+        <div class="section-hint">Rens opp eventuelle feil, fjern det du ikke vil ha med, og finjustér highlights. Ingenting skrives til HubSpot før du trykker «Skriv til HubSpot» i steg 4.</div>
+
+        <div class="field">
+          <label class="field-label" for="fld_condition_summary">Tilstandsoppsummering</label>
+          <div class="field-hint">2–3 setninger. Faktasammenstilling — ikke fri tilstandsvurdering.</div>
+          <textarea id="fld_condition_summary" class="ta-short review-field"></textarea>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="fld_service_history">Servicehistorikk</label>
+          <div class="field-hint">Kronologisk, nyeste først. Én hendelse per linje.</div>
+          <textarea id="fld_service_history" class="ta-long review-field"></textarea>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="fld_recent_upgrades">Nylige oppgraderinger (siste ~3 år)</label>
+          <div class="field-hint">Kun reelle oppgraderinger — ikke rutinevedlikehold.</div>
+          <textarea id="fld_recent_upgrades" class="ta-medium review-field"></textarea>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="fld_known_notes">Kjente anmerkninger</label>
+          <div class="field-hint">Avvik eller «vær obs på»-punkter eksplisitt nevnt i dokumentene. Vises ikke offentlig — rens før eventuell publisering.</div>
+          <textarea id="fld_known_notes" class="ta-medium review-field"></textarea>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="fld_highlights_long">Highlights (lange — for prospekt og intern bruk)</label>
+          <div class="field-hint">Én pr linje. 10–15 punkter er typisk.</div>
+          <textarea id="fld_highlights_long" class="ta-medium review-field"></textarea>
+        </div>
+
+        <div class="field">
+          <label class="field-label">Highlights (listing — Highlight 1–6 i HubSpot)</label>
+          <div class="field-hint">Maks 8 ord per punkt. Disse går rett inn i HubSpot listing-feltene.</div>
+          <div class="highlights-listing" id="highlightsListingWrap">
+            <!-- 6 input rows generated dynamically -->
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:8px">
+          <button class="btn-outline" onclick="saveEdits()">Lagre redigeringer</button>
+          <button class="btn-outline" onclick="resetToAI()" title="Gjenopprett til AI-output">Gjenopprett AI-versjon</button>
+        </div>
+      </div>
+
+      <!-- Step 4: Write -->
+      <div class="section" id="writeSection" style="display:none">
+        <div class="section-title" id="step4Title"><span class="step">4</span> Skriv til HubSpot</div>
+        <div class="section-hint">Oppdaterer boat-kortet med Condition summary, Service history, Recent upgrades, Known notes og Highlight 1–6. Tidligere kjøringer for samme båt arkiveres automatisk.</div>
+
+        <div class="gen-bar">
+          <button class="btn-primary" id="writeBtn" onclick="writeToHubSpot()" disabled>Skriv til HubSpot</button>
+          <div class="gen-meta" id="writeMeta">Åpne et felt i steg 3 for å bekrefte gjennomgang.</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════════════════════════════════
+// Constants & state
+// ════════════════════════════════════════════════════════════════════════════
+const IDENTITY = `${window.location.origin}/.netlify/identity`;
+const API      = `${window.location.origin}/.netlify/functions/servicehistorikk`;
+const $ = id => document.getElementById(id);
+
+let accessToken = null;
+let currentRun  = null;          // hele run-objektet
+let currentDeal = null;          // valgt deal { id, name, stage }
+let dealsCache  = [];
+let hasReviewed = false;         // satt til true når megler interagerer med review-felt
+
+// ════════════════════════════════════════════════════════════════════════════
+// Auth (samme mønster som prospekt/budmodul)
+// ════════════════════════════════════════════════════════════════════════════
+function showScreen(id) {
+  for (const s of ['loadingScreen','loginScreen','appScreen']) $(s).style.display = 'none';
+  $(id).style.display = id === 'appScreen' ? 'block' : 'flex';
+}
+
+async function fetchUser(tok) {
+  const r = await fetch(`${IDENTITY}/user`, { headers: { Authorization: `Bearer ${tok}` } });
+  if (!r.ok) throw new Error('Session utløpt');
+  return r.json();
+}
+
+(async function init() {
+  showScreen('loadingScreen');
+  const tok = localStorage.getItem('hoy_access_token');
+  if (tok) {
+    try { accessToken = tok; const u = await fetchUser(tok); onLogin(u); return; }
+    catch { localStorage.removeItem('hoy_access_token'); }
+  }
+  showScreen('loginScreen');
+})();
+
+async function doLogin() {
+  const email = $('loginEmail').value.trim();
+  const pass  = $('loginPassword').value;
+  const errEl = $('loginError'); const btn = $('loginBtn');
+  if (!email || !pass) { errEl.textContent = 'Fyll inn begge felt'; errEl.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = 'Logger inn…'; errEl.style.display = 'none';
+  try {
+    const r = await fetch(`${IDENTITY}/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `grant_type=password&username=${encodeURIComponent(email)}&password=${encodeURIComponent(pass)}`,
+    });
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error_description || 'Feil passord eller e-post'); }
+    const data = await r.json();
+    accessToken = data.access_token;
+    localStorage.setItem('hoy_access_token', accessToken);
+    const u = await fetchUser(accessToken);
+    onLogin(u);
+  } catch (e) {
+    errEl.textContent = e.message; errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Logg inn';
+  }
+}
+
+function doLogout() {
+  localStorage.removeItem('hoy_access_token');
+  accessToken = null; location.reload();
+}
+
+async function onLogin(user) {
+  $('userLabel').textContent = user.email || '';
+  showScreen('appScreen');
+  buildHighlightInputs();
+  attachReviewFieldListeners();
+  attachDropzone();
+  await loadDeals();
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// API helper
+// ════════════════════════════════════════════════════════════════════════════
+async function api(qs, method = 'GET', body = null) {
+  const url = `${API}?${new URLSearchParams(qs)}`;
+  const r = await fetch(url, {
+    method,
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  const text = await r.text();
+  let data;
+  try { data = JSON.parse(text); }
+  catch { throw new Error(`Server error (${r.status}): ${text.substring(0, 100)}`); }
+  if (!r.ok) throw new Error(data.error || `Feil ${r.status}`);
+  return data;
+}
+
+function toast(msg, type = 'success') {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+function fmtBytes(n) {
+  if (!n) return '';
+  if (n < 1024) return `${n} B`;
+  if (n < 1024*1024) return `${(n/1024).toFixed(0)} KB`;
+  return `${(n/1024/1024).toFixed(1)} MB`;
+}
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('nb-NO', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+
+function fmtDateTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleString('nb-NO', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// PICKER VIEW
+// ════════════════════════════════════════════════════════════════════════════
+async function loadDeals() {
+  const sel = $('dealSelect');
+  sel.innerHTML = '<option value="">Laster oppdrag…</option>';
+  try {
+    dealsCache = await api({ deals: 1 });
+    sel.innerHTML = '<option value="">— Velg oppdrag —</option>' +
+      dealsCache.map(d => `<option value="${d.id}">${escapeHtml(d.name || `(uten navn) ${d.id}`)}</option>`).join('');
+  } catch (e) {
+    sel.innerHTML = '<option value="">Kunne ikke laste oppdrag</option>';
+    toast('Feil ved lasting av oppdrag: ' + e.message, 'error');
+  }
+}
+
+async function onDealChange() {
+  const dealId = $('dealSelect').value;
+  if (!dealId) { $('runListWrap').style.display = 'none'; currentDeal = null; return; }
+  currentDeal = dealsCache.find(d => d.id === dealId) || { id: dealId, name: '' };
+
+  // Hent runs (ikke-arkiverte) for denne dealen
+  let runs = [];
+  try { runs = await api({ deal: dealId }); }
+  catch (e) { toast('Feil ved henting av kjøringer: ' + e.message, 'error'); }
+
+  $('runListWrap').style.display = 'block';
+  const list = $('runList');
+  if (!runs || runs.length === 0) {
+    list.innerHTML = '<div style="color:var(--gray-dark); font-size:13px; padding:8px 0">Ingen tidligere kjøringer for dette oppdraget.</div>';
+  } else {
+    list.innerHTML = runs.map(r => `
+      <div class="run-card" onclick="openRun('${r.id}')">
+        <div class="run-card-main">
+          <div class="run-card-title">${fmtDateTime(r.created_at)}</div>
+          <div class="run-card-meta">
+            ${(r.source_files || []).length} dokument${(r.source_files || []).length === 1 ? '' : 'er'} · ${escapeHtml(r.created_by || '')}
+            ${r.written_at ? ` · skrevet ${fmtDate(r.written_at)}` : ''}
+          </div>
+        </div>
+        <div class="run-card-actions">
+          <span class="badge ${r.status}">${labelStatus(r.status)}</span>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+function labelStatus(s) {
+  return s === 'written' ? 'Skrevet' :
+         s === 'failed'  ? 'Feilet'  :
+         s === 'draft'   ? 'Utkast'  : s;
+}
+
+async function createRun() {
+  if (!currentDeal) { toast('Velg et oppdrag først', 'error'); return; }
+  const btn = $('newRunBtn'); btn.disabled = true; btn.textContent = 'Oppretter…';
+  try {
+    const run = await api({ action: 'create_run' }, 'POST', { deal_id: currentDeal.id });
+    await openRun(run.id);
+  } catch (e) {
+    toast('Kunne ikke opprette: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '+ Ny kjøring';
+  }
+}
+
+async function openRun(runId) {
+  try {
+    const run = await api({ run: runId });
+    currentRun = run;
+    showRunView();
+  } catch (e) { toast('Feil: ' + e.message, 'error'); }
+}
+
+function backToPicker() {
+  currentRun = null; hasReviewed = false;
+  $('runView').style.display = 'none';
+  $('pickerView').style.display = 'block';
+  if (currentDeal) onDealChange();
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// RUN VIEW
+// ════════════════════════════════════════════════════════════════════════════
+function showRunView() {
+  $('pickerView').style.display = 'none';
+  $('runView').style.display = 'block';
+  hasReviewed = false;
+  renderRun();
+}
+
+function renderRun() {
+  const r = currentRun;
+  const dealName = r.deal_name || currentDeal?.name || r.deal_id;
+  $('runTitle').textContent = r.boat_name || dealName;
+  $('runSub').textContent = `${dealName} · opprettet ${fmtDateTime(r.created_at)} av ${r.created_by}`;
+  $('deleteRunBtn').style.display = (r.status === 'written') ? 'none' : 'inline-block';
+
+  renderStatusBanner(r);
+  renderFiles(r);
+  renderGenerateState(r);
+  renderReviewState(r);
+  renderWriteState(r);
+}
+
+function renderStatusBanner(r) {
+  const el = $('statusBanner');
+  if (r.status === 'written') {
+    el.className = 'status-banner ok';
+    el.innerHTML = `<span class="b-icon">✅</span><span class="b-text">Skrevet til HubSpot ${fmtDateTime(r.written_at)}. Boat-kortet er oppdatert.</span>`;
+  } else if (r.status === 'failed') {
+    el.className = 'status-banner error';
+    el.innerHTML = `<span class="b-icon">⚠️</span><span class="b-text"><strong>Feil:</strong> ${escapeHtml(r.error_message || 'Ukjent feil')}</span>`;
+  } else {
+    el.className = ''; el.innerHTML = '';
+  }
+}
+
+function renderFiles(r) {
+  const list = $('fileList');
+  const files = r.source_files || [];
+  if (files.length === 0) { list.innerHTML = ''; return; }
+  list.innerHTML = files.map(f => `
+    <div class="file-row">
+      <span class="file-icon">${fileIcon(f.mime || '')}</span>
+      <div class="file-info">
+        <div class="file-name">${escapeHtml(f.name)}</div>
+        <div class="file-meta">${fmtBytes(f.size)} · ${fmtDateTime(f.uploaded_at)}</div>
+      </div>
+      ${r.status === 'written' ? '' : `<button class="file-remove" onclick="removeFile('${escapeAttr(f.path)}')" title="Fjern">×</button>`}
+    </div>
+  `).join('');
+}
+
+function fileIcon(mime) {
+  if (mime.startsWith('image/')) return '🖼️';
+  if (mime.includes('pdf'))      return '📄';
+  return '📎';
+}
+
+function renderGenerateState(r) {
+  const meta = $('genMeta');
+  const btn  = $('generateBtn');
+  const fileCount = (r.source_files || []).length;
+  const isWritten = r.status === 'written';
+
+  if (isWritten) {
+    btn.disabled = true; btn.textContent = 'Generer';
+    meta.innerHTML = 'Denne kjøringen er ferdig. Opprett en ny kjøring for å regenerere.';
+    return;
+  }
+
+  if (fileCount === 0) {
+    btn.disabled = true;
+    meta.innerHTML = 'Last opp minst ett dokument først.';
+  } else if (r.ai_output_parsed) {
+    btn.disabled = false; btn.textContent = 'Generer på nytt';
+    const tokenInfo = r.ai_input_tokens
+      ? ` · ${fmtTokens(r.ai_input_tokens)} input / ${fmtTokens(r.ai_output_tokens)} output (~${estCost(r.ai_input_tokens, r.ai_output_tokens)})`
+      : '';
+    meta.innerHTML = `<strong>Generert ${fmtDateTime(r.updated_at || r.created_at)}.</strong>${tokenInfo}`;
+  } else {
+    btn.disabled = false; btn.textContent = 'Generer';
+    meta.innerHTML = `${fileCount} dokument${fileCount === 1 ? '' : 'er'} klar for analyse.`;
+  }
+}
+
+function fmtTokens(n) {
+  if (!n) return '0';
+  if (n < 1000) return `${n}`;
+  return `${(n/1000).toFixed(1)}k`;
+}
+
+function estCost(inTok, outTok) {
+  // Sonnet 4.6: $3/M input, $15/M output. NOK ≈ 10.5
+  const usd = (inTok/1e6)*3 + (outTok/1e6)*15;
+  return `${(usd*10.5).toFixed(2)} kr`;
+}
+
+function renderReviewState(r) {
+  const sec = $('reviewSection');
+  const data = r.edits || r.ai_output_parsed;
+  if (!data) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+
+  $('fld_condition_summary').value = data.condition_summary || '';
+  $('fld_service_history').value   = data.service_history   || '';
+  $('fld_recent_upgrades').value   = data.recent_upgrades   || '';
+  $('fld_known_notes').value       = data.known_notes       || '';
+  $('fld_highlights_long').value   = (data.highlights_long || []).join('\n');
+
+  const listing = data.highlights_listing || [];
+  for (let i = 0; i < 6; i++) {
+    const el = document.querySelector(`[data-highlight-idx="${i}"]`);
+    if (el) el.value = listing[i] || '';
+  }
+
+  const isWritten = r.status === 'written';
+  document.querySelectorAll('.review-field, [data-highlight-idx]').forEach(el => {
+    el.disabled = isWritten; el.readOnly = isWritten;
+  });
+}
+
+function renderWriteState(r) {
+  const sec  = $('writeSection');
+  const meta = $('writeMeta');
+  const btn  = $('writeBtn');
+
+  if (!r.ai_output_parsed) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+
+  if (r.status === 'written') {
+    btn.disabled = true; btn.textContent = 'Skrevet ✓';
+    meta.innerHTML = `Skrevet til HubSpot ${fmtDateTime(r.written_at)}.`;
+  } else if (!hasReviewed) {
+    btn.disabled = true; btn.textContent = 'Skriv til HubSpot';
+    meta.innerHTML = 'Åpne et felt i steg 3 for å bekrefte gjennomgang.';
+  } else {
+    btn.disabled = false; btn.textContent = 'Skriv til HubSpot';
+    meta.innerHTML = '<strong>Klar.</strong> Trykk for å oppdatere boat-kortet.';
+  }
+}
+
+function buildHighlightInputs() {
+  const wrap = $('highlightsListingWrap');
+  wrap.innerHTML = '';
+  for (let i = 0; i < 6; i++) {
+    const row = document.createElement('div');
+    row.className = 'highlight-row';
+    row.innerHTML = `<span class="pill">${i+1}</span><input type="text" data-highlight-idx="${i}" maxlength="80" placeholder="Highlight ${i+1}">`;
+    wrap.appendChild(row);
+  }
+}
+
+function attachReviewFieldListeners() {
+  // Markér review fullført så snart megler interagerer med et felt
+  const trigger = () => {
+    if (hasReviewed) return;
+    hasReviewed = true;
+    if (currentRun) renderWriteState(currentRun);
+  };
+  // Delegerer for review-textareas + highlight-inputs (genereres dynamisk)
+  document.addEventListener('focusin', (e) => {
+    if (e.target.classList?.contains('review-field') || e.target.dataset?.highlightIdx !== undefined) {
+      trigger();
+    }
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// FILE UPLOAD
+// ════════════════════════════════════════════════════════════════════════════
+function attachDropzone() {
+  const dz = $('dropzone');
+  const input = $('fileInput');
+
+  ['dragenter','dragover'].forEach(ev => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(ev => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.remove('drag'); }));
+  dz.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files || []);
+    if (files.length) handleFiles(files);
+  });
+  input.addEventListener('change', () => {
+    const files = Array.from(input.files || []);
+    if (files.length) handleFiles(files);
+    input.value = '';
+  });
+}
+
+const ACCEPTED_EXT = ['pdf','png','jpg','jpeg','heic','webp'];
+const MAX_FILE_BYTES = 25 * 1024 * 1024;
+
+async function handleFiles(files) {
+  if (!currentRun) { toast('Mangler aktiv kjøring', 'error'); return; }
+  if (currentRun.status === 'written') { toast('Kan ikke endre dokumenter på en skrevet kjøring', 'error'); return; }
+
+  for (const file of files) {
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    if (!ACCEPTED_EXT.includes(ext)) { toast(`Filtype støttes ikke: ${file.name}`, 'error'); continue; }
+    if (file.size > MAX_FILE_BYTES)  { toast(`${file.name} er over 25 MB`, 'error'); continue; }
+    await uploadOne(file);
+  }
+  // Refresh run-state for å vise nye filer
+  await reloadCurrentRun();
+}
+
+async function uploadOne(file) {
+  // Vis interim row mens vi laster opp
+  const list = $('fileList');
+  const tempRow = document.createElement('div');
+  tempRow.className = 'file-row';
+  tempRow.innerHTML = `<span class="file-icon">${fileIcon(file.type)}</span>
+    <div class="file-info"><div class="file-name">${escapeHtml(file.name)}</div>
+    <div class="file-meta uploading">Laster opp…</div></div>`;
+  list.appendChild(tempRow);
+
+  try {
+    const { upload_url, path } = await api({ action: 'upload_url' }, 'POST', {
+      run_id: currentRun.id,
+      file_name: file.name,
+      content_type: file.type,
+    });
+
+    const r = await fetch(upload_url, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type || 'application/octet-stream' },
+      body: file,
+    });
+    if (!r.ok) throw new Error(`Upload ${r.status}`);
+
+    await api({ action: 'add_document' }, 'POST', {
+      run_id: currentRun.id,
+      path, name: file.name, size: file.size, mime: file.type,
+    });
+
+    tempRow.remove();
+  } catch (e) {
+    tempRow.querySelector('.file-meta').className = 'file-meta file-error';
+    tempRow.querySelector('.file-meta').textContent = `Feilet: ${e.message}`;
+    setTimeout(() => tempRow.remove(), 4000);
+    toast(`Feil ved opplasting av ${file.name}: ${e.message}`, 'error');
+  }
+}
+
+async function removeFile(path) {
+  if (!confirm('Fjerne dette dokumentet?')) return;
+  try {
+    await api({ action: 'remove_document' }, 'POST', { run_id: currentRun.id, path });
+    await reloadCurrentRun();
+    toast('Dokument fjernet');
+  } catch (e) { toast('Feil: ' + e.message, 'error'); }
+}
+
+async function reloadCurrentRun() {
+  if (!currentRun) return;
+  try { currentRun = await api({ run: currentRun.id }); renderRun(); }
+  catch (e) { toast('Feil ved oppdatering: ' + e.message, 'error'); }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// GENERATE
+// ════════════════════════════════════════════════════════════════════════════
+async function runGenerate() {
+  if (!currentRun) return;
+  const btn = $('generateBtn');
+  const meta = $('genMeta');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Analyserer dokumenter…';
+  meta.innerHTML = 'Dette kan ta 20–60 sekunder avhengig av antall dokumenter.';
+
+  try {
+    const updated = await api({ action: 'generate' }, 'POST', { run_id: currentRun.id });
+    currentRun = updated;
+    hasReviewed = false; // Ny generering = ny review-runde
+    renderRun();
+    toast('Servicehistorikk generert. Gjennomgå og rediger før du skriver til HubSpot.');
+  } catch (e) {
+    toast('AI-feil: ' + e.message, 'error');
+    btn.disabled = false; btn.textContent = 'Generer';
+    await reloadCurrentRun(); // hent eventuelt failed-status
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// SAVE EDITS / WRITE / DELETE
+// ════════════════════════════════════════════════════════════════════════════
+function collectEdits() {
+  const listing = [];
+  for (let i = 0; i < 6; i++) {
+    const el = document.querySelector(`[data-highlight-idx="${i}"]`);
+    listing.push((el?.value || '').trim());
+  }
+  // Trim trailing tomme highlights så vi ikke skriver tomme strenger over reelle data
+  while (listing.length && !listing[listing.length - 1]) listing.pop();
+
+  const longText = $('fld_highlights_long').value || '';
+  const longArr  = longText.split('\n').map(s => s.trim()).filter(Boolean);
+
+  return {
+    condition_summary: $('fld_condition_summary').value || '',
+    service_history:   $('fld_service_history').value   || '',
+    recent_upgrades:   $('fld_recent_upgrades').value   || '',
+    known_notes:       $('fld_known_notes').value       || '',
+    highlights_long:    longArr,
+    highlights_listing: listing,
+  };
+}
+
+async function saveEdits() {
+  if (!currentRun) return;
+  try {
+    const edits = collectEdits();
+    await api({ action: 'update_edits' }, 'POST', { run_id: currentRun.id, edits });
+    currentRun.edits = edits;
+    toast('Lagret');
+  } catch (e) { toast('Feil: ' + e.message, 'error'); }
+}
+
+async function resetToAI() {
+  if (!currentRun?.ai_output_parsed) return;
+  if (!confirm('Gjenopprette til AI-versjon? Dine redigeringer på dette runet går tapt.')) return;
+  // Lokalt: tøm edits, render fra ai_output_parsed
+  currentRun.edits = null;
+  renderReviewState(currentRun);
+  // Persistér: bruk ai_output_parsed som ny edits-baseline (eller bare hopp over save — neste write fall back til ai_output_parsed)
+  try {
+    await api({ action: 'update_edits' }, 'POST', { run_id: currentRun.id, edits: currentRun.ai_output_parsed });
+    toast('Gjenopprettet til AI-versjon');
+  } catch (e) { toast('Feil: ' + e.message, 'error'); }
+}
+
+async function writeToHubSpot() {
+  if (!currentRun) return;
+  if (!confirm('Skrive til HubSpot nå? Tidligere kjøringer for samme båt arkiveres automatisk.')) return;
+
+  const btn = $('writeBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Skriver…';
+
+  try {
+    // Lagre edits først så servere bruker dem
+    const edits = collectEdits();
+    await api({ action: 'update_edits' }, 'POST', { run_id: currentRun.id, edits });
+
+    const updated = await api({ action: 'write_to_hubspot' }, 'POST', { run_id: currentRun.id });
+    currentRun = updated;
+    renderRun();
+    toast('Skrevet til HubSpot ✓', 'success');
+  } catch (e) {
+    toast('Feil: ' + e.message, 'error');
+    btn.disabled = false; btn.textContent = 'Skriv til HubSpot';
+    await reloadCurrentRun();
+  }
+}
+
+async function deleteCurrentRun() {
+  if (!currentRun) return;
+  if (currentRun.status === 'written') { toast('Kan ikke slette skrevne kjøringer', 'error'); return; }
+  if (!confirm('Slette denne kjøringen og alle opplastede dokumenter? Kan ikke angres.')) return;
+  try {
+    await api({ action: 'delete_run' }, 'POST', { run_id: currentRun.id });
+    toast('Kjøring slettet');
+    backToPicker();
+  } catch (e) { toast('Feil: ' + e.message, 'error'); }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Utilities
+// ════════════════════════════════════════════════════════════════════════════
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+function escapeAttr(s) {
+  return String(s || '').replace(/'/g, '\\\'').replace(/"/g, '&quot;');
+}
+</script>
+</body>
+</html>

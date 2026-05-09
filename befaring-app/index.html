@@ -176,6 +176,16 @@
         </div>
       </a>
 
+      <a class="tool-card active" href="/servicehistorikk/">
+        <div class="tool-icon">🔧</div>
+        <div class="tool-title">Servicehistorikk</div>
+        <div class="tool-desc">Last opp fakturaer og rapporter — AI sammenstiller servicelogg, oppgraderinger og highlights direkte til boat-kortet i HubSpot.</div>
+        <div class="tool-footer">
+          <span class="badge badge-live">Aktiv</span>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+
       <div class="tool-card soon">
         <div class="tool-icon">📊</div>
         <div class="tool-title">Prisanalytiker</div>
@@ -290,7 +300,7 @@ window.addEventListener('unhandledrejection',function(e){
 });
 function guessModule(src){
   if(!src) src=window.location.pathname;
-  const m=src.match(/\/(befaring|budmodul|prospekt|annonsegenerator|sjekkliste|handbok|soper|admin)\//);
+  const m=src.match(/\/(befaring|budmodul|prospekt|annonsegenerator|sjekkliste|handbok|soper|admin|servicehistorikk)\//);
   return m?m[1]:'portal';
 }
 

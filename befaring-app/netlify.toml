@@ -15,6 +15,10 @@
 [functions."oppdragsnummer"]
   timeout = 26
 
+# Servicehistorikk: ned­lasting av flere PDF/bilder + Anthropic vision-kall
+[functions."servicehistorikk"]
+  timeout = 26
+
 # Serve subfolder routes cleanly
 [[redirects]]
   from = "/befaring"
@@ -54,5 +58,10 @@
 [[redirects]]
   from = "/avspasering"
   to = "/avspasering/"
+  status = 301
+
+[[redirects]]
+  from = "/servicehistorikk"
+  to = "/servicehistorikk/"
   status = 301
 
