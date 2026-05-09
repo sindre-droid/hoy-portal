@@ -34,17 +34,17 @@ const AI_MODEL        = 'claude-sonnet-4-6';
 const AI_MAX_TOKENS   = 4096;
 
 // HubSpot boat-properties som oppdateres ved write_to_hubspot.
-// Endre disse hvis property-navnene i HubSpot er annerledes.
+// VIKTIG: highlight_1..6 skrives BEVISST IKKE av denne modulen — de feltene
+// er kuraterte generelle båt-høydepunkter (vises på listing-siden), ikke
+// service-spesifikke. AI-genererte service-forslag forblir i Supabase som
+// referansetekst, og megler kan manuelt kopiere ett eller to punkter til
+// listing om relevant. Endre disse hvis property-navnene i HubSpot avviker.
 const BOAT_TEXT_FIELDS = {
   condition_summary: 'condition_summary',
   service_history:   'service_history',
   recent_upgrades:   'recent_upgrades',
   known_notes:       'known_notes',
 };
-const BOAT_HIGHLIGHT_FIELDS = [
-  'highlight_1', 'highlight_2', 'highlight_3',
-  'highlight_4', 'highlight_5', 'highlight_6',
-];
 
 // File-grenser
 const MAX_FILE_BYTES   = 25 * 1024 * 1024;          // 25 MB per fil
@@ -443,6 +443,18 @@ exports.handler = async (event) => {
         if (runErr) throw runErr;
         if (!run) return err(404, 'Run not found');
 
+        // Defensiv dedup: hvis samme filnavn + størrelse allerede finnes på
+        // dette runet, hopp over (typisk dobbel-klikk eller laggy upload).
+        // Filen som ble lastet opp under en ny path ryddes fra storage.
+        const existing = (run.source_files || []).find(
+          f => f.name === name && f.size === (size || null)
+        );
+        if (existing) {
+          try { await supabase.storage.from(STORAGE_BUCKET).remove([path]); }
+          catch (e) { console.warn('Dedup cleanup failed:', e?.message); }
+          return ok({ source_files: run.source_files, duplicate_skipped: true });
+        }
+
         const fileEntry = {
           path,
           name,
@@ -677,17 +689,14 @@ exports.handler = async (event) => {
           if (!boatId) return err(404, 'Fant ikke boat-objekt for deal — kan ikke skrive');
         }
 
-        // Bygg HubSpot properties-payload
+        // Bygg HubSpot properties-payload — kun de fire tekstfeltene.
+        // highlight_1..6 røres IKKE (kuraterte listing-høydepunkter).
         const hsProps = {
           [BOAT_TEXT_FIELDS.condition_summary]: payload.condition_summary || '',
           [BOAT_TEXT_FIELDS.service_history]:   payload.service_history   || '',
           [BOAT_TEXT_FIELDS.recent_upgrades]:   payload.recent_upgrades   || '',
           [BOAT_TEXT_FIELDS.known_notes]:       payload.known_notes       || '',
         };
-        const highlights = payload.highlights_listing || [];
-        BOAT_HIGHLIGHT_FIELDS.forEach((field, i) => {
-          hsProps[field] = highlights[i] || '';
-        });
 
         // PATCH boat-objektet
         const patchRes = await hs(

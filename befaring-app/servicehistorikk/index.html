@@ -287,14 +287,14 @@
         </div>
 
         <div class="field">
-          <label class="field-label" for="fld_highlights_long">Highlights (lange — for prospekt og intern bruk)</label>
-          <div class="field-hint">Én pr linje. 10–15 punkter er typisk.</div>
+          <label class="field-label" for="fld_highlights_long">Service-relaterte selling points (for prospekt og intern bruk)</label>
+          <div class="field-hint">Én pr linje. 10–15 punkter er typisk. Disse brukes i prospekt-seksjonen og intern referanse — ikke automatisk på listing.</div>
           <textarea id="fld_highlights_long" class="ta-medium review-field"></textarea>
         </div>
 
         <div class="field">
-          <label class="field-label">Highlights (listing — Highlight 1–6 i HubSpot)</label>
-          <div class="field-hint">Maks 8 ord per punkt. Disse går rett inn i HubSpot listing-feltene.</div>
+          <label class="field-label">Forslag til korte service-punkter (kopier manuelt om relevant)</label>
+          <div class="field-hint">AI foreslår korte formuleringer som kan brukes hvis du vil løfte service-historikk inn blant båtens listing-høydepunkter på hjemmesiden. <strong>Skrives ikke automatisk til HubSpot</strong> — kopier manuelt til Highlight 1–6 på boat-kortet om noen av dem passer. Listing-høydepunktene styres ellers utenfor denne modulen.</div>
           <div class="highlights-listing" id="highlightsListingWrap">
             <!-- 6 input rows generated dynamically -->
           </div>
@@ -309,7 +309,7 @@
       <!-- Step 4: Write -->
       <div class="section" id="writeSection" style="display:none">
         <div class="section-title" id="step4Title"><span class="step">4</span> Skriv til HubSpot</div>
-        <div class="section-hint">Oppdaterer boat-kortet med Condition summary, Service history, Recent upgrades, Known notes og Highlight 1–6. Tidligere kjøringer for samme båt arkiveres automatisk.</div>
+        <div class="section-hint">Oppdaterer boat-kortet med <strong>Condition summary, Service history, Recent upgrades og Known notes</strong>. Highlight 1–6 røres ikke — de er kuraterte listing-høydepunkter og styres separat. Tidligere kjøringer for samme båt arkiveres automatisk.</div>
 
         <div class="gen-bar">
           <button class="btn-primary" id="writeBtn" onclick="writeToHubSpot()" disabled>Skriv til HubSpot</button>
@@ -720,12 +720,15 @@ async function handleFiles(files) {
   if (!currentRun) { toast('Mangler aktiv kjøring', 'error'); return; }
   if (currentRun.status === 'written') { toast('Kan ikke endre dokumenter på en skrevet kjøring', 'error'); return; }
 
+  let duplicates = 0;
   for (const file of files) {
     const ext = (file.name.split('.').pop() || '').toLowerCase();
     if (!ACCEPTED_EXT.includes(ext)) { toast(`Filtype støttes ikke: ${file.name}`, 'error'); continue; }
     if (file.size > MAX_FILE_BYTES)  { toast(`${file.name} er over 25 MB`, 'error'); continue; }
-    await uploadOne(file);
+    const result = await uploadOne(file);
+    if (result?.duplicate) duplicates++;
   }
+  if (duplicates > 0) toast(`${duplicates} duplikat${duplicates === 1 ? '' : 'er'} hoppet over`);
   // Refresh run-state for å vise nye filer
   await reloadCurrentRun();
 }
@@ -754,12 +757,14 @@ async function uploadOne(file) {
     });
     if (!r.ok) throw new Error(`Upload ${r.status}`);
 
-    await api({ action: 'add_document' }, 'POST', {
+    const addRes = await api({ action: 'add_document' }, 'POST', {
       run_id: currentRun.id,
       path, name: file.name, size: file.size, mime: file.type,
     });
 
     tempRow.remove();
+    if (addRes?.duplicate_skipped) return { duplicate: true };
+    return { duplicate: false };
   } catch (e) {
     tempRow.querySelector('.file-meta').className = 'file-meta file-error';
     tempRow.querySelector('.file-meta').textContent = `Feilet: ${e.message}`;
