@@ -688,7 +688,11 @@ function renderExportState(r) {
   if (!r.ai_output_parsed) { sec.style.display = 'none'; return; }
   sec.style.display = 'block';
 
-  // Filnavn-preview
+  // Filnavn-preview — element kan være borte hvis exportMeta.innerHTML ble
+  // overskrevet med status-melding under en pågående/fullført eksport.
+  const previewEl = $('exportFilenamePreview');
+  if (!previewEl) return;
+
   const slug = (r.boat_name || r.deal_name || 'baat')
     .toLowerCase()
     .replace(/[æå]/g, 'a').replace(/ø/g, 'o')
@@ -696,7 +700,7 @@ function renderExportState(r) {
     .replace(/^-|-$/g, '')
     .slice(0, 50);
   const seq = (r.export_sequence || 0) + 1;
-  $('exportFilenamePreview').textContent = `servicedokumentasjon-…-${slug}-v${seq}.pdf`;
+  previewEl.textContent = `servicedokumentasjon-…-${slug}-v${seq}.pdf`;
 }
 
 async function exportPdf() {

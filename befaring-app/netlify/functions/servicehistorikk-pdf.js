@@ -89,12 +89,20 @@ async function buildMainReport({ run, boatName, oppdragsnummer, sourceFiles }) {
   return new Promise((resolve, reject) => {
     const data = run.edits || run.ai_output_parsed || {};
 
+    // Strip ledende "26034 - " hvis det dupliserer oppdragsnummer
+    let displayName = boatName || '';
+    if (oppdragsnummer) {
+      displayName = displayName.replace(
+        new RegExp(`^${oppdragsnummer}\\s*[-–—]\\s*`), ''
+      ).trim();
+    }
+    if (!displayName) displayName = boatName || 'Uten navn';
+
     const doc = new PDFDocument({
       size: 'A4',
       margins: { top: MARGIN, bottom: MARGIN, left: MARGIN, right: MARGIN },
-      bufferPages: true,
       info: {
-        Title:   `Servicedokumentasjon – ${boatName || ''}`,
+        Title:   `Servicedokumentasjon – ${displayName}`,
         Author:  'House of Yachts',
         Subject: 'Servicehistorikk',
         Creator: 'HoY Internportal',
@@ -123,9 +131,9 @@ async function buildMainReport({ run, boatName, oppdragsnummer, sourceFiles }) {
       .strokeColor(GOLD).lineWidth(1.5).stroke();
     doc.moveDown(2);
 
-    // Båtnavn
+    // Båtnavn (uten ledende oppdragsnummer-prefiks)
     doc.fontSize(20).font('Helvetica-Bold').fillColor(TEXT)
-      .text(boatName || 'Uten navn', { align: 'center' });
+      .text(displayName, { align: 'center' });
     doc.moveDown(0.4);
 
     // Meta-info
@@ -218,15 +226,9 @@ async function buildMainReport({ run, boatName, oppdragsnummer, sourceFiles }) {
       });
     }
 
-    // Sidetall
-    const range = doc.bufferedPageRange();
-    for (let i = 0; i < range.count; i++) {
-      doc.switchToPage(range.start + i);
-      doc.fontSize(8).font('Helvetica').fillColor(MUTED)
-        .text(`Side ${i + 1} av ${range.count}`, MARGIN, PAGE_H - 30, {
-          width: CONTENT_W, align: 'center', lineBreak: false,
-        });
-    }
+    // Sidetall droppes for nå — bufferPages + switchToPage ga utilsiktede
+    // tomme sider når output ble merget med pdf-lib. Re-introduseres senere
+    // ved behov med inline footer-rendering.
 
     doc.end();
   });
