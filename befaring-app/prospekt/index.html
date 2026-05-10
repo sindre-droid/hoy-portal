@@ -1277,7 +1277,7 @@ async function refreshServiceFromBoat() {
   try {
     const res = await fetch(`/.netlify/functions/prospekt?action=refresh-service`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + accessToken },
       body: JSON.stringify({ id })
     });
     const json = await res.json();
