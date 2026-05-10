@@ -716,16 +716,25 @@ async function exportPdf() {
       include_attachments: includeAtt,
     });
 
-    // Trigger nedlasting via en usynlig anchor
+    // Hent PDF-en som blob for å trigge ekte nedlasting (cross-origin signed URL
+    // respekterer ikke <a download>-attributtet i mange browsere — uten dette
+    // navigerer fanen til PDF-en i stedet for å laste ned).
+    meta.innerHTML = 'Henter PDF…';
+    const pdfRes = await fetch(res.url);
+    if (!pdfRes.ok) throw new Error(`Kunne ikke hente PDF (${pdfRes.status})`);
+    const blob = await pdfRes.blob();
+    const objectUrl = URL.createObjectURL(blob);
+
     const a = document.createElement('a');
-    a.href = res.url;
+    a.href = objectUrl;
     a.download = res.filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
 
     const sizeMb = (res.size_bytes / 1024 / 1024).toFixed(2);
-    meta.innerHTML = `<strong>Lastet ned ${res.filename}</strong> (${sizeMb} MB${res.included_attachments ? `, ${res.attachment_count} vedlegg` : ', uten vedlegg'}).`;
+    meta.innerHTML = `<strong>Lastet ned ${escapeHtml(res.filename)}</strong> (${sizeMb} MB${res.included_attachments ? `, ${res.attachment_count} vedlegg` : ', uten vedlegg'}).`;
     toast(`Rapport v${res.sequence} generert`);
 
     // Oppdater lokal state med ny sequence

@@ -837,8 +837,14 @@ exports.handler = async (event) => {
           }
         }
 
-        // Bygg filnavn
-        const slug = (run.boat_name || run.deal_name || 'baat')
+        // Bygg filnavn. deal_name har ofte format "26034 - Windy 27 Solano",
+        // så vi strip-er ledende oppdragsnummer-prefiks før slugifisering for
+        // å unngå at det dupliseres i filnavnet.
+        const rawName = run.boat_name || run.deal_name || 'baat';
+        const cleanName = oppdragsnummer
+          ? rawName.replace(new RegExp(`^${oppdragsnummer}\\s*[-–—]\\s*`), '')
+          : rawName.replace(/^\d+\s*[-–—]\s*/, '');  // ev. annet ledende tall
+        const slug = cleanName
           .toLowerCase()
           .replace(/[æå]/g, 'a').replace(/ø/g, 'o')
           .replace(/[^a-z0-9]+/g, '-')
@@ -846,7 +852,7 @@ exports.handler = async (event) => {
           .slice(0, 50);
         const filenameParts = ['servicedokumentasjon'];
         if (oppdragsnummer) filenameParts.push(oppdragsnummer);
-        filenameParts.push(slug);
+        if (slug) filenameParts.push(slug);
         filenameParts.push(`v${nextSeq}`);
         const filename = filenameParts.join('-') + '.pdf';
 
