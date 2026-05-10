@@ -629,10 +629,10 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: 6% 7% 3%;
+    padding: 6% 7% 0;
   }
 
-  .service-header { margin-bottom: 4%; }
+  .service-header { margin-bottom: 3%; }
 
   .service-header h2 {
     font-family: var(--font-display);
@@ -646,27 +646,77 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 18px;
   }
 
-  .service-block {}
+  .service-block { }
 
   .service-block-title {
     font-family: var(--font-body);
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1.5px;
     color: var(--hoy-gold);
-    margin-bottom: 8px;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid var(--hoy-warm-gray);
   }
 
   .service-block-text {
     font-family: var(--font-body);
-    font-size: 10.5px;
+    font-size: 10px;
     line-height: 1.7;
     color: var(--hoy-dark-gray);
     font-weight: 300;
+  }
+
+  .service-entry {
+    display: flex;
+    flex-direction: column;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+  }
+  .service-entry:last-child { border-bottom: none; }
+
+  .service-entry-head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 3px;
+  }
+
+  .service-entry-date {
+    font-family: var(--font-body);
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--hoy-black);
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+  }
+
+  .service-entry-vendor {
+    font-family: var(--font-body);
+    font-size: 9px;
+    font-weight: 500;
+    color: var(--hoy-mid-gray);
+  }
+
+  .service-entry-desc {
+    font-family: var(--font-body);
+    font-size: 9.5px;
+    line-height: 1.6;
+    color: var(--hoy-dark-gray);
+    font-weight: 300;
+  }
+
+  .service-entry-cost {
+    font-family: var(--font-body);
+    font-size: 8.5px;
+    color: var(--hoy-mid-gray);
+    font-weight: 400;
+    margin-top: 2px;
+    font-style: italic;
   }
 
   /* ══════════════════════════════════════════
@@ -1684,6 +1734,57 @@ function buildEquipmentPages(p) {
   `;
 }
 
+function parseServiceEntries(text) {
+  const lines = (text || '').split('\n').filter(l => l.trim());
+  return lines.map(line => {
+    const m = line.match(/^(\d{2}\.\d{4})\s*[—–-]\s*(.+?):\s*(.+)$/);
+    if (!m) return { raw: line };
+    const date = m[1];
+    const vendor = m[2].trim();
+    let desc = m[3].trim();
+    let cost = '';
+    const costMatch = desc.match(/\(kr\s*([\d\s]+)\)\s*$/i);
+    if (costMatch) {
+      cost = 'kr ' + costMatch[1].trim();
+      desc = desc.replace(/\(kr\s*[\d\s]+\)\s*$/, '').trim();
+      desc = desc.replace(/[,;]\s*$/, '');
+    }
+    return { date, vendor, desc, cost };
+  });
+}
+
+function renderServiceBlock(field, text) {
+  if (field.key === 'cs') {
+    return `
+      <div class="service-block">
+        <h3 class="service-block-title">${esc(field.label)}</h3>
+        <div class="service-block-text">${esc(text).replace(/\n/g, '<br>')}</div>
+      </div>`;
+  }
+
+  const entries = parseServiceEntries(text);
+  const entriesHtml = entries.map(e => {
+    if (e.raw) {
+      return `<div class="service-entry"><div class="service-entry-desc">${esc(e.raw)}</div></div>`;
+    }
+    return `
+      <div class="service-entry">
+        <div class="service-entry-head">
+          <span class="service-entry-date">${esc(e.date)}</span>
+          <span class="service-entry-vendor">${esc(e.vendor)}</span>
+        </div>
+        <div class="service-entry-desc">${esc(e.desc)}</div>
+        ${e.cost ? `<div class="service-entry-cost">${esc(e.cost)}</div>` : ''}
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="service-block">
+      <h3 class="service-block-title">${esc(field.label)}</h3>
+      ${entriesHtml}
+    </div>`;
+}
+
 function buildServicePages(p) {
   const fields = [
     { key: 'cs', label: 'Tilstandsoppsummering', dbField: 'service_condition_summary' },
@@ -1695,12 +1796,7 @@ function buildServicePages(p) {
   const active = fields.filter(f => p[`service_include_${f.key}`] !== false && (p[f.dbField] || '').trim());
   if (active.length === 0) return '';
 
-  const sectionsHtml = active.map(f => `
-    <div class="service-block">
-      <h3 class="service-block-title">${esc(f.label)}</h3>
-      <div class="service-block-text">${esc(p[f.dbField] || '').replace(/\n/g, '<br>')}</div>
-    </div>
-  `).join('');
+  const sectionsHtml = active.map(f => renderServiceBlock(f, p[f.dbField])).join('');
 
   return `
     <div class="page-label">Servicehistorikk</div>
@@ -1712,6 +1808,10 @@ function buildServicePages(p) {
         </div>
         <div class="service-body">
           ${sectionsHtml}
+        </div>
+        <div class="page-footer-light" style="margin-top:auto">
+          <div class="page-footer-accent"></div>
+          <span>&copy; ${new Date().getFullYear()} House of Yachts &middot; houseofyachts.no</span>
         </div>
       </div>
     </div>
