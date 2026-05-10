@@ -1735,10 +1735,16 @@ function buildEquipmentPages(p) {
 }
 
 function parseServiceEntries(text) {
-  const lines = (text || '').split('\n').filter(l => l.trim());
+  const presplit = (text || '').replace(/(?<=[.;])\s+(?=\d{2}\.\d{4}\s*[—–-])/g, '\n');
+  const lines = presplit.split('\n').filter(l => l.trim());
   return lines.map(line => {
-    const m = line.match(/^(\d{2}\.\d{4})\s*[—–-]\s*(.+?):\s*(.+)$/);
-    if (!m) return { raw: line };
+    let m = line.match(/^(\d{2}\.\d{4})\s*[—–-]\s*(.+?):\s*(.+)$/);
+    if (!m) m = line.match(/^(\d{2}\.\d{4})\s*[—–-]\s*(.+?\s(?:AS|AB|ANS|DA|ASA))\s+(.+)$/i);
+    if (!m) {
+      const dm = line.match(/^(\d{2}\.\d{4})\s*[—–-]\s*(.+)$/);
+      if (dm) return { date: dm[1], vendor: '', desc: dm[2].trim(), cost: '' };
+      return { raw: line };
+    }
     const date = m[1];
     const vendor = m[2].trim();
     let desc = m[3].trim();
