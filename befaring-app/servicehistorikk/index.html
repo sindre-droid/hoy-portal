@@ -316,6 +316,22 @@
           <div class="gen-meta" id="writeMeta">Åpne et felt i steg 3 for å bekrefte gjennomgang.</div>
         </div>
       </div>
+
+      <!-- Step 5: Export PDF -->
+      <div class="section" id="exportSection" style="display:none">
+        <div class="section-title"><span class="step">5</span> Last ned utvidet rapport</div>
+        <div class="section-hint">Genererer en PDF med tilstandsoppsummering, servicelogg, oppgraderinger, anmerkninger og highlights — pluss originalfakturaene som vedlegg. Bruk for intern referanse, deling med interesserte kjøpere, eller dokumentasjon mot bank/forsikring.</div>
+
+        <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:12px; cursor:pointer">
+          <input type="checkbox" id="includeAttachments" checked>
+          <span>Inkluder originalfakturaer som vedlegg (anbefales)</span>
+        </label>
+
+        <div class="gen-bar">
+          <button class="btn-outline" id="exportBtn" onclick="exportPdf()">Last ned rapport</button>
+          <div class="gen-meta" id="exportMeta">Filnavn: <code id="exportFilenamePreview" style="font-size:11px; background:var(--surface); padding:2px 6px; border-radius:4px">servicedokumentasjon-…-v?.pdf</code></div>
+        </div>
+      </div>
     </div>
   </main>
 </div>
@@ -546,6 +562,7 @@ function renderRun() {
   renderGenerateState(r);
   renderReviewState(r);
   renderWriteState(r);
+  renderExportState(r);
 }
 
 function renderStatusBanner(r) {
@@ -663,6 +680,63 @@ function renderWriteState(r) {
   } else {
     btn.disabled = false; btn.textContent = 'Skriv til HubSpot';
     meta.innerHTML = '<strong>Klar.</strong> Trykk for å oppdatere boat-kortet.';
+  }
+}
+
+function renderExportState(r) {
+  const sec = $('exportSection');
+  if (!r.ai_output_parsed) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+
+  // Filnavn-preview
+  const slug = (r.boat_name || r.deal_name || 'baat')
+    .toLowerCase()
+    .replace(/[æå]/g, 'a').replace(/ø/g, 'o')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 50);
+  const seq = (r.export_sequence || 0) + 1;
+  $('exportFilenamePreview').textContent = `servicedokumentasjon-…-${slug}-v${seq}.pdf`;
+}
+
+async function exportPdf() {
+  if (!currentRun) return;
+  const btn = $('exportBtn');
+  const meta = $('exportMeta');
+  const includeAtt = $('includeAttachments').checked;
+
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Genererer PDF…';
+  meta.innerHTML = 'Dette kan ta 10–30 sekunder, avhengig av filmengde og vedlegg.';
+
+  try {
+    const res = await api({ action: 'export_pdf' }, 'POST', {
+      run_id: currentRun.id,
+      include_attachments: includeAtt,
+    });
+
+    // Trigger nedlasting via en usynlig anchor
+    const a = document.createElement('a');
+    a.href = res.url;
+    a.download = res.filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    const sizeMb = (res.size_bytes / 1024 / 1024).toFixed(2);
+    meta.innerHTML = `<strong>Lastet ned ${res.filename}</strong> (${sizeMb} MB${res.included_attachments ? `, ${res.attachment_count} vedlegg` : ', uten vedlegg'}).`;
+    toast(`Rapport v${res.sequence} generert`);
+
+    // Oppdater lokal state med ny sequence
+    currentRun.export_sequence = res.sequence;
+    renderExportState(currentRun);
+  } catch (e) {
+    toast('Feil ved generering: ' + e.message, 'error');
+    meta.innerHTML = `<span style="color:var(--red)">Feilet: ${escapeHtml(e.message)}</span>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = orig;
   }
 }
 

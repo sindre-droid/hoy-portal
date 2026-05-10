@@ -24,6 +24,7 @@
 
 const { createClient } = require('@supabase/supabase-js');
 const SYSTEM_PROMPT = require('./servicehistorikk-prompt');
+const { generateRapportPdf } = require('./servicehistorikk-pdf');
 
 // ── Konfig ──────────────────────────────────────────────────────────────────
 const PIPELINE_B      = process.env.PIPELINE_B || '3211644128';
@@ -781,6 +782,147 @@ exports.handler = async (event) => {
         }
 
         return ok(data);
+      }
+
+      // ── Eksporter utvidet rapport-PDF ───────────────────────────────────
+      // Genererer PDF (cover + 4 tekstseksjoner + highlights + valgfritt
+      // originalfakturaer som vedlegg), laster opp til Supabase Storage,
+      // og returnerer signed URL slik at UI kan trigge nedlasting.
+      if (action === 'export_pdf') {
+        const { run_id, include_attachments } = body;
+        if (!run_id) return err(400, 'run_id required');
+        const includeAtt = include_attachments !== false; // default true
+
+        const { data: run, error: runErr } = await supabase
+          .from('service_history_runs')
+          .select('*')
+          .eq('id', run_id)
+          .maybeSingle();
+        if (runErr) throw runErr;
+        if (!run) return err(404, 'Run not found');
+        if (!run.ai_output_parsed && !run.edits) {
+          return err(400, 'Ingen AI-output å eksportere — kjør generate først');
+        }
+
+        // Hent oppdragsnummer (fra Supabase assignment_numbers eller HubSpot deal-property)
+        let oppdragsnummer = null;
+        try {
+          const { data: an } = await supabase
+            .from('assignment_numbers')
+            .select('number')
+            .eq('deal_id', run.deal_id)
+            .maybeSingle();
+          oppdragsnummer = an?.number || null;
+        } catch (_) { /* best-effort */ }
+        if (!oppdragsnummer) {
+          // Fallback: prøv HubSpot deal-property hvis den er satt der
+          try {
+            const dealRes = await hs(`/crm/v3/objects/deals/${run.deal_id}?properties=oppdragsnummer`);
+            oppdragsnummer = dealRes.data?.properties?.oppdragsnummer || null;
+          } catch (_) { /* ignore */ }
+        }
+
+        // Beregn neste sequence (per båt). Default 1 hvis ingen tidligere eksport.
+        let nextSeq = 1;
+        if (run.boat_id) {
+          const { data: maxRes } = await supabase
+            .from('service_history_runs')
+            .select('export_sequence')
+            .eq('boat_id', run.boat_id)
+            .not('export_sequence', 'is', null)
+            .order('export_sequence', { ascending: false })
+            .limit(1);
+          if (maxRes && maxRes.length && maxRes[0].export_sequence) {
+            nextSeq = maxRes[0].export_sequence + 1;
+          }
+        }
+
+        // Bygg filnavn
+        const slug = (run.boat_name || run.deal_name || 'baat')
+          .toLowerCase()
+          .replace(/[æå]/g, 'a').replace(/ø/g, 'o')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '')
+          .slice(0, 50);
+        const filenameParts = ['servicedokumentasjon'];
+        if (oppdragsnummer) filenameParts.push(oppdragsnummer);
+        filenameParts.push(slug);
+        filenameParts.push(`v${nextSeq}`);
+        const filename = filenameParts.join('-') + '.pdf';
+
+        // Last ned vedlegg hvis vi skal merge dem inn
+        let attachments = [];
+        if (includeAtt && (run.source_files || []).length > 0) {
+          try {
+            const dls = await Promise.all(
+              run.source_files.map(f =>
+                downloadFromStorage(supabase, f.path)
+                  .then(buf => ({ buf, mime: (f.mime || detectMime(f.name)).toLowerCase(), name: f.name }))
+              )
+            );
+            attachments = dls;
+          } catch (e) {
+            console.error('export_pdf: vedlegg-download feilet:', e?.message);
+            return err(502, `Klarte ikke laste ned ett eller flere vedlegg: ${e?.message?.substring(0, 200)}`);
+          }
+        }
+
+        // Generer PDF
+        let pdfBuffer;
+        try {
+          pdfBuffer = await generateRapportPdf({
+            run,
+            boatName: run.boat_name || run.deal_name || '',
+            oppdragsnummer,
+            sourceFiles: run.source_files || [],
+            attachments,
+            includeAttachments: includeAtt,
+          });
+        } catch (e) {
+          console.error('export_pdf: PDF-generering feilet:', e?.message, e?.stack);
+          return err(500, `PDF-generering feilet: ${e?.message?.substring(0, 200)}`);
+        }
+
+        // Last opp til Supabase Storage (samme bucket, _exports-undermappe)
+        const storagePath = `${run.deal_id}/_exports/${filename}`;
+        const { error: upErr } = await supabase.storage
+          .from(STORAGE_BUCKET)
+          .upload(storagePath, pdfBuffer, {
+            contentType: 'application/pdf',
+            upsert: true,
+          });
+        if (upErr) {
+          console.error('export_pdf: storage upload feilet:', upErr?.message);
+          return err(502, `Kunne ikke lagre rapporten: ${upErr.message}`);
+        }
+
+        // Signed URL gyldig i 10 minutter
+        const { data: signedRes, error: signErr } = await supabase.storage
+          .from(STORAGE_BUCKET)
+          .createSignedUrl(storagePath, 600);
+        if (signErr) {
+          console.error('export_pdf: signed URL feilet:', signErr?.message);
+          return err(502, `Kunne ikke lage nedlastingslenke: ${signErr.message}`);
+        }
+
+        // Oppdater run med ny sequence
+        try {
+          await supabase
+            .from('service_history_runs')
+            .update({ export_sequence: nextSeq })
+            .eq('id', run_id);
+        } catch (e) {
+          console.warn('export_pdf: kunne ikke oppdatere export_sequence:', e?.message);
+        }
+
+        return ok({
+          filename,
+          url: signedRes.signedUrl,
+          size_bytes: pdfBuffer.length,
+          sequence: nextSeq,
+          included_attachments: includeAtt,
+          attachment_count: attachments.length,
+        });
       }
 
       // ── Slett draft-run + alle dokumentene ──────────────────────────────

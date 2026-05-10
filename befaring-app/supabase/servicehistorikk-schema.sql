@@ -78,6 +78,11 @@ create table if not exists service_history_runs (
   -- Feilmelding hvis status='failed' eller writeback feilet
   error_message      text,
 
+  -- PDF-eksport: per-båt sekvens. Når en kjøring eksporteres til
+  -- "utvidet rapport"-PDF, settes denne til (max sequence for boat) + 1.
+  -- Brukes i filnavnet: servicedokumentasjon-{oppdragsnummer}-v{seq}.pdf
+  export_sequence    integer,
+
   constraint shr_status_check check (
     status in ('draft', 'written', 'failed')
   ),
