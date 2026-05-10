@@ -527,8 +527,11 @@ exports.handler = async (event) => {
         if (!run) return err(404, 'Run not found');
         if (run.status === 'written') return err(409, 'Run er allerede skrevet til HubSpot — opprett et nytt run');
 
-        // Append-modell: hent dokumenter fra alle ikke-arkiverte runs for samme boat
-        let allFiles = run.source_files || [];
+        // Append-modell: hent dokumenter fra alle ikke-arkiverte runs for
+        // samme boat. Dedup på (name + size) — prior runs kan inneholde
+        // duplikater (samme fil opplastet flere ganger med ulik path), og
+        // hver ekstra fil koster både tid og tokens i AI-kallet.
+        let allFiles = [...(run.source_files || [])];
         if (run.boat_id) {
           const { data: priorRuns } = await supabase
             .from('service_history_runs')
@@ -538,25 +541,43 @@ exports.handler = async (event) => {
             .neq('id', run_id);
           for (const pr of (priorRuns || [])) {
             for (const f of (pr.source_files || [])) {
-              if (!allFiles.find(x => x.path === f.path)) allFiles.push(f);
+              const dup = allFiles.find(x =>
+                x.path === f.path ||
+                (x.name === f.name && x.size === f.size)
+              );
+              if (!dup) allFiles.push(f);
             }
           }
         }
+        // Dedup også innen denne runens egne filer (defensiv, i tilfelle
+        // gamle runs har duplikater fra før dedup-fixen ble deployet).
+        const seen = new Set();
+        allFiles = allFiles.filter(f => {
+          const key = `${f.name}|${f.size}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        console.log(`[generate] run=${run_id} files=${allFiles.length}`);
 
         if (allFiles.length === 0) {
           return err(400, 'Ingen dokumenter å analysere — last opp minst én fil først');
         }
 
-        // Ned­last alle filer + kontroller total størrelse
+        // Ned­last alle filer parallelt (sparer 5–10s mot sekvensiell loop)
+        let downloads;
+        try {
+          downloads = await Promise.all(
+            allFiles.map(f => downloadFromStorage(supabase, f.path).then(buf => ({ f, buf })))
+          );
+        } catch (e) {
+          console.error('Storage download failed:', e?.message);
+          return err(502, `Klarte ikke laste ned ett eller flere dokumenter: ${e?.message?.substring(0, 200)}`);
+        }
+
         const fileBlocks = [];
         let totalBytes = 0;
-        for (const f of allFiles) {
-          let buf;
-          try { buf = await downloadFromStorage(supabase, f.path); }
-          catch (e) {
-            console.error('Storage download failed:', f.path, e?.message);
-            return err(502, `Klarte ikke laste ned fil: ${f.name}`);
-          }
+        for (const { f, buf } of downloads) {
           totalBytes += buf.length;
           if (totalBytes > MAX_TOTAL_BYTES) {
             return err(413, `Samlet filstørrelse overskrider grensen (${Math.round(MAX_TOTAL_BYTES/1024/1024)} MB). Reduser antall dokumenter eller del opp i flere runs.`);
