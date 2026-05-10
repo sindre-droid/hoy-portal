@@ -604,6 +604,7 @@ const SECTION_DEFS = {
   overview:    { title: 'Oversikt & Specs',  icon: '📋', required: true },
   gallery:     { title: 'Bildegalleri',      icon: '📷', required: false },
   equipment:   { title: 'Utstyrsliste',      icon: '⚙️', required: false },
+  service:     { title: 'Servicehistorikk',  icon: '🔧', required: false },
   declaration: { title: 'Egenerklæring',     icon: '📝', required: false },
   freetext:    { title: 'Fritekst',          icon: '✏️', required: false },
   contact:     { title: 'Kontaktside',       icon: '📞', required: true },
@@ -648,6 +649,13 @@ function buildPageOrder(p) {
   if (!expanded.some(e => e.startsWith('freetext'))) {
     const contactIdx = expanded.indexOf('contact');
     expanded.splice(contactIdx >= 0 ? contactIdx : expanded.length, 0, 'freetext:0');
+  }
+  // Ensure service is present (added after equipment, before declaration)
+  if (!expanded.includes('service')) {
+    const equipIdx = expanded.indexOf('equipment');
+    const declIdx = expanded.indexOf('declaration');
+    const insertAt = declIdx >= 0 ? declIdx : (equipIdx >= 0 ? equipIdx + 1 : expanded.length - 1);
+    expanded.splice(insertAt, 0, 'service');
   }
   return expanded;
 }
@@ -758,6 +766,7 @@ function renderEntryBody(entry) {
     case 'overview': el.innerHTML = renderOverviewSection(p); setupSpecDrag(); break;
     case 'gallery': el.innerHTML = renderGalleryPageEditor(p, index); break;
     case 'equipment': el.innerHTML = renderEquipmentSection(p); setupEquipDrag(); break;
+    case 'service': el.innerHTML = renderServiceSection(p); break;
     case 'declaration': el.innerHTML = renderDeclarationSection(p); break;
     case 'freetext': el.innerHTML = renderFreetextSection(p, index); break;
     case 'contact': el.innerHTML = renderContactSection(p); break;
@@ -1213,6 +1222,79 @@ function renderEquipCategory(cat, ci) {
       </div>
     </div>
   `;
+}
+
+// ── Servicehistorikk section ─────────────────────────────────────────────────
+function renderServiceSection(p) {
+  const fields = [
+    { key: 'cs', label: 'Tilstandsoppsummering', dbField: 'service_condition_summary' },
+    { key: 'sh', label: 'Servicehistorikk', dbField: 'service_history' },
+    { key: 'ru', label: 'Nylige oppgraderinger', dbField: 'service_recent_upgrades' },
+    { key: 'kn', label: 'Anmerkninger', dbField: 'service_known_notes' },
+  ];
+
+  const hasAny = fields.some(f => (p[f.dbField] || '').trim());
+
+  let fieldsHtml = '';
+  for (const f of fields) {
+    const checked = p[`service_include_${f.key}`] !== false;
+    const val = p[f.dbField] || '';
+    fieldsHtml += `
+      <div style="margin-bottom:14px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;margin-bottom:6px;cursor:pointer">
+          <input type="checkbox" ${checked ? 'checked' : ''} onchange="updateField('service_include_${f.key}', this.checked)">
+          ${f.label}
+        </label>
+        <textarea rows="4" style="width:100%;padding:10px 12px;border:2px solid var(--gray);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.5"
+          placeholder="Ingen data hentet ennå"
+          onchange="updateField('${f.dbField}', this.value)">${esc(val)}</textarea>
+      </div>
+    `;
+  }
+
+  const hint = !hasAny
+    ? `<div class="field-hint" style="margin-bottom:12px">
+        Servicehistorikk hentes fra båtkortet i HubSpot. Klikk knappen under for å importere.
+      </div>`
+    : '';
+
+  return `
+    ${hint}
+    <div style="margin-bottom:14px">
+      <button class="btn-outline" onclick="refreshServiceFromBoat()" style="font-size:13px;padding:8px 14px">
+        🔄 Hent fra servicehistorikk
+      </button>
+      <span class="field-hint" style="margin-left:8px">Henter oppdaterte data fra båtkortet</span>
+    </div>
+    ${fieldsHtml}
+  `;
+}
+
+async function refreshServiceFromBoat() {
+  const id = currentProspekt.id;
+  if (!id) return;
+  toast('Henter servicedata…');
+  try {
+    const res = await fetch(`/.netlify/functions/prospekt?action=refresh-service`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ id })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Feil');
+    // Update local state
+    currentProspekt.service_condition_summary = json.service_condition_summary || '';
+    currentProspekt.service_history = json.service_history || '';
+    currentProspekt.service_recent_upgrades = json.service_recent_upgrades || '';
+    currentProspekt.service_known_notes = json.service_known_notes || '';
+    renderSectionBody('service');
+    const bodyEl = $('sec-service');
+    if (bodyEl) bodyEl.classList.add('open');
+    toast('Servicedata oppdatert ✓', 'success');
+  } catch (e) {
+    console.error('refreshServiceFromBoat error:', e);
+    toast('Kunne ikke hente servicedata: ' + e.message, 'error');
+  }
 }
 
 function renderDeclarationSection(p) {

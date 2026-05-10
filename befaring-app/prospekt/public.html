@@ -622,6 +622,54 @@
   }
 
   /* ══════════════════════════════════════════
+     PAGE: SERVICE HISTORY
+     ══════════════════════════════════════════ */
+
+  .service-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 6% 7% 3%;
+  }
+
+  .service-header { margin-bottom: 4%; }
+
+  .service-header h2 {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--hoy-black);
+    margin-bottom: 4px;
+  }
+
+  .service-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .service-block {}
+
+  .service-block-title {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--hoy-gold);
+    margin-bottom: 8px;
+  }
+
+  .service-block-text {
+    font-family: var(--font-body);
+    font-size: 10.5px;
+    line-height: 1.7;
+    color: var(--hoy-dark-gray);
+    font-weight: 300;
+  }
+
+  /* ══════════════════════════════════════════
      PAGE: DECLARATION
      ══════════════════════════════════════════ */
   .declaration {
@@ -1636,6 +1684,40 @@ function buildEquipmentPages(p) {
   `;
 }
 
+function buildServicePages(p) {
+  const fields = [
+    { key: 'cs', label: 'Tilstandsoppsummering', dbField: 'service_condition_summary' },
+    { key: 'sh', label: 'Servicehistorikk', dbField: 'service_history' },
+    { key: 'ru', label: 'Nylige oppgraderinger', dbField: 'service_recent_upgrades' },
+    { key: 'kn', label: 'Anmerkninger', dbField: 'service_known_notes' },
+  ];
+
+  const active = fields.filter(f => p[`service_include_${f.key}`] !== false && (p[f.dbField] || '').trim());
+  if (active.length === 0) return '';
+
+  const sectionsHtml = active.map(f => `
+    <div class="service-block">
+      <h3 class="service-block-title">${esc(f.label)}</h3>
+      <div class="service-block-text">${esc(p[f.dbField] || '').replace(/\n/g, '<br>')}</div>
+    </div>
+  `).join('');
+
+  return `
+    <div class="page-label">Servicehistorikk</div>
+    <div class="page">
+      <div class="service-page">
+        <div class="service-header">
+          <h2>Servicehistorikk</h2>
+          <p class="section-subtitle">Dokumentert vedlikehold og tilstand</p>
+        </div>
+        <div class="service-body">
+          ${sectionsHtml}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function buildDeclarationPages(p) {
   const isCobrand = p.cobrand?.partner === 'cormate';
   const sections = p.declaration_sections || [];
@@ -1872,6 +1954,7 @@ const SECTION_BUILDERS = {
   overview:    buildOverviewPage,
   gallery:     buildGalleryPages,
   equipment:   buildEquipmentPages,
+  service:     buildServicePages,
   declaration: buildDeclarationPages,
   freetext:    buildFreetextPages,
   contact:     buildContactPage,
@@ -1912,7 +1995,7 @@ function buildSingleGalleryPage(p, pageIdx) {
   `;
 }
 
-const DEFAULT_ORDER = ['cover', 'overview', 'gallery', 'equipment', 'declaration', 'freetext', 'contact'];
+const DEFAULT_ORDER = ['cover', 'overview', 'gallery', 'equipment', 'service', 'declaration', 'freetext', 'contact'];
 
 function expandLegacyOrder(order, p) {
   const expanded = [];

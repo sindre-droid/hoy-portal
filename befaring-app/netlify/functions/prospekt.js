@@ -57,6 +57,7 @@ const BOAT_PROPS = [
   'maks_fart','drivstoff_type','materialer','farge',
   'antall_kahytter','antall_soveplasser','antall_bad',
   'utstyrsliste',
+  'condition_summary','service_history','recent_upgrades','known_notes',
 ];
 
 // Dropdown-mappings for HubSpot enumeration-properties. HubSpot kan returnere
@@ -1011,6 +1012,14 @@ exports.handler = async (event) => {
             equipment_categories,
             cta_label: 'Besøk oss for visning',
             cta_address: 'Dicks vei 12, 1366 Lysaker',
+            service_condition_summary: boatProps?.condition_summary || '',
+            service_history: boatProps?.service_history || '',
+            service_recent_upgrades: boatProps?.recent_upgrades || '',
+            service_known_notes: boatProps?.known_notes || '',
+            service_include_cs: true,
+            service_include_sh: true,
+            service_include_ru: true,
+            service_include_kn: false,
           })
           .select()
           .single();
@@ -1035,6 +1044,8 @@ exports.handler = async (event) => {
           'declaration_sections', 'declaration_other_notes', 'declaration_oneflow_id', 'declaration_oneflow_state',
           'declaration_metadata', 'declaration_excluded',
           'freetext_pages', 'sections_order', 'cobrand', 'prospekt_nr',
+          'service_condition_summary', 'service_history', 'service_recent_upgrades', 'service_known_notes',
+          'service_include_cs', 'service_include_sh', 'service_include_ru', 'service_include_kn',
         ];
         const updates = {};
         for (const k of allowed) {
@@ -1078,6 +1089,39 @@ exports.handler = async (event) => {
           .update({ specs, capacities })
           .eq('id', id)
           .select('id, specs, capacities')
+          .single();
+        if (error) throw error;
+
+        return ok(data);
+      }
+
+      // ── Refresh service history from boat card ──
+      if (action === 'refresh-service') {
+        const { id } = body;
+        if (!id) return err(400, 'id required');
+
+        const { data: existing, error: existingErr } = await supabase
+          .from('prospekter')
+          .select('deal_id')
+          .eq('id', id)
+          .maybeSingle();
+        if (existingErr) throw existingErr;
+        if (!existing) return err(404, 'Prospekt not found');
+
+        const boatProps = await fetchBoatData(existing.deal_id);
+
+        const serviceFields = {
+          service_condition_summary: boatProps?.condition_summary || '',
+          service_history: boatProps?.service_history || '',
+          service_recent_upgrades: boatProps?.recent_upgrades || '',
+          service_known_notes: boatProps?.known_notes || '',
+        };
+
+        const { data, error } = await supabase
+          .from('prospekter')
+          .update(serviceFields)
+          .eq('id', id)
+          .select('id, service_condition_summary, service_history, service_recent_upgrades, service_known_notes')
           .single();
         if (error) throw error;
 
