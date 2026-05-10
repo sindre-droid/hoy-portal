@@ -29,7 +29,7 @@ const SYSTEM_PROMPT = require('./servicehistorikk-prompt');
 const PIPELINE_B      = process.env.PIPELINE_B || '3211644128';
 const BOAT_OBJ_TYPE   = '2-145214665';
 const STORAGE_BUCKET  = 'service-history-docs';
-const PROMPT_VERSION  = 'servicehist-v1';
+const PROMPT_VERSION  = 'servicehist-v2';   // v2: condition_summary strammet til 1 setning maks 25 ord
 const AI_MODEL        = 'claude-sonnet-4-6';
 const AI_MAX_TOKENS   = 4096;
 

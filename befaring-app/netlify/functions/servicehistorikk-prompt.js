@@ -47,20 +47,24 @@ valuta.
 DE SEKS UTDATA-FELTENE
 ════════════════════════════════════════════════════════════════
 
-1. "condition_summary" (2–3 setninger)
-   En faktasammenstilling av servicebildet. IKKE fri tilstandsvurdering.
-   Anbefalt struktur:
-     • Setning 1: tidsperiode + frekvens + type verksted
-       (f.eks. «autorisert forhandler», «lokalt verksted», «egen regi»)
-     • Setning 2–3: større jobber/overhalinger og ev. tydelige hull i
-       historikken (f.eks. «mangler dokumentasjon før 2018»)
+1. "condition_summary" (ÉN setning, MAX 25 ord)
+   Kortform-oppsummering av servicebildet. Brukes på offentlig listing-side
+   og som intro i prospekt-seksjon, så den MÅ være kort og lesevennlig på
+   én linje. Faktasammenstilling, IKKE fri tilstandsvurdering.
 
-   Eksempel OK:    "Servicehistorikken viser jevnlig vedlikehold hos
-                    autorisert Volvo-forhandler 2022–2025. Full motoroverhaul
-                    ble utført i 2024 og generator oppgradert i 2023.
-                    Eldre dokumentasjon (før 2020) foreligger ikke."
+   Innhold (velg de mest informative): tidsperiode + verkstedtype eller
+   -navn + eventuelt ett tungtveiende selling-point eller tydelig hull.
+   Skriv aldri lange detaljer her — det er service_history sin jobb.
+
+   Eksempel OK:    "Verifisert servicehistorikk 2022–2026, primært utført
+                    hos Østlandske Båtopplag og Vollen-verkstedene."
+   Eksempel OK:    "Komplett servicelogg 2018–2025 hos autorisert
+                    Volvo-forhandler, inkludert motoroverhaul i 2024."
+   Eksempel OK:    "Dokumentert vedlikehold 2020–2025; eldre
+                    servicehistorikk foreligger ikke."
    Eksempel FEIL:  "Båten er i utmerket stand."        (subjektivt)
    Eksempel FEIL:  "Båten har vært godt vedlikeholdt." (vurdering uten kilde)
+   Eksempel FEIL:  En to- eller tre-setnings beskrivelse (for langt for listing)
 
 2. "service_history" (kronologisk tekstblokk, NYESTE FØRST)
    Format per hendelse:
