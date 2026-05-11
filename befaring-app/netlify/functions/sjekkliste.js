@@ -36,6 +36,7 @@ const KNOWN_OWNERS = {
   'sindre@h-y.no':  '633479117',
   'daniel@h-y.no':  '29136352',
   'henrik@h-y.no':  '77221549',
+  'marte@h-y.no':   '77221549',  // Henriks meglerassistent
 };
 
 const JSON_H = { 'Content-Type': 'application/json' };

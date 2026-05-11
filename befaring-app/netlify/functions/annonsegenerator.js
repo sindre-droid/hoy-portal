@@ -77,7 +77,7 @@ exports.handler = async (event) => {
   }
 
   const KNOWN_OWNERS = {
-    'sindre@h-y.no':'633479117','daniel@h-y.no':'29136352','henrik@h-y.no':'77221549',
+    'sindre@h-y.no':'633479117','daniel@h-y.no':'29136352','henrik@h-y.no':'77221549','marte@h-y.no':'77221549',
   };
   const KNOWN_MEGLERS_BY_ID = {
     '633479117': { name: 'Sindre Jacobsen', email: 'sindre@h-y.no', phone: '+47 938 40 189' },
