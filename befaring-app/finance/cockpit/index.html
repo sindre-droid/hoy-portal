@@ -17,7 +17,6 @@
     *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
     body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--surface);color:var(--text);margin:0;padding:0;min-height:100vh}
 
-    /* Loading / Auth */
     .loading-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy)}
     .loading-text{color:rgba(255,255,255,0.5);font-size:15px}
     .auth-error{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy)}
@@ -26,21 +25,23 @@
     .auth-error-box p{color:var(--gray-dark);margin:0 0 20px}
     .auth-error-box a{color:var(--navy);font-weight:600}
 
-    /* Header */
     .header{background:var(--navy);color:white;padding:14px 20px;position:sticky;top:0;z-index:200;box-shadow:0 2px 16px rgba(0,0,0,0.35)}
     .header-inner{max-width:1080px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px}
     .brand{display:flex;flex-direction:column}
     .brand-name{font-size:14px;font-weight:800;letter-spacing:0.8px}
     .brand-sub{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--gold)}
     .header-title{font-size:16px;font-weight:700;color:rgba(255,255,255,0.9)}
-    .header-right{display:flex;align-items:center;gap:12px}
     .btn-nav{background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.18);border-radius:20px;color:rgba(255,255,255,0.85);padding:6px 14px;font-size:12px;font-family:inherit;cursor:pointer;text-decoration:none}
     .btn-nav:hover{background:rgba(255,255,255,0.2)}
 
-    /* Main */
-    .main{max-width:1080px;margin:0 auto;padding:24px 16px 80px}
+    .main{max-width:1080px;margin:0 auto;padding:20px 16px 80px}
 
-    /* Top bar */
+    /* Hold-back alert */
+    .alert-banner{background:var(--yellow-bg);border-left:4px solid var(--yellow);border-radius:12px;padding:14px 20px;margin-bottom:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+    .alert-icon{width:28px;height:28px;border-radius:50%;background:var(--yellow);color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0}
+    .alert-text{flex:1;min-width:200px;font-size:14px;color:var(--yellow);font-weight:600}
+    .alert-text strong{font-weight:800}
+
     .topbar{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;gap:12px;flex-wrap:wrap}
     .page-title{font-size:24px;font-weight:800;color:var(--navy);margin:0}
     .page-sub{font-size:13px;color:var(--gray-dark);margin:4px 0 0}
@@ -49,7 +50,7 @@
     .year-select{padding:8px 12px;border:2px solid var(--gray);border-radius:10px;font-size:14px;font-family:inherit;color:var(--text);font-weight:600;background:white}
 
     /* KPI grid */
-    .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+    .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
     .kpi-card{background:white;border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)}
     .kpi-label{font-size:12px;color:var(--gray-dark);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px}
     .kpi-value{font-size:24px;font-weight:800;color:var(--navy);line-height:1.1;margin-bottom:6px}
@@ -60,8 +61,35 @@
     .kpi-progress-fill.on-track{background:var(--green)}
     .kpi-progress-fill.behind{background:var(--yellow)}
 
+    /* Two-column row: brokers + boat types */
+    .row-2col{display:grid;grid-template-columns:1.4fr 1fr;gap:14px;margin-bottom:20px}
+    .panel{background:white;border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)}
+    .panel-title{font-size:15px;font-weight:700;color:var(--navy);margin:0 0 14px}
+
+    /* Broker cards */
+    .broker-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--gray);gap:12px}
+    .broker-row:last-child{border-bottom:none}
+    .broker-name-block{display:flex;align-items:center;gap:10px;min-width:0}
+    .broker-avatar{width:34px;height:34px;border-radius:50%;background:var(--navy);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0}
+    .broker-info{min-width:0}
+    .broker-name{font-size:14px;font-weight:700;color:var(--navy);line-height:1.2}
+    .broker-meta{font-size:11px;color:var(--gray-dark);margin-top:2px}
+    .broker-earned{text-align:right;flex-shrink:0}
+    .broker-earned-num{font-size:17px;font-weight:800;color:var(--navy);line-height:1.1}
+    .broker-earned-label{font-size:10px;color:var(--gray-dark);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px}
+
+    /* Boat types list */
+    .boat-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;gap:10px}
+    .boat-row + .boat-row{border-top:1px solid var(--gray)}
+    .boat-brand{font-size:14px;font-weight:700;color:var(--navy)}
+    .boat-meta{font-size:11px;color:var(--gray-dark);margin-top:2px}
+    .boat-count{display:flex;align-items:center;gap:8px}
+    .boat-bar{width:50px;height:6px;background:var(--gray);border-radius:3px;overflow:hidden}
+    .boat-bar-fill{height:100%;background:var(--gold);border-radius:3px}
+    .boat-num{font-size:14px;font-weight:800;color:var(--navy);min-width:24px;text-align:right}
+
     /* Chart card */
-    .chart-card{background:white;border-radius:14px;padding:20px 24px;box-shadow:var(--shadow);margin-bottom:24px}
+    .chart-card{background:white;border-radius:14px;padding:20px 24px;box-shadow:var(--shadow);margin-bottom:20px}
     .chart-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px}
     .chart-title{font-size:15px;font-weight:700;color:var(--navy);margin:0}
     .chart-legend{display:flex;gap:14px;font-size:12px;color:var(--gray-dark)}
@@ -72,15 +100,19 @@
 
     /* Monthly table */
     .table-card{background:white;border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
-    .table-header{padding:16px 20px;border-bottom:1px solid var(--gray)}
+    .table-header{padding:16px 20px;border-bottom:1px solid var(--gray);display:flex;align-items:center;justify-content:space-between}
     .table-header-title{font-size:15px;font-weight:700;color:var(--navy);margin:0}
+    .table-header-hint{font-size:12px;color:var(--gray-dark)}
     table.monthly{width:100%;border-collapse:collapse}
     table.monthly th{font-size:11px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;color:var(--gray-dark);padding:12px 16px;text-align:right;border-bottom:1px solid var(--gray)}
     table.monthly th:first-child{text-align:left}
     table.monthly td{padding:12px 16px;border-bottom:1px solid var(--gray);font-size:14px;text-align:right;color:var(--text)}
     table.monthly td:first-child{text-align:left;font-weight:600;color:var(--navy)}
     table.monthly td.muted{color:var(--gray-dark)}
+    table.monthly tr.clickable{cursor:pointer;transition:background 0.15s}
+    table.monthly tr.clickable:hover{background:var(--surface)}
     table.monthly tr.current-month{background:var(--blue-bg)}
+    table.monthly tr.current-month:hover{background:#bfdbfe}
     table.monthly tr.current-month td:first-child::after{content:" · denne måneden";font-size:11px;color:var(--blue);font-weight:600;letter-spacing:0.3px}
     table.monthly tr.total-row td{border-top:2px solid var(--navy);border-bottom:none;font-weight:800;background:var(--surface);font-size:14px}
     table.monthly tr.total-row td:first-child{color:var(--navy)}
@@ -88,14 +120,33 @@
     .pct-cell.warn{color:var(--yellow);font-weight:700}
     .pct-cell.bad{color:var(--red);font-weight:700}
 
-    /* Footer note */
-    .footer-note{text-align:center;color:var(--gray-dark);font-size:12px;margin-top:24px;padding:12px}
+    /* Modal */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:500;display:none;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto}
+    .modal-overlay.open{display:flex}
+    .modal{background:white;border-radius:16px;max-width:880px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,0.25);overflow:hidden}
+    .modal-head{padding:18px 24px;border-bottom:1px solid var(--gray);display:flex;justify-content:space-between;align-items:center}
+    .modal-title{font-size:17px;font-weight:800;color:var(--navy);margin:0}
+    .modal-sub{font-size:12px;color:var(--gray-dark);margin-top:2px}
+    .btn-close{background:transparent;border:none;font-size:22px;cursor:pointer;color:var(--gray-dark);width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+    .btn-close:hover{background:var(--surface);color:var(--text)}
+    .modal-body{padding:8px 0;max-height:70vh;overflow-y:auto}
+    table.deals{width:100%;border-collapse:collapse;font-size:13px}
+    table.deals th{font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--gray-dark);padding:10px 16px;text-align:left;border-bottom:1px solid var(--gray);background:var(--surface)}
+    table.deals td{padding:10px 16px;border-bottom:1px solid var(--gray);vertical-align:top}
+    table.deals tr:last-child td{border-bottom:none}
+    .deal-nr{font-weight:800;color:var(--navy)}
+    .deal-boat{font-weight:600}
+    .deal-parties{font-size:11px;color:var(--gray-dark);margin-top:2px}
+    .deal-broker-pill{display:inline-block;background:var(--surface);color:var(--text);font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600}
+    .deal-num{font-weight:700;color:var(--navy);text-align:right;white-space:nowrap}
+    .deal-holdback-pill{display:inline-block;background:var(--yellow-bg);color:var(--yellow);font-size:10px;padding:2px 7px;border-radius:8px;font-weight:700;margin-left:4px}
 
-    /* Responsive */
     @media(max-width:780px){
       .kpi-grid{grid-template-columns:repeat(2,1fr)}
+      .row-2col{grid-template-columns:1fr}
       .topbar{flex-direction:column;align-items:flex-start}
       table.monthly th,table.monthly td{padding:10px 8px;font-size:12px}
+      table.deals th,table.deals td{padding:8px 10px;font-size:12px}
     }
   </style>
 </head>
@@ -122,13 +173,16 @@
         <div class="brand-sub">Intern portal</div>
       </div>
       <div class="header-title">Company cockpit</div>
-      <div class="header-right">
-        <a class="btn-nav" href="/">Portal</a>
-      </div>
+      <a class="btn-nav" href="/">Portal</a>
     </div>
   </div>
 
   <div class="main">
+
+    <div id="holdbackAlert" class="alert-banner" style="display:none">
+      <span class="alert-icon">!</span>
+      <span class="alert-text" id="holdbackText"></span>
+    </div>
 
     <div class="topbar">
       <div>
@@ -165,6 +219,17 @@
       </div>
     </div>
 
+    <div class="row-2col">
+      <div class="panel">
+        <h3 class="panel-title">Per megler YTD</h3>
+        <div id="brokerList"></div>
+      </div>
+      <div class="panel">
+        <h3 class="panel-title">Topp båttyper</h3>
+        <div id="boatTypeList"></div>
+      </div>
+    </div>
+
     <div class="chart-card">
       <div class="chart-header">
         <h3 class="chart-title">Omsetning ex.mva per måned</h3>
@@ -179,6 +244,7 @@
     <div class="table-card">
       <div class="table-header">
         <h3 class="table-header-title">Månedsoversikt</h3>
+        <span class="table-header-hint">Klikk på en måned for å se solgte båter</span>
       </div>
       <table class="monthly">
         <thead>
@@ -195,8 +261,33 @@
       </table>
     </div>
 
-    <div class="footer-note" id="footerNote"></div>
+  </div>
+</div>
 
+<!-- Modal: month detail -->
+<div class="modal-overlay" id="monthModal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h2 class="modal-title" id="modalTitle">Måned</h2>
+        <div class="modal-sub" id="modalSub"></div>
+      </div>
+      <button class="btn-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <table class="deals">
+        <thead>
+          <tr>
+            <th>Oppdrag</th>
+            <th>Båt</th>
+            <th>Megler</th>
+            <th style="text-align:right">Salgssum</th>
+            <th style="text-align:right">Provisjon</th>
+          </tr>
+        </thead>
+        <tbody id="modalBody"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -204,6 +295,7 @@
 const API = `${window.location.origin}/.netlify/functions/finance-cockpit`;
 const IDENTITY = `${window.location.origin}/.netlify/identity`;
 let accessToken = null;
+let currentYear = new Date().getFullYear();
 
 const MONTH_NAMES = ['Januar','Februar','Mars','April','Mai','Juni','Juli','August','September','Oktober','November','Desember'];
 
@@ -214,15 +306,17 @@ function parseJwt(token) {
   } catch { return null; }
 }
 
-function fmtNok(n, opts = {}) {
+function fmtNok(n) {
   if (n === null || n === undefined || Number.isNaN(n)) return '—';
-  const num = Math.round(Number(n));
-  return num.toLocaleString('no-NO');
+  return Math.round(Number(n)).toLocaleString('no-NO');
 }
-
 function fmtPct(n) {
   if (n === null || n === undefined || !Number.isFinite(n)) return '—';
   return `${Math.round(n)} %`;
+}
+function initials(name) {
+  if (!name) return '?';
+  return name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
 }
 
 async function init() {
@@ -250,13 +344,10 @@ async function init() {
   document.getElementById('loadingScreen').style.display = 'none';
   document.getElementById('app').style.display = '';
 
-  // Populate year selector
-  const currentYear = new Date().getFullYear();
   const sel = document.getElementById('yearSelect');
   for (let y = currentYear; y >= currentYear - 2; y--) {
     const opt = document.createElement('option');
-    opt.value = y;
-    opt.textContent = y;
+    opt.value = y; opt.textContent = y;
     sel.appendChild(opt);
   }
 
@@ -264,19 +355,21 @@ async function init() {
 }
 
 async function loadData() {
-  const year = document.getElementById('yearSelect').value || new Date().getFullYear();
+  const year = parseInt(document.getElementById('yearSelect').value, 10) || new Date().getFullYear();
+  currentYear = year;
   document.getElementById('pageSub').textContent = `${year} · laster…`;
 
   try {
-    const r = await fetch(`${API}?year=${year}`, {
-      headers: { 'Authorization': `Bearer ${accessToken}` },
-    });
+    const r = await fetch(`${API}?year=${year}`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
     if (!r.ok) {
       const err = await r.json().catch(() => ({}));
       throw new Error(err.error || `HTTP ${r.status}`);
     }
     const data = await r.json();
+    renderHoldback(data);
     renderKpis(data);
+    renderBrokers(data);
+    renderBoatTypes(data);
     renderChart(data);
     renderTable(data);
     const asOf = new Date(data.as_of).toLocaleDateString('no-NO', { day: '2-digit', month: 'long', year: 'numeric' });
@@ -287,10 +380,20 @@ async function loadData() {
   }
 }
 
+function renderHoldback(data) {
+  const k = data.kpi;
+  const alert = document.getElementById('holdbackAlert');
+  if (k.holdback_count > 0) {
+    alert.style.display = 'flex';
+    document.getElementById('holdbackText').innerHTML =
+      `<strong>${k.holdback_count} oppgjør har aktivt tilbakehold</strong> — totalt ${fmtNok(k.holdback_amount)} kr ikke utbetalt til selger ennå.`;
+  } else {
+    alert.style.display = 'none';
+  }
+}
+
 function renderKpis(data) {
   const k = data.kpi;
-
-  // Omsetning ex.mva med progress mot ÅRSBUDSJETT
   document.getElementById('kpiRevenue').textContent = fmtNok(k.revenue_ex_vat_ytd) + ' kr';
   const yearBud = k.year_budget_revenue;
   const pct = yearBud > 0 ? Math.round((k.revenue_ex_vat_ytd / yearBud) * 100) : 0;
@@ -298,43 +401,84 @@ function renderKpis(data) {
     `${pct} % av årsbudsjett ${fmtNok(yearBud)} kr`;
   const bar = document.getElementById('kpiRevenueBar');
   bar.style.width = `${Math.min(100, pct)}%`;
-
-  // YTD-budsjett-track-status: er vi på/foran/bak hva vi burde være per nå?
-  const ytdBud = k.ytd_budget_revenue;
-  if (ytdBud > 0) {
-    if (k.revenue_ex_vat_ytd >= ytdBud) bar.classList.add('on-track');
-    else if (k.revenue_ex_vat_ytd >= ytdBud * 0.7) bar.classList.add('behind');
+  bar.className = 'kpi-progress-fill';
+  if (k.ytd_budget_revenue > 0) {
+    if (k.revenue_ex_vat_ytd >= k.ytd_budget_revenue) bar.classList.add('on-track');
     else bar.classList.add('behind');
   }
 
-  // Provisjon
   document.getElementById('kpiCommission').textContent = fmtNok(k.commission_ytd) + ' kr';
   document.getElementById('kpiCommissionSub').textContent =
     `${k.sales_count_ytd} solgte båter · ${fmtNok(k.sale_amount_ytd)} kr salgssum`;
 
-  // Snitt-provisjon
   document.getElementById('kpiAvgCommission').textContent =
     k.sales_count_ytd > 0 ? fmtNok(k.avg_commission_per_boat) + ' kr' : '—';
   document.getElementById('kpiAvgSub').textContent =
     k.sales_count_ytd > 0 ? `per båt (inkl.mva)` : 'ingen salg ennå';
 
-  // Pipeline
   if (k.pipeline) {
-    document.getElementById('kpiPipeline').textContent =
-      fmtNok(k.pipeline.est_revenue_ex_vat) + ' kr';
+    document.getElementById('kpiPipeline').textContent = fmtNok(k.pipeline.est_revenue_ex_vat) + ' kr';
     document.getElementById('kpiPipelineSub').textContent =
       `${k.pipeline.deal_count} aktive deals · ${fmtNok(k.pipeline.total_sale_amount)} kr salgssum`;
   } else {
     document.getElementById('kpiPipeline').innerHTML = '<span class="kpi-value-muted">utilgjengelig</span>';
     document.getElementById('kpiPipelineSub').textContent = 'HubSpot ikke koblet eller feil';
   }
+}
 
-  // Footer note
-  const notes = [];
-  if (k.holdback_count > 0) {
-    notes.push(`${k.holdback_count} oppgjør har tilbakehold (${fmtNok(k.holdback_amount)} kr aktivt)`);
+function renderBrokers(data) {
+  const wrap = document.getElementById('brokerList');
+  wrap.innerHTML = '';
+  const list = data.broker_breakdown || [];
+  if (list.length === 0) {
+    wrap.innerHTML = '<div style="color:var(--gray-dark);font-size:13px;padding:8px 0">Ingen oppgjør registrert.</div>';
+    return;
   }
-  document.getElementById('footerNote').textContent = notes.join(' · ');
+  for (const b of list) {
+    const row = document.createElement('div');
+    row.className = 'broker-row';
+    row.innerHTML = `
+      <div class="broker-name-block">
+        <div class="broker-avatar">${initials(b.display_name)}</div>
+        <div class="broker-info">
+          <div class="broker-name">${b.display_name}</div>
+          <div class="broker-meta">${b.sales_count} solgt · snitt ${fmtNok(b.avg_commission)} kr</div>
+        </div>
+      </div>
+      <div class="broker-earned">
+        <div class="broker-earned-num">${fmtNok(b.commission_earned)} kr</div>
+        <div class="broker-earned-label">Opptjent</div>
+      </div>
+    `;
+    wrap.appendChild(row);
+  }
+}
+
+function renderBoatTypes(data) {
+  const wrap = document.getElementById('boatTypeList');
+  wrap.innerHTML = '';
+  const list = data.top_boat_types || [];
+  if (list.length === 0) {
+    wrap.innerHTML = '<div style="color:var(--gray-dark);font-size:13px;padding:8px 0">Ingen data.</div>';
+    return;
+  }
+  const maxCount = Math.max(...list.map(b => b.count), 1);
+  for (const b of list) {
+    const row = document.createElement('div');
+    row.className = 'boat-row';
+    const pct = Math.round((b.count / maxCount) * 100);
+    row.innerHTML = `
+      <div style="min-width:0">
+        <div class="boat-brand">${b.brand}</div>
+        <div class="boat-meta">snitt ${fmtNok(b.avg_sale_amount)} kr salgssum</div>
+      </div>
+      <div class="boat-count">
+        <div class="boat-bar"><div class="boat-bar-fill" style="width:${pct}%"></div></div>
+        <div class="boat-num">${b.count}</div>
+      </div>
+    `;
+    wrap.appendChild(row);
+  }
 }
 
 function renderChart(data) {
@@ -344,47 +488,36 @@ function renderChart(data) {
   const PAD_L = 50, PAD_R = 10, PAD_T = 10, PAD_B = 32;
   const chartW = W - PAD_L - PAD_R;
   const chartH = H - PAD_T - PAD_B;
-
-  // Max-skala basert på største budget eller actual
-  const maxVal = Math.max(
-    ...data.monthly.map(m => Math.max(m.budget_revenue, m.revenue_ex_vat)),
-    1
-  );
+  const maxVal = Math.max(...data.monthly.map(m => Math.max(m.budget_revenue, m.revenue_ex_vat)), 1);
   const ySteps = 4;
   const yStep = Math.ceil(maxVal / ySteps / 100000) * 100000;
   const yMax = yStep * ySteps;
 
-  // Grid lines + Y labels
+  let html = '';
   for (let i = 0; i <= ySteps; i++) {
     const y = PAD_T + chartH - (i / ySteps) * chartH;
-    svg.innerHTML += `<line x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}" stroke="#dde3ec" stroke-width="0.5" stroke-dasharray="${i === 0 ? '0' : '2 3'}"/>`;
+    html += `<line x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}" stroke="#dde3ec" stroke-width="0.5" stroke-dasharray="${i === 0 ? '0' : '2 3'}"/>`;
     const labelVal = i * yStep;
     const label = labelVal >= 1000000 ? `${(labelVal/1000000).toFixed(1)}M` : labelVal >= 1000 ? `${Math.round(labelVal/1000)}k` : labelVal;
-    svg.innerHTML += `<text x="${PAD_L - 6}" y="${y + 3}" text-anchor="end" font-size="10" fill="#6b7a8d">${label}</text>`;
+    html += `<text x="${PAD_L - 6}" y="${y + 3}" text-anchor="end" font-size="10" fill="#6b7a8d">${label}</text>`;
   }
 
-  // Bars per month
   const groupW = chartW / 12;
   const barW = (groupW - 8) / 2;
   for (let i = 0; i < 12; i++) {
     const m = data.monthly[i];
     const groupX = PAD_L + i * groupW + 4;
-
-    // Actual bar
     const actualH = (m.revenue_ex_vat / yMax) * chartH;
     if (actualH > 0) {
-      svg.innerHTML += `<rect x="${groupX}" y="${PAD_T + chartH - actualH}" width="${barW}" height="${actualH}" fill="#0a2140"><title>Faktisk ${MONTH_NAMES[i]}: ${fmtNok(m.revenue_ex_vat)} kr</title></rect>`;
+      html += `<rect x="${groupX}" y="${PAD_T + chartH - actualH}" width="${barW}" height="${actualH}" fill="#0a2140" style="cursor:pointer" onclick="openMonth(${m.month})"><title>Faktisk ${MONTH_NAMES[i]}: ${fmtNok(m.revenue_ex_vat)} kr</title></rect>`;
     }
-
-    // Budget bar
     const budgetH = (m.budget_revenue / yMax) * chartH;
     if (budgetH > 0) {
-      svg.innerHTML += `<rect x="${groupX + barW + 2}" y="${PAD_T + chartH - budgetH}" width="${barW}" height="${budgetH}" fill="#f5f7fa" stroke="#dde3ec" stroke-width="1"><title>Budsjett ${MONTH_NAMES[i]}: ${fmtNok(m.budget_revenue)} kr</title></rect>`;
+      html += `<rect x="${groupX + barW + 2}" y="${PAD_T + chartH - budgetH}" width="${barW}" height="${budgetH}" fill="#f5f7fa" stroke="#dde3ec" stroke-width="1"><title>Budsjett ${MONTH_NAMES[i]}: ${fmtNok(m.budget_revenue)} kr</title></rect>`;
     }
-
-    // Month label
-    svg.innerHTML += `<text x="${groupX + barW + 1}" y="${H - 10}" text-anchor="middle" font-size="11" fill="#6b7a8d">${MONTH_NAMES[i].slice(0, 3)}</text>`;
+    html += `<text x="${groupX + barW + 1}" y="${H - 10}" text-anchor="middle" font-size="11" fill="#6b7a8d">${MONTH_NAMES[i].slice(0, 3)}</text>`;
   }
+  svg.innerHTML = html;
 }
 
 function renderTable(data) {
@@ -405,6 +538,10 @@ function renderTable(data) {
 
     const tr = document.createElement('tr');
     if (isCurrent) tr.classList.add('current-month');
+    if (m.sales_count > 0) {
+      tr.classList.add('clickable');
+      tr.addEventListener('click', () => openMonth(m.month));
+    }
     tr.innerHTML = `
       <td>${MONTH_NAMES[m.month - 1]}</td>
       <td>${showActual ? m.sales_count : '<span class="muted">—</span>'}</td>
@@ -437,6 +574,65 @@ function renderTable(data) {
   `;
   tbody.appendChild(totalRow);
 }
+
+// ── Drill-down modal ─────────────────────────────────────────────────────────
+async function openMonth(month) {
+  const overlay = document.getElementById('monthModal');
+  overlay.classList.add('open');
+  document.getElementById('modalTitle').textContent = `${MONTH_NAMES[month - 1]} ${currentYear}`;
+  document.getElementById('modalSub').textContent = 'Laster…';
+  document.getElementById('modalBody').innerHTML = '';
+
+  try {
+    const ym = `${currentYear}-${String(month).padStart(2, '0')}`;
+    const r = await fetch(`${API}?month_detail=${ym}`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    const deals = data.deals || [];
+
+    const totalSale = deals.reduce((s, d) => s + (Number(d.sale_amount) || 0), 0);
+    const totalComm = deals.reduce((s, d) => s + (Number(d.commission) || 0), 0);
+    document.getElementById('modalSub').textContent =
+      `${deals.length} solgte båter · ${fmtNok(totalSale)} kr salgssum · ${fmtNok(totalComm)} kr provisjon`;
+
+    const tbody = document.getElementById('modalBody');
+    tbody.innerHTML = '';
+    if (deals.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--gray-dark);padding:30px">Ingen solgte båter i ${MONTH_NAMES[month - 1]}.</td></tr>`;
+      return;
+    }
+    for (const d of deals) {
+      const meglerPills = (d.commissions || [])
+        .map(c => `<span class="deal-broker-pill">${c.broker_name} — ${fmtNok(c.earned)} kr</span>`)
+        .join(' ') || `<span class="deal-broker-pill">${d.sold_by_name || '—'}</span>`;
+      const holdbackPill = d.hold_back_status === 'ACTIVE'
+        ? `<span class="deal-holdback-pill">Tilbakehold ${fmtNok(d.hold_back_amount)}</span>`
+        : '';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><span class="deal-nr">${d.oppdragsnr || '—'}</span><div class="deal-parties">${new Date(d.closed_at).toLocaleDateString('no-NO')}</div></td>
+        <td>
+          <div class="deal-boat">${d.boat_type || '—'}</div>
+          <div class="deal-parties">${d.seller_name || '—'} → ${d.buyer_name || '—'}</div>
+        </td>
+        <td>${meglerPills} ${holdbackPill}</td>
+        <td class="deal-num">${fmtNok(d.sale_amount)} kr</td>
+        <td class="deal-num">${fmtNok(d.commission)} kr</td>
+      `;
+      tbody.appendChild(tr);
+    }
+  } catch (e) {
+    console.error(e);
+    document.getElementById('modalBody').innerHTML =
+      `<tr><td colspan="5" style="text-align:center;color:var(--red);padding:30px">Feil: ${e.message}</td></tr>`;
+  }
+}
+
+function closeModal() {
+  document.getElementById('monthModal').classList.remove('open');
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
 init();
 </script>
