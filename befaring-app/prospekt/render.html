@@ -1827,26 +1827,123 @@ function buildServicePages(p) {
   const active = fields.filter(f => p[`service_include_${f.key}`] !== false && (p[f.dbField] || '').trim());
   if (active.length === 0) return '';
 
-  const sectionsHtml = active.map(f => renderServiceBlock(f, p[f.dbField])).join('');
+  // Build all renderable items with estimated line-weight.
+  // Each "unit" ≈ one entry row (~45px). Page 1 fits ~18 units (header takes space),
+  // continuation pages fit ~22 units.
+  const PAGE1_CAP = 18;
+  const CONT_CAP  = 22;
 
-  return `
-    <div class="page-label">Servicehistorikk</div>
-    <div class="page">
-      <div class="service-page">
-        <div class="service-header">
-          <h2>Servicehistorikk</h2>
-          <p class="section-subtitle">Dokumentert vedlikehold og tilstand</p>
+  const items = []; // { html, weight }
+  for (const f of active) {
+    const text = p[f.dbField] || '';
+    // Section title counts as ~1.5 units
+    const titleHtml = `<h3 class="service-block-title">${esc(f.label)}</h3>`;
+
+    if (f.key === 'cs') {
+      const lines = text.split('\n').filter(l => l.trim()).length || 1;
+      items.push({
+        html: `<div class="service-block">${titleHtml}<div class="service-block-text">${esc(text).replace(/\n/g, '<br>')}</div></div>`,
+        weight: 1.5 + Math.ceil(lines * 0.8)
+      });
+    } else {
+      // Add title as its own item
+      items.push({ html: `<div class="service-block">${titleHtml}`, weight: 1.5, isBlockOpen: true });
+
+      const entries = parseServiceEntries(text);
+      for (const e of entries) {
+        let entryHtml;
+        if (e.raw) {
+          entryHtml = `<div class="service-entry"><div class="service-entry-desc">${esc(e.raw)}</div></div>`;
+        } else {
+          entryHtml = `
+            <div class="service-entry">
+              <div class="service-entry-head">
+                <span class="service-entry-date">${esc(e.date)}</span>
+                <span class="service-entry-vendor">${esc(e.vendor)}</span>
+              </div>
+              <div class="service-entry-desc">${esc(e.desc)}</div>
+              ${e.cost ? `<div class="service-entry-cost">${esc(e.cost)}</div>` : ''}
+            </div>`;
+        }
+        // Estimate: short desc = 1 unit, long desc (>100 chars) = 2
+        const descLen = (e.desc || e.raw || '').length;
+        items.push({ html: entryHtml, weight: descLen > 120 ? 2 : 1 });
+      }
+      // Close the service-block div
+      items.push({ html: '</div>', weight: 0, isBlockClose: true });
+    }
+  }
+
+  // Paginate items
+  const pages = [];
+  let currentPage = [];
+  let currentWeight = 0;
+  let pageNum = 0;
+
+  for (const item of items) {
+    const cap = pageNum === 0 ? PAGE1_CAP : CONT_CAP;
+    if (currentWeight + item.weight > cap && currentPage.length > 0 && !item.isBlockClose) {
+      // Close any open block on this page
+      const hasOpen = currentPage.some(i => i.isBlockOpen) && !currentPage.some(i => i.isBlockClose);
+      if (hasOpen) currentPage.push({ html: '</div>', weight: 0, isBlockClose: true });
+
+      pages.push(currentPage);
+      currentPage = [];
+      currentWeight = 0;
+      pageNum++;
+
+      // Re-open the block on the new page if we split mid-block
+      if (hasOpen) {
+        // Find the last block-open title
+        const lastTitle = [...items].reverse().find(i => i.isBlockOpen && items.indexOf(i) < items.indexOf(item));
+        if (lastTitle) {
+          currentPage.push({ html: lastTitle.html, weight: 0, isBlockOpen: true });
+        }
+      }
+    }
+    currentPage.push(item);
+    currentWeight += item.weight;
+  }
+  if (currentPage.length > 0) pages.push(currentPage);
+
+  // Render pages
+  const footer = `
+    <div class="page-footer-light" style="margin-top:auto">
+      <div class="page-footer-accent"></div>
+      <span>&copy; ${new Date().getFullYear()} House of Yachts &middot; houseofyachts.no</span>
+    </div>`;
+
+  return pages.map((pageItems, pi) => {
+    const isFirst = pi === 0;
+    const isLast = pi === pages.length - 1;
+    const headerHtml = isFirst ? `
+      <div class="service-header">
+        <h2>Servicehistorikk</h2>
+        <p class="section-subtitle">Dokumentert vedlikehold og tilstand</p>
+      </div>` : `
+      <div class="service-header" style="margin-bottom:2%">
+        <p class="section-subtitle">Servicehistorikk, fortsettelse</p>
+      </div>`;
+
+    const label = isFirst ? 'Servicehistorikk' : `Servicehistorikk (forts.)`;
+    const footerHtml = !isLast ? `
+      <div class="page-footer-light" style="margin-top:auto">
+        <div class="page-footer-accent"></div>
+        <span>Servicehistorikk &middot; Fortsetter neste side</span>
+      </div>` : footer;
+
+    return `
+      <div class="page-label">${label}</div>
+      <div class="page">
+        <div class="service-page">
+          ${headerHtml}
+          <div class="service-body">
+            ${pageItems.map(i => i.html).join('')}
+          </div>
+          ${footerHtml}
         </div>
-        <div class="service-body">
-          ${sectionsHtml}
-        </div>
-        <div class="page-footer-light" style="margin-top:auto">
-          <div class="page-footer-accent"></div>
-          <span>&copy; ${new Date().getFullYear()} House of Yachts &middot; houseofyachts.no</span>
-        </div>
-      </div>
-    </div>
-  `;
+      </div>`;
+  }).join('\n');
 }
 
 function buildDeclarationPages(p) {
