@@ -93,11 +93,12 @@ async function pingApi(accessToken) {
   const baseUrl = process.env.POWEROFFICE_BASE_URL;
   const subKey  = process.env.POWEROFFICE_SUBSCRIPTION_KEY;
 
+  // /customers og /employees er bekreftet å eksistere i v2 (returnerte 400 på $top).
+  // v2 bruker pageSize, ikke OData $top.
   const candidates = [
-    '/customers?%24top=1',
-    '/employees?%24top=1',
-    '/clients/current',
-    '/currentCompanyInformation',
+    '/customers?pageSize=1',
+    '/customers',
+    '/employees?pageSize=1',
   ];
 
   const attempts = [];
