@@ -889,14 +889,45 @@ async function runGenerate() {
   try {
     const updated = await api({ action: 'generate' }, 'POST', { run_id: currentRun.id });
     currentRun = updated;
-    hasReviewed = false; // Ny generering = ny review-runde
+    hasReviewed = false;
     renderRun();
     toast('Servicehistorikk generert. Gjennomgå og rediger før du skriver til HubSpot.');
   } catch (e) {
-    toast('AI-feil: ' + e.message, 'error');
-    btn.disabled = false; btn.textContent = 'Generer';
-    await reloadCurrentRun(); // hent eventuelt failed-status
+    // Netlify timeout (504) or network error — AI job may still be running.
+    // Poll for completion instead of showing error immediately.
+    if (e.message?.includes('504') || e.message?.includes('Failed to fetch') || e.message?.includes('Load failed')) {
+      meta.innerHTML = '<span class="spinner" style="display:inline-block;width:14px;height:14px;vertical-align:middle;margin-right:6px"></span>AI jobber fortsatt — venter på resultat…';
+      const resolved = await pollForResult(currentRun.id);
+      if (resolved) {
+        currentRun = resolved;
+        hasReviewed = false;
+        renderRun();
+        toast('Servicehistorikk generert. Gjennomgå og rediger før du skriver til HubSpot.');
+      } else {
+        toast('AI-analyse tok for lang tid. Prøv igjen, eller reduser antall dokumenter.', 'error');
+        btn.disabled = false; btn.textContent = 'Generer';
+        await reloadCurrentRun();
+      }
+    } else {
+      toast('AI-feil: ' + e.message, 'error');
+      btn.disabled = false; btn.textContent = 'Generer';
+      await reloadCurrentRun();
+    }
   }
+}
+
+async function pollForResult(runId, maxWait = 120000, interval = 3000) {
+  const start = Date.now();
+  while (Date.now() - start < maxWait) {
+    await new Promise(r => setTimeout(r, interval));
+    try {
+      const run = await api({ run: runId });
+      if (run.status === 'draft' || run.status === 'written') return run;
+      if (run.status === 'failed') return null;
+      // Still processing — keep polling
+    } catch (_) { /* ignore fetch errors during poll */ }
+  }
+  return null; // timed out
 }
 
 // ════════════════════════════════════════════════════════════════════════════

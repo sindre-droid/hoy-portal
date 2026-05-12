@@ -565,6 +565,9 @@ exports.handler = async (event) => {
           return err(400, 'Ingen dokumenter å analysere — last opp minst én fil først');
         }
 
+        // Sett status til 'processing' slik at frontend kan polle
+        await supabase.from('service_history_runs').update({ status: 'processing' }).eq('id', run_id);
+
         // Ned­last alle filer parallelt (sparer 5–10s mot sekvensiell loop)
         let downloads;
         try {
