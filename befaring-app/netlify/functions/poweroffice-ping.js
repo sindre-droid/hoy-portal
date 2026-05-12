@@ -87,29 +87,46 @@ async function getAccessToken() {
 }
 
 // ── Kall en simpel GET for å verifisere at token funker ─────────────────────
+// PowerOffice GO API v2 bruker lowercase plural (REST-konvensjon).
+// Vi prøver flere kandidater for å finne riktig endpoint-format.
 async function pingApi(accessToken) {
   const baseUrl = process.env.POWEROFFICE_BASE_URL;
   const subKey  = process.env.POWEROFFICE_SUBSCRIPTION_KEY;
 
-  // /Customer er en av de mest universelle endpoints. Top=1 minimaliserer respons.
-  const url = `${baseUrl}/Customer?%24top=1`;
+  const candidates = [
+    '/customers?%24top=1',
+    '/employees?%24top=1',
+    '/clients/current',
+    '/currentCompanyInformation',
+  ];
 
-  const res = await fetch(url, {
-    headers: {
-      'Authorization':             `Bearer ${accessToken}`,
-      'Ocp-Apim-Subscription-Key': subKey,
-      'Accept':                    'application/json',
-    },
-  });
+  const attempts = [];
 
-  const text = await res.text();
-  let data; try { data = JSON.parse(text); } catch { data = { raw: text }; }
+  for (const path of candidates) {
+    const url = `${baseUrl}${path}`;
+    const res = await fetch(url, {
+      headers: {
+        'Authorization':             `Bearer ${accessToken}`,
+        'Ocp-Apim-Subscription-Key': subKey,
+        'Accept':                    'application/json',
+      },
+    });
 
+    const text = await res.text();
+    let data; try { data = JSON.parse(text); } catch { data = { raw: text.slice(0, 500) }; }
+
+    attempts.push({ url, status: res.status, ok: res.ok, data });
+
+    if (res.ok) {
+      return { ok: true, status: res.status, url, data, attempts };
+    }
+  }
+
+  // Ingen av kandidatene funket — returner alle forsøk for debugging
   return {
-    ok:     res.ok,
-    status: res.status,
-    url,
-    data,
+    ok:       false,
+    status:   attempts[attempts.length - 1]?.status,
+    attempts,
   };
 }
 
