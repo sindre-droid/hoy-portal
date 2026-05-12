@@ -73,6 +73,69 @@ async function ofApi(path, method = 'GET', body = null) {
   catch { return { ok: false, status: res.status, data: { raw: text } }; }
 }
 
+// ── PowerOffice GO API v2 helpers ───────────────────────────────────────────
+// Auth: client_credentials → bearer token (cached 1200s).
+// Alle requests trenger Bearer-token + Ocp-Apim-Subscription-Key.
+
+let _poToken = null;
+let _poTokenExpiresAt = 0;
+
+async function poToken() {
+  if (_poToken && Date.now() < _poTokenExpiresAt - 60_000) return _poToken;
+
+  const appKey  = process.env.POWEROFFICE_APP_KEY;
+  const cliKey  = process.env.POWEROFFICE_CLIENT_KEY;
+  const subKey  = process.env.POWEROFFICE_SUBSCRIPTION_KEY;
+  const authUrl = process.env.POWEROFFICE_AUTH_URL;
+
+  if (!appKey || !cliKey || !subKey || !authUrl) {
+    throw new Error('PowerOffice env-vars mangler');
+  }
+
+  const basic = Buffer.from(`${appKey}:${cliKey}`).toString('base64');
+  const res = await fetch(authUrl, {
+    method: 'POST',
+    headers: {
+      'Authorization':             `Basic ${basic}`,
+      'Ocp-Apim-Subscription-Key': subKey,
+      'Content-Type':              'application/x-www-form-urlencoded',
+      'Accept':                    'application/json',
+    },
+    body: 'grant_type=client_credentials',
+  });
+
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`PowerOffice OAuth feilet: ${res.status} ${t.slice(0, 200)}`);
+  }
+
+  const data = await res.json();
+  _poToken = data.access_token;
+  _poTokenExpiresAt = Date.now() + (data.expires_in * 1000);
+  return _poToken;
+}
+
+async function po(path, method = 'GET', body = null) {
+  const token  = await poToken();
+  const subKey = process.env.POWEROFFICE_SUBSCRIPTION_KEY;
+  const base   = process.env.POWEROFFICE_BASE_URL;
+
+  const res = await fetch(`${base}${path}`, {
+    method,
+    headers: {
+      'Authorization':             `Bearer ${token}`,
+      'Ocp-Apim-Subscription-Key': subKey,
+      'Content-Type':              'application/json',
+      'Accept':                    'application/json',
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+
+  const text = await res.text();
+  let data; try { data = JSON.parse(text); } catch { data = { raw: text.slice(0, 500) }; }
+  return { ok: res.ok, status: res.status, data };
+}
+
 // ── Auth: verify Netlify Identity JWT and check admin role ─────────────────
 function verifyAdmin(event) {
   const auth = (event.headers.authorization || '').replace(/^Bearer\s+/i, '');
@@ -538,6 +601,122 @@ async function handleSigningDates(sb, params) {
   };
 }
 
+// ── PowerOffice sync: opprett Customer (selger) + Project for et oppdrag ──
+// Returnerer { ok, customer_id, project_id, ... } eller { ok: false, step, error }
+//
+// Idempotens:
+// - Customer: bruker ExternalImportReference = `hubspot_contact_{contactId}`.
+//   Forsøker først å finne eksisterende via assignment_numbers (samme contact tidligere).
+//   Hvis ikke funnet, oppretter ny. Søker ikke i PowerOffice direkte (krever ofte
+//   eget filter-syntax vi ikke har verifisert).
+// - Project: vi oppretter alltid ett nytt project per assignment. Caller bør
+//   skippe hvis assignment.poweroffice_project_id allerede er satt.
+async function syncToPowerOffice(sb, dealId, number, boatName) {
+  // 1. Finn primary contact på dealen
+  const assocRes = await hs(`/crm/v4/objects/deals/${dealId}/associations/contacts?limit=20`);
+  if (!assocRes.ok || !(assocRes.data?.results?.length)) {
+    return { ok: false, step: 'contact', error: 'Ingen kontakt assosiert med deal' };
+  }
+
+  // Velg primary om mulig (label = "Primary contact"), ellers første
+  const primary = assocRes.data.results.find(r =>
+    (r.associationTypes || []).some(t =>
+      (t.label || '').toLowerCase().includes('primary')
+    )
+  ) || assocRes.data.results[0];
+  const contactId = String(primary.toObjectId);
+
+  // 2. Hent contact properties
+  const props = [
+    'firstname','lastname','email','phone','company',
+    'address','zip','city','country','organisasjonsnummer',
+  ].join(',');
+  const contactRes = await hs(`/crm/v3/objects/contacts/${contactId}?properties=${props}`);
+  if (!contactRes.ok) {
+    return { ok: false, step: 'contact', error: 'Kunne ikke hente kontakt', data: contactRes.data };
+  }
+  const p = contactRes.data.properties || {};
+
+  // 3. Idempotens-merknad: vi bruker ExternalImportReference = `hubspot_contact_{id}`
+  //    på Customer. Hvis samme contact har vært selger før, vil PowerOffice få en ny
+  //    customer med samme ExternalImportReference (duplikatrisiko). Forbedring kan
+  //    legges inn senere: lagre PO_customer_id på HubSpot contact som custom property,
+  //    eller bruk PowerOffice $filter-syntax når vi har verifisert den.
+  let customerId = null;
+  let customerCreated = false;
+
+  // 4. Opprett Customer
+  const isCompany = !!p.company;
+  const cstPayload = {
+    Name: p.company || `${p.firstname || ''} ${p.lastname || ''}`.trim() || `Selger ${contactId}`,
+    IsPerson: !isCompany,
+    FirstName: isCompany ? null : (p.firstname || null),
+    LastName:  isCompany ? null : (p.lastname  || null),
+    IsActive: true,
+    EmailAddress: p.email || null,
+    InvoiceEmailAddress: p.email || '',
+    PhoneNumber: p.phone || null,
+    OrganizationNumber: p.organisasjonsnummer || null,
+    PaymentTerm: 14,
+    InvoiceDeliveryType: 'PdfByEmail',
+    ExternalImportReference: `hubspot_contact_${contactId}`,
+  };
+
+  // MailAddress kun hvis vi har noe — tom adresse trigger 400 i noen tilfeller
+  if (p.address || p.zip || p.city) {
+    cstPayload.MailAddress = {
+      AddressLine1: p.address || null,
+      ZipCode:      p.zip     || null,
+      City:         p.city    || null,
+      CountryCode:  (p.country || 'NO').toString().toUpperCase().slice(0, 2),
+    };
+  }
+
+  const cstRes = await po('/customers', 'POST', cstPayload);
+  if (!cstRes.ok) {
+    return {
+      ok: false,
+      step: 'customer',
+      error: 'Customer create feilet',
+      status: cstRes.status,
+      data: cstRes.data,
+      sent: cstPayload,
+    };
+  }
+  customerId = cstRes.data?.Id;
+  customerCreated = true;
+
+  // 5. Opprett Project
+  const prjPayload = {
+    Name: `${number} - ${boatName}`,
+    CustomerId: customerId,
+    IsActive: true,
+    ContractNo: number,
+  };
+  const prjRes = await po('/projects', 'POST', prjPayload);
+  if (!prjRes.ok) {
+    return {
+      ok: false,
+      step: 'project',
+      customer_id: customerId,
+      customer_created: customerCreated,
+      error: 'Project create feilet',
+      status: prjRes.status,
+      data: prjRes.data,
+      sent: prjPayload,
+    };
+  }
+
+  return {
+    ok: true,
+    customer_id: customerId,
+    customer_created: customerCreated,
+    project_id: prjRes.data?.Id,
+    contact_id: contactId,
+  };
+}
+
+
 // ── POST action=assign — Assign number to deal ────────────────────────────
 // Accepts: { deal_id, force?: boolean, custom_number?: string }
 // force=true allows admin to assign even without both Oneflow docs signed.
@@ -704,8 +883,32 @@ async function handleAssign(sb, body, adminEmail) {
     try { await sb.from('assignment_numbers').update({ oneflow_synced_at: new Date().toISOString() }).eq('id', assignment.id); } catch {}
   }
 
-  // 7. PowerOffice — TODO: add when API key is ready
-  // syncResults.poweroffice = await syncToPowerOffice(number, boatName, ...);
+  // 7. PowerOffice — opprett Customer (selger) + Project for oppdraget
+  try {
+    const poResult = await syncToPowerOffice(sb, deal_id, number, boatName);
+    if (poResult.ok) {
+      syncResults.poweroffice = true;
+      await sb.from('assignment_numbers').update({
+        poweroffice_synced: true,
+        poweroffice_synced_at: new Date().toISOString(),
+        poweroffice_customer_id: String(poResult.customer_id),
+        poweroffice_project_id:  String(poResult.project_id),
+      }).eq('id', assignment.id);
+    } else {
+      console.error('PowerOffice sync feilet:', JSON.stringify(poResult));
+      // Mark attempt time så UI viser "Prøv igjen" istedenfor "—"
+      await sb.from('assignment_numbers')
+        .update({ poweroffice_synced_at: new Date().toISOString() })
+        .eq('id', assignment.id);
+    }
+  } catch (e) {
+    console.error('PowerOffice sync exception:', e.message);
+    try {
+      await sb.from('assignment_numbers')
+        .update({ poweroffice_synced_at: new Date().toISOString() })
+        .eq('id', assignment.id);
+    } catch {}
+  }
 
   // 8. Log HubSpot note (best-effort)
   try {
@@ -936,6 +1139,60 @@ async function handleRetryOneflow(sb, body, adminEmail) {
       contracts_renamed: renamed,
     }),
   };
+}
+
+
+// ── POST action=retry_poweroffice — Re-sync PowerOffice for an assignment ──
+async function handleRetryPowerOffice(sb, body) {
+  const { deal_id } = body;
+  if (!deal_id) {
+    return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'deal_id påkrevd' }) };
+  }
+
+  const { data: assignment } = await sb
+    .from('assignment_numbers')
+    .select('*')
+    .eq('deal_id', deal_id)
+    .maybeSingle();
+
+  if (!assignment) {
+    return { statusCode: 404, headers: CORS, body: JSON.stringify({ error: 'Ingen tildeling funnet' }) };
+  }
+
+  // Hvis project allerede finnes — ikke lag duplikat. Returner status.
+  if (assignment.poweroffice_project_id) {
+    return {
+      statusCode: 200,
+      headers: CORS,
+      body: JSON.stringify({
+        ok: true,
+        already_synced: true,
+        customer_id: assignment.poweroffice_customer_id,
+        project_id:  assignment.poweroffice_project_id,
+      }),
+    };
+  }
+
+  const boatName = assignment.vessel_name || assignment.deal_name;
+  const result = await syncToPowerOffice(sb, deal_id, assignment.number, boatName);
+
+  if (result.ok) {
+    await sb.from('assignment_numbers').update({
+      poweroffice_synced: true,
+      poweroffice_synced_at: new Date().toISOString(),
+      poweroffice_customer_id: String(result.customer_id),
+      poweroffice_project_id:  String(result.project_id),
+    }).eq('id', assignment.id);
+
+    return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, ...result }) };
+  }
+
+  // Feil — logg attempt-tid og returner detalj
+  await sb.from('assignment_numbers')
+    .update({ poweroffice_synced_at: new Date().toISOString() })
+    .eq('id', assignment.id);
+
+  return { statusCode: 502, headers: CORS, body: JSON.stringify(result) };
 }
 
 
@@ -1308,6 +1565,7 @@ exports.handler = async (event) => {
     if (action === 'backfill_signing_dates')    return handleBackfillSigningDates(sb);
     if (action === 'backfill_hubspot_property') return handleBackfillHubspotProperty(sb);
     if (action === 'retry_oneflow')   return handleRetryOneflow(sb, body, auth.email);
+    if (action === 'retry_poweroffice') return handleRetryPowerOffice(sb, body);
 
     return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: `Ukjent action: ${action}` }) };
   }
