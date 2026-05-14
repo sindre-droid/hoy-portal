@@ -1441,6 +1441,61 @@ exports.handler = async (event) => {
         });
       }
 
+      // ── Manuell opplasting av egenerklæring-PDF ─────────────────────────
+      if (action === 'upload_declaration') {
+        const { id, pdf_base64 } = body;
+        if (!id) return err(400, 'id required');
+        if (!pdf_base64) return err(400, 'pdf_base64 required');
+
+        const pdfBuffer = Buffer.from(pdf_base64, 'base64');
+
+        let sections = [];
+        let otherNotes = '';
+        let metadata = {};
+        let missingQuestions = [];
+        let parseError = null;
+        try {
+          const pdfRes = await extractPdfText(pdfBuffer);
+          const pdfText = pdfRes.text || '';
+          const parsed = parseEgenerklaeringPdf(pdfText);
+          sections         = parsed.sections;
+          otherNotes       = parsed.otherNotes;
+          metadata         = parsed.metadata;
+          missingQuestions = parsed.missingQuestions || [];
+        } catch (e) {
+          parseError = String(e?.message || e);
+          console.error('upload_declaration parse error:', parseError);
+        }
+
+        const updatePayload = {
+          declaration_sections:     sections,
+          declaration_other_notes:  otherNotes || null,
+          declaration_metadata:     (metadata && Object.keys(metadata).length > 0) ? metadata : null,
+          declaration_oneflow_id:   'manual-upload',
+          declaration_oneflow_state: 'signed',
+        };
+        try {
+          await supabase.from('prospekter').update(updatePayload).eq('id', id);
+        } catch (e) {
+          console.error('upload_declaration: Supabase update failed', e?.message || e);
+        }
+
+        const answered = sections.reduce((sum, s) => sum + s.questions.filter(q => q.answer).length, 0);
+
+        return ok({
+          found: true,
+          contract_id:   'manual-upload',
+          contract_name: 'Manuell opplasting',
+          contract_state: 'signed',
+          declaration_sections:    sections,
+          declaration_other_notes: otherNotes,
+          declaration_metadata:    metadata,
+          questions_answered:      answered,
+          missing_questions:       missingQuestions,
+          parse_error:             parseError,
+        });
+      }
+
       return err(400, `Unknown action: ${action}`);
     }
 

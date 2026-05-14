@@ -1333,7 +1333,7 @@ function renderDeclarationSection(p) {
           <li>Skjemaet bør være <b>signert</b> av selger før du henter (ellers blir svarfelt tomme)</li>
         </ul>
       </div>
-      <div style="text-align:center;padding:20px 20px 30px">
+      <div style="text-align:center;padding:20px 20px 10px">
         <button class="btn-primary" onclick="fetchDeclaration()" id="fetchDeclBtn" style="font-size:15px;padding:14px 28px">
           📄 Hent egenerklæring fra Oneflow
         </button>
@@ -1341,6 +1341,20 @@ function renderDeclarationSection(p) {
           Søker automatisk etter egenerklæring knyttet til denne dealen i Oneflow.
         </div>
         <div id="declStatus" style="margin-top:12px;font-size:13px;color:var(--gray-dark)"></div>
+      </div>
+      <div style="text-align:center;padding:0 20px 30px">
+        <div style="display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:12px">
+          <hr style="flex:1;border:none;border-top:1px solid var(--gray)">
+          <span style="font-size:11px;color:var(--gray-dark);text-transform:uppercase;letter-spacing:1px">eller</span>
+          <hr style="flex:1;border:none;border-top:1px solid var(--gray)">
+        </div>
+        <label class="btn-outline" style="font-size:13px;padding:10px 20px;cursor:pointer;display:inline-block">
+          📎 Last opp egenerklæring-PDF manuelt
+          <input type="file" accept=".pdf" onchange="uploadDeclarationPdf(this)" style="display:none">
+        </label>
+        <div class="field-hint" style="margin-top:8px">
+          Last opp den signerte PDF-en fra Oneflow dersom automatisk henting ikke fungerer.
+        </div>
       </div>
     `;
   }
@@ -1483,6 +1497,73 @@ async function fetchDeclaration() {
     $('sec-declaration').classList.add('open');
   } catch (e) {
     showError('Teknisk feil: ' + e.message, 'Prøv igjen om et par sekunder, eller kontakt utvikler hvis problemet vedvarer.');
+  }
+}
+
+async function uploadDeclarationPdf(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  input.value = ''; // reset so same file can be re-selected
+
+  if (!file.name.toLowerCase().endsWith('.pdf')) {
+    toast('Kun PDF-filer er støttet', 'error');
+    return;
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    toast('Filen er for stor (maks 10 MB)', 'error');
+    return;
+  }
+
+  const statusEl = document.getElementById('declStatus');
+  if (statusEl) statusEl.innerHTML = '<span style="color:var(--navy)">Leser PDF…</span>';
+
+  try {
+    // Read file as base64
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = () => reject(new Error('Kunne ikke lese filen'));
+      reader.readAsDataURL(file);
+    });
+
+    if (statusEl) statusEl.innerHTML = '<span style="color:var(--navy)">Tolker egenerklæring…</span>';
+
+    const res = await api({ action: 'upload_declaration' }, 'POST', {
+      id: currentProspekt.id,
+      pdf_base64: base64,
+    });
+
+    if (!res.found) {
+      if (statusEl) statusEl.innerHTML = `<div style="background:#fdecea;border:1px solid #f5a5a0;border-radius:6px;padding:10px 14px;text-align:left"><div style="color:#8a1c14;font-weight:600;font-size:13px">❌ Kunne ikke tolke PDF-en</div></div>`;
+      return;
+    }
+
+    const parsedSections = res.declaration_sections || [];
+    const answered = parsedSections.reduce((sum, s) => sum + (s.questions || []).filter(q => q.answer).length, 0);
+
+    if (res.parse_error) {
+      if (statusEl) statusEl.innerHTML = `<div style="background:#fdecea;border:1px solid #f5a5a0;border-radius:6px;padding:10px 14px;text-align:left"><div style="color:#8a1c14;font-weight:600;font-size:13px">❌ Feil ved tolking: ${esc(res.parse_error)}</div></div>`;
+      return;
+    }
+
+    if (answered === 0) {
+      if (statusEl) statusEl.innerHTML = `<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:10px 14px;text-align:left"><div style="color:#856404;font-weight:600;font-size:13px">⚠️ PDF lest, men ingen svar ble funnet. Er dette riktig egenerklæring-mal?</div></div>`;
+      // Still update with raw data for debugging
+      currentProspekt._raw_fields = res._raw_fields;
+    } else {
+      toast(`Egenerklæring importert fra PDF (${answered} svar)`);
+    }
+
+    currentProspekt.declaration_sections = parsedSections;
+    currentProspekt.declaration_other_notes = res.declaration_other_notes || '';
+    currentProspekt.declaration_metadata = res.declaration_metadata || {};
+    currentProspekt.declaration_oneflow_id = 'manual-upload';
+    currentProspekt.declaration_oneflow_state = 'signed';
+
+    renderSectionBody('declaration');
+    $('sec-declaration').classList.add('open');
+  } catch (e) {
+    if (statusEl) statusEl.innerHTML = `<div style="background:#fdecea;border:1px solid #f5a5a0;border-radius:6px;padding:10px 14px;text-align:left"><div style="color:#8a1c14;font-weight:600;font-size:13px">❌ Feil: ${esc(e.message)}</div></div>`;
   }
 }
 
