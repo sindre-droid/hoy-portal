@@ -1,10 +1,16 @@
 // ── annonsegenerator.js ────────────────────────────────────────────────────────
 // GET  ?fetch_deals=1            → list active deals (deal name + ID + boat ID)
-// GET  ?fetch_boat=DEAL_ID       → boat properties + latest befaring note
-// POST { messages: [{role, content}] } → AI-generated boat listing response
+// GET  ?fetch_boat=DEAL_ID       → boat properties + service history + befaring note
+// GET  ?get_runs=DEAL_ID         → liste annonse_runs for denne dealen
+// POST { messages: [...] }                        → AI-generated boat listing response
+// POST ?action=save_draft  { run_id?, deal_id, boat_id, ai_draft_text, input_summary }
+//                                                 → opprett eller oppdater utkast i annonse_runs
+// POST ?action=save_final  { run_id, final_text, notes? }
+//                                                 → marker utkast som endelig, beregn diff
 // ──────────────────────────────────────────────────────────────────────────────
 
-const SYSTEM_PROMPT = require('./annonsegenerator-prompt');
+const { createClient } = require('@supabase/supabase-js');
+const LOCAL_PROMPT     = require('./annonsegenerator-prompt');
 
 const PIPELINE_A    = '3205247197';
 const PIPELINE_B    = '3211644128';
@@ -13,6 +19,13 @@ const BOAT_OBJ_TYPE = '2-145214665';
 // Pipeline B stages to include (prep → in contract, not closed/lost)
 const PIPELINE_B_INCLUDE = ['prep','listing ready','klar','live','publisert','under offer','bud','forhandl','negotiation','in contract','kontrakt'];
 
+// Versjonstag for fallback-prompt (når Supabase ikke har aktiv rad).
+// Bør bumpes hver gang annonsegenerator-prompt.js endres.
+const FALLBACK_PROMPT_VERSION = '2026-05-14.1';
+
+// HubSpot association type for note → deal
+const NOTE_DEAL_ASSOC_TYPE = 214;
+
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -20,6 +33,8 @@ const CORS = {
 };
 
 const JSON_H = { 'Content-Type': 'application/json' };
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function parseJwt(token) {
   try {
@@ -35,8 +50,8 @@ async function hs(path, method = 'GET', body = null) {
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
   const text = await res.text();
-  try { return { ok: res.ok, data: JSON.parse(text) }; }
-  catch { return { ok: false, data: {} }; }
+  try { return { ok: res.ok, status: res.status, data: JSON.parse(text) }; }
+  catch { return { ok: false, status: res.status, data: { raw: text } }; }
 }
 
 function stripHtml(s) {
@@ -59,6 +74,332 @@ async function getBoatTypeId() {
   } catch { return null; }
 }
 
+function getSupabase() {
+  return createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
+}
+
+function jsonResp(status, body) {
+  return { statusCode: status, headers: { ...CORS, ...JSON_H }, body: JSON.stringify(body) };
+}
+
+// ── Prompt versioning ─────────────────────────────────────────────────────────
+// Henter aktiv prompt fra Supabase. Hvis ingen aktiv rad finnes (eller den er
+// placeholder), populerer vi seed-raden fra lokal fil og setter is_active=true.
+// Returnerer { version, system_prompt }.
+async function getActivePrompt(supabase) {
+  try {
+    const { data, error } = await supabase
+      .from('annonsegenerator_prompts')
+      .select('version, system_prompt, style_archive')
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    // Hvis det finnes en aktiv rad med ekte innhold, returner den
+    if (data && data.system_prompt && !data.system_prompt.startsWith('-- placeholder')) {
+      return {
+        version: data.version,
+        system_prompt: data.system_prompt + (data.style_archive ? '\n\n' + data.style_archive : ''),
+      };
+    }
+
+    // Ellers: prøv å seede/aktivere FALLBACK_PROMPT_VERSION med lokal fil
+    await seedActivePrompt(supabase);
+
+    return {
+      version: FALLBACK_PROMPT_VERSION,
+      system_prompt: LOCAL_PROMPT,
+    };
+  } catch (err) {
+    console.error('getActivePrompt failed, using local fallback:', err.message);
+    return {
+      version: FALLBACK_PROMPT_VERSION,
+      system_prompt: LOCAL_PROMPT,
+    };
+  }
+}
+
+async function seedActivePrompt(supabase) {
+  try {
+    // Sjekk om FALLBACK_PROMPT_VERSION-raden finnes
+    const { data: existing } = await supabase
+      .from('annonsegenerator_prompts')
+      .select('id, system_prompt')
+      .eq('version', FALLBACK_PROMPT_VERSION)
+      .maybeSingle();
+
+    // Skill ut stilarkivet fra lokal prompt hvis vi vil — for nå lagrer vi alt i system_prompt
+    const updatePayload = {
+      system_prompt: LOCAL_PROMPT,
+      style_archive: '',
+      is_active: true,
+      activated_at: new Date().toISOString(),
+    };
+
+    if (existing) {
+      // Deaktiver andre, så aktiver denne
+      await supabase
+        .from('annonsegenerator_prompts')
+        .update({ is_active: false, retired_at: new Date().toISOString() })
+        .eq('is_active', true);
+      await supabase
+        .from('annonsegenerator_prompts')
+        .update(updatePayload)
+        .eq('version', FALLBACK_PROMPT_VERSION);
+    } else {
+      // Insert ny rad
+      await supabase.from('annonsegenerator_prompts').insert({
+        version: FALLBACK_PROMPT_VERSION,
+        created_by: 'system@h-y.no',
+        changelog: 'Auto-seeded from local annonsegenerator-prompt.js',
+        ...updatePayload,
+      });
+    }
+  } catch (err) {
+    console.error('seedActivePrompt failed (non-fatal):', err.message);
+  }
+}
+
+// ── Servicehistorikk fra Supabase ─────────────────────────────────────────────
+// Henter siste 'written' run for en boat_id. Returnerer null hvis ingen finnes.
+// Verdiene plukkes fra `edits` (megler-redigert) hvis tilgjengelig, ellers
+// `ai_output_parsed`.
+async function fetchServiceHistory(supabase, boatId) {
+  if (!boatId) return null;
+  try {
+    const { data, error } = await supabase
+      .from('service_history_runs')
+      .select('edits, ai_output_parsed, written_at, created_at')
+      .eq('boat_id', String(boatId))
+      .eq('status', 'written')
+      .is('archived_at', null)
+      .order('written_at', { ascending: false, nullsLast: true })
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) return null;
+
+    const source = data.edits || data.ai_output_parsed || null;
+    if (!source) return null;
+
+    return {
+      condition_summary:   String(source.condition_summary  || '').trim(),
+      service_history:     String(source.service_history    || '').trim(),
+      recent_upgrades:     String(source.recent_upgrades    || '').trim(),
+      known_notes:         String(source.known_notes        || '').trim(),
+      highlights_long:     Array.isArray(source.highlights_long)    ? source.highlights_long.filter(Boolean)    : [],
+      highlights_listing:  Array.isArray(source.highlights_listing) ? source.highlights_listing.filter(Boolean) : [],
+      written_at:          data.written_at || data.created_at,
+    };
+  } catch (err) {
+    console.error('fetchServiceHistory failed:', err.message);
+    return null;
+  }
+}
+
+// ── Robust befaringsnotat-deteksjon ───────────────────────────────────────────
+// Returnerer { text, confidence: 'high'|'medium'|'low'|null }.
+// Confidence:
+//   'high'   — note inneholder eksplisitt 'Befaringsnotat'-string
+//   'medium' — flere heuristiske markører funnet
+//   'low'    — kun én svak markør funnet
+//   null     — ingen kandidat
+async function getBefaringNoteWithConfidence(dealId) {
+  const assoc = await hs(`/crm/v3/objects/deals/${dealId}/associations/notes`);
+  const ids = (assoc.data?.results || []).map(n => n.id);
+  if (!ids.length) return { text: null, confidence: null };
+
+  const batch = await hs('/crm/v3/objects/notes/batch/read', 'POST', {
+    inputs: ids.slice(0, 30).map(id => ({ id })),
+    properties: ['hs_note_body','hs_timestamp'],
+  });
+
+  const candidates = [];
+  const STRONG_MARKERS  = [/befaringsnotat/i, /befaringsrapport/i];
+  const WEAK_MARKERS    = [
+    /befaring(?:s|en)?\s+utf[øo]rt/i,
+    /tilstandsvurdering/i,
+    /befaringsdato/i,
+    /verdivurdering/i,
+    /tilstandsrapport/i,
+  ];
+
+  for (const n of (batch.data?.results || [])) {
+    const body = stripHtml(n.properties?.hs_note_body || '');
+    if (!body) continue;
+
+    let confidence = null;
+    if (STRONG_MARKERS.some(rx => rx.test(body))) {
+      confidence = 'high';
+    } else {
+      const weakHits = WEAK_MARKERS.filter(rx => rx.test(body)).length;
+      if (weakHits >= 2) confidence = 'medium';
+      else if (weakHits === 1) confidence = 'low';
+    }
+
+    if (confidence) {
+      candidates.push({
+        text: body,
+        confidence,
+        ts: new Date(n.properties?.hs_timestamp || 0).getTime(),
+      });
+    }
+  }
+
+  if (!candidates.length) return { text: null, confidence: null };
+
+  // Sortér på confidence (high > medium > low) og deretter nyeste timestamp
+  const order = { high: 3, medium: 2, low: 1 };
+  candidates.sort((a, b) => (order[b.confidence] - order[a.confidence]) || (b.ts - a.ts));
+  const best = candidates[0];
+  return { text: best.text, confidence: best.confidence };
+}
+
+// ── input_summary builder ─────────────────────────────────────────────────────
+function buildInputSummary(boat, service, befaring) {
+  const present = [];
+  const gaps    = [];
+
+  const CRITICAL = [
+    'batmerke','bat_modell','arsmodell','boat_type','location',
+    'lengde_i_cm','lengde_i_fot','pris','mva_status',
+    'motorfabrikant','motorstorrelse','driftstimer_motor',
+    'antall_kahytter','antall_soveplasser','antall_bad',
+  ];
+
+  for (const f of CRITICAL) {
+    if (boat && boat[f] != null && String(boat[f]).trim() !== '') present.push(f);
+    else gaps.push(f);
+  }
+
+  return {
+    fields_present:       present,
+    gaps,
+    has_befaring_note:    !!befaring?.text,
+    befaring_confidence:  befaring?.confidence || null,
+    has_service_history:  !!service,
+  };
+}
+
+// ── diff_summary builder ──────────────────────────────────────────────────────
+function tokenize(text) {
+  return (text || '')
+    .toLowerCase()
+    .replace(/[^\wæøåàâéèêëîïôûùüç\s.,!?-]/gi, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+function extractNGrams(tokens, n) {
+  const grams = new Set();
+  for (let i = 0; i <= tokens.length - n; i++) {
+    grams.add(tokens.slice(i, i + n).join(' '));
+  }
+  return grams;
+}
+
+function extractNumbers(text) {
+  return (text || '').match(/\d+[\d.,]*/g) || [];
+}
+
+function detectSections(text) {
+  const found = [];
+  const SEC = ['TITTEL','INTRO','NØKKELHØYDEPUNKTER','NARRATIV','SPESIFIKASJONER','UTSTYR','KONTAKT'];
+  for (const s of SEC) {
+    if (new RegExp(`###\\s*${s}\\b`, 'i').test(text || '')) found.push(s);
+  }
+  return found;
+}
+
+function buildDiffSummary(draft, final) {
+  const draftTok = tokenize(draft);
+  const finalTok = tokenize(final);
+
+  // 4-grams fjernet (i draft, ikke i final)
+  const draftGrams = extractNGrams(draftTok, 4);
+  const finalGrams = extractNGrams(finalTok, 4);
+  const removed = [...draftGrams].filter(g => !finalGrams.has(g)).slice(0, 30);
+  const added   = [...finalGrams].filter(g => !draftGrams.has(g)).slice(0, 30);
+
+  // Tall-endringer (forenklet: tall som finnes i draft men ikke final og omvendt)
+  const draftNums = new Set(extractNumbers(draft));
+  const finalNums = new Set(extractNumbers(final));
+  const factual_changes = {
+    removed: [...draftNums].filter(n => !finalNums.has(n)).slice(0, 10),
+    added:   [...finalNums].filter(n => !draftNums.has(n)).slice(0, 10),
+  };
+
+  return {
+    removed_phrases:  removed,
+    added_phrases:    added,
+    factual_changes,
+    sections_changed: [], // TODO: per-seksjon diff når vi har seksjonstagger i bruk
+  };
+}
+
+function buildDiffStats(draft, final, diffSummary) {
+  return {
+    length_delta:    (final || '').length - (draft || '').length,
+    removed_count:   diffSummary.removed_phrases.length,
+    added_count:     diffSummary.added_phrases.length,
+    sections_final:  detectSections(final),
+  };
+}
+
+// ── HubSpot-note helpers ──────────────────────────────────────────────────────
+function noteHeader(kind, version, userEmail) {
+  const today = new Date().toLocaleDateString('no-NO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const meglerInitials = (userEmail || '').split('@')[0] || 'ukjent';
+  const label = kind === 'final' ? 'ANNONSE (PUBLISERT)' : 'ANNONSEUTKAST';
+  return `📝 ${label} — generert ${today} av ${meglerInitials} — Annonsegenerator v${version}`;
+}
+
+async function createHubSpotNote(dealId, headerLine, bodyText) {
+  const body = `<p><strong>${headerLine}</strong></p><pre>${escapeHtml(bodyText)}</pre>`;
+  const noteRes = await hs('/crm/v3/objects/notes', 'POST', {
+    properties: {
+      hs_note_body: body,
+      hs_timestamp: Date.now(),
+    },
+    associations: [{
+      to: { id: String(dealId) },
+      types: [{
+        associationCategory: 'HUBSPOT_DEFINED',
+        associationTypeId: NOTE_DEAL_ASSOC_TYPE,
+      }],
+    }],
+  });
+  if (!noteRes.ok) {
+    console.error('HubSpot note creation failed:', noteRes.status, noteRes.data);
+    return null;
+  }
+  return noteRes.data?.id || null;
+}
+
+async function updateHubSpotNote(noteId, headerLine, bodyText) {
+  const body = `<p><strong>${headerLine}</strong></p><pre>${escapeHtml(bodyText)}</pre>`;
+  const res = await hs(`/crm/v3/objects/notes/${noteId}`, 'PATCH', {
+    properties: { hs_note_body: body },
+  });
+  return res.ok;
+}
+
+function escapeHtml(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// HANDLER
+// ──────────────────────────────────────────────────────────────────────────────
 exports.handler = async (event) => {
   // CORS preflight
   if (event.httpMethod === 'OPTIONS') {
@@ -68,12 +409,12 @@ exports.handler = async (event) => {
   // ── Auth ──────────────────────────────────────────────────────────────────
   const authHeader = event.headers.authorization || event.headers.Authorization || '';
   if (!authHeader.startsWith('Bearer ')) {
-    return { statusCode: 401, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'Unauthorized' }) };
+    return jsonResp(401, { error: 'Unauthorized' });
   }
   const token = authHeader.slice(7);
   const jwt = parseJwt(token);
   if (!jwt || !jwt.email) {
-    return { statusCode: 401, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'Invalid token' }) };
+    return jsonResp(401, { error: 'Invalid token' });
   }
 
   const KNOWN_OWNERS = {
@@ -85,36 +426,30 @@ exports.handler = async (event) => {
     '77221549':  { name: 'Henrik Bratz',    email: 'henrik@h-y.no', phone: '+47 478 75 838' },
   };
   const ownerId = KNOWN_OWNERS[jwt.email] || null;
-  const admin   = jwt?.app_metadata?.roles?.includes('admin') || false;
 
-  // ── GET ?fetch_deals=1 → mine aktive + splitoppdrag via Boat-objekt ─────────
-  if (event.httpMethod === 'GET' && event.queryStringParameters?.fetch_deals) {
-    // Always require a known ownerId — no one sees all deals here
-    if (!ownerId) {
-      return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ deals: [] }) };
-    }
+  const qs = event.queryStringParameters || {};
+
+  // ── GET ?fetch_deals=1 ───────────────────────────────────────────────────
+  if (event.httpMethod === 'GET' && qs.fetch_deals) {
+    if (!ownerId) return jsonResp(200, { deals: [] });
 
     const boatTypeId = await getBoatTypeId();
     const ownerF = [{ propertyName: 'hubspot_owner_id', operator: 'EQ', value: ownerId }];
     const splitF  = [{ propertyName: 'hs_all_deal_split_owner_ids', operator: 'CONTAINS_TOKEN', value: ownerId }];
     const PROPS  = ['dealname', 'hs_lastmodifieddate', 'pipeline', 'dealstage'];
 
-    // Fetch Pipeline B stages to identify which to include
     const stagesRes = await hs(`/crm/v3/pipelines/deals/${PIPELINE_B}/stages`);
     const stagesB   = stagesRes.data?.results || [];
     const activeBIds = stagesB
       .filter(s => PIPELINE_B_INCLUDE.some(kw => (s.label||'').toLowerCase().includes(kw)))
       .map(s => s.id);
 
-    // Step 1: fetch my own deals + split deals from Pipeline A + Pipeline B (active stages)
     const searches = [
-      // Own deals – Pipeline A
       hs('/crm/v3/objects/deals/search', 'POST', {
         filterGroups: [{ filters: [{ propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_A }, ...ownerF] }],
         properties: PROPS, limit: 100,
         sorts: [{ propertyName: 'hs_lastmodifieddate', direction: 'DESCENDING' }],
       }),
-      // Split deals – Pipeline A
       hs('/crm/v3/objects/deals/search', 'POST', {
         filterGroups: [{ filters: [{ propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_A }, ...splitF] }],
         properties: PROPS, limit: 100,
@@ -123,7 +458,6 @@ exports.handler = async (event) => {
     ];
     if (activeBIds.length) {
       searches.push(
-        // Own deals – Pipeline B active stages
         hs('/crm/v3/objects/deals/search', 'POST', {
           filterGroups: [{ filters: [
             { propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_B },
@@ -133,7 +467,6 @@ exports.handler = async (event) => {
           properties: PROPS, limit: 100,
           sorts: [{ propertyName: 'hs_lastmodifieddate', direction: 'DESCENDING' }],
         }),
-        // Split deals – Pipeline B active stages
         hs('/crm/v3/objects/deals/search', 'POST', {
           filterGroups: [{ filters: [
             { propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_B },
@@ -148,7 +481,7 @@ exports.handler = async (event) => {
     const results = await Promise.all(searches);
     let myDeals = results.flatMap(r => r.data?.results || []);
 
-    // Step 2: expand with splitoppdrag via Boat object
+    // Splitoppdrag via Boat-objektet
     if (boatTypeId && myDeals.length > 0) {
       const boatIdsSet = new Set();
       await Promise.allSettled(myDeals.map(async deal => {
@@ -193,12 +526,12 @@ exports.handler = async (event) => {
       name: d.properties.dealname || 'Ukjent',
       pipeline: d.properties.pipeline === PIPELINE_B ? 'B' : 'A',
     }));
-    return { statusCode: 200, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ deals }) };
+    return jsonResp(200, { deals });
   }
 
-  // ── GET ?fetch_boat=DEAL_ID → boat props + befaring note ──────────────────
-  if (event.httpMethod === 'GET' && event.queryStringParameters?.fetch_boat) {
-    let dealId = event.queryStringParameters.fetch_boat;
+  // ── GET ?fetch_boat=DEAL_ID ──────────────────────────────────────────────
+  if (event.httpMethod === 'GET' && qs.fetch_boat) {
+    let dealId = qs.fetch_boat;
 
     const BOAT_PROPS = [
       'batmerke','bat_modell','arsmodell','boat_type','location',
@@ -234,13 +567,17 @@ exports.handler = async (event) => {
           boatProps = br.data?.properties || {};
         }
       }
-    } catch {}
+    } catch (err) {
+      console.error('boat fetch failed:', err.message);
+    }
 
     let dealName = '';
     let ownerInfo = null;
+    let pipeline = null;
     try {
       const dr = await hs(`/crm/v3/objects/deals/${dealId}?properties=dealname,pipeline,hubspot_owner_id`);
       dealName = dr.data?.properties?.dealname || '';
+      pipeline = dr.data?.properties?.pipeline === PIPELINE_B ? 'B' : (dr.data?.properties?.pipeline === PIPELINE_A ? 'A' : null);
       const dealOwnerId = dr.data?.properties?.hubspot_owner_id;
       if (dealOwnerId) {
         try {
@@ -254,7 +591,6 @@ exports.handler = async (event) => {
             };
           }
         } catch {}
-        // Fallback: fill missing fields (or entire object) from hardcoded megler map
         const known = KNOWN_MEGLERS_BY_ID[String(dealOwnerId)];
         if (known) {
           if (!ownerInfo) ownerInfo = {};
@@ -263,8 +599,7 @@ exports.handler = async (event) => {
           if (!ownerInfo.phone) ownerInfo.phone = known.phone;
         }
       }
-      // If this is a Pipeline B deal, also collect the linked Pipeline A deal ID
-      // so we can search for the befaring note there
+      // Hvis Pipeline B-deal, finn linket Pipeline A-deal for befaringsnotat
       if (dr.data?.properties?.pipeline === PIPELINE_B && boatId && boatTypeId) {
         try {
           const allAssoc = await hs(`/crm/v3/objects/${boatTypeId}/${boatId}/associations/deals`);
@@ -276,59 +611,227 @@ exports.handler = async (event) => {
             });
             const pipelineADeal = (batch.data?.results || []).find(d => d.properties?.pipeline === PIPELINE_A);
             if (pipelineADeal) {
-              // Use Pipeline A deal for note lookup below
-              dealId = pipelineADeal.id; // reassign so note search uses correct deal
+              dealId = pipelineADeal.id;
             }
           }
         } catch {}
       }
-    } catch {}
-
-    // Helper: get befaring note from a deal
-    async function getBefaringNote(dId) {
-      const assoc = await hs(`/crm/v3/objects/deals/${dId}/associations/notes`);
-      const ids = (assoc.data?.results || []).map(n => n.id);
-      if (!ids.length) return null;
-      const batch = await hs('/crm/v3/objects/notes/batch/read', 'POST', {
-        inputs: ids.slice(0, 30).map(id => ({ id })),
-        properties: ['hs_note_body','hs_timestamp'],
-      });
-      const notes = (batch.data?.results || [])
-        .filter(n => stripHtml(n.properties?.hs_note_body || '').includes('Befaringsnotat'))
-        .sort((a, b) => new Date(b.properties?.hs_timestamp||0) - new Date(a.properties?.hs_timestamp||0));
-      return notes.length ? stripHtml(notes[0].properties.hs_note_body) : null;
+    } catch (err) {
+      console.error('deal/owner fetch failed:', err.message);
     }
 
-    let befaringNote = null;
-    try { befaringNote = await getBefaringNote(dealId); } catch {}
+    // Befaringsnotat med confidence
+    let befaring = { text: null, confidence: null };
+    try { befaring = await getBefaringNoteWithConfidence(dealId); } catch (err) {
+      console.error('getBefaringNoteWithConfidence failed:', err.message);
+    }
 
-    return {
-      statusCode: 200, headers: { ...CORS, ...JSON_H },
-      body: JSON.stringify({ deal_name: dealName, boat: boatProps, befaring_note: befaringNote, owner: ownerInfo }),
-    };
+    // Servicehistorikk fra Supabase (alt herfra, ikke fra boat-properties)
+    let service = null;
+    if (boatId) {
+      try {
+        const supabase = getSupabase();
+        service = await fetchServiceHistory(supabase, boatId);
+      } catch (err) {
+        console.error('fetchServiceHistory failed:', err.message);
+      }
+    }
+
+    return jsonResp(200, {
+      deal_name:    dealName,
+      pipeline,
+      boat_id:      boatId,
+      boat:         boatProps,
+      befaring_note: befaring.text,
+      befaring_confidence: befaring.confidence,
+      service,
+      owner:        ownerInfo,
+    });
+  }
+
+  // ── GET ?get_runs=DEAL_ID ────────────────────────────────────────────────
+  if (event.httpMethod === 'GET' && qs.get_runs) {
+    try {
+      const supabase = getSupabase();
+      const { data, error } = await supabase
+        .from('annonse_runs')
+        .select('id, created_at, updated_at, user_email, prompt_version, status, ai_draft_at, final_at, hubspot_note_id, notes')
+        .eq('deal_id', String(qs.get_runs))
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return jsonResp(200, { runs: data || [] });
+    } catch (err) {
+      console.error('get_runs failed:', err.message);
+      return jsonResp(500, { error: err.message });
+    }
   }
 
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, headers: CORS, body: 'Method not allowed' };
   }
 
-  // ── Parse body ────────────────────────────────────────────────────────────
+  // ── POST actions: save_draft / save_final ────────────────────────────────
+  const action = qs.action || null;
+  if (action === 'save_draft' || action === 'save_final') {
+    let body;
+    try { body = JSON.parse(event.body || '{}'); }
+    catch { return jsonResp(400, { error: 'Invalid JSON' }); }
+
+    const supabase = getSupabase();
+
+    // ── save_draft ─────────────────────────────────────────────────────────
+    if (action === 'save_draft') {
+      const { run_id, deal_id, boat_id, pipeline, ai_draft_text, input_summary, prompt_version } = body;
+      if (!deal_id || !ai_draft_text) {
+        return jsonResp(400, { error: 'deal_id og ai_draft_text er påkrevd' });
+      }
+
+      try {
+        let row;
+        if (run_id) {
+          // Oppdater eksisterende utkast (ny iterasjon på samme run)
+          const { data, error } = await supabase
+            .from('annonse_runs')
+            .update({
+              ai_draft_text,
+              ai_draft_at: new Date().toISOString(),
+              input_summary: input_summary || null,
+            })
+            .eq('id', run_id)
+            .select()
+            .maybeSingle();
+          if (error) throw error;
+          row = data;
+        } else {
+          // Opprett ny run
+          const { data, error } = await supabase
+            .from('annonse_runs')
+            .insert({
+              deal_id:      String(deal_id),
+              boat_id:      boat_id ? String(boat_id) : null,
+              pipeline:     pipeline || null,
+              user_email:   jwt.email,
+              prompt_version: prompt_version || FALLBACK_PROMPT_VERSION,
+              input_summary: input_summary || null,
+              ai_draft_text,
+              ai_draft_at:  new Date().toISOString(),
+              status:       'draft',
+            })
+            .select()
+            .single();
+          if (error) throw error;
+          row = data;
+        }
+
+        // Best-effort: opprett eller oppdater HubSpot-notat
+        try {
+          const header = noteHeader('draft', row.prompt_version, jwt.email);
+          if (row.hubspot_note_id) {
+            await updateHubSpotNote(row.hubspot_note_id, header, ai_draft_text);
+          } else {
+            const noteId = await createHubSpotNote(deal_id, header, ai_draft_text);
+            if (noteId) {
+              await supabase
+                .from('annonse_runs')
+                .update({ hubspot_note_id: noteId })
+                .eq('id', row.id);
+              row.hubspot_note_id = noteId;
+            }
+          }
+        } catch (noteErr) {
+          console.error('HubSpot note (draft) non-fatal:', noteErr.message);
+        }
+
+        return jsonResp(200, { ok: true, run: row });
+      } catch (err) {
+        console.error('save_draft failed:', err.message);
+        return jsonResp(500, { error: err.message });
+      }
+    }
+
+    // ── save_final ─────────────────────────────────────────────────────────
+    if (action === 'save_final') {
+      const { run_id, final_text, notes } = body;
+      if (!run_id || !final_text) {
+        return jsonResp(400, { error: 'run_id og final_text er påkrevd' });
+      }
+
+      try {
+        // Hent run for å få ai_draft_text + deal_id + note_id
+        const { data: existing, error: getErr } = await supabase
+          .from('annonse_runs')
+          .select('*')
+          .eq('id', run_id)
+          .maybeSingle();
+        if (getErr) throw getErr;
+        if (!existing) return jsonResp(404, { error: 'Run not found' });
+
+        const diff_summary = buildDiffSummary(existing.ai_draft_text, final_text);
+        const diff_stats   = buildDiffStats(existing.ai_draft_text, final_text, diff_summary);
+
+        const { data: updated, error: upErr } = await supabase
+          .from('annonse_runs')
+          .update({
+            final_text,
+            final_at: new Date().toISOString(),
+            status: 'final',
+            diff_summary,
+            diff_stats,
+            notes: notes || existing.notes || null,
+          })
+          .eq('id', run_id)
+          .select()
+          .single();
+        if (upErr) throw upErr;
+
+        // Best-effort: oppdater HubSpot-notatet til å vise PUBLISERT-versjonen
+        try {
+          const header = noteHeader('final', updated.prompt_version, jwt.email);
+          if (updated.hubspot_note_id) {
+            await updateHubSpotNote(updated.hubspot_note_id, header, final_text);
+          } else {
+            const noteId = await createHubSpotNote(updated.deal_id, header, final_text);
+            if (noteId) {
+              await supabase
+                .from('annonse_runs')
+                .update({ hubspot_note_id: noteId })
+                .eq('id', run_id);
+              updated.hubspot_note_id = noteId;
+            }
+          }
+        } catch (noteErr) {
+          console.error('HubSpot note (final) non-fatal:', noteErr.message);
+        }
+
+        return jsonResp(200, { ok: true, run: updated });
+      } catch (err) {
+        console.error('save_final failed:', err.message);
+        return jsonResp(500, { error: err.message });
+      }
+    }
+  }
+
+  // ── POST { messages: [...] } → Anthropic ────────────────────────────────
   let messages;
   try {
     ({ messages } = JSON.parse(event.body));
   } catch {
-    return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Invalid JSON' }) };
+    return jsonResp(400, { error: 'Invalid JSON' });
   }
 
   if (!Array.isArray(messages) || messages.length === 0) {
-    return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'messages array required' }) };
+    return jsonResp(400, { error: 'messages array required' });
   }
 
-  // ── Call Anthropic API ────────────────────────────────────────────────────
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: 'API key not configured' }) };
+    return jsonResp(500, { error: 'API key not configured' });
   }
+
+  // Hent aktiv prompt (Supabase med fallback til lokal)
+  const supabase = getSupabase();
+  const { version: promptVersion, system_prompt: systemPrompt } = await getActivePrompt(supabase);
 
   let response;
   try {
@@ -342,25 +845,21 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 4096,
-        system: SYSTEM_PROMPT,
+        system: systemPrompt,
         messages,
       }),
     });
   } catch (err) {
-    return { statusCode: 502, headers: CORS, body: JSON.stringify({ error: 'Failed to reach Anthropic API', detail: err.message }) };
+    return jsonResp(502, { error: 'Failed to reach Anthropic API', detail: err.message });
   }
 
   if (!response.ok) {
     const errBody = await response.text();
-    return { statusCode: response.status, headers: CORS, body: JSON.stringify({ error: 'Anthropic API error', detail: errBody }) };
+    return jsonResp(response.status, { error: 'Anthropic API error', detail: errBody });
   }
 
   const data = await response.json();
   const text = data?.content?.[0]?.text ?? '';
 
-  return {
-    statusCode: 200,
-    headers: { ...CORS, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content: text }),
-  };
+  return jsonResp(200, { content: text, prompt_version: promptVersion });
 };
