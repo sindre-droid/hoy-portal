@@ -330,6 +330,29 @@ let currentInputSummary = null; // bygges av frontend basert på fetch_boat-resp
 let lastPromptVersion  = null;  // returneres fra POST messages
 let pendingFinalRunId  = null;  // hvilken run vi er i ferd med å markere som final
 
+// V2.1: nye state
+let currentProspektId  = null;  // fra prospekter-tabellen, for save_to_prospekt
+let currentCobrand     = null;  // 'cormate' | 'goldfish' | null
+let currentOwnerEmail  = null;  // for kontakt-snippet
+let selectedFinnTitle  = null;  // valgt FINN-tittel (radio button)
+let includeHighlights  = false; // skal høydepunkter inkluderes i FINN-blokk?
+
+// V2.1: meglerprofiler (for kontakt-snippet i FINN-blokk)
+const MEGLER_KONTAKT = {
+  'sindre@h-y.no': 'Sindre Jacobsen\nT. 938 40 189\nsindre(att)h-y.no',
+  'daniel@h-y.no': 'Daniel Ruud\nT. 479 61 918\ndaniel(att)h-y.no',
+  'henrik@h-y.no': 'Henrik Bratz\nT. 478 75 838\nhenrik(att)h-y.no',
+  'marte@h-y.no':  'Henrik Bratz\nT. 478 75 838\nhenrik(att)h-y.no',
+};
+
+// V2.1: standard "Om oss"-blokk for FINN
+const OM_OSS_FINN = `Om oss:
+House of Yachts er din selvsagte samarbeidspartner når det kommer til kjøp og salg av båt i annenhåndsmarkedet.
+Vi skiller oss fra våre konkurrenter ved å tilby personlig service og rådgiving, bilder og video av ypperste kvalitet, og en enkel og forutsigbar kostnadsmodell. Vårt fokus er å være en markedsledende aktør og samarbeidspartner, enten du er i markedet for å kjøpe, selge, bytte eller chartre. Sammen kartlegger vi dine behov og ønsker, og finner riktig løsning for deg.
+House of Yachts aksepterer krypto som betaling. Bitcoin, Ethereum og andre kryptovalutaer. Ta kontakt for mer informasjon rundt dette.
+Gjennom et etablert internasjonalt nettverk kan vi bistå med å fremskaffe de fleste båter for import, eller tilrettelegge for ditt båthold i utlandet. Vi kan bistå med frakt, forsikring, finansiering, verdivurdering og verditakst. Vi tar forbehold om eventuelle feil i salgsoppgaven.
+Kjøpet er regulert av kjøpsloven eller forbrukerkjøpsloven. Kjøper gjøres uttrykkelig oppmerksom på at House of Yachts AS opererer kun som mellommann og er således ikke solidarisk ansvarlig med selger. Selger har opplysningsplikt for eventuelle feil og mangler ved båten`;
+
 // ── Auth ─────────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 
@@ -445,13 +468,18 @@ async function loadDealContext() {
     if (!r.ok) throw new Error('Klarte ikke hente data');
     const data = await r.json();
 
-    // Persist V2-state for save_draft senere
-    currentDealId   = dealId;
-    currentBoatId   = data.boat_id || null;
-    currentPipeline = data.pipeline || null;
-    currentRunId    = null;  // ny session = ny run
+    // Persist V2/V2.1-state for save_draft og save_to_prospekt senere
+    currentDealId    = dealId;
+    currentBoatId    = data.boat_id || null;
+    currentPipeline  = data.pipeline || null;
+    currentRunId     = null;  // ny session = ny run
+    currentProspektId = data.prospekt_id || null;
+    currentCobrand    = data.cobrand || null;
+    currentOwnerEmail = data.owner?.email || null;
+    selectedFinnTitle = null;
+    includeHighlights = false;
 
-    const context = formatBoatContext(data.deal_name, data.boat, data.befaring_note, data.owner, data.service, data.befaring_confidence);
+    const context = formatBoatContext(data.deal_name, data.boat, data.befaring_note, data.owner, data.service, data.befaring_confidence, data.cobrand);
     contextDealName = data.deal_name || 'Oppdrag';
 
     // Bygg input_summary for læringsdata
@@ -563,10 +591,15 @@ function updateContextHint() {
   }
 }
 
-function formatBoatContext(dealName, boat, befaringNote, owner, service, befaringConfidence) {
+function formatBoatContext(dealName, boat, befaringNote, owner, service, befaringConfidence, cobrand) {
   if (!boat) return '';
   const isSail = boat.boat_type === 'seilbat';
   const lines  = [];
+
+  // V2.1: COBRAND-flagg sendes som første linje slik at AI-en vet om båten
+  // er en del av et leverandørsamarbeid
+  lines.push(`COBRAND: ${cobrand || 'none'}`);
+  lines.push('');
 
   lines.push('KONTEKST FOR ANNONSEGENERERING');
   lines.push(`Oppdrag: ${dealName || ''}`);
@@ -688,13 +721,18 @@ function newConversation() {
   conversationHistory = [];
   pendingContext      = null;
   contextDealName     = null;
-  // V2: nullstill persistens-state
+  // V2/V2.1: nullstill persistens-state
   currentDealId       = null;
   currentBoatId       = null;
   currentPipeline     = null;
   currentRunId        = null;
   currentInputSummary = null;
   pendingFinalRunId   = null;
+  currentProspektId   = null;
+  currentCobrand      = null;
+  currentOwnerEmail   = null;
+  selectedFinnTitle   = null;
+  includeHighlights   = false;
   $('messages').innerHTML = '';
   $('messages').style.display = 'none';
   $('starterState').style.display = '';
@@ -784,9 +822,9 @@ function appendMessage(role, text, withCopy = false) {
   el.className = `msg ${role}`;
   const initial = role === 'user' ? '👤' : '⚓';
 
-  // Detect ad-section markers (### TITTEL, ### INTRO, ...) — V2 output format
+  // V2.1: parse 6-felts respons og rendrer som strukturert sett
   const sections = role === 'assistant' ? parseSections(text) : null;
-  const hasFullAd = sections && sections.length >= 4;  // minst 4 av 7 seksjoner = sannsynlig komplett annonse
+  const hasFullAd = !!sections;  // V2.1 returnerer null hvis ikke full
 
   let bubbleHtml;
   if (sections && hasFullAd) {
@@ -797,12 +835,20 @@ function appendMessage(role, text, withCopy = false) {
     bubbleHtml = `<div class="msg-bubble">${escH(text)}</div>`;
   }
 
-  // Actions: kopi + (hvis assistant + full ad) lagre-knapper
+  // V2.1: knapper er ulike for full ad vs løs tekst
   let actionsHtml = '';
   if (withCopy) {
     const parts = [`<button class="btn-copy" onclick="copyMsg(this)" data-text="${escAttr(text)}">Kopier hele</button>`];
     if (hasFullAd && currentDealId) {
+      // Bygg FINN-blokk — setter sammen ferdig FINN-tekst med kontakt + Om oss
+      parts.push(`<button class="btn-save" onclick="buildFinnBlokk(this)" data-sections='${escAttr(JSON.stringify(sections))}'>📋 Bygg FINN-blokk</button>`);
+      // Lagre til prospekt (intro + beskrivelse)
+      if (currentProspektId) {
+        parts.push(`<button class="btn-save" onclick="saveToProspekt(this)" data-intro="${escAttr(sections.prospekt_intro || '')}" data-body="${escAttr(sections.prospekt_beskrivelse || '')}">📄 Lagre til prospekt</button>`);
+      }
+      // Lagre hele som utkast (full tekst → annonse_runs)
       parts.push(`<button class="btn-save" onclick="saveDraft(this)" data-text="${escAttr(text)}">💾 Lagre utkast</button>`);
+      // Marker endelig
       parts.push(`<button class="btn-final" onclick="openFinalModal(this)" data-text="${escAttr(text)}">✅ Marker endelig</button>`);
     }
     actionsHtml = `<div class="msg-actions">${parts.join('')}</div>`;
@@ -819,40 +865,130 @@ function appendMessage(role, text, withCopy = false) {
   return el;
 }
 
-// Parse ### TITTEL, ### INTRO, ... blocks from V2 AI output
+// Parse V2.1 6-felts struktur fra AI output.
+// Returnerer { titler: [3 strenger], finn_apning, finn_hovedtekst, finn_hoydepunkter,
+//              prospekt_intro, prospekt_beskrivelse } eller null hvis ikke V2.1-format.
 function parseSections(text) {
-  if (!text || !/###\s+[A-ZÆØÅ]+/.test(text)) return null;
-  const SEC = ['TITTEL','INTRO','NØKKELHØYDEPUNKTER','NARRATIV','SPESIFIKASJONER','UTSTYR','KONTAKT'];
-  // Splitt på alle ### overskrifter — fang både den eksakte HoY-listen og evt.
-  // varianter (NØKKELPUNKTER, KONTAKTINFO osv.)
+  if (!text || !/###\s+[A-ZÆØÅ-]+/.test(text)) return null;
   const parts = text.split(/(?=^###\s+)/m).filter(p => /^###\s+/m.test(p));
   if (!parts.length) return null;
-  const result = [];
+  const map = {};
   for (const p of parts) {
     const m = p.match(/^###\s+(.+?)\s*\n([\s\S]*)$/);
     if (!m) continue;
-    const title = m[1].trim();
+    const title = m[1].trim().toUpperCase();
     const body  = m[2].trim();
-    if (!body) continue;
-    result.push({ title, body });
+    map[title] = body;
   }
-  return result.length ? result : null;
+
+  // V2.1: forvent 6 felter
+  const titlerRaw = map['FINN-TITTEL-ALTERNATIVER'] || '';
+  const titler = titlerRaw
+    .split(/\n/)
+    .map(l => l.replace(/^\s*\d+[\.\)]\s*/, '').trim())
+    .filter(Boolean);
+
+  const finn_apning      = map['FINN-ÅPNING'] || '';
+  const finn_hovedtekst  = map['FINN-HOVEDTEKST'] || '';
+  const finn_hoydepunkter = map['FINN-HØYDEPUNKTER'] || '';
+  const prospekt_intro   = map['PROSPEKT-INTRO'] || '';
+  const prospekt_beskrivelse = map['PROSPEKT-BESKRIVELSE'] || '';
+
+  // Vurder dette som "full" V2.1-output hvis vi har minst FINN-ÅPNING + en av
+  // hovedtekst/beskrivelse
+  const hasMin = finn_apning && (finn_hovedtekst || prospekt_beskrivelse);
+  if (!hasMin) return null;
+
+  return {
+    titler,
+    finn_apning,
+    finn_hovedtekst,
+    finn_hoydepunkter,
+    prospekt_intro,
+    prospekt_beskrivelse,
+  };
 }
 
 function renderSectionedAd(sections, fullText) {
+  // V2.1 har dedikert layout med titler som radio + 5 andre kort
+  const t = sections;
+
   let html = '<div class="msg-bubble" style="padding:10px;background:transparent;border:none">';
-  sections.forEach((s, i) => {
+
+  // FINN-TITTEL-ALTERNATIVER (radio)
+  if (t.titler.length) {
     html += `
       <div class="section-block">
         <div class="section-head">
-          <span class="section-title">${escH(s.title)}</span>
-          <button class="section-copy" onclick="copySection(this)" data-text="${escAttr(s.body)}">Kopier</button>
+          <span class="section-title">FINN-tittel — velg ett</span>
         </div>
-        <div class="section-body">${escH(s.body)}</div>
+        <div class="section-body" style="padding:8px 14px">
+          ${t.titler.map((title, idx) => `
+            <label style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer;border-bottom:1px solid var(--border-light)">
+              <input type="radio" name="finnTitle" value="${escAttr(title)}" onchange="selectFinnTitle(this.value)" ${idx === 0 ? 'checked' : ''} style="accent-color:var(--navy)">
+              <span style="font-size:14px;line-height:1.5">${escH(title)}</span>
+            </label>
+          `).join('')}
+        </div>
       </div>`;
-  });
+    if (!selectedFinnTitle) selectedFinnTitle = t.titler[0];
+  }
+
+  // FINN-ÅPNING
+  if (t.finn_apning) {
+    html += renderSectionCard('FINN-åpning', t.finn_apning);
+  }
+
+  // FINN-HOVEDTEKST
+  if (t.finn_hovedtekst) {
+    html += renderSectionCard('FINN-hovedtekst', t.finn_hovedtekst);
+  }
+
+  // FINN-HØYDEPUNKTER (med toggle for inkludering)
+  if (t.finn_hoydepunkter) {
+    html += `
+      <div class="section-block">
+        <div class="section-head">
+          <span class="section-title">FINN-høydepunkter</span>
+          <button class="section-copy" onclick="copySection(this)" data-text="${escAttr(t.finn_hoydepunkter)}">Kopier</button>
+        </div>
+        <div class="section-body">${escH(t.finn_hoydepunkter)}</div>
+        <div style="padding:6px 14px;border-top:1px solid var(--border-light);background:#f9fafb">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-light);cursor:pointer">
+            <input type="checkbox" id="includeHighlightsToggle" onchange="includeHighlights = this.checked" ${includeHighlights ? 'checked' : ''} style="accent-color:var(--navy)">
+            Inkluder høydepunkter i FINN-blokken
+          </label>
+        </div>
+      </div>`;
+  }
+
+  // PROSPEKT-INTRO
+  if (t.prospekt_intro) {
+    html += renderSectionCard('Prospekt-intro', t.prospekt_intro);
+  }
+
+  // PROSPEKT-BESKRIVELSE
+  if (t.prospekt_beskrivelse) {
+    html += renderSectionCard('Prospekt-beskrivelse', t.prospekt_beskrivelse);
+  }
+
   html += '</div>';
   return html;
+}
+
+function renderSectionCard(title, body) {
+  return `
+    <div class="section-block">
+      <div class="section-head">
+        <span class="section-title">${escH(title)}</span>
+        <button class="section-copy" onclick="copySection(this)" data-text="${escAttr(body)}">Kopier</button>
+      </div>
+      <div class="section-body">${escH(body)}</div>
+    </div>`;
+}
+
+function selectFinnTitle(value) {
+  selectedFinnTitle = value;
 }
 
 function copySection(btn) {
@@ -896,6 +1032,76 @@ async function saveDraft(btn) {
     btn.textContent = '⚠️ Feil — prøv igjen';
     btn.disabled = false;
     console.error('saveDraft failed:', err);
+    setTimeout(() => { btn.textContent = original; }, 2500);
+  }
+}
+
+// ── V2.1: Bygg FINN-blokk ───────────────────────────────────────────────────
+// Setter sammen ferdig FINN-tekst med tittel + åpning + hovedtekst +
+// (høydepunkter hvis togglet) + kontakt-snippet + standard Om oss-blokk.
+async function buildFinnBlokk(btn) {
+  try {
+    const sections = JSON.parse(btn.dataset.sections);
+    const tittel = selectedFinnTitle || sections.titler[0] || '';
+    const apning = sections.finn_apning || '';
+    const hoved  = sections.finn_hovedtekst || '';
+    const hp     = sections.finn_hoydepunkter || '';
+
+    const kontakt = MEGLER_KONTAKT[currentOwnerEmail] || MEGLER_KONTAKT['sindre@h-y.no'];
+
+    const parts = [];
+    if (tittel) parts.push(tittel);
+    if (apning) parts.push(apning);
+    if (hoved)  parts.push(hoved);
+    if (includeHighlights && hp) {
+      parts.push('Høydepunkter:\n' + hp);
+    }
+    parts.push('Ta kontakt for mer informasjon:\n\n' + kontakt);
+    parts.push(OM_OSS_FINN);
+
+    const blokk = parts.join('\n\n');
+
+    await navigator.clipboard.writeText(blokk);
+    const original = btn.textContent;
+    btn.classList.add('saved');
+    btn.textContent = '✓ Kopiert til utklippstavle';
+    setTimeout(() => { btn.textContent = original; btn.classList.remove('saved'); }, 3000);
+  } catch (err) {
+    alert('Feil ved bygging av FINN-blokk: ' + err.message);
+  }
+}
+
+// ── V2.1: Lagre til prospekt ────────────────────────────────────────────────
+// Skriver description_intro og description_body til prospekter-tabellen.
+async function saveToProspekt(btn) {
+  if (!currentProspektId) { alert('Ingen prospekt funnet for denne dealen'); return; }
+  const intro = btn.dataset.intro || '';
+  const body  = btn.dataset.body || '';
+  if (!intro && !body) { alert('Ingen tekst å lagre'); return; }
+
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '📄 Lagrer…';
+
+  try {
+    const res = await fetch(`${API}?action=save_to_prospekt`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({
+        prospekt_id: currentProspektId,
+        description_intro: intro,
+        description_body: body,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Lagring feilet');
+    btn.classList.add('saved');
+    btn.textContent = '✓ Lagret til prospekt';
+    setTimeout(() => { btn.textContent = original; btn.classList.remove('saved'); btn.disabled = false; }, 3000);
+  } catch (err) {
+    btn.textContent = '⚠️ Feil — prøv igjen';
+    btn.disabled = false;
+    console.error('saveToProspekt failed:', err);
     setTimeout(() => { btn.textContent = original; }, 2500);
   }
 }
