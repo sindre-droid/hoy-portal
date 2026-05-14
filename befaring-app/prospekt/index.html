@@ -358,10 +358,14 @@
 
       <div id="cobrandBar" style="display:none;background:linear-gradient(135deg,#1A3C34,#2A5C4E);color:#fff;padding:14px 20px;border-radius:12px;margin-bottom:16px;align-items:center;gap:14px;font-size:13px">
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:500">
-          <input type="checkbox" id="cobrandToggle" onchange="toggleCobrand()" style="width:18px;height:18px;accent-color:#C4983E;cursor:pointer">
-          Cormate co-brand
+          Samarbeidsbåt:
+          <select id="cobrandSelect" onchange="setCobrand(this.value)" style="background:#fff;color:#1A3C34;border:none;border-radius:6px;padding:6px 10px;font-size:13px;font-weight:600;cursor:pointer">
+            <option value="none">Ingen</option>
+            <option value="cormate">Cormate</option>
+            <option value="goldfish">Goldfish</option>
+          </select>
         </label>
-        <span style="opacity:0.7;font-size:11px">Aktiverer co-branded prospekt med Cormate-logo og nytt design</span>
+        <span style="opacity:0.7;font-size:11px">Velg partner for å aktivere co-branded prospekt og samarbeidsformulering i FINN-annonser</span>
       </div>
 
       <div class="section-grid" id="sectionGrid">
@@ -585,7 +589,7 @@ async function openEditor(id) {
   // Show cobrand toggle bar and sync state
   const cbBar = $('cobrandBar');
   cbBar.style.display = 'flex';
-  $('cobrandToggle').checked = currentProspekt.cobrand?.partner === 'cormate';
+  $('cobrandSelect').value = currentProspekt.cobrand?.partner || 'none';
 
   renderSections();
 }
@@ -1573,15 +1577,18 @@ function toggleDeclarationExcluded() {
   scheduleAutoSave();
 }
 
-function toggleCobrand() {
-  const checked = $('cobrandToggle').checked;
-  if (checked) {
+function setCobrand(partner) {
+  if (partner === 'cormate') {
     currentProspekt.cobrand = { partner: 'cormate', logo_url: '/prospekt/assets/cormate.svg' };
+    toast('Cormate co-brand aktivert', 'success');
+  } else if (partner === 'goldfish') {
+    currentProspekt.cobrand = { partner: 'goldfish', logo_url: '/prospekt/assets/goldfish.svg' };
+    toast('Goldfish co-brand aktivert', 'success');
   } else {
     currentProspekt.cobrand = null;
+    toast('Co-brand deaktivert', 'success');
   }
   scheduleAutoSave();
-  toast(checked ? 'Cormate co-brand aktivert' : 'Co-brand deaktivert', 'success');
 }
 
 function toggleDeclSection(si) {
