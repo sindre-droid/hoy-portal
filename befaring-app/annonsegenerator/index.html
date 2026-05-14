@@ -129,11 +129,43 @@
     .typing-indicator span:nth-child(3){animation-delay:0.4s}
     @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
 
-    /* Copy button on AI messages */
-    .msg-actions{display:flex;gap:6px;margin-top:6px;justify-content:flex-end}
+    /* Copy / save buttons on AI messages */
+    .msg-actions{display:flex;gap:6px;margin-top:6px;justify-content:flex-end;flex-wrap:wrap}
     .btn-copy{font-size:11px;padding:4px 10px;border:1px solid var(--border);border-radius:5px;
       background:none;color:var(--text-light);font-family:inherit;cursor:pointer;transition:background 0.1s}
     .btn-copy:hover{background:var(--border-light);color:var(--text)}
+    .btn-save{font-size:11px;padding:4px 10px;border:1px solid var(--gold);border-radius:5px;
+      background:var(--white);color:var(--gold);font-family:inherit;cursor:pointer;font-weight:600;transition:all 0.1s}
+    .btn-save:hover{background:var(--gold);color:#fff}
+    .btn-save.saved{background:#ecfdf5;border-color:#6ee7b7;color:#065f46}
+    .btn-final{font-size:11px;padding:4px 10px;border:1px solid var(--navy);border-radius:5px;
+      background:var(--navy);color:#fff;font-family:inherit;cursor:pointer;font-weight:600;transition:all 0.1s}
+    .btn-final:hover{background:#1a3a5c}
+    .btn-final.done{background:#ecfdf5;border-color:#6ee7b7;color:#065f46}
+
+    /* Section blocks (V2 — when AI uses ### markers) */
+    .section-block{border:1px solid var(--border);border-radius:8px;margin-bottom:10px;background:var(--white);overflow:hidden}
+    .section-head{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;
+      background:#f9fafb;border-bottom:1px solid var(--border)}
+    .section-title{font-size:11px;font-weight:700;letter-spacing:0.5px;color:var(--navy);text-transform:uppercase}
+    .section-copy{font-size:11px;padding:3px 9px;border:1px solid var(--border);border-radius:4px;
+      background:var(--white);color:var(--text-light);font-family:inherit;cursor:pointer}
+    .section-copy:hover{background:var(--border-light);color:var(--text)}
+    .section-copy.copied{background:#ecfdf5;color:#065f46;border-color:#6ee7b7}
+    .section-body{padding:10px 14px;font-size:14px;line-height:1.6;white-space:pre-wrap}
+
+    /* Modal for "Marker endelig" */
+    .modal-bg{position:fixed;inset:0;background:rgba(10,33,64,0.6);display:none;align-items:center;justify-content:center;z-index:5000}
+    .modal-bg.show{display:flex}
+    .modal{background:#fff;border-radius:12px;padding:24px;width:min(560px,calc(100vw - 32px));max-height:80vh;overflow-y:auto}
+    .modal h3{font-size:16px;font-weight:700;color:var(--navy);margin-bottom:8px}
+    .modal p{font-size:13px;color:var(--text-light);margin-bottom:14px;line-height:1.5}
+    .modal textarea{width:100%;min-height:200px;padding:10px 12px;border:1.5px solid var(--border);
+      border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.5}
+    .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+    .modal-btn{padding:9px 16px;border-radius:6px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border:none}
+    .modal-btn.primary{background:var(--navy);color:#fff}
+    .modal-btn.secondary{background:none;border:1.5px solid var(--border);color:var(--text)}
 
     /* ── Input area ───────────────────────────────────────────────────────── */
     .input-area{background:var(--white);border-top:1px solid var(--border);padding:14px 16px;flex-shrink:0}
@@ -262,6 +294,21 @@
 
 </div>
 
+<!-- ── Modal: Marker endelig ────────────────────────────────────────────── -->
+<div class="modal-bg" id="finalModal">
+  <div class="modal">
+    <h3>Marker som endelig annonsetekst</h3>
+    <p>Lim inn den faktisk publiserte teksten (slik den ble på FINN / HubSpot-listing). Vi beregner diff mot AI-utkastet for læringsanalyse.</p>
+    <textarea id="finalText" placeholder="Lim inn endelig annonsetekst…"></textarea>
+    <p style="margin-top:10px;margin-bottom:4px;font-size:12px;font-weight:600;color:var(--navy)">Eventuell kommentar (frivillig):</p>
+    <textarea id="finalNotes" placeholder="F.eks. 'fjernet motortimer på motor 2 fordi servicedata var feil'" style="min-height:60px"></textarea>
+    <div class="modal-actions">
+      <button class="modal-btn secondary" onclick="closeFinalModal()">Avbryt</button>
+      <button class="modal-btn primary" id="finalSubmit" onclick="submitFinal()">Lagre endelig</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── Config ─────────────────────────────────────────────────────────────────
 const IDENTITY = '/.netlify/identity';
@@ -273,6 +320,15 @@ let conversationHistory = [];
 let isLoading          = false;
 let pendingContext     = null;  // context string to inject on next send
 let contextDealName    = null;  // display name for active context
+
+// V2: persistens-state
+let currentDealId      = null;
+let currentBoatId      = null;
+let currentPipeline    = null;
+let currentRunId       = null;  // ID-en på annonse_runs-raden for denne sessjonen
+let currentInputSummary = null; // bygges av frontend basert på fetch_boat-respons
+let lastPromptVersion  = null;  // returneres fra POST messages
+let pendingFinalRunId  = null;  // hvilken run vi er i ferd med å markere som final
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -389,8 +445,17 @@ async function loadDealContext() {
     if (!r.ok) throw new Error('Klarte ikke hente data');
     const data = await r.json();
 
-    const context = formatBoatContext(data.deal_name, data.boat, data.befaring_note, data.owner);
+    // Persist V2-state for save_draft senere
+    currentDealId   = dealId;
+    currentBoatId   = data.boat_id || null;
+    currentPipeline = data.pipeline || null;
+    currentRunId    = null;  // ny session = ny run
+
+    const context = formatBoatContext(data.deal_name, data.boat, data.befaring_note, data.owner, data.service, data.befaring_confidence);
     contextDealName = data.deal_name || 'Oppdrag';
+
+    // Bygg input_summary for læringsdata
+    currentInputSummary = buildInputSummary(data);
 
     // Immediately send context to Claude and ask for a structured summary + gaps
     await sendContextSummary(context, contextDealName);
@@ -400,6 +465,30 @@ async function loadDealContext() {
     status.textContent = '⚠️ ' + e.message;
     btn.disabled = false;
   }
+}
+
+// Bygg en kort input_summary for læringsdata. Lagres med save_draft.
+function buildInputSummary(data) {
+  const boat = data.boat || {};
+  const CRITICAL = [
+    'batmerke','bat_modell','arsmodell','boat_type','location',
+    'lengde_i_cm','lengde_i_fot','pris','mva_status',
+    'motorfabrikant','motorstorrelse','driftstimer_motor',
+    'antall_kahytter','antall_soveplasser','antall_bad',
+  ];
+  const present = [];
+  const gaps    = [];
+  for (const f of CRITICAL) {
+    if (boat[f] != null && String(boat[f]).trim() !== '') present.push(f);
+    else gaps.push(f);
+  }
+  return {
+    fields_present:       present,
+    gaps,
+    has_befaring_note:    !!data.befaring_note,
+    befaring_confidence:  data.befaring_confidence || null,
+    has_service_history:  !!data.service,
+  };
 }
 
 async function sendContextSummary(context, dealName) {
@@ -437,6 +526,7 @@ async function sendContextSummary(context, dealName) {
     } else {
       const data  = await res.json();
       const reply = data.content || '';
+      if (data.prompt_version) lastPromptVersion = data.prompt_version;
       conversationHistory.push({ role: 'assistant', content: reply });
       appendMessage('assistant', reply, true);
     }
@@ -473,7 +563,7 @@ function updateContextHint() {
   }
 }
 
-function formatBoatContext(dealName, boat, befaringNote, owner) {
+function formatBoatContext(dealName, boat, befaringNote, owner, service, befaringConfidence) {
   if (!boat) return '';
   const isSail = boat.boat_type === 'seilbat';
   const lines  = [];
@@ -546,7 +636,35 @@ function formatBoatContext(dealName, boat, befaringNote, owner) {
 
   if (boat.historikk_skader) { lines.push(''); lines.push('HISTORIKK OG BAKGRUNN:'); lines.push(boat.historikk_skader); }
 
-  if (befaringNote) { lines.push(''); lines.push('BEFARINGSNOTAT:'); lines.push(befaringNote); }
+  // Servicehistorikk fra Supabase (servicehistorikkmodul)
+  if (service) {
+    lines.push('');
+    lines.push('DOKUMENTERT SERVICEHISTORIKK:');
+    if (service.condition_summary) lines.push(`- Sammendrag: ${service.condition_summary}`);
+    if (service.recent_upgrades) {
+      lines.push('- Nylige oppgraderinger:');
+      lines.push(service.recent_upgrades);
+    }
+    if (service.service_history) {
+      lines.push('- Servicehistorikk (kronologisk):');
+      lines.push(service.service_history);
+    }
+    if (service.known_notes) {
+      lines.push('- Dokumenterte merknader:');
+      lines.push(service.known_notes);
+    }
+    if (Array.isArray(service.highlights_listing) && service.highlights_listing.length) {
+      lines.push('- Verifiserte høydepunkter (interne flagg — bruk for vekting, ikke som sitat):');
+      service.highlights_listing.forEach(h => lines.push(`  • ${h}`));
+    }
+  }
+
+  if (befaringNote) {
+    lines.push('');
+    const confTag = befaringConfidence && befaringConfidence !== 'high' ? ` (konfidens: ${befaringConfidence})` : '';
+    lines.push(`BEFARINGSNOTAT${confTag}:`);
+    lines.push(befaringNote);
+  }
 
   if (owner) {
     const ownerLines = [];
@@ -570,6 +688,13 @@ function newConversation() {
   conversationHistory = [];
   pendingContext      = null;
   contextDealName     = null;
+  // V2: nullstill persistens-state
+  currentDealId       = null;
+  currentBoatId       = null;
+  currentPipeline     = null;
+  currentRunId        = null;
+  currentInputSummary = null;
+  pendingFinalRunId   = null;
   $('messages').innerHTML = '';
   $('messages').style.display = 'none';
   $('starterState').style.display = '';
@@ -638,6 +763,7 @@ async function sendMessage() {
 
     const data  = await res.json();
     const reply = data.content || '';
+    if (data.prompt_version) lastPromptVersion = data.prompt_version;
     conversationHistory.push({ role: 'assistant', content: reply });
     appendMessage('assistant', reply, true);
 
@@ -657,15 +783,192 @@ function appendMessage(role, text, withCopy = false) {
   const el   = document.createElement('div');
   el.className = `msg ${role}`;
   const initial = role === 'user' ? '👤' : '⚓';
+
+  // Detect ad-section markers (### TITTEL, ### INTRO, ...) — V2 output format
+  const sections = role === 'assistant' ? parseSections(text) : null;
+  const hasFullAd = sections && sections.length >= 4;  // minst 4 av 7 seksjoner = sannsynlig komplett annonse
+
+  let bubbleHtml;
+  if (sections && hasFullAd) {
+    bubbleHtml = renderSectionedAd(sections, text);
+  } else if (role === 'assistant') {
+    bubbleHtml = `<div class="msg-bubble">${renderMarkdown(text)}</div>`;
+  } else {
+    bubbleHtml = `<div class="msg-bubble">${escH(text)}</div>`;
+  }
+
+  // Actions: kopi + (hvis assistant + full ad) lagre-knapper
+  let actionsHtml = '';
+  if (withCopy) {
+    const parts = [`<button class="btn-copy" onclick="copyMsg(this)" data-text="${escAttr(text)}">Kopier hele</button>`];
+    if (hasFullAd && currentDealId) {
+      parts.push(`<button class="btn-save" onclick="saveDraft(this)" data-text="${escAttr(text)}">💾 Lagre utkast</button>`);
+      parts.push(`<button class="btn-final" onclick="openFinalModal(this)" data-text="${escAttr(text)}">✅ Marker endelig</button>`);
+    }
+    actionsHtml = `<div class="msg-actions">${parts.join('')}</div>`;
+  }
+
   el.innerHTML = `
     <div class="msg-avatar">${initial}</div>
-    <div>
-      <div class="msg-bubble">${role === 'assistant' ? renderMarkdown(text) : escH(text)}</div>
-      ${withCopy ? `<div class="msg-actions"><button class="btn-copy" onclick="copyMsg(this)" data-text="${escAttr(text)}">Kopier tekst</button></div>` : ''}
+    <div style="flex:1;min-width:0">
+      ${bubbleHtml}
+      ${actionsHtml}
     </div>`;
   wrap.appendChild(el);
   scrollBottom();
   return el;
+}
+
+// Parse ### TITTEL, ### INTRO, ... blocks from V2 AI output
+function parseSections(text) {
+  if (!text || !/###\s+[A-ZÆØÅ]+/.test(text)) return null;
+  const SEC = ['TITTEL','INTRO','NØKKELHØYDEPUNKTER','NARRATIV','SPESIFIKASJONER','UTSTYR','KONTAKT'];
+  // Splitt på alle ### overskrifter — fang både den eksakte HoY-listen og evt.
+  // varianter (NØKKELPUNKTER, KONTAKTINFO osv.)
+  const parts = text.split(/(?=^###\s+)/m).filter(p => /^###\s+/m.test(p));
+  if (!parts.length) return null;
+  const result = [];
+  for (const p of parts) {
+    const m = p.match(/^###\s+(.+?)\s*\n([\s\S]*)$/);
+    if (!m) continue;
+    const title = m[1].trim();
+    const body  = m[2].trim();
+    if (!body) continue;
+    result.push({ title, body });
+  }
+  return result.length ? result : null;
+}
+
+function renderSectionedAd(sections, fullText) {
+  let html = '<div class="msg-bubble" style="padding:10px;background:transparent;border:none">';
+  sections.forEach((s, i) => {
+    html += `
+      <div class="section-block">
+        <div class="section-head">
+          <span class="section-title">${escH(s.title)}</span>
+          <button class="section-copy" onclick="copySection(this)" data-text="${escAttr(s.body)}">Kopier</button>
+        </div>
+        <div class="section-body">${escH(s.body)}</div>
+      </div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+function copySection(btn) {
+  navigator.clipboard.writeText(btn.dataset.text).then(() => {
+    btn.classList.add('copied');
+    const original = btn.textContent;
+    btn.textContent = 'Kopiert ✓';
+    setTimeout(() => { btn.textContent = original; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ── V2: Lagre utkast ────────────────────────────────────────────────────────
+async function saveDraft(btn) {
+  if (!currentDealId) { alert('Ingen deal er valgt'); return; }
+  const draftText = btn.dataset.text;
+  const original  = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '💾 Lagrer…';
+
+  try {
+    const res = await fetch(`${API}?action=save_draft`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({
+        run_id:          currentRunId,
+        deal_id:         currentDealId,
+        boat_id:         currentBoatId,
+        pipeline:        currentPipeline,
+        prompt_version:  lastPromptVersion,
+        input_summary:   currentInputSummary,
+        ai_draft_text:   draftText,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Lagring feilet');
+    currentRunId = data.run?.id || currentRunId;
+    btn.classList.add('saved');
+    btn.textContent = '✓ Lagret på dealen';
+    setTimeout(() => { btn.textContent = original; btn.classList.remove('saved'); btn.disabled = false; }, 3000);
+  } catch (err) {
+    btn.textContent = '⚠️ Feil — prøv igjen';
+    btn.disabled = false;
+    console.error('saveDraft failed:', err);
+    setTimeout(() => { btn.textContent = original; }, 2500);
+  }
+}
+
+// ── V2: Marker endelig ──────────────────────────────────────────────────────
+function openFinalModal(btn) {
+  if (!currentDealId) { alert('Ingen deal er valgt'); return; }
+  // Pre-fyll modalen med utkast-teksten så megler bare trenger å redigere
+  $('finalText').value = btn.dataset.text || '';
+  $('finalNotes').value = '';
+  pendingFinalRunId = currentRunId;  // kan være null hvis utkast ikke er lagret ennå
+  $('finalModal').classList.add('show');
+}
+
+function closeFinalModal() {
+  $('finalModal').classList.remove('show');
+  pendingFinalRunId = null;
+}
+
+async function submitFinal() {
+  const finalText = $('finalText').value.trim();
+  const notes     = $('finalNotes').value.trim();
+  if (!finalText) { alert('Tom tekst — lim inn endelig versjon først'); return; }
+
+  $('finalSubmit').disabled = true;
+  $('finalSubmit').textContent = 'Lagrer…';
+
+  try {
+    // Hvis utkast ikke er lagret enda, lagre det først så vi har run_id
+    if (!pendingFinalRunId) {
+      const draftRes = await fetch(`${API}?action=save_draft`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          deal_id:         currentDealId,
+          boat_id:         currentBoatId,
+          pipeline:        currentPipeline,
+          prompt_version:  lastPromptVersion,
+          input_summary:   currentInputSummary,
+          ai_draft_text:   conversationHistory.filter(m => m.role === 'assistant').slice(-1)[0]?.content || finalText,
+        }),
+      });
+      const draftData = await draftRes.json();
+      if (!draftRes.ok) throw new Error(draftData.error || 'Klarte ikke lagre utkast først');
+      pendingFinalRunId = draftData.run?.id;
+      currentRunId = pendingFinalRunId;
+    }
+
+    const res = await fetch(`${API}?action=save_final`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({
+        run_id:     pendingFinalRunId,
+        final_text: finalText,
+        notes:      notes || null,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Lagring feilet');
+
+    closeFinalModal();
+    // Vis bekreftelse i chatten
+    const confirmEl = document.createElement('div');
+    confirmEl.style.cssText = 'text-align:center;color:#059669;font-size:12px;padding:8px 0;font-weight:600;';
+    confirmEl.textContent = '✅ Endelig tekst lagret. HubSpot-notat oppdatert.';
+    $('messages').appendChild(confirmEl);
+    scrollBottom();
+  } catch (err) {
+    alert('Feil: ' + err.message);
+  } finally {
+    $('finalSubmit').disabled = false;
+    $('finalSubmit').textContent = 'Lagre endelig';
+  }
 }
 
 function appendTyping() {
