@@ -1830,8 +1830,8 @@ function buildServicePages(p) {
   // Build all renderable items with estimated line-weight.
   // Each "unit" ≈ one entry row (~45px). Page 1 fits ~18 units (header takes space),
   // continuation pages fit ~22 units.
-  const PAGE1_CAP = 18;
-  const CONT_CAP  = 22;
+  const PAGE1_CAP = 28;
+  const CONT_CAP  = 32;
 
   const items = []; // { html, weight }
   for (const f of active) {

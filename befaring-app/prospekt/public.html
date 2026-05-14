@@ -1802,8 +1802,8 @@ function buildServicePages(p) {
   const active = fields.filter(f => p[`service_include_${f.key}`] !== false && (p[f.dbField] || '').trim());
   if (active.length === 0) return '';
 
-  const PAGE1_CAP = 18;
-  const CONT_CAP  = 22;
+  const PAGE1_CAP = 28;
+  const CONT_CAP  = 32;
 
   const items = [];
   for (const f of active) {
