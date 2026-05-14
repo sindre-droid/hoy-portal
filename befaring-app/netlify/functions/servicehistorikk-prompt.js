@@ -178,7 +178,16 @@ OUTPUT-FORMAT (KRITISK)
 ════════════════════════════════════════════════════════════════
 
 Svar ALLTID med kun JSON — ingen forklaring, ingen markdown, ingen
-intro/outro. Bruk dette eksakte skjemaet:
+intro/outro.
+
+KRITISK om JSON-syntaks: linjeskift inne i string-verdier MÅ skrives som
+\\n (escape-sekvens), ALDRI som rå newline-tegn. Dette gjelder spesielt
+for service_history og recent_upgrades hvor du har flere hendelser.
+Eksempel på riktig: "service_history": "07.2025 — Vollen Motor AS: ...\\n04.2024 — Marina Service: ..."
+Eksempel på FEIL (ugyldig JSON): "service_history": "07.2025 — Vollen Motor AS: ...
+04.2024 — Marina Service: ..."
+
+Bruk dette eksakte skjemaet:
 
 {
   "condition_summary": "...",

@@ -30,7 +30,7 @@ const { generateRapportPdf } = require('./servicehistorikk-pdf');
 const PIPELINE_B      = process.env.PIPELINE_B || '3211644128';
 const BOAT_OBJ_TYPE   = '2-145214665';
 const STORAGE_BUCKET  = 'service-history-docs';
-const PROMPT_VERSION  = 'servicehist-v2';   // v2: condition_summary strammet til 1 setning maks 25 ord
+const PROMPT_VERSION  = 'servicehist-v3';   // v3: eksplisitt JSON newline-escaping i prompt + backend-sanitizer
 const AI_MODEL        = 'claude-sonnet-4-6';
 const AI_MAX_TOKENS   = 4096;
 
@@ -197,6 +197,35 @@ async function callAnthropic(systemPrompt, userContent, apiKey) {
   };
 }
 
+// Escape rå kontrolltegn (newline, tab, CR osv.) inne i JSON-strings.
+// Claude returnerer iblant rå \n inne i string-verdier på multi-linje-felter
+// som service_history — det er ugyldig JSON og bryter JSON.parse.
+// Vi simulerer en string-aware tokenizer for å gjøre escaping kun inne i strings.
+function sanitizeJsonControlChars(text) {
+  let out = '';
+  let inString = false;
+  let escapeNext = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (escapeNext) { out += ch; escapeNext = false; continue; }
+    if (ch === '\\' && inString) { out += ch; escapeNext = true; continue; }
+    if (ch === '"') { inString = !inString; out += ch; continue; }
+    if (inString) {
+      const code = ch.charCodeAt(0);
+      if (code === 0x0A) out += '\\n';
+      else if (code === 0x0D) out += '\\r';
+      else if (code === 0x09) out += '\\t';
+      else if (code === 0x08) out += '\\b';
+      else if (code === 0x0C) out += '\\f';
+      else if (code < 0x20) out += '\\u' + code.toString(16).padStart(4, '0');
+      else out += ch;
+    } else {
+      out += ch;
+    }
+  }
+  return out;
+}
+
 // Parse AI-tekst til strukturert JSON og valider skjema.
 function parseAndValidateAIOutput(rawText) {
   // Tål markdown code-blocks rundt JSON
@@ -206,10 +235,17 @@ function parseAndValidateAIOutput(rawText) {
     .replace(/\s*```$/, '')
     .trim();
 
+  // Defensiv sanitering — escape rå kontrolltegn inne i strings før parse
+  const sanitized = sanitizeJsonControlChars(cleaned);
+
   let parsed;
-  try { parsed = JSON.parse(cleaned); }
+  try { parsed = JSON.parse(sanitized); }
   catch (e) {
-    throw new Error(`Kunne ikke parse JSON fra AI-svar: ${e.message}`);
+    // Fall back til original cleaned-versjon hvis sanitize ble for aggressiv
+    try { parsed = JSON.parse(cleaned); }
+    catch (_) {
+      throw new Error(`Kunne ikke parse JSON fra AI-svar: ${e.message}`);
+    }
   }
 
   // Krev nøklene fra prompten — manglende = feil i AI-output
