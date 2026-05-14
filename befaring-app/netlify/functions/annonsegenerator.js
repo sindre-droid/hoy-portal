@@ -21,7 +21,7 @@ const PIPELINE_B_INCLUDE = ['prep','listing ready','klar','live','publisert','un
 
 // Versjonstag for fallback-prompt (når Supabase ikke har aktiv rad).
 // Bør bumpes hver gang annonsegenerator-prompt.js endres.
-const FALLBACK_PROMPT_VERSION = '2026-05-14.1';
+const FALLBACK_PROMPT_VERSION = '2026-05-15.1';
 
 // HubSpot association type for note → deal
 const NOTE_DEAL_ASSOC_TYPE = 214;
@@ -161,6 +161,31 @@ async function seedActivePrompt(supabase) {
     }
   } catch (err) {
     console.error('seedActivePrompt failed (non-fatal):', err.message);
+  }
+}
+
+// ── Prospekt-data fra Supabase ────────────────────────────────────────────────
+// Henter cobrand-flagg + prospekt-id (for save_to_prospekt-action).
+// Returnerer { prospekt_id, cobrand } eller null.
+async function fetchProspektMeta(supabase, dealId) {
+  if (!dealId) return null;
+  try {
+    const { data, error } = await supabase
+      .from('prospekter')
+      .select('id, cobrand')
+      .eq('deal_id', String(dealId))
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return null;
+    return {
+      prospekt_id: data.id,
+      cobrand: data.cobrand?.partner || null,  // 'cormate', 'goldfish', eller null
+    };
+  } catch (err) {
+    console.error('fetchProspektMeta failed:', err.message);
+    return null;
   }
 }
 
@@ -626,15 +651,17 @@ exports.handler = async (event) => {
       console.error('getBefaringNoteWithConfidence failed:', err.message);
     }
 
-    // Servicehistorikk fra Supabase (alt herfra, ikke fra boat-properties)
+    // Servicehistorikk + prospekt-meta fra Supabase
     let service = null;
-    if (boatId) {
-      try {
-        const supabase = getSupabase();
-        service = await fetchServiceHistory(supabase, boatId);
-      } catch (err) {
-        console.error('fetchServiceHistory failed:', err.message);
-      }
+    let prospektMeta = null;
+    try {
+      const supabase = getSupabase();
+      if (boatId) service = await fetchServiceHistory(supabase, boatId);
+      // Prospekt-lookup bruker den OPPRINNELIGE deal-id, ikke den vi evt.
+      // reassignet til Pipeline A for befaring-notat.
+      prospektMeta = await fetchProspektMeta(supabase, qs.fetch_boat);
+    } catch (err) {
+      console.error('supabase fetch failed:', err.message);
     }
 
     return jsonResp(200, {
@@ -646,6 +673,8 @@ exports.handler = async (event) => {
       befaring_confidence: befaring.confidence,
       service,
       owner:        ownerInfo,
+      prospekt_id:  prospektMeta?.prospekt_id || null,
+      cobrand:      prospektMeta?.cobrand || null,
     });
   }
 
@@ -671,8 +700,43 @@ exports.handler = async (event) => {
     return { statusCode: 405, headers: CORS, body: 'Method not allowed' };
   }
 
-  // ── POST actions: save_draft / save_final ────────────────────────────────
+  // ── POST actions: save_draft / save_final / save_to_prospekt ─────────────
   const action = qs.action || null;
+
+  // ── save_to_prospekt ────────────────────────────────────────────────────
+  // Skriver description_intro og description_body til prospekter-tabellen
+  // for en gitt prospekt_id. Brukes når megler trykker "Lagre til prospekt".
+  if (action === 'save_to_prospekt') {
+    let body;
+    try { body = JSON.parse(event.body || '{}'); }
+    catch { return jsonResp(400, { error: 'Invalid JSON' }); }
+
+    const { prospekt_id, description_intro, description_body } = body;
+    if (!prospekt_id) return jsonResp(400, { error: 'prospekt_id påkrevd' });
+
+    const updates = {};
+    if (typeof description_intro === 'string') updates.description_intro = description_intro;
+    if (typeof description_body === 'string') updates.description_body = description_body;
+    if (Object.keys(updates).length === 0) {
+      return jsonResp(400, { error: 'Ingen felter å oppdatere' });
+    }
+
+    try {
+      const supabase = getSupabase();
+      const { data, error } = await supabase
+        .from('prospekter')
+        .update(updates)
+        .eq('id', prospekt_id)
+        .select('id')
+        .single();
+      if (error) throw error;
+      return jsonResp(200, { ok: true, prospekt_id: data.id, updated: Object.keys(updates) });
+    } catch (err) {
+      console.error('save_to_prospekt failed:', err.message);
+      return jsonResp(500, { error: err.message });
+    }
+  }
+
   if (action === 'save_draft' || action === 'save_final') {
     let body;
     try { body = JSON.parse(event.body || '{}'); }
