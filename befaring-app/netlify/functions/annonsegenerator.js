@@ -917,7 +917,7 @@ exports.handler = async (event) => {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 4096,
+        max_tokens: 2800,  // Begrens for å holde generering under 26s timeout
         // Prompt caching: store systemPrompt i Anthropic-cache 5 minutter slik
         // at subsequent calls innen samme sesjon ikke betaler for / re-prosesserer
         // det store stilarkivet. Dette reduserer latency dramatisk og er kritisk
