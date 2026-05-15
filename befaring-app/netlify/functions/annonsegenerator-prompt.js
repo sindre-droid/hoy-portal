@@ -479,6 +479,85 @@ EQUIPMENT:
 
 === LISTING START ===
 TYPE: motorboat
+FILE: Cranchi Mediterrane 47 Prospekt.pdf
+TITLE: Cranchi Mediterrane 47
+
+DESCRIPTION:
+2006 Cranchi
+Vi har nå fått for salg en unik Cranchi Mediterrane 47 hvor det ikke er spart på ei
+krone med tanke på utstyrsnivå og vedlikehold. Båten ble sjøsatt først i 2008, og
+har kun hatt en eier siden da. Før den ble sjøsatt i år er det brukt Kr. 350.000.- på
+polering, teakbehandling og motorservice. Den har blitt lagret innendørs hver
+vinter, så her har du mulighet å sikre deg et nydelig eksemplar, ta kontakt.
+Oppdag den perfekte kombinasjonen av luksus, ytelse og italiensk eleganse.
+Denne motorbåten er kjent for sitt tidløse design. Cranchi Mediterrane 47 skiller
+seg ut med sitt stilrene og aerodynamiske skrog, designet for å gi en jevn og be­
+hagelig seilas. Cockpiten er romslig og innbydende, utstyrt med en stor sittegrup­
+pe og et justerbart bord som skaper en perfekt setting for sosiale sammenkomster
+eller en rolig ettermiddag til sjøs. Her finner du også en praktisk wet-bar med vask,
+grill kjøleskap og isbitmaskin. Forut på båten finner du komfortable solsenger,
+og en kjøleskuff i umiddelbar nærhet for oppbevaring av drikkevarer, det ideelle
+stedet å nyte solen og utsikten.
+Ved styreposisjonen finner vi tre komfortable seter i kjøreretning, hvor kapteinens
+sete har elektrisk justeringsmulighet. Denne båten er fullspekket med Raymarine
+navigasjonssystem, det inkluderer to stykker kartplottere, fastmontert VHF, AIS,
+Autopilot og radar.
+Når du trer inn i den flotte salongen finner vi moderne og smakfullt innredning med
+komfortable sitteplasser og et elegant spisebord, perfekt for både avslapning og
+underholdning. Kjøkkenet er fullt utstyrt med et stort kjøleskap, keramisk koke­
+topp, ny mikrobølgeovn, egenmontert Crystal Clear Water System som gjør at du
+kan drikke ferskvann rett fra krana og masse skapplass.
+Cranchi 47 tilbyr to romslige lugarer, mastercabin med dobbeltseng og gjestecabin
+med to enkeltsenger. Hver kabin er designet med tanke på komfort, og sikrer at du
+og dine gjester alltid har et avslappende tilfluktssted etter en dag på sjøen. Det er
+også eget toalettrom til hver av lugarene utstyrt med dusj, vask og toalett.
+Denne båten er utstyrt med 2x Volvo Penta D9 motorer som yter totalt 1150Hk,
+dette sikrer høy ytelse og pålitelighet. Båten er også utstyrt med moderne bekvem­
+meligheter som klimaanlegg, varme og underholdningssystemer som sikrer en
+komfortabel opplevelse under alle forhold.
+Ikke gå glipp av muligheten til å eie denne fantastiske båten. Her får du båtplass på
+Aker Brygge Marina betalt ut sesongen. Ta kontakt for mere informasjon, visning
+etter avtale med megler.
+
+SPECIFICATIONS:
+Pris:
+Merke: Cranchi
+Modellt: Mediterrane 47
+Årsmodell: 2006
+Lengde i cm: 1524 cm
+Lengde i fot: 50 fot
+Bredde: 415cm
+Motorfabrikant: 2 x Volvo Penta D9
+Motortype: Innenbords
+Motorstørrelse: 1150 hk
+Maks fart: 32 Knop
+Drivstoff: Diesel
+Vekt: ca. 13.000KG
+Materiale: Glassfiber
+Farge: Hvit/blå
+
+EQUIPMENT:
+- 2 x Vovlo Penta D9 innenbords motorer som yter totalt 1150HK
+- Oppgradert Fusion lydpakke
+- Raymarine navigasjonspakke (2x kartplottere, VHF, AIS, Autopilot og Radar)
+- 8-Personers redningsflåte (må på service)
+- Kameraovervåkning
+- Navneskilt m/ bakgrunnsbelysning (kostnad 75.000)
+- Eberspacher oppvarming
+- Crystal Water System (Gjør det mulig å drikke ferskvann rett fra krana)
+- Ny ankervinsj m/ Rockna anker
+- Både baug- og hekkthruster (hekkthruster er helt ny, levert av Sleipner)
+- Airmar rib m/ Mercury 15HK El-start
+- Solseng i baug m/ nytt havnetrekk
+- Panda generator
+- Nye smart TV-er i begge lugarer
+- Kalesje
+- Fortøyningspakke
+
+=== LISTING END ===
+
+=== LISTING START ===
+TYPE: motorboat
 FILE: Pardo P43 Prospekt 2024.pdf
 TITLE: 2024 Pardo P43
 
@@ -551,6 +630,126 @@ EQUIPMENT:
 - Oppgradert Fusion lydpakke m/ bla. Apollo RA770
 - Elektronisk ankervinsj m/kameraovervåkning til kartplotter og ferskvannsspyling
 - Havnetrekk
+
+=== LISTING END ===
+
+=== LISTING START ===
+TYPE: motorboat
+FILE: Storebro 430.pdf
+TITLE: Storebro 430 Biscay
+
+DESCRIPTION:
+Nydelig klassisk Cabin Cruiser, gjennomgående preget av eleganse og kvalitetshåndverk. Svenske Storebro er kjent for høy
+kvalitet, og materialvalg av beste kvalitet i båtene sine. Håndbygget interiør i flott utført tre gir en meget eksklusiv og klassisk
+følelse i hele båten, og fornuftige oppgraderinger og modernisering tilfredsstiller moderne krav til funksjonalitet.
+Akter finner du en stor badeplattform utført i teak, med badestige samt passasje til akterdekket. Selvfølgelig fortsetter teaken
+over på akterdekket, som er et hyggelig oppholdsområde med god plass og pen utførelse. Rekkverket i lakkert tre rundt
+akterdekket er en skikkelig Storebro-signatur, og gir et hyggelig estetisk uttrykk. Bordet kan foldes ut i en håndvending, og det
+er løse kvalitetsstoler stuvet like under dekket.
+På flybridgen fortsetter de gode materialene og pen finish. Stor solmadrass akter på flybridgen, samt en hyggelig sittegruppe og
+en fornuftig utformet styreposisjon. Storebroen har selvfølgelig teakdekk på flybridgen også, og stolene er nye.
+Inne i salongen kommer virkelig det svenske tradisjonshåndverket til syne, med nydelig utformede flater og en behagelig
+romfølelse. Stor u-formet sofa til styrbord, samt en pen lesestol til babord. Styreposisjonen inne er et skikkelig høydepunkt, med
+store flater i pent behandlet tre; veldig ryddig, funksjonelt og elegant utført.
+I byssa finner du multimikro-ovn og komfyr med induksjonstopp, kjøleskap (130L), fryseboks, varmt og kaldt vann.
+Fremover har båten 2 flotte kabiner og 2 bad. Også her er båten preget av meget pent utført håndverk i kvalitetsmaterialer, som
+gir en hyggelig atmosfære. Storebro har virkelig vært tro mot tradisjonen i 430 Biscay, uten at det går på bekostning av
+anvendelighet eller plassutnyttelsen.
+Båten bærer preg av pertentlig båthold, hyppige oppgraderinger, og har lange utstyrs- og vedlikeholdslister.
+
+SPECIFICATIONS:
+Pris: 2.079.000
+Merke: Storebro
+Modell: 430 Biscay Royal Cruiser
+Årsmodell: 1997
+Lengde i cm: 1310
+Lengde i fot: 43
+Bredde: ca 410
+Motorfabrikant: 2xVolvo Penta 63P
+Motortype: Innenbords
+Hestekrefter: 710
+Maks fart: 28 knop
+Drivstoff: Diesel
+Vekt: 11500
+Materiale: Glassfiber
+Farge: Hvit
+
+EQUIPMENT:
+Utstyr - Navigasjon
+Raymarine Axiom 12" (ny 2024)
+Raymarine Axiom 9" Flybridge (ny 2024)
+Ekkolodd
+Autopilot
+Kompass (2024)
+VHF
+Teknisk
+Generator: Onan 6,5 kW (ca. 300 timer, stillegående med ny eksospotte/vannutskiller)
+Eberspächer dieselvarmer 5 kW
+Kina-dieselvarmer 5 kW (akterdekk)
+Varmtvannstank (60L)
+Trusther (baugthruster) 10HK med fjernkontroll
+Batterilader 50A (ny 2021)
+Solcelleanlegg installert (2020)
+Forbruksbatterier (2023)
+Start/thruster-batterier (2025)
+Utstyr - Bysse
+Kjøleskap 130L (nytt 2023)
+Fryseboks
+Multi mikroovn
+Induksjonstopp
+Kjøkkenarmatur (2024)
+
+=== LISTING END ===
+
+=== LISTING START ===
+TYPE: motorboat
+FILE: Sunseeker 44 Camargue HoY Prospekt 2024.pdf
+TITLE: 2000 Sunseeker 44 Camargue
+
+DESCRIPTION:
+Vi har nå for salg en nydelig, hvit Sunseeker 44 Camargue! Båten er oppgradert i senere
+år, og med godt, jevnlig vedlikehold fremstår hun som meget pen. Mye utstyr og en
+svært hyggelig løsning på byssen som er unik for modellen, må sees og oppleves!
+Båten ligger i Asker, vises kun etter avtale.
+Om båten:
+Sunseeker 44 Camargue er nærmest som en klassiker å regne i dagens båtpark. Svært
+gjennomprøvd modell som står seg like godt i dag som da den kom. Nydelige linjer,
+smarte løsninger og effektiv planløsning er stikkord som kjennetegner båten.
+Med en veldig god utstyrsspec ligger alt til rette for både lange ferieturer med hele
+familien såvel som raske dagsturer i finværet.
+Stor og sosial cockpit med nedfellabart bord. En hyggelig wetbar til styrbord og tre
+gode sitteplasser i farstretning ved førerposisjonen. Oppgradert navigasjon og radar.
+På fordekket finner du en stor avtagbar solseng. Under dekk har du to kabiner med
+tilhørende toalettrom og dusj, samt en svært hyggelig salong. I byssen har tidligere eier
+gjort en smart ombygging av bysseområdet som frigjør plass og gir en imponerende
+størrelse på kjøkkenet. Her finner du både integrert stekeovn, to gassbluss og utslags-
+vask.
+Med generator ombord er nok strøm i uthavn aldri et problem. Båten er også utstyrt med
+baugpropell for enkel manøvrering.
+
+SPECIFICATIONS:
+Pris:
+Merke: Sunseeker
+Modellt: 44 Camargue
+Årsmodell: 2000
+Lengde i cm: 1351 cm
+Lengde i fot: 44 fot
+Bredde: 420 cm
+Motorfabrikant: 2 x Volvo Penta TAMD 74
+Motortype: Innenbords
+Drivstoff: Diesel
+Vekt: 13 200 kg
+Materiale: Glassfiber
+Farge: Hvit
+
+EQUIPMENT:
+Oppgradert navigasjon og radar
+Wetbar til styrbord
+Baugpropell
+Generator
+Integrert stekeovn
+To gassbluss
+Utslaksvask
 
 === LISTING END ===
 
@@ -791,6 +990,116 @@ EQUIPMENT:
 
 === LISTING START ===
 TYPE: sailboat
+FILE: Colin Archer 40 english.pdf
+TITLE: Colin Archer 40 (English version)
+
+DESCRIPTION:
+S/Y Vilde
+Norway
+Colin Archer Copenhagen Cruiser
+1902 design, built 1981 at Djupevaag Båtbyggeri.
+Considerable refurbishment of hull and deck in 2020, done at Hardanger Fartøyvernsenter.
+This is a 40-foot, rock-solid Colin Archer yacht, built in 1981 at the highly esteemed Djupevåg Boatbuilders, based on the original
+Colin Archer drawings from 1902. Considerable refurbishment of hull and deck, done at Hardanger Fartøyvernsenter, in 2020, at
+cost of £75.000+. Reciepts and thorough documentation of the refit/restoration is available.
+Crafted with traditional Norwegian boatbuilding expertise and using only the finest materials, this vessel is both a gem and a
+highly dependable long-distance cruiser. If you're planning adventures in nearby or far-off waters, S/Y Vilde deserves your
+serious consideration. This is a proven, original Colin Archer design in exceptionally good condition. The boat is truly unique and
+must be experienced firsthand.
+In terms of wooden boats, S/Y Vilde is as close to maintenance-free as it gets.
+The hull is built from solid oak on oak frames. The woodwork is in remarkably good condition thanks to S/Y Vilde's relatively
+young age and expert care. Above deck, everything is made from 2-inch thick Burmese teak, which has recently been
+refurbished. The quality and thickness of the teak is extraordinary—virtually impossible to find today. It is nearly maintenance-
+free: it only requires an occasional rinse or sweep—no sanding or oiling needed.
+
+SPECIFICATIONS:
+Make: Colin Archer
+Model: "København"
+Year: 1981
+Length in ft: 40
+Width: 360
+Engine: Mitsubishi / SABB
+Engine type: Inboard
+Engine power (HP): 65
+Fuel: Diesel
+Build Material: Oak
+
+EQUIPMENT:
+- New mast 2017, slightly longer, spruce, hollow
+- New standing rig 2020
+- New sail wardrobe (Brodersen sails, Lyngør, Norway)
+- Furling flying jib (2019)
+- Bow Spirit of Oregon Pine, ⅔ hollow on Bronze gliders (2020)
+- Winches
+- Double burner stove
+- 8 beds
+- Lavac Vacuum WC
+- 80L waste tank with exits to land or sea
+- 300L fresh water
+- Monitor wind pilot
+- 60m 13mm anchor chain
+- 42kg CQR plow anchor
+- 50kg anchor + custom alu-anchor
+- 2 blade propeller for long distance and cruising
+- 3 blade propeller may be directly mounted on axle
+- Composite thru hull fittings (2018)
+- Viking Life Raft (6p - 2018)
+- Plenty documentation of recent refit - cost NOK 1m + (2020)
+
+=== LISTING END ===
+
+=== LISTING START ===
+TYPE: sailboat
+FILE: Lagoon 52 Fly ENG HoY2025.pdf
+TITLE: 2018 Lagoon 52 Fly
+
+DESCRIPTION:
+Your next long-range catamaran – optimized for autonomy, comfort and charter flexibility.
+The Lagoon 52 Fly represents one of the most space-efficient and versatile cruising catamarans
+in her class. Designed for luxurious private use and equally suited to premium
+charter operations, "Smajla II" is delivered in the popular 6 + 2 cabin layout,
+offering maximum accommodation flexibility and operational autonomy.
+With her high-end specification, 6+1+1 cabin layout, and large Yammer
+Engines, as well as major 2023/2024 upgrades, this Lagoon 52 Fly is the ideal
+platform for owners seeking bluewater autonomy, Mediterranean adventure,
+or premium charter income potential.
+Key Features:
+Layout: 6 double cabins + 2 crew
+"Smajla II" features a true 6 + 2 cabin configuration: six double cabins for
+guests, each with its own bathroom, plus two single crew cabins in the bows.
+This layout offers unmatched space and revenue potential if used
+commercially, while still being practical for large families or private cruising
+groups.
+The Alpi Walnut wood finish combined with beige upholstery gives a clean, modern
+interior. The saloon features panoramic windows, a fully equipped galley, and a
+forward-facing nav station with additional helm throttles and repeat displays.
+
+SPECIFICATIONS:
+Pris: EUR 649 000
+Yard: Lagoon
+Model: 52 Fly
+Year: 2018
+Length in cm: 1585 cm
+Lenght in feet: 52 fot
+Bredde: 874 cm
+Engines: 2 x Yanner 4JH80
+Enginetype: Inboard
+Horsepower: 160 hp
+Fuel: Diesel
+Weight: 26 000 kg
+Material: Glassfiber
+Color: White
+
+EQUIPMENT:
+- Electric winches (3) and electric halyard winch
+- Lines led to the protected flybridge helm
+- Hydraulic tender platform
+- Designed for safe launch and storage of the included Highfield tender
+
+=== LISTING END ===
+
+=== LISTING START ===
+TYPE: sailboat
 FILE: 2008 Jeanneau Sun Odyssey 36i.pdf
 TITLE: 2008 Jeanneau Sun Odyssey 36i
 
@@ -829,6 +1138,60 @@ EQUIPMENT:
 - Nye seil (Gran) i 2021
 - Nye batterier + solcellepanel i 2021
 - Baugpropell
+
+=== LISTING END ===
+
+=== LISTING START ===
+TYPE: sailboat
+FILE: 8metercarmenSalgsoppgave - www.finn.no_bat.pdf
+TITLE: 8 meter Carmen IV (1914)
+
+DESCRIPTION:
+Seilbåt/Motorseiler
+Carmen IV er bygget av Anker & Jensen i Vollen, et av de mest prestisjefylte verftene i Skandinavia med materialer og håndtverk i
+ypperste kvalitet.
+Skroget er av mahogny på eikespant. Masten av Oregon pine og med sine 18,5 meter kan tunes. Setup for mast og rigg innfrir
+kravene til at hun er målt inn under R- regelen.
+Nåværende eiere kjøpte Carmen IV i 2018 og seilet henne til Kragerø. De har tatt godt vare på henne siden, og mange har nok de
+siste årene fått oppleve hennes vakre skue i Kragerø' s skjærgård om sommeren.
+Dekk:
+Dekk er bygget opp slik innside til ut: Hvitmalte profilerte furustav, perlestaff synlige fra inne i båten. Kryssfiner limt i epoxy på stavene
+nedenfor. Glassfiber limt i epoxy på kryssfineren Primer, grunning og toppstrøk med antiskli. Dollbord er frest inn i sidene av denne
+konstruksjonen og slipt helt ned og beiset/lakkert opp 10 strøk denne våren.
+Undervannskrog:
+Bunnstoff, Internasjonal Cruiser Premium
+Headroom:
+Høyde under dekk i salong ca 180 cm. Noe høyere i skylight og i nedgangsluken.
+Stikk køyer:
+Lengde 210, bredde ca 60cm
+Båten ligger i Kragerø. Ta kontakt for avtale om visning.
+
+SPECIFICATIONS:
+Årsmodell: 1914
+Sengeplasser: 6
+Lengde(fot): 43
+Motormerke: Volvo Penta D1
+Motorstr.(hk): 13
+Motortype: Innenbords
+
+EQUIPMENT:
+Rigg / Seil og dekksutrustning:
+Mast: ca 18,5m (hul tremast, gammel, kan være original)
+Bom: 6,25m - Bomløft til mastetopp
+Galvede beslag, gamle trolig originale hvitmalte på rigg
+Akterstag/strammer/blokk - til tuning
+Standard fall, spectra tau, skjøter (ok stand)
+Div løpende rigg
+Rullesystem Furlex 204/304 - 2021 montert nytt for sesong 2022 med nytt stag, toggle rundt mast og omsydd Genoa for rull
+Noen ekstra seil
+Spinnaker
+Lazyjacks (Nye 2022)
+Vinsjer - div. modeller
+Anker 15 kg og 30m syrefast kjetting
+Foldepropell
+EL:
+VARTA 2x80 Ah (Nye 2022)
+Fastmontert lader for enkel topping ved kai
 
 === LISTING END ===
 

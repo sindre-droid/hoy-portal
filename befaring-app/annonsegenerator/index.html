@@ -313,6 +313,7 @@
 // ── Config ─────────────────────────────────────────────────────────────────
 const IDENTITY = '/.netlify/identity';
 const API      = '/.netlify/functions/annonsegenerator';
+const STREAM_API = '/api/annonsegenerator-stream';  // Edge Function for AI-streaming
 
 // ── State ───────────────────────────────────────────────────────────────────
 let token              = null;
@@ -415,7 +416,24 @@ function onLogin(user) {
   $('userName').textContent = name;
   screen('app');
   fetchDeals();
+  ensurePromptSeeded();  // V2.1: pre-seed prompt så Edge Function har riktig versjon
   $('msgInput').focus();
+}
+
+// V2.1: Trigger backend til å sjekke aktiv prompt og re-seede hvis versjon-mismatch.
+// Best-effort — feiler stille hvis Supabase er ned.
+async function ensurePromptSeeded() {
+  try {
+    const r = await fetch(`${API}?ensure_prompt_seeded=1`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (r.ok) {
+      const data = await r.json();
+      console.log(`Prompt seeded: v${data.version} (${data.prompt_length} tegn)`);
+    }
+  } catch (err) {
+    console.error('ensurePromptSeeded failed (non-fatal):', err);
+  }
 }
 
 // ── Deal picker ───────────────────────────────────────────────────────────────
@@ -519,6 +537,76 @@ function buildInputSummary(data) {
   };
 }
 
+// ── V2.1: Streaming-helper ─────────────────────────────────────────────────
+// Kaller Edge Function /api/annonsegenerator-stream og oppdaterer bubble
+// progressively. Returnerer { text, prompt_version } når stream er ferdig.
+//
+// Format på stream: ren tekst-tokens, etterfulgt av "\n__META__:{...}\n"
+// som siste linje.
+async function streamAnnonse(messages, onChunk) {
+  const res = await fetch(STREAM_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ messages }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'unknown' }));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let fullText = '';
+  let promptVersion = null;
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+
+    // Sjekk for META-marker. Hvis funnet, klipp den ut av tekst-strømmen
+    // og parse den. META kan komme i midten av en chunk hvis Edge Function
+    // har sendt den splittet, så vi venter til vi har komplett linje.
+    const metaIdx = buffer.indexOf('\n__META__:');
+    if (metaIdx !== -1) {
+      const textPart = buffer.slice(0, metaIdx);
+      const metaEnd = buffer.indexOf('\n', metaIdx + 10);
+      if (metaEnd !== -1) {
+        try {
+          const metaJson = buffer.slice(metaIdx + 10, metaEnd).trim();
+          const meta = JSON.parse(metaJson);
+          if (meta.prompt_version) promptVersion = meta.prompt_version;
+        } catch (e) {
+          console.error('Failed to parse META:', e.message);
+        }
+        // Append tekst-delen før META, og rester etter META
+        if (textPart) {
+          fullText += textPart;
+          onChunk(fullText);
+        }
+        buffer = buffer.slice(metaEnd + 1);
+      }
+      // Hvis META ikke er komplett, behold buffer til neste read
+      continue;
+    }
+
+    // Ingen META i sikte — emit alt vi har samlet
+    if (buffer.length > 0) {
+      fullText += buffer;
+      onChunk(fullText);
+      buffer = '';
+    }
+  }
+
+  // Eventuelt rester
+  if (buffer.length > 0) fullText += buffer;
+
+  return { text: fullText, prompt_version: promptVersion };
+}
+
 async function sendContextSummary(context, dealName) {
   // Transition from starter state to chat
   $('starterState').style.display = 'none';
@@ -536,31 +624,21 @@ async function sendContextSummary(context, dealName) {
 
   isLoading = true;
   $('sendBtn').disabled = true;
-  const typingEl = appendTyping();
+
+  // Opprett bobla på forhånd så vi kan oppdatere underveis
+  const streamEl = appendStreamingMessage();
 
   try {
-    const res = await fetch(API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ messages: conversationHistory })
+    const result = await streamAnnonse(conversationHistory, (partial) => {
+      updateStreamingMessage(streamEl, partial);
     });
 
-    typingEl.remove();
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      appendMessage('assistant', `⚠️ Feil ved henting: ${err.error || res.status}`);
-      conversationHistory.pop();
-    } else {
-      const data  = await res.json();
-      const reply = data.content || '';
-      if (data.prompt_version) lastPromptVersion = data.prompt_version;
-      conversationHistory.push({ role: 'assistant', content: reply });
-      appendMessage('assistant', reply, true);
-    }
+    if (result.prompt_version) lastPromptVersion = result.prompt_version;
+    conversationHistory.push({ role: 'assistant', content: result.text });
+    finalizeStreamingMessage(streamEl, result.text);
   } catch (err) {
-    typingEl.remove();
-    appendMessage('assistant', `⚠️ Tilkoblingsfeil: ${err.message}`);
+    streamEl.remove();
+    appendMessage('assistant', `⚠️ Feil ved henting: ${err.message}`);
     conversationHistory.pop();
   }
 
@@ -780,34 +858,20 @@ async function sendMessage() {
 
   isLoading = true;
   $('sendBtn').disabled = true;
-  const typingEl = appendTyping();
+
+  const streamEl = appendStreamingMessage();
 
   try {
-    const res = await fetch(API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ messages: conversationHistory })
+    const result = await streamAnnonse(conversationHistory, (partial) => {
+      updateStreamingMessage(streamEl, partial);
     });
 
-    typingEl.remove();
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      appendMessage('assistant', `⚠️ Feil: ${err.error || res.status}`);
-      conversationHistory.pop();
-      isLoading = false; $('sendBtn').disabled = false;
-      return;
-    }
-
-    const data  = await res.json();
-    const reply = data.content || '';
-    if (data.prompt_version) lastPromptVersion = data.prompt_version;
-    conversationHistory.push({ role: 'assistant', content: reply });
-    appendMessage('assistant', reply, true);
-
+    if (result.prompt_version) lastPromptVersion = result.prompt_version;
+    conversationHistory.push({ role: 'assistant', content: result.text });
+    finalizeStreamingMessage(streamEl, result.text);
   } catch (err) {
-    typingEl.remove();
-    appendMessage('assistant', `⚠️ Tilkoblingsfeil: ${err.message}`);
+    streamEl.remove();
+    appendMessage('assistant', `⚠️ Feil: ${err.message}`);
     conversationHistory.pop();
   }
 
@@ -1189,6 +1253,42 @@ function appendTyping() {
   wrap.appendChild(el);
   scrollBottom();
   return el;
+}
+
+// ── V2.1 Streaming-rendering ──────────────────────────────────────────────────
+// appendStreamingMessage: lager en tom AI-bobla som kan oppdateres underveis
+// updateStreamingMessage: oppdater bobla med ny tekst (kalles per chunk)
+// finalizeStreamingMessage: ferdigstill — parse seksjoner, render kort, vis knapper
+
+function appendStreamingMessage() {
+  const wrap = $('messages');
+  const el = document.createElement('div');
+  el.className = 'msg assistant streaming';
+  el.innerHTML = `
+    <div class="msg-avatar">⚓</div>
+    <div style="flex:1;min-width:0">
+      <div class="msg-bubble" data-stream-body="1">
+        <div class="typing-indicator"><span></span><span></span><span></span></div>
+      </div>
+    </div>`;
+  wrap.appendChild(el);
+  scrollBottom();
+  return el;
+}
+
+function updateStreamingMessage(el, text) {
+  const bubble = el.querySelector('[data-stream-body]');
+  if (!bubble) return;
+  // Vis ren tekst mens den strømmer inn (markdown rendres ved ferdigstilling)
+  bubble.innerHTML = `<div style="white-space:pre-wrap;font-size:14px;line-height:1.65">${escH(text)}</div>`;
+  scrollBottom();
+}
+
+function finalizeStreamingMessage(el, text) {
+  // Erstatt streaming-bobla med en standard appendMessage som har parse +
+  // alle knapper. Enklere enn å re-rendre in-place.
+  el.remove();
+  appendMessage('assistant', text, true);
 }
 
 function scrollBottom() { const cw = $('chatWrap'); cw.scrollTop = cw.scrollHeight; }

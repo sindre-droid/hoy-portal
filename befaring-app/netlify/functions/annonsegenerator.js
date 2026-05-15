@@ -21,7 +21,7 @@ const PIPELINE_B_INCLUDE = ['prep','listing ready','klar','live','publisert','un
 
 // Versjonstag for fallback-prompt (når Supabase ikke har aktiv rad).
 // Bør bumpes hver gang annonsegenerator-prompt.js endres.
-const FALLBACK_PROMPT_VERSION = '2026-05-15.1';
+const FALLBACK_PROMPT_VERSION = '2026-05-15.2';
 
 // HubSpot association type for note → deal
 const NOTE_DEAL_ASSOC_TYPE = 214;
@@ -687,6 +687,26 @@ exports.handler = async (event) => {
     });
   }
 
+  // ── GET ?ensure_prompt_seeded=1 ──────────────────────────────────────────
+  // Brukes av frontend ved login for å sørge for at aktiv prompt i Supabase
+  // matcher FALLBACK_PROMPT_VERSION. Hvis ikke, seedActivePrompt deaktiverer
+  // gammel og opprydder ny. Kritisk for at Edge Function (streaming) skal
+  // ha tilgang til riktig prompt uten å kalle Anthropic.
+  if (event.httpMethod === 'GET' && qs.ensure_prompt_seeded) {
+    try {
+      const supabase = getSupabase();
+      const result = await getActivePrompt(supabase);
+      return jsonResp(200, {
+        version: result.version,
+        prompt_length: result.system_prompt.length,
+        seeded: result.version === FALLBACK_PROMPT_VERSION,
+      });
+    } catch (err) {
+      console.error('ensure_prompt_seeded failed:', err.message);
+      return jsonResp(500, { error: err.message });
+    }
+  }
+
   // ── GET ?get_runs=DEAL_ID ────────────────────────────────────────────────
   if (event.httpMethod === 'GET' && qs.get_runs) {
     try {
@@ -916,12 +936,13 @@ exports.handler = async (event) => {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 2800,  // Begrens for å holde generering under 26s timeout
-        // Prompt caching: store systemPrompt i Anthropic-cache 5 minutter slik
-        // at subsequent calls innen samme sesjon ikke betaler for / re-prosesserer
-        // det store stilarkivet. Dette reduserer latency dramatisk og er kritisk
-        // for V2.1 hvor system-prompten er ~16K tokens.
+        // NB: For V2.1-generering bør frontend kalle Edge Function
+        // /api/annonsegenerator-stream istedet (full Sonnet + streaming).
+        // Denne POST-pathen er fortsatt med som fallback for klienter som
+        // ikke støtter streaming. Vi bruker Haiku her for å holde under
+        // Netlify 26s-timeout.
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 2800,
         system: [
           {
             type: 'text',
