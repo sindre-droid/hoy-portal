@@ -19,6 +19,10 @@
 [functions."servicehistorikk"]
   timeout = 26
 
+# Annonsegenerator V2.1: stort system-prompt (~16K tokens) + lang Claude-generering
+[functions."annonsegenerator"]
+  timeout = 26
+
 # Serve subfolder routes cleanly
 [[redirects]]
   from = "/befaring"

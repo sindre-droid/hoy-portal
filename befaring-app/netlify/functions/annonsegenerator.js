@@ -918,7 +918,17 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 4096,
-        system: systemPrompt,
+        // Prompt caching: store systemPrompt i Anthropic-cache 5 minutter slik
+        // at subsequent calls innen samme sesjon ikke betaler for / re-prosesserer
+        // det store stilarkivet. Dette reduserer latency dramatisk og er kritisk
+        // for V2.1 hvor system-prompten er ~16K tokens.
+        system: [
+          {
+            type: 'text',
+            text: systemPrompt,
+            cache_control: { type: 'ephemeral' },
+          },
+        ],
         messages,
       }),
     });
