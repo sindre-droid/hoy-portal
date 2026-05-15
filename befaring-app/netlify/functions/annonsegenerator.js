@@ -99,15 +99,24 @@ async function getActivePrompt(supabase) {
 
     if (error) throw error;
 
-    // Hvis det finnes en aktiv rad med ekte innhold, returner den
-    if (data && data.system_prompt && !data.system_prompt.startsWith('-- placeholder')) {
+    // Bruk aktiv rad KUN hvis:
+    //  - den finnes
+    //  - den har ekte innhold (ikke placeholder)
+    //  - den matcher gjeldende FALLBACK_PROMPT_VERSION
+    // Hvis FALLBACK_PROMPT_VERSION er bumpet i en ny deploy, vil dette
+    // trigge re-seed slik at vi automatisk oppgraderer til ny prompt.
+    if (data
+        && data.version === FALLBACK_PROMPT_VERSION
+        && data.system_prompt
+        && !data.system_prompt.startsWith('-- placeholder')) {
       return {
         version: data.version,
         system_prompt: data.system_prompt + (data.style_archive ? '\n\n' + data.style_archive : ''),
       };
     }
 
-    // Ellers: prøv å seede/aktivere FALLBACK_PROMPT_VERSION med lokal fil
+    // Ellers: deaktiver gamle aktive prompts og seede FALLBACK_PROMPT_VERSION
+    // (seedActivePrompt deaktiverer alle med is_active=true før den setter ny)
     await seedActivePrompt(supabase);
 
     return {
