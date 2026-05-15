@@ -1106,24 +1106,7 @@ async function saveDraft(btn) {
 async function buildFinnBlokk(btn) {
   try {
     const sections = JSON.parse(btn.dataset.sections);
-    const tittel = selectedFinnTitle || sections.titler[0] || '';
-    const apning = sections.finn_apning || '';
-    const hoved  = sections.finn_hovedtekst || '';
-    const hp     = sections.finn_hoydepunkter || '';
-
-    const kontakt = MEGLER_KONTAKT[currentOwnerEmail] || MEGLER_KONTAKT['sindre@h-y.no'];
-
-    const parts = [];
-    if (tittel) parts.push(tittel);
-    if (apning) parts.push(apning);
-    if (hoved)  parts.push(hoved);
-    if (includeHighlights && hp) {
-      parts.push('Høydepunkter:\n' + hp);
-    }
-    parts.push('Ta kontakt for mer informasjon:\n\n' + kontakt);
-    parts.push(OM_OSS_FINN);
-
-    const blokk = parts.join('\n\n');
+    const blokk = buildFinnBlokkText(sections);
 
     await navigator.clipboard.writeText(blokk);
     const original = btn.textContent;
@@ -1135,13 +1118,42 @@ async function buildFinnBlokk(btn) {
   }
 }
 
+// ── V2.1: Markdown-til-format-konvertering for prospekt-editor ──────────────
+// Intro-feltet er en textarea (plain tekst) — vi stripper *stjerner*.
+// Body-feltet er contenteditable HTML — vi konverterer markdown til HTML.
+function stripMarkdownToPlain(md) {
+  return String(md || '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')   // **bold** → bold
+    .replace(/\*(.+?)\*/g, '$1')        // *italic* → italic
+    .replace(/^\s+|\s+$/g, '');         // trim
+}
+
+function markdownToHtml(md) {
+  if (!md) return '';
+  // Splitt i avsnitt på blank linje
+  const paragraphs = String(md).split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+  return paragraphs.map(p => {
+    // Inline-formatering
+    let html = p
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>');
+    // Linje-skift innenfor avsnitt → <br>
+    html = html.replace(/\n/g, '<br>');
+    return `<p>${html}</p>`;
+  }).join('\n');
+}
+
 // ── V2.1: Lagre til prospekt ────────────────────────────────────────────────
-// Skriver description_intro og description_body til prospekter-tabellen.
+// Skriver description_intro (plain) og description_body (HTML) til prospekter-tabellen.
 async function saveToProspekt(btn) {
   if (!currentProspektId) { alert('Ingen prospekt funnet for denne dealen'); return; }
-  const intro = btn.dataset.intro || '';
-  const body  = btn.dataset.body || '';
-  if (!intro && !body) { alert('Ingen tekst å lagre'); return; }
+  const introMd = btn.dataset.intro || '';
+  const bodyMd  = btn.dataset.body || '';
+  if (!introMd && !bodyMd) { alert('Ingen tekst å lagre'); return; }
+
+  // Konverter til format som prospekt-editoren forventer
+  const intro = stripMarkdownToPlain(introMd);
+  const body  = markdownToHtml(bodyMd);
 
   const original = btn.textContent;
   btn.disabled = true;
@@ -1170,13 +1182,42 @@ async function saveToProspekt(btn) {
   }
 }
 
+// ── V2.1: Bygg ferdig FINN-blokk-tekst (helper, brukes både i Bygg- og Marker-knappene)
+function buildFinnBlokkText(sections) {
+  const tittel = selectedFinnTitle || sections.titler[0] || '';
+  const apning = sections.finn_apning || '';
+  const hoved  = sections.finn_hovedtekst || '';
+  const hp     = sections.finn_hoydepunkter || '';
+  const kontakt = MEGLER_KONTAKT[currentOwnerEmail] || MEGLER_KONTAKT['sindre@h-y.no'];
+
+  const parts = [];
+  if (tittel) parts.push(tittel);
+  if (apning) parts.push(apning);
+  if (hoved)  parts.push(hoved);
+  if (includeHighlights && hp) parts.push('Høydepunkter:\n' + hp);
+  parts.push('Ta kontakt for mer informasjon:\n\n' + kontakt);
+  parts.push(OM_OSS_FINN);
+
+  return parts.join('\n\n');
+}
+
 // ── V2: Marker endelig ──────────────────────────────────────────────────────
+// V2.1-oppdatering: Modal pre-fylles med ferdig FINN-blokk-tekst (samme som
+// "Bygg FINN-blokk" lager) istedenfor hele AI-responsen. Slik fanger diff-en
+// kun det som faktisk publiseres på FINN, og megler får en relevant tekst
+// å redigere — ikke alle 6 felter og markører på en gang.
 function openFinalModal(btn) {
   if (!currentDealId) { alert('Ingen deal er valgt'); return; }
-  // Pre-fyll modalen med utkast-teksten så megler bare trenger å redigere
-  $('finalText').value = btn.dataset.text || '';
+
+  // Forsøk å parse seksjoner fra btn.dataset.text. Hvis V2.1-format,
+  // bygg FINN-blokk-tekst. Ellers fall tilbake til rå tekst.
+  const rawText = btn.dataset.text || '';
+  const sections = parseSections(rawText);
+  const initialText = sections ? buildFinnBlokkText(sections) : rawText;
+
+  $('finalText').value = initialText;
   $('finalNotes').value = '';
-  pendingFinalRunId = currentRunId;  // kan være null hvis utkast ikke er lagret ennå
+  pendingFinalRunId = currentRunId;
   $('finalModal').classList.add('show');
 }
 
