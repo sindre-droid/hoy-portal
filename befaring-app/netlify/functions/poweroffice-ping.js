@@ -269,6 +269,121 @@ exports.handler = async (event) => {
     });
   }
 
+  // ─── Explore v2 deep — prøv flere path-strukturer for missing endpoints ──
+  if (action === 'explore-v2-deep') {
+    // v2 grupperer endepunkter under workflow-prefiks. Vi prøver mange varianter.
+    const endpoints = [
+      {
+        key: 'customerLedger',
+        candidates: [
+          '/reporting/customerLedger?pageSize=3',
+          '/customerLedger/statement?pageSize=3',
+          '/customerLedger/openItems?pageSize=3',
+          '/customerLedger/balances?pageSize=3',
+          '/reporting/customerLedger/statement?pageSize=3',
+          '/customerLedgerEntries?pageSize=3',
+        ],
+      },
+      {
+        key: 'accountTransactions',
+        candidates: [
+          '/reporting/accountTransactions?pageSize=3',
+          '/accounting/accountTransactions?pageSize=3',
+          '/accountTransactions/statement?pageSize=3',
+          '/generalLedger/accountTransactions?pageSize=3',
+          '/reporting/accountTransactions/statement?pageSize=3',
+        ],
+      },
+      {
+        key: 'journalEntryVoucher',
+        candidates: [
+          '/voucherWorkflows/journalEntryVoucher?pageSize=3',
+          '/journalEntryVouchers?pageSize=3',
+          '/vouchers/journalEntryVoucher?pageSize=3',
+          '/voucher/journalEntryVoucher?pageSize=3',
+          '/journalEntries?pageSize=3',
+        ],
+      },
+      {
+        key: 'voucherPosting',
+        candidates: [
+          '/voucherWorkflows/voucherPosting?pageSize=3',
+          '/vouchers?pageSize=3',
+          '/postedVouchers?pageSize=3',
+        ],
+      },
+      {
+        key: 'voucherDocumentation',
+        candidates: [
+          '/voucherWorkflows/voucherDocumentation?pageSize=3',
+          '/voucherDocumentation?pageSize=3',
+        ],
+      },
+      {
+        key: 'supplierLedger',
+        candidates: [
+          '/reporting/supplierLedger?pageSize=3',
+          '/supplierLedger?pageSize=3',
+        ],
+      },
+      {
+        key: 'trialBalance',
+        candidates: [
+          '/reporting/trialBalance?pageSize=3',
+          '/trialBalance?pageSize=3',
+        ],
+      },
+      {
+        key: 'outgoingInvoicesReporting',
+        candidates: [
+          '/reporting/outgoingInvoices?pageSize=3',
+        ],
+      },
+      // Cross-check at noen kjente fungerer fortsatt
+      {
+        key: 'customers_sanity',
+        candidates: ['/customers?pageSize=1'],
+      },
+    ];
+
+    const results = {};
+
+    for (const ep of endpoints) {
+      let chosen = null;
+      const attempts = [];
+
+      for (const path of ep.candidates) {
+        const r = await po(path);
+        attempts.push({ path, status: r.status });
+        if (r.ok) { chosen = { path, ...r }; break; }
+      }
+
+      if (chosen) {
+        const sample = Array.isArray(chosen.data) ? chosen.data.slice(0, 2) : chosen.data;
+        const count  = Array.isArray(chosen.data) ? chosen.data.length    : (chosen.data ? 1 : 0);
+        results[ep.key] = {
+          ok: true,
+          path: chosen.path,
+          status: chosen.status,
+          count_in_response: count,
+          sample,
+        };
+      } else {
+        results[ep.key] = {
+          ok: false,
+          attempts,
+        };
+      }
+    }
+
+    return respond(true, {
+      action: 'explore-v2-deep',
+      called_by: auth.email,
+      base_url: process.env.POWEROFFICE_BASE_URL,
+      results,
+    });
+  }
+
   // ─── Explore v1 — prøv v1-endepunkter for det v2 ikke har ─────────────────
   if (action === 'explore-v1') {
     // v1 bruker PascalCase navn. Vi prøver flere base-URL-varianter siden
