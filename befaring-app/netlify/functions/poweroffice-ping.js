@@ -173,6 +173,72 @@ exports.handler = async (event) => {
     body: JSON.stringify(payload, null, 2),
   });
 
+  // ─── Explore prod — kall hver lesetilgang vi har for å lære datastruktur ───
+  if (action === 'explore-prod') {
+    // Liste over endpoints vi vil prøve. Vi gjetter på path-navn basert på REST-konvensjon.
+    // Hvis ett 404'er, prøver vi alternativ stavemåte. Hvis begge feiler, rapporteres det.
+    const endpoints = [
+      { key: 'customers',                 candidates: ['/customers?pageSize=2'] },
+      { key: 'projects',                  candidates: ['/projects?pageSize=3'] },
+      { key: 'employees',                 candidates: ['/employees?pageSize=10', '/employee?pageSize=10'] },
+      { key: 'generalLedgerAccounts',     candidates: ['/generalLedgerAccounts?pageSize=300', '/generalLedgerAccount?pageSize=300'] },
+      { key: 'clientBankAccounts',        candidates: ['/clientBankAccounts', '/clientBankAccount'] },
+      { key: 'customerLedger',            candidates: ['/customerLedger?pageSize=5', '/customerLedgers?pageSize=5'] },
+      { key: 'accountTransactions',       candidates: ['/accountTransactions?pageSize=5'] },
+      { key: 'outgoingInvoices',          candidates: ['/outgoingInvoices?pageSize=3', '/outgoingInvoice?pageSize=3'] },
+      { key: 'outgoingInvoiceVouchers',   candidates: ['/outgoingInvoiceVouchers?pageSize=3', '/outgoingInvoiceVoucher?pageSize=3'] },
+      { key: 'bankVouchers',              candidates: ['/bankVouchers?pageSize=3', '/bankVoucher?pageSize=3'] },
+      { key: 'cashVouchers',              candidates: ['/cashVouchers?pageSize=3', '/cashVoucher?pageSize=3'] },
+      { key: 'payrollSettings',           candidates: ['/payrollSettings', '/payrollSetting'] },
+      { key: 'payItems',                  candidates: ['/payItems?pageSize=30', '/payItem?pageSize=30'] },
+      { key: 'employeePayrollSettings',   candidates: ['/employeePayrollSettings?pageSize=10', '/employeePayrollSetting?pageSize=10'] },
+      { key: 'saleryLines',               candidates: ['/saleryLines?pageSize=5', '/saleryLine?pageSize=5', '/salaryLines?pageSize=5'] },
+      { key: 'products',                  candidates: ['/products?pageSize=5', '/product?pageSize=5'] },
+    ];
+
+    const results = {};
+
+    for (const ep of endpoints) {
+      let chosen = null;
+      const attempts = [];
+
+      for (const path of ep.candidates) {
+        const r = await po(path);
+        attempts.push({ path, status: r.status });
+        if (r.ok) {
+          chosen = { path, ...r };
+          break;
+        }
+      }
+
+      if (chosen) {
+        // Trim sample til 1-3 entries for å holde respons leselig
+        const sample = Array.isArray(chosen.data) ? chosen.data.slice(0, 3) : chosen.data;
+        const count  = Array.isArray(chosen.data) ? chosen.data.length    : (chosen.data ? 1 : 0);
+        results[ep.key] = {
+          ok: true,
+          path: chosen.path,
+          status: chosen.status,
+          count_in_response: count,
+          sample,
+        };
+      } else {
+        results[ep.key] = {
+          ok: false,
+          attempts,
+          note: 'Ingen kandidat-path returnerte 200. Endpoint-navnet kan være annerledes, eller vi mangler tilgang.',
+        };
+      }
+    }
+
+    return respond(true, {
+      action: 'explore-prod',
+      called_by: auth.email,
+      base_url: process.env.POWEROFFICE_BASE_URL,
+      results,
+    });
+  }
+
   // ─── Ping ─────────────────────────────────────────────────────────────────
   if (action === 'ping') {
     const ping = await po('/customers?pageSize=1');
