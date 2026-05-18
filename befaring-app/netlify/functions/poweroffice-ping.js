@@ -116,6 +116,36 @@ async function po(path, method = 'GET', body = null) {
   return { ok: res.ok, status: res.status, url: `${baseUrl}${path}`, data };
 }
 
+// v1-wrapper: bruker samme auth, men annen base-URL.
+// Hvis POWEROFFICE_V1_BASE_URL ikke er satt, faller vi tilbake til v2 base-URL erstattet "/v2" → "/v1"
+async function poV1(path, method = 'GET', body = null) {
+  const tok = await getAccessToken();
+  if (!tok.ok) return { ok: false, step: 'auth', error: tok };
+
+  let baseUrl = process.env.POWEROFFICE_V1_BASE_URL;
+  if (!baseUrl) {
+    const v2 = process.env.POWEROFFICE_BASE_URL || '';
+    baseUrl = v2.replace(/\/v2\b/, '/v1');
+  }
+  const subKey = process.env.POWEROFFICE_SUBSCRIPTION_KEY;
+
+  const res = await fetch(`${baseUrl}${path}`, {
+    method,
+    headers: {
+      'Authorization':             `Bearer ${tok.access_token}`,
+      'Ocp-Apim-Subscription-Key': subKey,
+      'Content-Type':              'application/json',
+      'Accept':                    'application/json',
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+
+  const text = await res.text();
+  let data; try { data = JSON.parse(text); } catch { data = { raw: text.slice(0, 500) }; }
+
+  return { ok: res.ok, status: res.status, url: `${baseUrl}${path}`, data };
+}
+
 // ── Test-actions ─────────────────────────────────────────────────────────────
 
 function testCustomerPayload() {
@@ -235,6 +265,74 @@ exports.handler = async (event) => {
       action: 'explore-prod',
       called_by: auth.email,
       base_url: process.env.POWEROFFICE_BASE_URL,
+      results,
+    });
+  }
+
+  // ─── Explore v1 — prøv v1-endepunkter for det v2 ikke har ─────────────────
+  if (action === 'explore-v1') {
+    // v1 bruker PascalCase navn. Vi prøver flere base-URL-varianter siden
+    // vi ikke er 100% sikre på path-strukturen.
+    const v1Endpoints = [
+      // Det vi mangler fra v2 — kritisk for cashflow/hovedbok
+      { key: 'BankJournalVoucher',         candidates: ['/BankJournalVoucher?$top=3', '/api/v1/BankJournalVoucher?$top=3'] },
+      { key: 'CashJournalVoucher',         candidates: ['/CashJournalVoucher?$top=3'] },
+      { key: 'OutgoingInvoiceVoucher',     candidates: ['/OutgoingInvoiceVoucher?$top=3'] },
+      { key: 'JournalEntryVoucher',        candidates: ['/JournalEntryVoucher?$top=3'] },
+      { key: 'PayrollJournalVoucher',      candidates: ['/PayrollJournalVoucher?$top=3'] },
+      { key: 'Reporting_AccountTransactions', candidates: ['/Reporting/AccountTransactions?$top=5', '/AccountTransactions?$top=5'] },
+      { key: 'Reporting_CustomerLedger',    candidates: ['/Reporting/CustomerLedger?$top=5', '/CustomerLedger?$top=5'] },
+      // Cross-check at v1 også har de samme entitetene som v2
+      { key: 'Customer',                   candidates: ['/Customer?$top=2'] },
+      { key: 'Project',                    candidates: ['/Project?$top=2'] },
+      { key: 'Employee',                   candidates: ['/Employee?$top=2'] },
+      { key: 'OutgoingInvoice',            candidates: ['/OutgoingInvoice?$top=2'] },
+      { key: 'GeneralLedgerAccount',       candidates: ['/GeneralLedgerAccount?$top=3'] },
+      { key: 'Product',                    candidates: ['/Product?$top=2'] },
+      { key: 'ClientBankAccount',          candidates: ['/ClientBankAccount'] },
+    ];
+
+    const results = {};
+
+    for (const ep of v1Endpoints) {
+      let chosen = null;
+      const attempts = [];
+
+      for (const path of ep.candidates) {
+        const r = await poV1(path);
+        attempts.push({ path, status: r.status, url: r.url });
+        if (r.ok) {
+          chosen = { path, ...r };
+          break;
+        }
+      }
+
+      if (chosen) {
+        const sample = Array.isArray(chosen.data) ? chosen.data.slice(0, 2) : chosen.data;
+        const count  = Array.isArray(chosen.data) ? chosen.data.length    : (chosen.data ? 1 : 0);
+        results[ep.key] = {
+          ok: true,
+          path: chosen.path,
+          url: chosen.url,
+          status: chosen.status,
+          count_in_response: count,
+          sample,
+        };
+      } else {
+        results[ep.key] = {
+          ok: false,
+          attempts,
+          note: 'Ingen kandidat returnerte 200',
+        };
+      }
+    }
+
+    return respond(true, {
+      action: 'explore-v1',
+      called_by: auth.email,
+      v1_base_url: process.env.POWEROFFICE_V1_BASE_URL ||
+                   (process.env.POWEROFFICE_BASE_URL || '').replace(/\/v2\b/, '/v1') ||
+                   '(not set)',
       results,
     });
   }
