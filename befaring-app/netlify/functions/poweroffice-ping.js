@@ -269,6 +269,65 @@ exports.handler = async (event) => {
     });
   }
 
+  // ─── Explore v2 verified — bruker bekreftede paths fra OpenAPI-spec ───────
+  if (action === 'explore-v2-verified') {
+    // Datoer for queries som krever fromDate/toDate
+    const today = new Date().toISOString().slice(0, 10);
+    const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const lastYear = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+    const endpoints = [
+      // Rapporter — alle har date-krav
+      { key: 'AccountTransactions',     path: `/AccountTransactions?fromDate=${monthAgo}&toDate=${today}&PageSize=3` },
+      { key: 'CustomerBalances',         path: `/Customerledger/CustomerBalances?date=${today}&PageSize=3` },
+      { key: 'CustomerOpenItems',        path: `/Customerledger/OpenItems?date=${today}&PageSize=3` },
+      { key: 'CustomerStatement',        path: `/Customerledger/Statement?fromDate=${monthAgo}&toDate=${today}&PageSize=3` },
+      { key: 'TrialBalance',             path: `/TrialBalance?fromDate=${monthAgo}&toDate=${today}` },
+      { key: 'SupplierBalances',         path: `/Supplierledger/SupplierBalances?date=${today}&PageSize=3` },
+      { key: 'SupplierOpenItems',        path: `/Supplierledger/OpenItems?date=${today}&PageSize=3` },
+
+      // Vouchers — kan kreve filter
+      { key: 'JournalEntryVouchers_root',     path: `/JournalEntryVouchers?PageSize=3` },
+      { key: 'JournalEntryVouchers_Bank',     path: `/JournalEntryVouchers/BankJournals?PageSize=3` },
+      { key: 'JournalEntryVouchers_Manual',   path: `/JournalEntryVouchers/ManualJournals?PageSize=3` },
+      { key: 'VoucherDocumentation',          path: `/VoucherDocumentation?PageSize=3` },
+
+      // Bankkonto detaljer
+      { key: 'ClientBankAccounts_list',       path: `/ClientBankAccounts` },
+      { key: 'BankApprovers',                 path: `/ClientBankAccounts/BankApprovers` },
+
+      // Fakturadetaljer — ID kreves for Lines, prøver bare root
+      { key: 'OutgoingInvoices_paged',        path: `/OutgoingInvoices?PageSize=3` },
+      { key: 'IncomingInvoices',              path: `/IncomingInvoices?PageSize=3` },
+
+      // Cross-check at vår fix på PageSize fungerer
+      { key: 'Customers_PageSize_check',     path: `/customers?PageSize=2` },
+      { key: 'Projects_PageSize_check',      path: `/projects?PageSize=3` },
+    ];
+
+    const results = {};
+    for (const ep of endpoints) {
+      const r = await po(ep.path);
+      const sample = Array.isArray(r.data) ? r.data.slice(0, 2) : r.data;
+      const count  = Array.isArray(r.data) ? r.data.length    : (r.data ? 1 : 0);
+      results[ep.key] = {
+        ok: r.ok,
+        status: r.status,
+        path: ep.path,
+        count_in_response: count,
+        sample: r.ok ? sample : undefined,
+        error: r.ok ? undefined : r.data,
+      };
+    }
+
+    return respond(true, {
+      action: 'explore-v2-verified',
+      called_by: auth.email,
+      base_url: process.env.POWEROFFICE_BASE_URL,
+      results,
+    });
+  }
+
   // ─── Explore v2 deep — prøv flere path-strukturer for missing endpoints ──
   if (action === 'explore-v2-deep') {
     // v2 grupperer endepunkter under workflow-prefiks. Vi prøver mange varianter.
