@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project P&L — House of Yachts</title>
+  <style>
+    :root {
+      --navy:#0a2140;--gold:#c9a84c;--white:#fff;--surface:#f5f7fa;
+      --gray:#dde3ec;--gray-dark:#6b7a8d;--text:#12233a;
+      --green:#166534;--green-bg:#dcfce7;
+      --red:#991b1b;--red-bg:#fee2e2;
+      --yellow:#92400e;--yellow-bg:#fef3c7;
+      --blue:#1e40af;--blue-bg:#dbeafe;
+      --radius:12px;--shadow:0 2px 16px rgba(10,33,64,0.10);
+    }
+    *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--surface);color:var(--text);margin:0;padding:0;min-height:100vh}
+
+    .loading-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy)}
+    .loading-text{color:rgba(255,255,255,0.5);font-size:15px}
+    .auth-error{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy)}
+    .auth-error-box{background:white;border-radius:16px;padding:40px;text-align:center;max-width:400px}
+    .auth-error-box h2{color:var(--red);margin:0 0 12px}
+    .auth-error-box p{color:var(--gray-dark);margin:0 0 20px}
+    .auth-error-box a{color:var(--navy);font-weight:600}
+
+    .header{background:var(--navy);color:white;padding:14px 20px;position:sticky;top:0;z-index:200;box-shadow:0 2px 16px rgba(0,0,0,0.35)}
+    .header-inner{max-width:1280px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .brand{display:flex;flex-direction:column}
+    .brand-name{font-size:14px;font-weight:800;letter-spacing:0.8px}
+    .brand-sub{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--gold)}
+    .header-title{font-size:16px;font-weight:700;color:rgba(255,255,255,0.9)}
+    .btn-nav{background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.18);border-radius:20px;color:rgba(255,255,255,0.85);padding:6px 14px;font-size:12px;font-family:inherit;cursor:pointer;text-decoration:none}
+    .btn-nav:hover{background:rgba(255,255,255,0.2)}
+
+    .main{max-width:1280px;margin:0 auto;padding:20px 16px 80px}
+
+    .topbar{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;gap:12px;flex-wrap:wrap}
+    .page-title{font-size:24px;font-weight:800;color:var(--navy);margin:0}
+    .page-sub{font-size:13px;color:var(--gray-dark);margin:4px 0 0}
+    .controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .search-input{padding:8px 14px;border:2px solid var(--gray);border-radius:10px;font-size:14px;font-family:inherit;color:var(--text);background:white;min-width:240px}
+    .filter-select{padding:8px 12px;border:2px solid var(--gray);border-radius:10px;font-size:14px;font-family:inherit;color:var(--text);font-weight:600;background:white}
+
+    /* KPI grid */
+    .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+    .kpi-card{background:white;border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)}
+    .kpi-label{font-size:12px;color:var(--gray-dark);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px}
+    .kpi-value{font-size:24px;font-weight:800;color:var(--navy);line-height:1.1}
+    .kpi-sub{font-size:12px;color:var(--gray-dark);margin-top:4px}
+
+    /* Table */
+    .panel{background:white;border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);overflow-x:auto}
+    .panel-title{font-size:15px;font-weight:700;color:var(--navy);margin:0 0 14px}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    thead th{text-align:left;padding:10px 8px;font-size:11px;font-weight:700;color:var(--gray-dark);text-transform:uppercase;letter-spacing:0.5px;border-bottom:2px solid var(--gray);background:white;cursor:pointer;user-select:none;white-space:nowrap}
+    thead th:hover{color:var(--navy)}
+    thead th.right{text-align:right}
+    thead th.sorted{color:var(--navy)}
+    thead th.sorted::after{content:" ▼";font-size:9px}
+    thead th.sorted.asc::after{content:" ▲"}
+    tbody td{padding:10px 8px;border-bottom:1px solid var(--gray);vertical-align:middle}
+    tbody td.right{text-align:right;font-variant-numeric:tabular-nums}
+    tbody tr:hover{background:var(--surface);cursor:pointer}
+
+    .code-cell{font-weight:700;color:var(--navy);white-space:nowrap}
+    .name-cell{font-weight:600;color:var(--text)}
+    .name-cell .sub{font-size:11px;color:var(--gray-dark);font-weight:400;margin-top:2px}
+    .pm-cell{font-size:12px;color:var(--gray-dark)}
+
+    .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.3px}
+    .badge-active{background:var(--green-bg);color:var(--green)}
+    .badge-complete{background:var(--blue-bg);color:var(--blue)}
+    .badge-other{background:var(--gray);color:var(--gray-dark)}
+
+    .pos{color:var(--green);font-weight:700}
+    .neg{color:var(--red);font-weight:700}
+    .muted{color:var(--gray-dark)}
+    .has-open{color:var(--yellow);font-weight:700}
+
+    .empty-state{padding:40px 20px;text-align:center;color:var(--gray-dark)}
+
+    /* Detail modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(10,33,64,0.5);z-index:1000;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}
+    .modal-backdrop.open{display:flex}
+    .modal{background:white;border-radius:16px;max-width:960px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden}
+    .modal-header{background:var(--navy);color:white;padding:18px 24px;display:flex;justify-content:space-between;align-items:center}
+    .modal-title{font-size:18px;font-weight:800;margin:0}
+    .modal-close{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:50%;width:32px;height:32px;color:white;cursor:pointer;font-size:16px;font-weight:700;font-family:inherit}
+    .modal-body{padding:20px 24px;max-height:70vh;overflow-y:auto}
+    .modal-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+    .stat-card{background:var(--surface);border-radius:10px;padding:12px 14px}
+    .stat-label{font-size:10px;color:var(--gray-dark);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+    .stat-value{font-size:18px;font-weight:800;color:var(--navy)}
+    .modal-section-title{font-size:13px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.5px;margin:18px 0 10px}
+    .modal table{font-size:12px}
+
+    @media (max-width: 900px){
+      .kpi-grid{grid-template-columns:repeat(2,1fr)}
+      .modal-stats{grid-template-columns:repeat(2,1fr)}
+      .hide-mobile{display:none}
+    }
+  </style>
+</head>
+<body>
+
+<div class="loading-screen" id="loadingScreen">
+  <div class="loading-text">Laster Project P&L…</div>
+</div>
+
+<div class="auth-error" id="authError" style="display:none">
+  <div class="auth-error-box">
+    <h2>Ingen tilgang</h2>
+    <p>Denne siden krever admin-tilgang.</p>
+    <a href="/">Tilbake</a>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+  <header class="header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-name">HOUSE OF YACHTS</div>
+        <div class="brand-sub">Internportal</div>
+      </div>
+      <div class="header-title">Project P&L</div>
+      <a class="btn-nav" href="/finance/cockpit/">← Cockpit</a>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1 class="page-title">Project P&L</h1>
+        <p class="page-sub">Per-oppdrag inntekt og kostnader fra PowerOffice. Synket lokalt, oppdateres når sync-jobben kjører.</p>
+      </div>
+      <div class="controls">
+        <input type="text" id="searchInput" class="search-input" placeholder="Søk nummer eller båt…" />
+        <select id="statusFilter" class="filter-select">
+          <option value="all">Alle statuser</option>
+          <option value="Active">Aktive</option>
+          <option value="Complete">Fullført</option>
+        </select>
+        <select id="yearFilter" class="filter-select">
+          <option value="all">Alle år</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Antall oppdrag</div>
+        <div class="kpi-value" id="kpiCount">—</div>
+        <div class="kpi-sub" id="kpiCountSub"></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Total fakturert (netto)</div>
+        <div class="kpi-value" id="kpiRevenue">—</div>
+        <div class="kpi-sub">Sum etter mva, eks. reverserte</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Direkte kostnader</div>
+        <div class="kpi-value" id="kpiCosts">—</div>
+        <div class="kpi-sub">Konti 4000–7999 tagget på prosjekt</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Netto bidrag</div>
+        <div class="kpi-value" id="kpiNet">—</div>
+        <div class="kpi-sub">Inntekt – direkte kostnader</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <table id="projectsTable">
+        <thead>
+          <tr>
+            <th data-sort="code">Nr</th>
+            <th data-sort="name">Båt</th>
+            <th data-sort="pm" class="hide-mobile">Megler</th>
+            <th data-sort="status">Status</th>
+            <th data-sort="latest_invoice_date" class="hide-mobile">Sist fakturert</th>
+            <th class="right" data-sort="n_invoices">Faktura</th>
+            <th class="right" data-sort="revenue_net">Inntekt netto</th>
+            <th class="right" data-sort="open_balance">Åpent</th>
+            <th class="right" data-sort="direct_costs">Direkte kost</th>
+            <th class="right" data-sort="net_contribution">Netto</th>
+          </tr>
+        </thead>
+        <tbody id="projectsBody"></tbody>
+      </table>
+      <div class="empty-state" id="emptyState" style="display:none">Ingen oppdrag matcher filteret.</div>
+    </div>
+  </main>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-backdrop" id="modalBackdrop" onclick="if(event.target===this) closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h3 class="modal-title" id="modalTitle">—</h3>
+        <div style="font-size:11px;color:rgba(255,255,255,0.7);margin-top:2px" id="modalSubtitle"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="modalBody">
+      <div class="loading-text" style="color:var(--gray-dark);text-align:center;padding:40px">Laster…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API      = `${window.location.origin}/.netlify/functions/finance-project-pl`;
+const IDENTITY = `${window.location.origin}/.netlify/identity`;
+
+let accessToken = null;
+let allProjects = [];
+let sortKey = 'code';
+let sortDir = 'desc';
+
+function parseJwt(t) {
+  try { return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))); } catch { return null; }
+}
+
+function fmtNok(n) {
+  if (n === null || n === undefined || Number.isNaN(Number(n))) return '—';
+  return Math.round(Number(n)).toLocaleString('no-NO');
+}
+
+function fmtDate(s) {
+  if (!s) return '—';
+  return new Date(s).toLocaleDateString('no-NO', { year:'2-digit', month:'short', day:'numeric' });
+}
+
+function escapeHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function init() {
+  const tok = localStorage.getItem('hoy_access_token');
+  if (!tok) { window.location.href = '/'; return; }
+  try {
+    const r = await fetch(`${IDENTITY}/user`, { headers: { Authorization: `Bearer ${tok}` } });
+    if (!r.ok) throw new Error();
+  } catch {
+    localStorage.removeItem('hoy_access_token');
+    window.location.href = '/';
+    return;
+  }
+  const jwt = parseJwt(tok);
+  const roles = jwt?.app_metadata?.roles || [];
+  if (!roles.includes('admin')) {
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('authError').style.display = 'flex';
+    return;
+  }
+  accessToken = tok;
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('app').style.display = '';
+  await loadData();
+  bindEvents();
+}
+
+async function loadData() {
+  const res = await fetch(`${API}?list=1`, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!res.ok) {
+    alert('Klarte ikke laste prosjekter');
+    return;
+  }
+  const data = await res.json();
+  allProjects = data.projects || [];
+
+  // Populer år-filter
+  const years = new Set();
+  for (const p of allProjects) {
+    if (p.code && p.code.length === 5) years.add('20' + p.code.slice(0, 2));
+  }
+  const yearSelect = document.getElementById('yearFilter');
+  [...years].sort().reverse().forEach(y => {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    yearSelect.appendChild(opt);
+  });
+
+  renderAll();
+}
+
+function bindEvents() {
+  document.getElementById('searchInput').addEventListener('input', renderAll);
+  document.getElementById('statusFilter').addEventListener('change', renderAll);
+  document.getElementById('yearFilter').addEventListener('change', renderAll);
+  document.querySelectorAll('thead th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      const key = th.dataset.sort;
+      if (sortKey === key) sortDir = (sortDir === 'asc' ? 'desc' : 'asc');
+      else { sortKey = key; sortDir = 'desc'; }
+      renderAll();
+    });
+  });
+}
+
+function getSortValue(p, key) {
+  switch (key) {
+    case 'code': return p.code || '';
+    case 'name': return (p.name || '').toLowerCase();
+    case 'pm': return (p.project_manager?.name || '').toLowerCase();
+    case 'status': return p.project_status || '';
+    case 'latest_invoice_date': return p.latest_invoice_date || '';
+    case 'n_invoices': return p.n_invoices || 0;
+    case 'revenue_net': return p.revenue_net || 0;
+    case 'open_balance': return p.open_balance || 0;
+    case 'direct_costs': return p.direct_costs || 0;
+    case 'net_contribution': return p.net_contribution || 0;
+    default: return '';
+  }
+}
+
+function renderAll() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const status = document.getElementById('statusFilter').value;
+  const year   = document.getElementById('yearFilter').value;
+
+  let rows = allProjects.filter(p => {
+    if (status !== 'all' && p.project_status !== status) return false;
+    if (year !== 'all') {
+      const projYear = p.code ? ('20' + p.code.slice(0, 2)) : null;
+      if (projYear !== year) return false;
+    }
+    if (search) {
+      const hay = (p.code + ' ' + (p.name || '') + ' ' + (p.project_manager?.name || '')).toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  rows.sort((a, b) => {
+    const av = getSortValue(a, sortKey);
+    const bv = getSortValue(b, sortKey);
+    if (typeof av === 'number' && typeof bv === 'number') {
+      return sortDir === 'asc' ? av - bv : bv - av;
+    }
+    return sortDir === 'asc' ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+  });
+
+  // Header sort-indikator
+  document.querySelectorAll('thead th[data-sort]').forEach(th => {
+    th.classList.toggle('sorted', th.dataset.sort === sortKey);
+    th.classList.toggle('asc', th.dataset.sort === sortKey && sortDir === 'asc');
+  });
+
+  // KPI-er for filtrert utvalg
+  let totalRev = 0, totalCost = 0, totalOpen = 0;
+  for (const p of rows) {
+    totalRev  += Number(p.revenue_net || 0);
+    totalCost += Number(p.direct_costs || 0);
+    totalOpen += Number(p.open_balance || 0);
+  }
+  document.getElementById('kpiCount').textContent = rows.length;
+  document.getElementById('kpiCountSub').textContent = totalOpen > 0 ? `${fmtNok(totalOpen)} utestående` : 'Ingen utestående';
+  document.getElementById('kpiRevenue').textContent = fmtNok(totalRev);
+  document.getElementById('kpiCosts').textContent = fmtNok(totalCost);
+  document.getElementById('kpiNet').textContent = fmtNok(totalRev - totalCost);
+
+  // Tabell
+  const body = document.getElementById('projectsBody');
+  body.innerHTML = '';
+  if (!rows.length) {
+    document.getElementById('emptyState').style.display = 'block';
+    return;
+  }
+  document.getElementById('emptyState').style.display = 'none';
+
+  for (const p of rows) {
+    const tr = document.createElement('tr');
+    tr.onclick = () => openDetail(p);
+
+    const statusBadge = p.project_status === 'Active'
+      ? '<span class="badge badge-active">Aktiv</span>'
+      : p.project_status === 'Complete'
+        ? '<span class="badge badge-complete">Fullført</span>'
+        : `<span class="badge badge-other">${escapeHtml(p.project_status || '—')}</span>`;
+
+    const boatName = (p.name || '').replace(/^\d{5}\s*-\s*/, '');
+    const netCls = p.net_contribution > 0 ? 'pos' : (p.net_contribution < 0 ? 'neg' : 'muted');
+    const openCls = p.open_balance > 0 ? 'has-open' : 'muted';
+
+    tr.innerHTML = `
+      <td class="code-cell">${escapeHtml(p.code)}</td>
+      <td class="name-cell">${escapeHtml(boatName)}${p.local?.broker_email ? `<div class="sub">${escapeHtml(p.local.broker_email)}</div>` : ''}</td>
+      <td class="pm-cell hide-mobile">${escapeHtml(p.project_manager?.name || '—')}</td>
+      <td>${statusBadge}</td>
+      <td class="hide-mobile" style="font-size:12px;color:var(--gray-dark)">${fmtDate(p.latest_invoice_date)}</td>
+      <td class="right">${p.n_invoices || 0}</td>
+      <td class="right">${fmtNok(p.revenue_net)}</td>
+      <td class="right ${openCls}">${p.open_balance > 0 ? fmtNok(p.open_balance) : '—'}</td>
+      <td class="right">${p.direct_costs ? fmtNok(p.direct_costs) : '—'}</td>
+      <td class="right ${netCls}">${fmtNok(p.net_contribution)}</td>
+    `;
+    body.appendChild(tr);
+  }
+}
+
+async function openDetail(p) {
+  document.getElementById('modalTitle').textContent = `${p.code} — ${(p.name || '').replace(/^\d{5}\s*-\s*/, '')}`;
+  document.getElementById('modalSubtitle').textContent = `Megler: ${p.project_manager?.name || '—'} · Status: ${p.project_status || '—'}`;
+  document.getElementById('modalBody').innerHTML = '<div class="loading-text" style="color:var(--gray-dark);text-align:center;padding:40px">Laster…</div>';
+  document.getElementById('modalBackdrop').classList.add('open');
+
+  const res = await fetch(`${API}?detail=${p.project_id}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!res.ok) {
+    document.getElementById('modalBody').innerHTML = '<div class="empty-state">Klarte ikke laste detaljer.</div>';
+    return;
+  }
+  const data = await res.json();
+  renderDetail(data, p);
+}
+
+function renderDetail(data, summary) {
+  const { invoices, transactions } = data;
+
+  // Stats
+  const statsHtml = `
+    <div class="modal-stats">
+      <div class="stat-card"><div class="stat-label">Inntekt (netto)</div><div class="stat-value">${fmtNok(summary.revenue_net)}</div></div>
+      <div class="stat-card"><div class="stat-label">Direkte kostnader</div><div class="stat-value">${fmtNok(summary.direct_costs)}</div></div>
+      <div class="stat-card"><div class="stat-label">Netto bidrag</div><div class="stat-value ${summary.net_contribution > 0 ? 'pos' : 'neg'}">${fmtNok(summary.net_contribution)}</div></div>
+      <div class="stat-card"><div class="stat-label">Åpent</div><div class="stat-value ${summary.open_balance > 0 ? 'has-open' : 'muted'}">${fmtNok(summary.open_balance)}</div></div>
+    </div>
+  `;
+
+  const invoicesHtml = invoices.length ? `
+    <div class="modal-section-title">Fakturaer (${invoices.length})</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Nr</th><th>Dato</th><th>Type</th>
+          <th class="right">Netto</th><th class="right">Brutto</th><th class="right">Saldo</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${invoices.map(i => `
+          <tr ${i.is_reversed ? 'style="opacity:0.5"' : ''}>
+            <td>${escapeHtml(String(i.invoice_no || '—'))}${i.is_reversed ? ' <span class="badge badge-other">Reversert</span>' : ''}</td>
+            <td>${fmtDate(i.voucher_date)}</td>
+            <td style="font-size:11px;color:var(--gray-dark)">${escapeHtml(i.voucher_type || '')}</td>
+            <td class="right">${fmtNok(i.net_amount)}</td>
+            <td class="right">${fmtNok(i.total_amount)}</td>
+            <td class="right ${i.balance > 0 ? 'has-open' : 'muted'}">${i.balance > 0 ? fmtNok(i.balance) : '—'}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  ` : '<div class="modal-section-title">Fakturaer</div><div class="empty-state">Ingen fakturaer på dette prosjektet.</div>';
+
+  const txsHtml = transactions.length ? `
+    <div class="modal-section-title">Transaksjoner (${transactions.length})</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Dato</th><th>Konto</th><th>Bilag</th><th>Beskrivelse</th>
+          <th class="right">Beløp</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${transactions.map(t => `
+          <tr>
+            <td>${fmtDate(t.posting_date)}</td>
+            <td>${t.account_no || '—'}</td>
+            <td style="font-size:11px;color:var(--gray-dark)">${escapeHtml(t.voucher_type || '')} ${t.voucher_no || ''}</td>
+            <td style="font-size:12px">${escapeHtml(t.description || t.voucher_description || '—')}</td>
+            <td class="right ${Number(t.amount) > 0 ? '' : 'pos'}">${fmtNok(t.amount)}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  ` : '<div class="modal-section-title">Transaksjoner</div><div class="empty-state">Ingen transaksjoner med project-tag siste 12 mnd.</div>';
+
+  document.getElementById('modalBody').innerHTML = statsHtml + invoicesHtml + txsHtml;
+}
+
+function closeModal() {
+  document.getElementById('modalBackdrop').classList.remove('open');
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+init();
+</script>
+
+</body>
+</html>

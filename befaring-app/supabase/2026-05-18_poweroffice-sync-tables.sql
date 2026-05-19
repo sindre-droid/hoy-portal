@@ -147,14 +147,14 @@ CREATE TABLE IF NOT EXISTS po_customer_open_items (
   last_changed_offset         TIMESTAMPTZ,
   created_offset              TIMESTAMPTZ,
   raw_data                    JSONB,
-  synced_at                   TIMESTAMPTZ DEFAULT NOW(),
-  days_overdue                INTEGER GENERATED ALWAYS AS (CURRENT_DATE - due_date) STORED
+  synced_at                   TIMESTAMPTZ DEFAULT NOW()
+  -- Merk: days_overdue beregnes ad-hoc i spørringer som (CURRENT_DATE - due_date)
+  -- — kan ikke være generated column siden CURRENT_DATE ikke er IMMUTABLE.
 );
 
 CREATE INDEX IF NOT EXISTS idx_po_oi_customer_id    ON po_customer_open_items(customer_id);
 CREATE INDEX IF NOT EXISTS idx_po_oi_project_id     ON po_customer_open_items(project_id);
 CREATE INDEX IF NOT EXISTS idx_po_oi_due_date       ON po_customer_open_items(due_date);
-CREATE INDEX IF NOT EXISTS idx_po_oi_days_overdue   ON po_customer_open_items(days_overdue);
 
 -- ─── GRANTs for Supabase Data API ────────────────────────────────────────────
 -- Fra 30. okt 2026 må nye public-tabeller ha eksplisitt GRANT for å være
