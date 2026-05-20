@@ -40,16 +40,30 @@ function verifyAdmin(event) {
   return { ok: true, email: jwt.email };
 }
 
-// Hardkodet PowerOffice employee → broker mapping (kan synkes til db senere)
+// Hardkodet PowerOffice employee → broker mapping
+// (verifisert mot broker_email-felt på assignment_numbers ved testkjøring)
 const EMPLOYEE_NAMES = {
-  49201149: 'Sindre Jacobsen',
-  49205223: 'Jeanette Arntzen',
-  49205230: 'Sondre Fagerborg',
-  // resten mappes basert på sync av employees-tabellen senere
+  49201149:  'Sindre Jacobsen',
+  49205223:  'Jeanette Arntzen',
+  49205230:  'Sondre Fagerborg',
+  146826015: 'Daniel Ruud',
+  144184031: 'Henrik Bratz',
 };
 
-function employeeName(id) {
-  return EMPLOYEE_NAMES[id] || (id ? `Employee ${id}` : '—');
+// Fallback: hvis vi ikke kjenner PM-IDen, prøv å avlede fra broker_email på assignment.
+// f.eks. 'henrik@h-y.no' → 'Henrik' så vi unngår 'Employee 12345' i UI-en.
+function nameFromEmail(email) {
+  if (!email) return null;
+  const local = String(email).split('@')[0] || '';
+  if (!local) return null;
+  return local.charAt(0).toUpperCase() + local.slice(1);
+}
+
+function employeeName(id, brokerEmail) {
+  if (EMPLOYEE_NAMES[id]) return EMPLOYEE_NAMES[id];
+  const fromMail = nameFromEmail(brokerEmail);
+  if (fromMail) return fromMail;
+  return id ? `Employee ${id}` : '—';
 }
 
 // ── List-action: alle YYNNN-oppdrag med aggregert P&L ──────────────────────
@@ -142,7 +156,7 @@ async function handleList(sb) {
       end_date: p.end_date,
       project_manager: {
         id: p.project_manager_employee_id,
-        name: employeeName(p.project_manager_employee_id),
+        name: employeeName(p.project_manager_employee_id, local?.broker_email),
       },
       contract_no: p.contract_no,
       customer_id: p.customer_id,
