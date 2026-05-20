@@ -54,17 +54,19 @@ function employeeName(id) {
 
 // ── List-action: alle YYNNN-oppdrag med aggregert P&L ──────────────────────
 async function handleList(sb) {
-  // Hent alle prosjekter med YYNNN-kode (5 siffer)
-  const { data: projects, error: projErr } = await sb
+  // Hent alle prosjekter, filtrer YYNNN-format (5 siffer) client-side
+  const { data: allProjects, error: projErr } = await sb
     .from('po_projects')
     .select('id, code, name, customer_id, customer_no, project_status, is_active, is_billable, start_date, end_date, project_manager_employee_id, contract_no')
-    .filter('code', 'similar to', '[0-9]{5}')
     .order('code', { ascending: false });
 
   if (projErr) {
     return { statusCode: 500, headers: { ...CORS, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: projErr.message }) };
   }
-  if (!projects?.length) {
+
+  const projects = (allProjects || []).filter(p => /^\d{5}$/.test(p.code || ''));
+
+  if (!projects.length) {
     return { statusCode: 200, headers: { ...CORS, 'Content-Type': 'application/json' }, body: JSON.stringify({ projects: [] }) };
   }
 
@@ -224,10 +226,9 @@ async function handleSummary(sb) {
     n++;
   }
 
-  const { count: projectCount } = await sb
-    .from('po_projects')
-    .select('id', { count: 'exact', head: true })
-    .filter('code', 'similar to', '[0-9]{5}');
+  // Tell YYNNN-prosjekter client-side (PostgREST har ikke regex-count på en enkel måte)
+  const { data: allProjects } = await sb.from('po_projects').select('code');
+  const projectCount = (allProjects || []).filter(p => /^\d{5}$/.test(p.code || '')).length;
 
   return {
     statusCode: 200,
@@ -238,7 +239,7 @@ async function handleSummary(sb) {
       total_revenue_net: totalRevenueNet,
       total_open_balance: totalOpen,
       invoice_count: n,
-      project_count: projectCount || 0,
+      project_count: projectCount,
     }),
   };
 }

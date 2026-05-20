@@ -266,7 +266,10 @@ async function init() {
 async function loadData() {
   const res = await fetch(`${API}?list=1`, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!res.ok) {
-    alert('Klarte ikke laste prosjekter');
+    const body = await res.text();
+    console.error('finance-project-pl?list=1 feilet:', res.status, body);
+    document.getElementById('emptyState').style.display = 'block';
+    document.getElementById('emptyState').textContent = `Klarte ikke laste prosjekter (${res.status}): ${body.slice(0, 200)}`;
     return;
   }
   const data = await res.json();
