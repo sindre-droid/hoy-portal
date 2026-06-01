@@ -154,12 +154,18 @@ exports.handler = async (event) => {
     // ── Hovedmodus: full cockpit-data ───────────────────────────────────────
     const year = parseInt(q.year, 10) || new Date().getFullYear();
 
-    const [setR, budR, bcR, brokersR] = await Promise.all([
+    const [setR, lyR, budR, bcR, bcAllR, brokersR] = await Promise.all([
       supabase
         .from('settlements')
         .select('id, sold_date, closed_at, boat_type, sale_amount, commission, revenue_ex_vat, lifecycle_status, hold_back_status, hold_back_amount')
         .gte('closed_at', `${year}-01-01`)
         .lt('closed_at', `${year + 1}-01-01`)
+        .in('lifecycle_status', ['SETTLEMENT_DONE', 'CLOSED']),
+      supabase
+        .from('settlements')
+        .select('closed_at, sale_amount, commission, revenue_ex_vat')
+        .gte('closed_at', `${year - 1}-01-01`)
+        .lt('closed_at', `${year}-01-01`)
         .in('lifecycle_status', ['SETTLEMENT_DONE', 'CLOSED']),
       supabase
         .from('budgets_company')
@@ -170,20 +176,27 @@ exports.handler = async (event) => {
         .select('broker_id, commission_earned_nok, adjustment_nok, earned_at')
         .gte('earned_at', `${year}-01-01`)
         .lt('earned_at', `${year + 1}-01-01`),
+      supabase
+        .from('broker_commissions')
+        .select('broker_id, commission_earned_nok, adjustment_nok, payout_status'),
       supabase.from('brokers').select('id, display_name, default_commission_pct').eq('is_active', true),
     ]);
     if (setR.error) throw setR.error;
+    if (lyR.error) throw lyR.error;
     if (budR.error) throw budR.error;
     if (bcR.error) throw bcR.error;
+    if (bcAllR.error) throw bcAllR.error;
     if (brokersR.error) throw brokersR.error;
 
     const settlements = setR.data;
+    const lySettlements = lyR.data;
     const budgetByMonth = new Map(budR.data.map(b => [b.period_month, b]));
 
     // ── Månedsdata ──────────────────────────────────────────────────────────
     const monthly = [];
     for (let m = 1; m <= 12; m++) {
       const inMonth = settlements.filter(s => s.closed_at && new Date(s.closed_at).getUTCMonth() + 1 === m);
+      const lyInMonth = lySettlements.filter(s => s.closed_at && new Date(s.closed_at).getUTCMonth() + 1 === m);
       const b = budgetByMonth.get(m) || {};
       monthly.push({
         month: m,
@@ -191,6 +204,9 @@ exports.handler = async (event) => {
         sale_amount: inMonth.reduce((s, x) => s + (Number(x.sale_amount) || 0), 0),
         revenue_ex_vat: inMonth.reduce((s, x) => s + (Number(x.revenue_ex_vat) || 0), 0),
         commission: inMonth.reduce((s, x) => s + (Number(x.commission) || 0), 0),
+        ly_sales_count: lyInMonth.length,
+        ly_revenue_ex_vat: lyInMonth.reduce((s, x) => s + (Number(x.revenue_ex_vat) || 0), 0),
+        ly_commission: lyInMonth.reduce((s, x) => s + (Number(x.commission) || 0), 0),
         budget_revenue: Number(b.target_revenue_nok) || 0,
         budget_sales: Number(b.target_sales_count) || 0,
         budget_mandates: Number(b.target_mandates_in) || 0,
@@ -212,8 +228,12 @@ exports.handler = async (event) => {
     const monthsElapsed = isCurrentYear ? today.getUTCMonth() + 1 : 12;
     const ytdBudgetRevenue = monthly.slice(0, monthsElapsed).reduce((s, m) => s + m.budget_revenue, 0);
     const ytdBudgetSales = monthly.slice(0, monthsElapsed).reduce((s, m) => s + m.budget_sales, 0);
+    // YoY: sum av fjorårets samme måneder (jan–nå)
+    const ly_revenue_ytd = monthly.slice(0, monthsElapsed).reduce((s, m) => s + m.ly_revenue_ex_vat, 0);
+    const ly_sales_ytd = monthly.slice(0, monthsElapsed).reduce((s, m) => s + m.ly_sales_count, 0);
+    const ly_commission_ytd = monthly.slice(0, monthsElapsed).reduce((s, m) => s + m.ly_commission, 0);
 
-    // ── Broker breakdown ────────────────────────────────────────────────────
+    // ── Broker breakdown (YTD opptjent) ─────────────────────────────────────
     const brokerById = new Map(brokersR.data.map(b => [b.id, b]));
     const brokerStats = new Map();
     for (const c of bcR.data) {
@@ -223,8 +243,19 @@ exports.handler = async (event) => {
       s.sales_count++;
       s.commission_earned += Number(c.commission_earned_nok || 0) + Number(c.adjustment_nok || 0);
     }
+    // Payout-status (all-time, ikke YTD-filtrert)
+    const brokerPayouts = new Map();
+    for (const c of bcAllR.data) {
+      const id = c.broker_id;
+      if (!brokerPayouts.has(id)) brokerPayouts.set(id, { outstanding: 0, paid: 0 });
+      const amount = Number(c.commission_earned_nok || 0) + Number(c.adjustment_nok || 0);
+      const p = brokerPayouts.get(id);
+      if (c.payout_status === 'PAID') p.paid += amount;
+      else p.outstanding += amount; // EARNED + READY
+    }
     const broker_breakdown = brokersR.data.map(b => {
       const s = brokerStats.get(b.id) || { sales_count: 0, commission_earned: 0 };
+      const p = brokerPayouts.get(b.id) || { outstanding: 0, paid: 0 };
       return {
         broker_id: b.id,
         display_name: b.display_name,
@@ -232,6 +263,8 @@ exports.handler = async (event) => {
         sales_count: s.sales_count,
         commission_earned: Math.round(s.commission_earned),
         avg_commission: s.sales_count > 0 ? Math.round(s.commission_earned / s.sales_count) : 0,
+        outstanding: Math.round(p.outstanding),
+        paid: Math.round(p.paid),
       };
     }).sort((a, b) => b.commission_earned - a.commission_earned);
 
@@ -265,6 +298,39 @@ exports.handler = async (event) => {
       .filter(s => s.hold_back_status === 'ACTIVE')
       .reduce((sum, s) => sum + (Number(s.hold_back_amount) || 0), 0);
 
+    // ── Kommende oppgjør (30d) ──────────────────────────────────────────────
+    // Settlements i IN_CONTRACT / FULLY_FUNDED med handover_at innen 30 dager
+    // (eller uten handover_at men contract_signed_at innen 30d frem)
+    const cutoff30 = new Date();
+    cutoff30.setDate(cutoff30.getDate() + 30);
+    const cutoffIso = cutoff30.toISOString().slice(0, 10);
+    const upcomingR = await supabase
+      .from('settlements')
+      .select('id, oppdragsnr, boat_type, seller_name, buyer_name, contract_signed_at, handover_at, sale_amount, commission, revenue_ex_vat, lifecycle_status, sold_by_broker_id, sold_by')
+      .in('lifecycle_status', ['IN_CONTRACT', 'FULLY_FUNDED'])
+      .or(`handover_at.lte.${cutoffIso},handover_at.is.null`)
+      .order('handover_at', { ascending: true, nullsFirst: false })
+      .limit(50);
+    let upcoming = [];
+    if (!upcomingR.error && upcomingR.data) {
+      upcoming = upcomingR.data.map(r => ({
+        id: r.id,
+        oppdragsnr: r.oppdragsnr,
+        boat_type: r.boat_type,
+        seller_name: r.seller_name,
+        buyer_name: r.buyer_name,
+        contract_signed_at: r.contract_signed_at,
+        handover_at: r.handover_at,
+        sale_amount: Number(r.sale_amount) || 0,
+        commission: Number(r.commission) || 0,
+        revenue_ex_vat: Number(r.revenue_ex_vat) || 0,
+        lifecycle_status: r.lifecycle_status,
+        sold_by_name: r.sold_by_broker_id ? brokerById.get(r.sold_by_broker_id)?.display_name : r.sold_by,
+      }));
+    } else if (upcomingR.error) {
+      console.error('upcoming query failed:', upcomingR.error.message);
+    }
+
     return {
       statusCode: 200,
       headers: h,
@@ -285,6 +351,13 @@ exports.handler = async (event) => {
           revenue_progress_pct: yearBudgetRevenue > 0
             ? Math.round((total_revenue_ex_vat / yearBudgetRevenue) * 100)
             : null,
+          // YoY (samme periode i fjor)
+          ly_revenue_ytd: Math.round(ly_revenue_ytd),
+          ly_sales_ytd,
+          ly_commission_ytd: Math.round(ly_commission_ytd),
+          revenue_yoy_pct: ly_revenue_ytd > 0
+            ? Math.round(((total_revenue_ex_vat - ly_revenue_ytd) / ly_revenue_ytd) * 100)
+            : null,
           pipeline,
           holdback_count,
           holdback_amount,
@@ -292,6 +365,7 @@ exports.handler = async (event) => {
         broker_breakdown,
         top_boat_types,
         monthly,
+        upcoming,
       }),
     };
   } catch (e) {
