@@ -154,7 +154,7 @@ exports.handler = async (event) => {
     // ── Hovedmodus: full cockpit-data ───────────────────────────────────────
     const year = parseInt(q.year, 10) || new Date().getFullYear();
 
-    const [setR, lyR, budR, bcR, bcAllR, brokersR] = await Promise.all([
+    const [setR, lyR, budR, bcR, bcAllR, brokersR, poLyR] = await Promise.all([
       supabase
         .from('settlements')
         .select('id, sold_date, closed_at, boat_type, sale_amount, commission, revenue_ex_vat, lifecycle_status, hold_back_status, hold_back_amount')
@@ -180,6 +180,12 @@ exports.handler = async (event) => {
         .from('broker_commissions')
         .select('broker_id, commission_earned_nok, adjustment_nok, payout_status'),
       supabase.from('brokers').select('id, display_name, default_commission_pct').eq('is_active', true),
+      // PowerOffice cross-check for fjoråret — net_amount = revenue ex.mva
+      supabase
+        .from('po_outgoing_invoices')
+        .select('voucher_date, net_amount, is_reversed')
+        .gte('voucher_date', `${year - 1}-01-01`)
+        .lt('voucher_date', `${year}-01-01`),
     ]);
     if (setR.error) throw setR.error;
     if (lyR.error) throw lyR.error;
@@ -187,6 +193,18 @@ exports.handler = async (event) => {
     if (bcR.error) throw bcR.error;
     if (bcAllR.error) throw bcAllR.error;
     if (brokersR.error) throw brokersR.error;
+    // PO query er best-effort — mirror kan mangle eller være ute av sync
+    const poLyByMonth = new Map();
+    if (poLyR.error) {
+      console.warn('PO YoY query failed:', poLyR.error.message);
+    } else if (poLyR.data) {
+      for (const inv of poLyR.data) {
+        if (inv.is_reversed) continue;
+        if (!inv.voucher_date) continue;
+        const m = new Date(inv.voucher_date).getUTCMonth() + 1;
+        poLyByMonth.set(m, (poLyByMonth.get(m) || 0) + (Number(inv.net_amount) || 0));
+      }
+    }
 
     const settlements = setR.data;
     const lySettlements = lyR.data;
@@ -207,6 +225,8 @@ exports.handler = async (event) => {
         ly_sales_count: lyInMonth.length,
         ly_revenue_ex_vat: lyInMonth.reduce((s, x) => s + (Number(x.revenue_ex_vat) || 0), 0),
         ly_commission: lyInMonth.reduce((s, x) => s + (Number(x.commission) || 0), 0),
+        // PowerOffice cross-check: sum av fakturert net_amount samme måned i fjor
+        ly_revenue_po: Math.round(poLyByMonth.get(m) || 0),
         budget_revenue: Number(b.target_revenue_nok) || 0,
         budget_sales: Number(b.target_sales_count) || 0,
         budget_mandates: Number(b.target_mandates_in) || 0,

@@ -266,6 +266,7 @@
             <th>Omsetning ex.mva</th>
             <th>Budsjett</th>
             <th>I fjor</th>
+            <th title="Cross-check fra PowerOffice — vises kun ved avvik > 5 %">PO Δ</th>
             <th>YoY</th>
             <th>Progress</th>
           </tr>
@@ -577,7 +578,7 @@ function renderTable(data) {
   const isCurrentYear = today.getFullYear() === data.year;
   const currentMonth = today.getMonth() + 1;
 
-  let totSales = 0, totRevenue = 0, totBudSales = 0, totBudRevenue = 0, totLyRevenue = 0;
+  let totSales = 0, totRevenue = 0, totBudSales = 0, totBudRevenue = 0, totLyRevenue = 0, totPoLy = 0;
 
   for (const m of data.monthly) {
     const isCurrent = isCurrentYear && m.month === currentMonth;
@@ -586,9 +587,25 @@ function renderTable(data) {
     const inPast = !isCurrentYear || m.month <= currentMonth;
     const showActual = inPast || m.sales_count > 0;
     const ly = Number(m.ly_revenue_ex_vat) || 0;
+    const poLy = Number(m.ly_revenue_po) || 0;
     const yoy = ly > 0 && showActual ? ((m.revenue_ex_vat - ly) / ly) * 100 : null;
     const yoyClass = yoy === null ? 'flat' : yoy > 5 ? 'up' : yoy < -5 ? 'down' : 'flat';
     const yoySign = yoy !== null && yoy >= 0 ? '+' : '';
+
+    // PO cross-check: vis kun avvik > 5 % mellom Excel-ly og PO-ly
+    let poCell = '<span class="muted">—</span>';
+    if (poLy > 0 && ly > 0) {
+      const delta = ((poLy - ly) / ly) * 100;
+      if (Math.abs(delta) > 5) {
+        const sign = delta >= 0 ? '+' : '';
+        const cls = Math.abs(delta) > 20 ? 'down' : 'flat';
+        poCell = `<span class="yoy-cell ${cls}" title="PO: ${fmtNok(poLy)} kr · Excel: ${fmtNok(ly)} kr">${sign}${Math.round(delta)} %</span>`;
+      } else {
+        poCell = `<span class="ok" style="color:var(--green);font-size:11px" title="PO: ${fmtNok(poLy)} kr matcher Excel innen 5 %">✓</span>`;
+      }
+    } else if (poLy > 0 && ly === 0) {
+      poCell = `<span class="yoy-cell down" title="Kun PO har tall (${fmtNok(poLy)} kr) — settlements mangler for denne måneden">PO ${fmtNok(poLy)}</span>`;
+    }
 
     const tr = document.createElement('tr');
     if (isCurrent) tr.classList.add('current-month');
@@ -603,6 +620,7 @@ function renderTable(data) {
       <td>${showActual ? fmtNok(m.revenue_ex_vat) : '<span class="muted">—</span>'}</td>
       <td class="muted">${m.budget_revenue ? fmtNok(m.budget_revenue) : '—'}</td>
       <td class="muted">${ly > 0 ? fmtNok(ly) : '—'}</td>
+      <td>${poCell}</td>
       <td class="yoy-cell ${yoyClass}">${yoy === null ? '—' : `${yoySign}${Math.round(yoy)} %`}</td>
       <td class="pct-cell ${showActual && pctClass ? pctClass : 'muted'}">${showActual && progress !== null ? fmtPct(progress) : '—'}</td>
     `;
@@ -614,6 +632,7 @@ function renderTable(data) {
       totBudSales += m.budget_sales;
       totBudRevenue += m.budget_revenue;
       totLyRevenue += ly;
+      totPoLy += poLy;
     }
   }
 
@@ -624,6 +643,19 @@ function renderTable(data) {
   const totYoySign = totYoy !== null && totYoy >= 0 ? '+' : '';
   const totalRow = document.createElement('tr');
   totalRow.classList.add('total-row');
+  // PO total cross-check
+  let totPoCell = '<span class="muted">—</span>';
+  if (totPoLy > 0 && totLyRevenue > 0) {
+    const totDelta = ((totPoLy - totLyRevenue) / totLyRevenue) * 100;
+    if (Math.abs(totDelta) > 5) {
+      const sign = totDelta >= 0 ? '+' : '';
+      totPoCell = `<span class="yoy-cell down" title="PO: ${fmtNok(totPoLy)} kr · Excel: ${fmtNok(totLyRevenue)} kr">${sign}${Math.round(totDelta)} %</span>`;
+    } else {
+      totPoCell = `<span style="color:var(--green);font-weight:700;font-size:11px" title="PO matcher Excel YTD innen 5 %">✓ ${fmtNok(totPoLy)}</span>`;
+    }
+  } else if (totPoLy > 0) {
+    totPoCell = `<span class="muted">PO ${fmtNok(totPoLy)}</span>`;
+  }
   totalRow.innerHTML = `
     <td>YTD totalt</td>
     <td>${totSales}</td>
@@ -631,6 +663,7 @@ function renderTable(data) {
     <td>${fmtNok(totRevenue)}</td>
     <td class="muted">${fmtNok(totBudRevenue)}</td>
     <td class="muted">${totLyRevenue > 0 ? fmtNok(totLyRevenue) : '—'}</td>
+    <td>${totPoCell}</td>
     <td class="yoy-cell ${totYoyClass}">${totYoy === null ? '—' : `${totYoySign}${Math.round(totYoy)} %`}</td>
     <td class="pct-cell ${totPctClass}">${totProgress !== null ? fmtPct(totProgress) : '—'}</td>
   `;
