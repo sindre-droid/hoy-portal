@@ -173,9 +173,10 @@ exports.handler = async (event) => {
         .eq('period_year', year),
       supabase
         .from('broker_commissions')
-        .select('broker_id, commission_earned_nok, adjustment_nok, earned_at')
+        .select('broker_id, commission_earned_nok, adjustment_nok, amount_paid_nok, payout_status, earned_at')
         .gte('earned_at', `${year}-01-01`)
         .lt('earned_at', `${year + 1}-01-01`),
+      // bcAllR beholdes for all-time avvik-rapport (vises ikke i broker-kort, men kan brukes andre steder)
       supabase
         .from('broker_commissions')
         .select('broker_id, commission_earned_nok, adjustment_nok, amount_paid_nok, payout_status'),
@@ -264,13 +265,13 @@ exports.handler = async (event) => {
       s.sales_count++;
       s.commission_earned += Number(c.commission_earned_nok || 0) + Number(c.adjustment_nok || 0);
     }
-    // Payout-status (all-time, ikke YTD-filtrert)
+    // Payout-status — YTD-filtrert (samme horisont som commission_earned)
     // - earned: regelens forventning (commission_earned + adjustment)
     // - paid:   faktisk utbetalt fra lønnsslipper (amount_paid_nok)
     // - outstanding: opptjent som ikke er PAID enda (i 'EARNED'/'READY'-state)
     // - gap: utbetalt - (opptjent + adjustment) for ALLE rader → flagger avvik (med fortegn)
     const brokerPayouts = new Map();
-    for (const c of bcAllR.data) {
+    for (const c of bcR.data) {
       const id = c.broker_id;
       if (!brokerPayouts.has(id)) brokerPayouts.set(id, { outstanding: 0, paid: 0, gap: 0 });
       const earned = Number(c.commission_earned_nok || 0) + Number(c.adjustment_nok || 0);
@@ -280,9 +281,22 @@ exports.handler = async (event) => {
       if (c.payout_status !== 'PAID') p.outstanding += earned;
       p.gap += (paid - earned); // negativ = mindre utbetalt enn forventet, positiv = mer
     }
+    // All-time totals for diagnostikk (kan vises på en egen broker-detalj-side senere)
+    const brokerAllTime = new Map();
+    for (const c of bcAllR.data) {
+      const id = c.broker_id;
+      if (!brokerAllTime.has(id)) brokerAllTime.set(id, { earned: 0, paid: 0, gap: 0 });
+      const earned = Number(c.commission_earned_nok || 0) + Number(c.adjustment_nok || 0);
+      const paid = Number(c.amount_paid_nok || 0);
+      const p = brokerAllTime.get(id);
+      p.earned += earned;
+      p.paid += paid;
+      p.gap += (paid - earned);
+    }
     const broker_breakdown = brokersR.data.map(b => {
       const s = brokerStats.get(b.id) || { sales_count: 0, commission_earned: 0 };
       const p = brokerPayouts.get(b.id) || { outstanding: 0, paid: 0, gap: 0 };
+      const a = brokerAllTime.get(b.id) || { earned: 0, paid: 0, gap: 0 };
       return {
         broker_id: b.id,
         display_name: b.display_name,
@@ -292,7 +306,10 @@ exports.handler = async (event) => {
         avg_commission: s.sales_count > 0 ? Math.round(s.commission_earned / s.sales_count) : 0,
         outstanding: Math.round(p.outstanding),
         paid: Math.round(p.paid),
-        gap: Math.round(p.gap), // negativ: skylder rest, positiv: overbetalt
+        gap: Math.round(p.gap),                  // YTD: utbetalt - opptjent (negativ = rest, positiv = overbetalt)
+        all_time_earned: Math.round(a.earned),    // for hover/detalj
+        all_time_paid: Math.round(a.paid),
+        all_time_gap: Math.round(a.gap),
       };
     }).sort((a, b) => b.commission_earned - a.commission_earned);
 

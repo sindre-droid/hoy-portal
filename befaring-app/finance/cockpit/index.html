@@ -477,14 +477,16 @@ function renderBrokers(data) {
     const row = document.createElement('div');
     row.className = 'broker-row';
     const outstandingClass = b.outstanding > 0 ? 'pending' : 'ok';
-    // Avvik (gap): faktisk utbetalt - forventet opptjent (all-time)
+    // YTD-avvik: utbetalt - opptjent (samme tidshorisont som de andre tallene)
     // Stort avvik > 500 kr → varsel; under det = avrundingsstøy
     const gap = Number(b.gap) || 0;
     const hasGap = Math.abs(gap) > 500;
     const gapSign = gap >= 0 ? '+' : '';
     const gapLabel = gap > 0 ? 'overbetalt' : 'rest å utbetale';
+    const allTimeGap = Number(b.all_time_gap) || 0;
+    const allTimeTooltip = `All-time: opptjent ${fmtNok(b.all_time_earned)} kr · utbetalt ${fmtNok(b.all_time_paid)} kr · avvik ${allTimeGap >= 0 ? '+' : ''}${fmtNok(allTimeGap)} kr`;
     const gapHtml = hasGap
-      ? `<span>Avvik: <span class="pending" title="${gap > 0 ? 'Utbetalt mer enn opptjent — overbetaling som bør krediteres eller forklares som adjustment' : 'Utbetalt mindre enn opptjent — gjenstående å utbetale eller forklares som avtalt avkortning'}">${gapSign}${fmtNok(gap)} kr (${gapLabel})</span></span>`
+      ? `<span>Avvik YTD: <span class="pending" title="${gap > 0 ? 'Utbetalt mer enn opptjent i 2026 — overbetaling som bør krediteres eller forklares som adjustment' : 'Utbetalt mindre enn opptjent i 2026 — gjenstående å utbetale eller forklares som avtalt avkortning'}">${gapSign}${fmtNok(gap)} kr (${gapLabel})</span></span>`
       : '';
     row.innerHTML = `
       <div class="broker-name-block">
@@ -492,9 +494,9 @@ function renderBrokers(data) {
         <div class="broker-info">
           <div class="broker-name">${b.display_name}</div>
           <div class="broker-meta">${b.sales_count} solgt YTD · snitt ${fmtNok(b.avg_commission)} kr</div>
-          <div class="broker-payout-row">
-            <span>Utbetalt: <span class="ok">${fmtNok(b.paid)} kr</span></span>
-            <span>Utestående: <span class="${outstandingClass}">${fmtNok(b.outstanding)} kr</span></span>
+          <div class="broker-payout-row" title="${allTimeTooltip}">
+            <span>Utbetalt YTD: <span class="ok">${fmtNok(b.paid)} kr</span></span>
+            <span>Utestående YTD: <span class="${outstandingClass}">${fmtNok(b.outstanding)} kr</span></span>
           </div>
           ${gapHtml ? `<div class="broker-payout-row">${gapHtml}</div>` : ''}
         </div>
