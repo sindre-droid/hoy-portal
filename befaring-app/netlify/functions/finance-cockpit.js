@@ -238,7 +238,8 @@ exports.handler = async (event) => {
     const total_commission = monthly.reduce((s, m) => s + m.commission, 0);
     const total_sales = monthly.reduce((s, m) => s + m.sales_count, 0);
     const total_sale_amount = monthly.reduce((s, m) => s + m.sale_amount, 0);
-    const avg_commission = total_sales > 0 ? Math.round(total_commission / total_sales) : 0;
+    // Snittprovisjon = revenue_ex_vat / antall (alltid ex.mva, det er det relevante for HoY)
+    const avg_commission = total_sales > 0 ? Math.round(total_revenue_ex_vat / total_sales) : 0;
     const yearBudgetRevenue = monthly.reduce((s, m) => s + m.budget_revenue, 0);
     const yearBudgetSales = monthly.reduce((s, m) => s + m.budget_sales, 0);
     const yearBudgetMandates = monthly.reduce((s, m) => s + m.budget_mandates, 0);

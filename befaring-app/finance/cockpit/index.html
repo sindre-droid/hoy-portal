@@ -453,7 +453,7 @@ function renderKpis(data) {
   document.getElementById('kpiAvgCommission').textContent =
     k.sales_count_ytd > 0 ? fmtNok(k.avg_commission_per_boat) + ' kr' : '—';
   document.getElementById('kpiAvgSub').textContent =
-    k.sales_count_ytd > 0 ? `per båt (inkl.mva)` : 'ingen salg ennå';
+    k.sales_count_ytd > 0 ? `per båt (ex.mva)` : 'ingen salg ennå';
 
   if (k.pipeline) {
     document.getElementById('kpiPipeline').textContent = fmtNok(k.pipeline.est_revenue_ex_vat) + ' kr';
