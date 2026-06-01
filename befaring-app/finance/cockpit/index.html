@@ -477,6 +477,15 @@ function renderBrokers(data) {
     const row = document.createElement('div');
     row.className = 'broker-row';
     const outstandingClass = b.outstanding > 0 ? 'pending' : 'ok';
+    // Avvik (gap): faktisk utbetalt - forventet opptjent (all-time)
+    // Stort avvik > 500 kr → varsel; under det = avrundingsstøy
+    const gap = Number(b.gap) || 0;
+    const hasGap = Math.abs(gap) > 500;
+    const gapSign = gap >= 0 ? '+' : '';
+    const gapLabel = gap > 0 ? 'overbetalt' : 'rest å utbetale';
+    const gapHtml = hasGap
+      ? `<span>Avvik: <span class="pending" title="${gap > 0 ? 'Utbetalt mer enn opptjent — overbetaling som bør krediteres eller forklares som adjustment' : 'Utbetalt mindre enn opptjent — gjenstående å utbetale eller forklares som avtalt avkortning'}">${gapSign}${fmtNok(gap)} kr (${gapLabel})</span></span>`
+      : '';
     row.innerHTML = `
       <div class="broker-name-block">
         <div class="broker-avatar">${initials(b.display_name)}</div>
@@ -487,6 +496,7 @@ function renderBrokers(data) {
             <span>Utbetalt: <span class="ok">${fmtNok(b.paid)} kr</span></span>
             <span>Utestående: <span class="${outstandingClass}">${fmtNok(b.outstanding)} kr</span></span>
           </div>
+          ${gapHtml ? `<div class="broker-payout-row">${gapHtml}</div>` : ''}
         </div>
       </div>
       <div class="broker-earned">
