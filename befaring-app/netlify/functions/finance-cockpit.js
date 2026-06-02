@@ -266,10 +266,10 @@ exports.handler = async (event) => {
       s.commission_earned += Number(c.commission_earned_nok || 0) + Number(c.adjustment_nok || 0);
     }
     // Payout-status — YTD-filtrert (samme horisont som commission_earned)
-    // - earned: regelens forventning (commission_earned + adjustment)
-    // - paid:   faktisk utbetalt fra lønnsslipper (amount_paid_nok)
-    // - outstanding: opptjent som ikke er PAID enda (i 'EARNED'/'READY'-state)
-    // - gap: utbetalt - (opptjent + adjustment) for ALLE rader → flagger avvik (med fortegn)
+    // - paid:        sum av faktisk utbetalt (amount_paid_nok) for alle rader
+    // - outstanding: opptjent på rader som ikke er PAID — venter på lønnskjøring
+    // - gap:         differanse mellom utbetalt og opptjent KUN for rader som er PAID
+    //                (det er der reelle over-/underbetalinger lever — ikke i "ennå ikke lønnskjørt")
     const brokerPayouts = new Map();
     for (const c of bcR.data) {
       const id = c.broker_id;
@@ -278,10 +278,13 @@ exports.handler = async (event) => {
       const paid = Number(c.amount_paid_nok || 0);
       const p = brokerPayouts.get(id);
       p.paid += paid;
-      if (c.payout_status !== 'PAID') p.outstanding += earned;
-      p.gap += (paid - earned); // negativ = mindre utbetalt enn forventet, positiv = mer
+      if (c.payout_status === 'PAID') {
+        p.gap += (paid - earned); // kun reelle avvik fra ferdige lønnskjøringer
+      } else {
+        p.outstanding += earned;  // venter på lønnskjøring
+      }
     }
-    // All-time totals for diagnostikk (kan vises på en egen broker-detalj-side senere)
+    // All-time totals for diagnostikk (vises i tooltip)
     const brokerAllTime = new Map();
     for (const c of bcAllR.data) {
       const id = c.broker_id;
@@ -291,7 +294,7 @@ exports.handler = async (event) => {
       const p = brokerAllTime.get(id);
       p.earned += earned;
       p.paid += paid;
-      p.gap += (paid - earned);
+      if (c.payout_status === 'PAID') p.gap += (paid - earned);
     }
     const broker_breakdown = brokersR.data.map(b => {
       const s = brokerStats.get(b.id) || { sales_count: 0, commission_earned: 0 };

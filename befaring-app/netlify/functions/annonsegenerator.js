@@ -734,13 +734,22 @@ exports.handler = async (event) => {
 
   // ── save_to_prospekt ────────────────────────────────────────────────────
   // Skriver description_intro og description_body til prospekter-tabellen
-  // for en gitt prospekt_id. Brukes når megler trykker "Lagre til prospekt".
+  // for en gitt prospekt_id. Hvis run_id sendes med, lagres også AI-utkastet
+  // (intro + body, før evt. megler-redigering) på annonse_runs for senere
+  // diff mot publisert prospekt-versjon.
   if (action === 'save_to_prospekt') {
     let body;
     try { body = JSON.parse(event.body || '{}'); }
     catch { return jsonResp(400, { error: 'Invalid JSON' }); }
 
-    const { prospekt_id, description_intro, description_body } = body;
+    const {
+      prospekt_id,
+      description_intro,
+      description_body,
+      run_id,
+      ai_intro_raw,   // AI-utkast før markdown→HTML-konvertering
+      ai_body_raw,    // AI-utkast før markdown→HTML-konvertering
+    } = body;
     if (!prospekt_id) return jsonResp(400, { error: 'prospekt_id påkrevd' });
 
     const updates = {};
@@ -752,6 +761,8 @@ exports.handler = async (event) => {
 
     try {
       const supabase = getSupabase();
+
+      // 1) Oppdater prospekter (det som blir publisert)
       const { data, error } = await supabase
         .from('prospekter')
         .update(updates)
@@ -759,6 +770,23 @@ exports.handler = async (event) => {
         .select('id')
         .single();
       if (error) throw error;
+
+      // 2) Best-effort: hvis run_id finnes, lagre AI-utkast på run-raden for læring
+      if (run_id) {
+        try {
+          await supabase
+            .from('annonse_runs')
+            .update({
+              prospekt_intro_ai: ai_intro_raw || description_intro || null,
+              prospekt_body_ai:  ai_body_raw  || description_body  || null,
+              prospekt_saved_at: new Date().toISOString(),
+            })
+            .eq('id', run_id);
+        } catch (runErr) {
+          console.error('annonse_runs prospekt-tracking (non-fatal):', runErr.message);
+        }
+      }
+
       return jsonResp(200, { ok: true, prospekt_id: data.id, updated: Object.keys(updates) });
     } catch (err) {
       console.error('save_to_prospekt failed:', err.message);

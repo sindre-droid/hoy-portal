@@ -114,6 +114,13 @@ create index if not exists idx_shr_boat_active
   on service_history_runs(boat_id, created_at desc)
   where archived_at is null;
 
+-- ── Data API grants ──────────────────────────────────────────────────────────
+-- Fra 30. oktober 2026 krever Supabase eksplisitt GRANT på alle nye tabeller
+-- i public-schemaet før supabase-js / PostgREST kan aksessere dem (inkludert
+-- service_role). Vi setter dette eksplisitt på alle nye tabeller fra nå av,
+-- så schema-filer fungerer som template uavhengig av når de kjøres.
+grant select, insert, update, delete on service_history_runs to service_role;
+
 -- ── Row Level Security ───────────────────────────────────────────────────────
 -- Service role (Netlify Function) bypasser RLS. Ingen andre roles skal ha
 -- direkte tilgang.

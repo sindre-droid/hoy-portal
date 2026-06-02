@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<title>Prospekt — Cormate Chase 34</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500;600;700&family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --hoy-black:#0A0A0A; --hoy-white:#FFFFFF; --hoy-cream:#F5F1EC;
+    --hoy-warm-gray:#E2DDD6; --hoy-mid-gray:#9A9590; --hoy-dark-gray:#3D3935;
+    --hoy-gold:#C4983E; --hoy-gold-light:#D4AE62;
+    --hoy-deep-teal:#1A3C34; --hoy-teal:#2A5C4E; --hoy-navy:#1B2B3A;
+    --serif:'Cormorant Garamond','Georgia',serif;
+    --sans:'Inter',-apple-system,sans-serif;
+    --grotesk:'Manrope',-apple-system,sans-serif;
+  }
+  html,body{margin:0;padding:0;background:#1a1a1a;font-family:var(--sans);color:var(--hoy-black);-webkit-font-smoothing:antialiased}
+  .page-stack{display:flex;flex-direction:column;align-items:center;gap:48px;padding:48px 16px 80px}
+  .page-label{
+    font-family:var(--sans);font-size:11px;font-weight:500;letter-spacing:2.5px;
+    text-transform:uppercase;color:#888;margin-bottom:-28px;align-self:center;
+  }
+  .page-label .name{color:#fff;font-weight:600;margin-right:8px}
+
+  .page{
+    width:794px;aspect-ratio:210/297;background:#fff;
+    box-shadow:0 8px 60px rgba(0,0,0,0.4);
+    overflow:hidden;position:relative;color:var(--hoy-black);
+  }
+
+  /* Inline brand-marks */
+  .mark-hoy{
+    font-family:var(--serif);font-weight:400;font-size:12px;
+    letter-spacing:0.42em;text-transform:uppercase;
+    line-height:1;display:inline-block;
+  }
+  .mark-cormate{
+    height:1em;display:inline-block;vertical-align:middle;
+  }
+  .mark-cormate.light{filter:brightness(0) invert(1)}
+  .mark-cormate.dark{filter:brightness(0)}
+
+  /* ════════════════════════════════════════════════════════════════
+     01 FORSIDE — V2 vertikal asymmetrisk
+     ════════════════════════════════════════════════════════════════ */
+  .cover{position:relative;background:#000;color:#fff;width:100%;height:100%}
+  .cover .photo-bg{position:absolute;inset:0;overflow:hidden}
+  .cover .photo-bg img{width:100%;height:100%;object-fit:cover;object-position:center 50%}
+  .cover .photo-bg::after{
+    content:'';position:absolute;inset:0;
+    background:linear-gradient(135deg,rgba(0,0,0,0.65) 0%,rgba(0,0,0,0.18) 35%,transparent 60%,rgba(0,0,0,0.4) 100%);
+  }
+  .cover .top{
+    position:absolute;top:32px;left:32px;right:32px;
+    display:flex;justify-content:space-between;align-items:center;gap:24px;
+  }
+  .cover .top .partner{
+    text-align:right;font-family:var(--grotesk);font-size:8.5px;
+    font-weight:500;letter-spacing:2.8px;text-transform:uppercase;
+    color:rgba(255,255,255,0.7);line-height:1.7;
+    display:flex;align-items:center;gap:14px;
+  }
+  .cover .top .partner .mark-cormate{height:22px}
+  .cover .vertical-tag{
+    position:absolute;left:18px;top:50%;transform:translateY(-50%) rotate(180deg);
+    writing-mode:vertical-rl;
+    font-family:var(--grotesk);font-size:9px;font-weight:500;
+    letter-spacing:5px;text-transform:uppercase;color:rgba(255,255,255,0.55);
+  }
+  .cover .main{
+    position:absolute;left:48px;right:32px;bottom:32px;
+    display:flex;justify-content:space-between;align-items:flex-end;gap:24px;
+  }
+  .cover .main .name{
+    font-family:var(--serif);font-weight:300;
+    font-size:64px;line-height:0.95;color:#fff;margin:0;
+    letter-spacing:-0.01em;max-width:60%;
+  }
+  .cover .main .name em{font-style:italic;font-weight:300}
+  .cover .main .meta{
+    text-align:right;font-family:var(--grotesk);
+    padding-top:0;
+    min-width:180px;
+  }
+  .cover .main .meta .row{
+    display:flex;justify-content:space-between;align-items:baseline;
+    font-size:10px;letter-spacing:1.5px;text-transform:uppercase;
+    padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.12);
+  }
+  .cover .main .meta .row:last-child{border-bottom:none}
+  .cover .main .meta .l{color:rgba(255,255,255,0.6);font-weight:400;font-size:8.5px;letter-spacing:2.5px}
+  .cover .main .meta .v{color:#fff;font-weight:500;font-size:11px;letter-spacing:0.5px}
+
+  /* ════════════════════════════════════════════════════════════════
+     INNHOLDSSIDER — basert på originalt oppsett, nye fonter
+     ════════════════════════════════════════════════════════════════ */
+
+  /* OVERVIEW: hero topp 36%, bleeder gjennom hvit overlay ned i innhold */
+  .overview{display:flex;flex-direction:column;height:100%}
+  .overview-hero{
+    height:36%;overflow:hidden;position:relative;
+  }
+  .overview-hero img{width:100%;height:100%;object-fit:cover;object-position:center 55%}
+  .overview-hero-overlay{
+    position:absolute;left:0;right:0;bottom:0;height:35%;
+    background:linear-gradient(to top,#fff,transparent);
+  }
+  .overview-content{
+    flex:1;display:grid;grid-template-columns:35% 1fr;gap:0;
+    padding:5% 7% 0;
+  }
+  .specs-column{padding-right:6%;border-right:1px solid var(--hoy-warm-gray)}
+  .specs-boat-name{
+    font-family:var(--serif);font-weight:300;font-size:24px;
+    color:var(--hoy-black);margin:0 0 4px;letter-spacing:-0.01em;
+  }
+  .specs-boat-name em{font-style:italic;font-weight:300}
+  .specs-price{
+    font-family:var(--grotesk);font-size:10px;font-weight:500;
+    color:var(--hoy-gold);letter-spacing:1.2px;text-transform:uppercase;
+    margin-bottom:18px;padding-bottom:14px;
+    border-bottom:1px solid var(--hoy-warm-gray);
+  }
+  .category-label-inline{
+    font-family:var(--grotesk);font-size:8.5px;font-weight:600;
+    letter-spacing:2.5px;text-transform:uppercase;
+    color:var(--hoy-mid-gray);margin:14px 0 6px;
+  }
+  .spec-row{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding:4px 0;font-size:10px;line-height:1.6;
+  }
+  .spec-label{color:var(--hoy-mid-gray);font-weight:400;font-family:var(--sans)}
+  .spec-value{color:var(--hoy-dark-gray);font-weight:500;font-family:var(--sans);text-align:right}
+  .spec-divider{height:1px;background:var(--hoy-warm-gray);margin:8px 0}
+  .description-column{padding-left:6%}
+  .desc-intro{
+    font-family:var(--serif);font-weight:400;font-style:italic;
+    font-size:16px;line-height:1.5;color:var(--hoy-dark-gray);
+    margin-bottom:18px;
+  }
+  .desc-body{
+    font-family:var(--sans);font-size:10.5px;line-height:1.75;
+    color:var(--hoy-dark-gray);font-weight:300;
+  }
+  .desc-body p{margin:0 0 12px}
+  .desc-visning{
+    margin-top:18px;padding-top:14px;
+    border-top:1px solid var(--hoy-warm-gray);
+    font-family:var(--serif);font-style:italic;font-size:12px;color:var(--hoy-mid-gray);
+  }
+  .page-footer-light{
+    margin-top:auto;padding:14px 7% 0;
+    display:flex;align-items:center;gap:10px;
+    font-family:var(--grotesk);font-size:8.5px;font-weight:500;
+    letter-spacing:2px;text-transform:uppercase;color:var(--hoy-mid-gray);
+  }
+  .page-footer-accent{width:24px;height:1px;background:var(--hoy-gold)}
+  .page-footer-light .num{margin-left:auto;color:var(--hoy-black);font-weight:600;letter-spacing:0.5px;font-size:10px}
+
+  /* GALLERY: 5up — wide topp + 4 nede */
+  .gallery{display:flex;flex-direction:column;height:100%;padding:6% 6% 3%}
+  .gallery-header{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    margin-bottom:4%;
+  }
+  .gallery-header h2{
+    font-family:var(--serif);font-weight:300;font-size:28px;
+    color:var(--hoy-black);margin:0;letter-spacing:-0.01em;
+  }
+  .gallery-header h2 em{font-style:italic;font-weight:300}
+  .gallery-subtitle{
+    font-family:var(--grotesk);font-size:9px;font-weight:500;
+    letter-spacing:2.8px;text-transform:uppercase;color:var(--hoy-mid-gray);
+  }
+  .gallery-grid-5up{
+    flex:1 1 0;min-height:0;display:grid;gap:8px;
+    grid-template-columns:1fr 1fr;grid-template-rows:1.4fr 1fr 1fr;
+  }
+  .gi{position:relative;overflow:hidden;border-radius:2px;min-height:0;min-width:0;background:#e8e6e3}
+  .gi img{width:100%;height:100%;object-fit:cover;display:block}
+  .gi-wide{grid-column:1 / -1}
+  .gi-caption{
+    position:absolute;left:0;right:0;bottom:0;
+    padding:20px 14px 8px;
+    background:linear-gradient(to top,rgba(0,0,0,0.55),transparent);
+    font-family:var(--grotesk);font-size:9px;font-weight:500;
+    color:rgba(255,255,255,0.9);letter-spacing:0.3px;
+  }
+  .placeholder{
+    width:100%;height:100%;
+    background:repeating-linear-gradient(135deg,#ecebe8 0 6px,#e2e0dc 6px 12px);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9px;
+    color:rgba(0,0,0,0.4);letter-spacing:1.5px;text-transform:uppercase;
+  }
+  .gallery-page-indicator{
+    text-align:center;padding-top:3%;
+    font-family:var(--grotesk);font-size:9px;letter-spacing:2px;
+    color:var(--hoy-mid-gray);text-transform:uppercase;
+  }
+
+  /* EQUIPMENT: 2 kolonner med gull-prikk */
+  .equipment{display:flex;flex-direction:column;height:100%;padding:6% 7% 3%}
+  .equipment-header{margin-bottom:4%}
+  .equipment-header h2{
+    font-family:var(--serif);font-weight:300;font-size:28px;
+    color:var(--hoy-black);margin:0 0 4px;letter-spacing:-0.01em;
+  }
+  .equipment-header h2 em{font-style:italic;font-weight:300}
+  .equipment-header .section-subtitle{
+    font-family:var(--grotesk);font-size:9px;font-weight:500;
+    letter-spacing:2.5px;text-transform:uppercase;color:var(--hoy-mid-gray);
+    margin:0;
+  }
+  .equipment-body{
+    flex:1;display:grid;grid-template-columns:1fr 1fr;gap:0 8%;
+  }
+  .equip-category{margin-bottom:22px}
+  .category-label{
+    font-family:var(--grotesk);font-size:9px;font-weight:600;
+    letter-spacing:2.5px;text-transform:uppercase;color:var(--hoy-gold);
+    margin-bottom:8px;padding-bottom:6px;
+    border-bottom:1px solid var(--hoy-warm-gray);
+  }
+  .equip-item{
+    font-family:var(--sans);font-size:10px;line-height:1.5;
+    color:var(--hoy-dark-gray);font-weight:300;
+    padding:3px 0;display:flex;align-items:baseline;gap:8px;
+  }
+  .equip-item::before{
+    content:'';width:4px;height:4px;border-radius:50%;
+    background:var(--hoy-gold);flex-shrink:0;margin-top:5px;
+  }
+  .equip-sub-item{
+    font-family:var(--sans);font-size:9px;color:var(--hoy-mid-gray);
+    font-style:italic;font-weight:300;padding:1px 0 3px 12px;
+    display:flex;align-items:baseline;gap:6px;
+  }
+  .equip-sub-item::before{
+    content:'';width:3px;height:3px;border-radius:50%;
+    background:var(--hoy-mid-gray);flex-shrink:0;margin-top:4px;
+  }
+
+  /* DECLARATION: original-layout, ingen tunge headers */
+  .declaration{display:flex;flex-direction:column;height:100%;padding:6% 7% 3%}
+  .declaration-header{margin-bottom:4%}
+  .declaration-header h2{
+    font-family:var(--serif);font-weight:300;font-size:28px;
+    color:var(--hoy-black);margin:0 0 4px;letter-spacing:-0.01em;
+  }
+  .declaration-header h2 em{font-style:italic;font-weight:300}
+  .declaration-header .section-subtitle{
+    font-family:var(--grotesk);font-size:9px;font-weight:500;
+    letter-spacing:2.5px;text-transform:uppercase;color:var(--hoy-mid-gray);
+    margin:0;
+  }
+  .declaration-body{flex:1}
+  .decl-meta{
+    margin-bottom:22px;padding-bottom:14px;
+    border-bottom:1px solid var(--hoy-warm-gray);
+  }
+  .decl-meta-title{
+    font-family:var(--grotesk);font-size:9px;font-weight:600;
+    letter-spacing:2.5px;text-transform:uppercase;color:var(--hoy-mid-gray);
+    margin-bottom:10px;
+  }
+  .decl-meta-grid{
+    display:grid;grid-template-columns:1fr 1fr;column-gap:32px;
+  }
+  .decl-meta-row{
+    display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+    font-size:10px;line-height:1.6;padding:3px 0;
+  }
+  .decl-meta-label{color:var(--hoy-mid-gray);font-weight:400}
+  .decl-meta-value{color:var(--hoy-dark-gray);font-weight:500;text-align:right}
+  .decl-section{margin-bottom:18px}
+  .decl-row{
+    display:grid;grid-template-columns:1fr auto;gap:12px;padding:6px 0;
+    font-size:10px;border-bottom:1px solid rgba(226,221,214,0.6);
+  }
+  .decl-question{color:var(--hoy-dark-gray);font-weight:300;line-height:1.5;font-family:var(--sans)}
+  .decl-answer{font-family:var(--grotesk);font-weight:600;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--hoy-black);white-space:nowrap}
+  .decl-answer.yes{color:var(--hoy-teal)}
+  .decl-answer.no{color:var(--hoy-mid-gray)}
+  .declaration-notice{
+    margin-top:auto;padding:14px 16px;background:var(--hoy-cream);
+    border-radius:4px;border-left:2px solid var(--hoy-gold);
+    font-family:var(--grotesk);font-size:8.5px;color:var(--hoy-mid-gray);line-height:1.6;
+  }
+
+  /* CONTACT — beholdt fra v4 */
+  .contact{position:relative;background:#000;color:#fff;display:flex;flex-direction:column;height:100%;font-family:var(--grotesk)}
+  .contact .photo-bg{position:absolute;inset:0}
+  .contact .photo-bg img{width:100%;height:100%;object-fit:cover;object-position:center 60%}
+  .contact .photo-bg::after{
+    content:'';position:absolute;inset:0;
+    background:linear-gradient(to bottom,rgba(0,0,0,0.55) 0%,rgba(0,0,0,0.2) 30%,rgba(0,0,0,0.6) 80%,rgba(0,0,0,0.85) 100%);
+  }
+  .contact .top{
+    position:relative;display:flex;justify-content:space-between;align-items:center;
+    padding:24px 32px 18px;border-bottom:1px solid rgba(255,255,255,0.18);
+  }
+  .contact .top .mark-hoy{color:#fff}
+  .contact .top .partner{
+    text-align:right;font-family:var(--grotesk);font-size:8.5px;font-weight:500;
+    letter-spacing:2.8px;text-transform:uppercase;color:rgba(255,255,255,0.65);
+    display:flex;align-items:center;gap:12px;line-height:1.7;
+  }
+  .contact .top .partner .mark-cormate{height:18px}
+  .contact .stage{
+    position:relative;flex:1;display:flex;flex-direction:column;justify-content:flex-end;
+    padding:32px;
+  }
+  .contact .stage .eyebrow{
+    font-family:var(--grotesk);font-size:9px;font-weight:500;
+    letter-spacing:3.5px;text-transform:uppercase;
+    color:rgba(255,255,255,0.7);margin-bottom:12px;
+    display:flex;align-items:center;gap:10px;
+  }
+  .contact .stage .eyebrow::before{content:'';width:24px;height:1px;background:var(--hoy-gold)}
+  .contact .stage h2{
+    font-family:var(--serif);font-weight:300;
+    font-size:54px;line-height:0.95;letter-spacing:-0.015em;
+    margin:0 0 28px;color:#fff;max-width:80%;
+  }
+  .contact .stage h2 em{font-style:italic;font-weight:300}
+  .contact .stage .broker{
+    display:grid;grid-template-columns:1fr 1fr;gap:20px;
+    border-top:1px solid rgba(255,255,255,0.25);padding-top:18px;
+  }
+  .contact .stage .broker .col .l{
+    font-size:8px;font-weight:500;letter-spacing:2.8px;text-transform:uppercase;
+    color:rgba(255,255,255,0.55);margin-bottom:5px;
+  }
+  .contact .stage .broker .col .v{
+    font-size:13px;font-weight:400;color:#fff;line-height:1.45;letter-spacing:0.2px;
+  }
+  .contact .stage .broker .col .v strong{font-weight:600}
+  .contact .foot{
+    position:relative;padding:14px 32px;
+    border-top:1px solid rgba(255,255,255,0.18);
+    display:flex;justify-content:space-between;align-items:center;
+    font-family:var(--grotesk);font-size:8.5px;font-weight:500;
+    letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.55);
+  }
+
+</style>
+</head>
+<body>
+
+<div class="page-stack">
+
+  <!-- ─── 01 FORSIDE ─────────────────────────────────────────── -->
+  <div class="page-label"><span class="name">01</span> Forside</div>
+  <div class="page">
+    <div class="cover">
+      <div class="photo-bg"><img src="assets/cormate-chase-34-shark-grey.jpg" alt=""></div>
+      <div class="top">
+        <div class="mark-hoy">House of Yachts</div>
+        <div class="partner">
+          <span class="label">i samarbeid med</span>
+          <img class="mark-cormate light" src="assets/cormate.svg" alt="Cormate">
+        </div>
+      </div>
+      <div class="vertical-tag">Salgsoppgave · 042 · 2026</div>
+      <div class="main">
+        <h1 class="name">Cormate<br><em>Chase 34</em></h1>
+        <div class="meta">
+          <div class="row"><span class="l">Modellår</span><span class="v">2024</span></div>
+          <div class="row"><span class="l">Timer</span><span class="v">85</span></div>
+          <div class="row"><span class="l">Lengde</span><span class="v">10,4 m</span></div>
+          <div class="row"><span class="l">Pris</span><span class="v">3 950 000</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── 02 OVERSIKT ─────────────────────────────────────────── -->
+  <div class="page-label"><span class="name">02</span> Oversikt</div>
+  <div class="page">
+    <div class="overview">
+      <div class="overview-hero">
+        <img src="assets/cormate-chase-34-shark-grey.jpg" alt="Cormate Chase 34">
+        <div class="overview-hero-overlay"></div>
+      </div>
+      <div class="overview-content">
+        <div class="specs-column">
+          <h2 class="specs-boat-name">Cormate <em>Chase 34</em></h2>
+          <div class="specs-price">Prisantydning · NOK 3 950 000,–</div>
+          <div class="category-label-inline">Spesifikasjoner</div>
+          <div class="spec-row"><span class="spec-label">Modellår</span><span class="spec-value">2024</span></div>
+          <div class="spec-row"><span class="spec-label">Lengde</span><span class="spec-value">10,4 m</span></div>
+          <div class="spec-row"><span class="spec-label">Bredde</span><span class="spec-value">2,95 m</span></div>
+          <div class="spec-row"><span class="spec-label">Dypgang</span><span class="spec-value">0,85 m</span></div>
+          <div class="spec-row"><span class="spec-label">Timer</span><span class="spec-value">85</span></div>
+          <div class="spec-divider"></div>
+          <div class="category-label-inline">Motorisering</div>
+          <div class="spec-row"><span class="spec-label">Motor</span><span class="spec-value">2 × Mercury 450R</span></div>
+          <div class="spec-row"><span class="spec-label">Drivstoff</span><span class="spec-value">Bensin</span></div>
+          <div class="spec-row"><span class="spec-label">Toppfart</span><span class="spec-value">62 knop</span></div>
+          <div class="spec-divider"></div>
+          <div class="category-label-inline">Kapasiteter</div>
+          <div class="spec-row"><span class="spec-label">Drivstoff</span><span class="spec-value">600 l</span></div>
+          <div class="spec-row"><span class="spec-label">Vann</span><span class="spec-value">100 l</span></div>
+        </div>
+        <div class="description-column">
+          <p class="desc-intro">Chase 34 er Cormates skarpeste uttrykk for norsk båtbygging — en sportsbåt formet for åpent farvann og raske passasjer.</p>
+          <div class="desc-body">
+            <p>Båten leveres i den ettertraktede Shark Grey-utførelsen, med teakdekk, lakkert mahognipanel og full vinterlagring siden levering. Doble Mercury 450R Racing gir umiddelbar respons og en toppfart godt over 60 knop.</p>
+            <p>Innredningen er gjennomført i lys skinn og lakkerte flater. Akterdekket har stor solseng og elektrisk badeplattform. Foran finner du en kompakt cuddy med toalett, kjøleskap og overnattingsmulighet for to.</p>
+            <p class="desc-visning">Visning etter avtale ved Sjølystveien 4, 0278 Oslo. Båten kan demonstreres på sjøen i sesongen.</p>
+          </div>
+        </div>
+      </div>
+      <div class="page-footer-light">
+        <div class="page-footer-accent"></div>
+        <span>House of Yachts · i samarbeid med Cormate · houseofyachts.no</span>
+        <span class="num">02 / 06</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── 03 BILDEGALLERI ─────────────────────────────────────── -->
+  <div class="page-label"><span class="name">03</span> Bildegalleri</div>
+  <div class="page">
+    <div class="gallery">
+      <div class="gallery-header">
+        <h2>Bildegalleri</h2>
+        <span class="gallery-subtitle">Cormate Chase 34 · 2024</span>
+      </div>
+      <div class="gallery-grid-5up">
+        <div class="gi gi-wide">
+          <img src="assets/cormate-chase-34-shark-grey.jpg" alt="">
+          <div class="gi-caption">Profil styrbord · Shark Grey</div>
+        </div>
+        <div class="gi"><div class="placeholder">[ Cockpit / forfra ]</div></div>
+        <div class="gi"><div class="placeholder">[ Aktersofa ]</div></div>
+        <div class="gi"><div class="placeholder">[ Solseng akter ]</div></div>
+        <div class="gi"><div class="placeholder">[ Cuddy / kahytt ]</div></div>
+      </div>
+      <div class="gallery-page-indicator">1 / 2</div>
+    </div>
+  </div>
+
+  <!-- ─── 04 UTSTYR ─────────────────────────────────────────── -->
+  <div class="page-label"><span class="name">04</span> Utstyrsliste</div>
+  <div class="page">
+    <div class="equipment">
+      <div class="equipment-header">
+        <h2>Utstyr og <em>spesifikasjoner</em></h2>
+        <p class="section-subtitle">Komplett oversikt over utstyr og tilbehør</p>
+      </div>
+      <div class="equipment-body">
+        <div>
+          <div class="equip-category">
+            <div class="category-label">Motorisering</div>
+            <div class="equip-item">2 × Mercury 450R Racing</div>
+            <div class="equip-sub-item">Digital styring, joystick</div>
+            <div class="equip-item">Hydraulisk trim</div>
+            <div class="equip-item">Mercury VesselView 9"</div>
+          </div>
+          <div class="equip-category">
+            <div class="category-label">Navigasjon &amp; elektronikk</div>
+            <div class="equip-item">Garmin GPSMAP 1243xsv</div>
+            <div class="equip-item">Garmin radar GMR Fantom 24</div>
+            <div class="equip-item">VHF Garmin 215i</div>
+            <div class="equip-item">Autopilot Garmin Reactor 40</div>
+          </div>
+          <div class="equip-category">
+            <div class="category-label">Komfort</div>
+            <div class="equip-item">Webasto varmeapparat</div>
+            <div class="equip-item">Fusion Apollo lydanlegg</div>
+            <div class="equip-item">JL Audio høyttalere</div>
+            <div class="equip-item">USB-lading × 4</div>
+          </div>
+        </div>
+        <div>
+          <div class="equip-category">
+            <div class="category-label">Dekk &amp; eksteriør</div>
+            <div class="equip-item">Teakdekk akter og side</div>
+            <div class="equip-item">Elektrisk badeplattform</div>
+            <div class="equip-item">Solseng med polstring</div>
+            <div class="equip-item">Kalesje med vindskjerming</div>
+            <div class="equip-item">LED-lys i skrog og dekk</div>
+          </div>
+          <div class="equip-category">
+            <div class="category-label">Innredning</div>
+            <div class="equip-item">Skinninteriør, lys grå</div>
+            <div class="equip-item">Lakkert mahognipanel</div>
+            <div class="equip-item">Toalett med holdetank</div>
+            <div class="equip-item">Kjøleskap 40 l</div>
+          </div>
+          <div class="equip-category">
+            <div class="category-label">Tilbehør</div>
+            <div class="equip-item">Stigetrapp i rustfritt</div>
+            <div class="equip-item">Fender × 6</div>
+            <div class="equip-item">Fortøyninger komplett sett</div>
+            <div class="equip-item">Vinterlagring inkludert 2026</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── 05 EGENERKLÆRING ─────────────────────────────────────── -->
+  <div class="page-label"><span class="name">05</span> Egenerklæring</div>
+  <div class="page">
+    <div class="declaration">
+      <div class="declaration-header">
+        <h2>Selgers <em>egenerklæring</em></h2>
+        <p class="section-subtitle">Utfylt og signert av eier</p>
+      </div>
+      <div class="declaration-body">
+        <div class="decl-meta">
+          <div class="decl-meta-title">Opplysninger oppgitt av selger</div>
+          <div class="decl-meta-grid">
+            <div class="decl-meta-row"><span class="decl-meta-label">Merke</span><span class="decl-meta-value">Cormate</span></div>
+            <div class="decl-meta-row"><span class="decl-meta-label">Årsmodell</span><span class="decl-meta-value">2024</span></div>
+            <div class="decl-meta-row"><span class="decl-meta-label">Kjøpt år</span><span class="decl-meta-value">2024</span></div>
+            <div class="decl-meta-row"><span class="decl-meta-label">HIN / CIN-nr.</span><span class="decl-meta-value">NO-CMT34245A424</span></div>
+            <div class="decl-meta-row"><span class="decl-meta-label">Motornummer</span><span class="decl-meta-value">2L457821 / 22</span></div>
+            <div class="decl-meta-row"><span class="decl-meta-label">Reg.nr.</span><span class="decl-meta-value">N-1142</span></div>
+          </div>
+        </div>
+        <div class="decl-section">
+          <div class="category-label">Eierhistorikk</div>
+          <div class="decl-row"><span class="decl-question">Er båten eid av deg fra ny?</span><span class="decl-answer yes">Ja</span></div>
+          <div class="decl-row"><span class="decl-question">Er båten brukt i kommersielt øyemed?</span><span class="decl-answer no">Nei</span></div>
+          <div class="decl-row"><span class="decl-question">Er båten utleid eller chartret?</span><span class="decl-answer no">Nei</span></div>
+        </div>
+        <div class="decl-section">
+          <div class="category-label">Skader og reparasjoner</div>
+          <div class="decl-row"><span class="decl-question">Har båten vært utsatt for grunnstøting?</span><span class="decl-answer no">Nei</span></div>
+          <div class="decl-row"><span class="decl-question">Har det vært vannlekkasje i skroget?</span><span class="decl-answer no">Nei</span></div>
+          <div class="decl-row"><span class="decl-question">Har det vært utført skadereparasjoner?</span><span class="decl-answer no">Nei</span></div>
+        </div>
+        <div class="decl-section">
+          <div class="category-label">Service og vedlikehold</div>
+          <div class="decl-row"><span class="decl-question">Er service utført iht. produsentens intervaller?</span><span class="decl-answer yes">Ja</span></div>
+          <div class="decl-row"><span class="decl-question">Er båten vinterlagret innendørs?</span><span class="decl-answer yes">Ja</span></div>
+          <div class="decl-row"><span class="decl-question">Foreligger fullstendig servicehistorikk?</span><span class="decl-answer yes">Ja</span></div>
+        </div>
+      </div>
+      <div class="declaration-notice">
+        Egenerklæringen er signert digitalt av selger via Oneflow. Originaldokumentet er tilgjengelig ved forespørsel til ansvarlig megler. Opplysningene erstatter ikke en uavhengig tilstandsvurdering.
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── 06 KONTAKT ─────────────────────────────────────────── -->
+  <div class="page-label"><span class="name">06</span> Kontakt</div>
+  <div class="page">
+    <div class="contact">
+      <div class="photo-bg"><img src="assets/cormate-chase-34-shark-grey.jpg" alt=""></div>
+      <div class="top">
+        <div class="mark-hoy">House of Yachts</div>
+        <div class="partner">
+          <span class="label">i samarbeid med</span>
+          <img class="mark-cormate light" src="assets/cormate.svg" alt="Cormate">
+        </div>
+      </div>
+      <div class="stage">
+        <div class="eyebrow">Visning og kontakt</div>
+        <h2>Bestill <em>privat visning</em></h2>
+        <div class="broker">
+          <div class="col">
+            <div class="l">Ansvarlig megler</div>
+            <div class="v"><strong>Henrik Yttredahl</strong><br>+47 92 12 34 56<br>henrik@houseofyachts.no</div>
+          </div>
+          <div class="col">
+            <div class="l">Showroom</div>
+            <div class="v"><strong>House of Yachts</strong><br>Sjølystveien 4<br>0278 Oslo</div>
+          </div>
+        </div>
+      </div>
+      <div class="foot">
+        <span>© 2026 House of Yachts · houseofyachts.no</span>
+        <span>06 / 06</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

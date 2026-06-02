@@ -154,6 +154,19 @@
     .section-copy.copied{background:#ecfdf5;color:#065f46;border-color:#6ee7b7}
     .section-body{padding:10px 14px;font-size:14px;line-height:1.6;white-space:pre-wrap}
 
+    /* Nudge-banner over input når FINN-blokk er kopiert men ikke markert endelig */
+    .nudge-banner{display:none;position:relative;background:#fef3c7;border:1px solid #fbbf24;
+      border-radius:8px;padding:10px 14px;margin:0 auto 10px;max-width:760px;
+      font-size:13px;color:#78350f;align-items:center;gap:12px}
+    .nudge-banner.show{display:flex}
+    .nudge-banner .nudge-text{flex:1;line-height:1.4}
+    .nudge-banner .nudge-action{padding:6px 12px;background:var(--navy);color:#fff;
+      border:none;border-radius:5px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap}
+    .nudge-banner .nudge-action:hover{background:#1a3a5c}
+    .nudge-banner .nudge-close{background:none;border:none;color:#78350f;font-size:18px;
+      cursor:pointer;line-height:1;padding:0 4px}
+    .nudge-banner .nudge-close:hover{color:#451a03}
+
     /* Modal for "Marker endelig" */
     .modal-bg{position:fixed;inset:0;background:rgba(10,33,64,0.6);display:none;align-items:center;justify-content:center;z-index:5000}
     .modal-bg.show{display:flex}
@@ -277,6 +290,12 @@
   </div>
 
   <div class="input-area">
+    <div class="nudge-banner" id="nudgeBanner">
+      <span style="font-size:18px">⚠️</span>
+      <div class="nudge-text" id="nudgeBannerText">FINN-blokk kopiert. Husk å markere endelig når annonsen er publisert — så fanger vi læringsdata.</div>
+      <button class="nudge-action" onclick="openFinalModalFromNudge()">Marker endelig nå</button>
+      <button class="nudge-close" onclick="closeNudgeBanner()" title="Skjul">×</button>
+    </div>
     <div class="input-inner">
       <div class="input-box">
         <textarea id="msgInput" placeholder="Skriv melding eller lim inn båtdata…" rows="1"
@@ -337,6 +356,10 @@ let currentCobrand     = null;  // 'cormate' | 'goldfish' | null
 let currentOwnerEmail  = null;  // for kontakt-snippet
 let selectedFinnTitle  = null;  // valgt FINN-tittel (radio button)
 let includeHighlights  = false; // skal høydepunkter inkluderes i FINN-blokk?
+
+// V2.1.2: tracking av om megler har et utkast som ikke er markert endelig
+let hasUnmarkedDraft = false;        // satt true av buildFinnBlokk/saveDraft, false av submitFinal
+let lastSectionsForFinal = null;     // pre-fyll Marker-modalen direkte fra banner-knapp
 
 // V2.1: meglerprofiler (for kontakt-snippet i FINN-blokk)
 const MEGLER_KONTAKT = {
@@ -406,6 +429,18 @@ async function login() {
 function showErr(msg) { $('lErr').textContent = msg; $('lErr').style.display = 'block'; }
 
 function logout() {
+  // V2.1.2: vakt mot å forlate ulagret utkast
+  if (hasUnmarkedDraft) {
+    const choice = confirm(
+      'Du har et utkast som ikke er markert endelig.\n\n' +
+      'Hvis annonsen er publisert, bør du markere den endelig først så vi fanger læringsdata.\n\n' +
+      'OK = Marker endelig nå\nAvbryt = Logg ut likevel'
+    );
+    if (choice) {
+      openFinalModalFromNudge();
+      return;
+    }
+  }
   if (!confirm('Logg ut?')) return;
   localStorage.removeItem('hoy_access_token');
   location.href = '/';
@@ -796,6 +831,19 @@ function useStarter(text) {
 }
 
 function newConversation() {
+  // V2.1.2: vakt mot å forlate ulagret utkast
+  if (hasUnmarkedDraft) {
+    const choice = confirm(
+      'Du har et utkast som ikke er markert endelig.\n\n' +
+      'Hvis du ikke skal publisere denne annonsen, kan du starte ny.\n' +
+      'Hvis du allerede har publisert: marker den endelig nå så vi fanger læringsdata.\n\n' +
+      'OK = Marker endelig nå\nAvbryt = Start ny annonse likevel'
+    );
+    if (choice) {
+      openFinalModalFromNudge();
+      return;
+    }
+  }
   conversationHistory = [];
   pendingContext      = null;
   contextDealName     = null;
@@ -811,6 +859,9 @@ function newConversation() {
   currentOwnerEmail   = null;
   selectedFinnTitle   = null;
   includeHighlights   = false;
+  hasUnmarkedDraft    = false;
+  lastSectionsForFinal = null;
+  closeNudgeBanner();
   $('messages').innerHTML = '';
   $('messages').style.display = 'none';
   $('starterState').style.display = '';
@@ -1089,6 +1140,7 @@ async function saveDraft(btn) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Lagring feilet');
     currentRunId = data.run?.id || currentRunId;
+    hasUnmarkedDraft = true;  // V2.1.2: utkast lagret men ikke markert endelig
     btn.classList.add('saved');
     btn.textContent = '✓ Lagret på dealen';
     setTimeout(() => { btn.textContent = original; btn.classList.remove('saved'); btn.disabled = false; }, 3000);
@@ -1109,6 +1161,11 @@ async function buildFinnBlokk(btn) {
     const blokk = buildFinnBlokkText(sections);
 
     await navigator.clipboard.writeText(blokk);
+
+    // V2.1.2: vis nudge-banner og husk sections for raskere Marker-modal
+    lastSectionsForFinal = sections;
+    hasUnmarkedDraft = true;
+    showNudgeBanner();
     const original = btn.textContent;
     btn.classList.add('saved');
     btn.textContent = '✓ Kopiert til utklippstavle';
@@ -1167,6 +1224,11 @@ async function saveToProspekt(btn) {
         prospekt_id: currentProspektId,
         description_intro: intro,
         description_body: body,
+        // For læring: send også rå AI-versjon + run_id slik at backend kan
+        // lagre dette på annonse_runs for senere diff mot publisert prospekt
+        run_id: currentRunId,
+        ai_intro_raw: introMd,
+        ai_body_raw:  bodyMd,
       }),
     });
     const data = await res.json();
@@ -1199,6 +1261,33 @@ function buildFinnBlokkText(sections) {
   parts.push(OM_OSS_FINN);
 
   return parts.join('\n\n');
+}
+
+// ── V2.1.2: Nudge-banner-håndtering ─────────────────────────────────────────
+function showNudgeBanner() {
+  const el = document.getElementById('nudgeBanner');
+  if (!el) return;
+  el.classList.add('show');
+}
+
+function closeNudgeBanner() {
+  const el = document.getElementById('nudgeBanner');
+  if (!el) return;
+  el.classList.remove('show');
+}
+
+function openFinalModalFromNudge() {
+  if (!lastSectionsForFinal) {
+    alert('Ingen aktiv annonse å markere endelig. Generer en ny annonse først.');
+    return;
+  }
+  // Bruk samme path som vanlig "Marker endelig" — gjenoppretter konsistens
+  const initialText = buildFinnBlokkText(lastSectionsForFinal);
+  $('finalText').value = initialText;
+  $('finalNotes').value = '';
+  pendingFinalRunId = currentRunId;
+  $('finalModal').classList.add('show');
+  closeNudgeBanner();
 }
 
 // ── V2: Marker endelig ──────────────────────────────────────────────────────
@@ -1268,6 +1357,8 @@ async function submitFinal() {
     if (!res.ok) throw new Error(data.error || 'Lagring feilet');
 
     closeFinalModal();
+    closeNudgeBanner();
+    hasUnmarkedDraft = false;
     // Vis bekreftelse i chatten
     const confirmEl = document.createElement('div');
     confirmEl.style.cssText = 'text-align:center;color:#059669;font-size:12px;padding:8px 0;font-weight:600;';

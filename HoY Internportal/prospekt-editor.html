@@ -1,0 +1,2648 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Prospekt-editor — House of Yachts</title>
+<style>
+  :root {
+    --navy:#0a2140;--gold:#c9a84c;--white:#fff;--surface:#f5f7fa;
+    --gray:#dde3ec;--gray-dark:#6b7a8d;--text:#12233a;
+    --green:#166534;--green-bg:#dcfce7;
+    --red:#991b1b;--red-bg:#fee2e2;
+    --yellow:#92400e;--yellow-bg:#fef3c7;
+    --blue:#1e40af;--blue-bg:#dbeafe;
+    --radius:12px;--shadow:0 2px 16px rgba(10,33,64,0.10);
+  }
+  *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--surface);color:var(--text);margin:0;padding:0;min-height:100vh}
+
+  /* ── Loading / Login ── */
+  .loading-screen,.login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy)}
+  .loading-text{color:rgba(255,255,255,0.5);font-size:15px}
+  .login-box{background:white;border-radius:20px;padding:40px 36px;max-width:400px;width:calc(100% - 32px);text-align:center;box-shadow:0 8px 40px rgba(0,0,0,0.3)}
+  .login-logo{font-size:22px;font-weight:800;color:var(--navy);margin-bottom:4px}
+  .login-sub{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:28px}
+  .login-form{display:flex;flex-direction:column;gap:12px;text-align:left;margin-bottom:20px}
+  .login-form label{font-size:13px;font-weight:600;color:var(--navy);display:block;margin-bottom:4px}
+  .login-form input{width:100%;padding:13px 15px;border:2px solid var(--gray);border-radius:10px;font-size:16px;font-family:inherit}
+  .login-form input:focus{outline:none;border-color:var(--navy)}
+  .btn-login{width:100%;padding:15px;background:var(--navy);color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer}
+  .login-error{color:#991b1b;font-size:13px;font-weight:600;margin-top:10px;display:none}
+
+  /* ── Header ── */
+  .header{background:var(--navy);color:white;padding:14px 20px;position:sticky;top:0;z-index:200;box-shadow:0 2px 16px rgba(0,0,0,0.35)}
+  .header-inner{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .brand{display:flex;flex-direction:column}
+  .brand-name{font-size:14px;font-weight:800;letter-spacing:0.8px}
+  .brand-sub{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--gold)}
+  .header-title{font-size:16px;font-weight:700;color:rgba(255,255,255,0.9)}
+  .header-right{display:flex;align-items:center;gap:12px}
+  .user-label{font-size:12px;color:rgba(255,255,255,0.55)}
+  .btn-nav{background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.18);border-radius:20px;color:rgba(255,255,255,0.85);padding:6px 14px;font-size:12px;font-family:inherit;cursor:pointer;text-decoration:none}
+  .btn-nav:hover{background:rgba(255,255,255,0.2)}
+
+  /* ── Picker ── */
+  .picker-wrap{max-width:700px;margin:60px auto;padding:0 16px;text-align:center}
+  .picker-title{font-size:22px;font-weight:700;color:var(--navy);margin-bottom:8px}
+  .picker-sub{font-size:14px;color:var(--gray-dark);margin-bottom:24px}
+  .deal-select{width:100%;padding:14px 16px;border:2px solid var(--gray);border-radius:12px;font-size:16px;font-family:inherit;color:var(--text);background:white;cursor:pointer}
+  .deal-select:focus{outline:none;border-color:var(--navy)}
+  .btn-primary{background:var(--navy);color:white;border:none;border-radius:10px;padding:14px 28px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity 0.2s}
+  .btn-primary:hover{opacity:0.88}
+  .btn-primary:disabled{opacity:0.4;cursor:not-allowed}
+
+  /* ── Prospekt-liste ── */
+  .prospekt-list{margin-top:36px;text-align:left}
+  .prospekt-list h3{font-size:14px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gray-dark);margin-bottom:12px}
+  .pl-card{background:white;border:2px solid var(--gray);border-radius:12px;padding:16px 20px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:border-color 0.15s}
+  .pl-card:hover{border-color:var(--navy)}
+  .pl-name{font-size:15px;font-weight:700;color:var(--navy)}
+  .pl-meta{font-size:12px;color:var(--gray-dark)}
+  .pl-badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+  .pl-badge.draft{background:var(--yellow-bg);color:var(--yellow)}
+  .pl-badge.published{background:var(--green-bg);color:var(--green)}
+
+  /* ── Editor layout ── */
+  .editor-wrap{max-width:1200px;margin:0 auto;padding:24px 16px 80px}
+  .editor-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+  .editor-header h2{font-size:22px;font-weight:800;color:var(--navy);margin:0}
+  .editor-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .btn-gold{background:var(--gold);color:var(--navy);border:none;border-radius:10px;padding:12px 22px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+  .btn-gold:hover{opacity:0.88}
+  .btn-gold:disabled{opacity:0.4;cursor:not-allowed}
+  .btn-outline{background:white;color:var(--navy);border:2px solid var(--gray);border-radius:10px;padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+  .btn-outline:hover{border-color:var(--navy)}
+  .btn-danger{background:white;color:var(--red);border:2px solid var(--red);border-radius:10px;padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+
+  /* ── Section cards ── */
+  .section-grid{display:grid;grid-template-columns:1fr;gap:16px}
+  .sec-card{background:white;border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+  .sec-card-header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--gray);cursor:pointer;user-select:none}
+  .sec-card-header:hover{background:#f8fafd}
+  .sec-card-title{font-size:15px;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:8px}
+  .sec-card-title .drag-handle{cursor:grab;color:var(--gray-dark);font-size:16px}
+  .sec-toggle{font-size:18px;color:var(--gray-dark);transition:transform 0.2s}
+  .sec-toggle.open{transform:rotate(180deg)}
+  .sec-card-body{padding:20px;display:none}
+  .sec-card-body.open{display:block}
+
+  /* ── Form fields ── */
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:13px;font-weight:600;color:var(--navy);margin-bottom:5px}
+  .field input,.field select,.field textarea{width:100%;padding:11px 13px;border:2px solid var(--gray);border-radius:8px;font-size:15px;font-family:inherit;color:var(--text)}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--navy)}
+  .field textarea{resize:vertical;min-height:100px}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .field-hint{font-size:12px;color:var(--gray-dark);margin-top:4px}
+
+  /* ── Image picker ── */
+  .img-preview{position:relative;display:inline-block;margin:8px 8px 0 0}
+  .img-preview img{width:120px;height:80px;object-fit:cover;border-radius:6px;border:2px solid var(--gray)}
+  .img-preview .img-remove{position:absolute;top:-6px;right:-6px;width:22px;height:22px;background:var(--red);color:white;border:none;border-radius:50%;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+
+  .img-picker-btn{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;background:white;border:2px solid var(--gray);border-radius:8px;font-size:13px;font-weight:600;color:var(--navy);cursor:pointer;font-family:inherit;transition:border-color 0.15s}
+  .img-picker-btn:hover{border-color:var(--navy)}
+
+  /* Image picker modal */
+  .picker-overlay{position:fixed;inset:0;background:rgba(10,33,64,0.55);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px}
+  .picker-modal{background:white;border-radius:16px;max-width:800px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.35)}
+  .picker-modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--gray);display:flex;justify-content:space-between;align-items:center}
+  .picker-modal-header h3{font-size:18px;font-weight:800;color:var(--navy);margin:0}
+  .picker-modal-close{background:none;border:none;font-size:24px;color:var(--gray-dark);cursor:pointer;padding:4px}
+  .picker-modal-body{flex:1;overflow-y:auto;padding:20px 24px}
+  .picker-modal-footer{padding:16px 24px;border-top:1px solid var(--gray);display:flex;justify-content:space-between;align-items:center}
+  .picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+  .picker-img{position:relative;border-radius:8px;overflow:hidden;cursor:pointer;aspect-ratio:4/3;border:3px solid transparent;transition:border-color 0.15s}
+  .picker-img:hover{border-color:var(--gray)}
+  .picker-img.selected{border-color:var(--gold)}
+  .picker-img img{width:100%;height:100%;object-fit:cover;display:block}
+  .picker-img .picker-check{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;background:var(--gold);color:white;display:none;align-items:center;justify-content:center;font-size:14px;font-weight:700}
+  .picker-img.selected .picker-check{display:flex}
+  .picker-img-name{position:absolute;bottom:0;left:0;right:0;padding:12px 6px 4px;background:linear-gradient(to top,rgba(0,0,0,0.5),transparent);font-size:9px;color:white;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .picker-empty{text-align:center;padding:40px;color:var(--gray-dark);font-size:14px}
+
+  /* ── Spec rows ── */
+  .spec-editor-row{display:flex;gap:8px;margin-bottom:6px;align-items:center}
+  .spec-editor-row input{flex:1}
+  .btn-icon{width:32px;height:32px;border:none;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+  .btn-icon-add{background:var(--green-bg);color:var(--green)}
+  .btn-icon-del{background:var(--red-bg);color:var(--red)}
+
+  /* ── Equipment editor ── */
+  .equip-cat-card{border:1px solid var(--gray);border-radius:8px;padding:14px;margin-bottom:12px}
+  .equip-cat-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .equip-cat-name{font-size:13px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:1px}
+  .equip-item-row{display:flex;gap:6px;margin-bottom:4px;align-items:center}
+  .equip-item-row input{flex:1;padding:7px 10px;font-size:13px}
+  .equip-item-row.dragging{opacity:0.4}
+  .equip-item-row.drag-over-above{border-top:2px solid var(--gold);margin-top:-2px}
+  .equip-item-row.drag-over-below{border-bottom:2px solid var(--gold);margin-bottom:-2px}
+  .equip-drag{cursor:grab;color:var(--gray-dark);font-size:13px;user-select:none;padding:0 2px;line-height:1}
+  .equip-drag:active{cursor:grabbing}
+  .spec-drag-row.dragging{opacity:0.4}
+  .spec-drag-row.drag-over-above{border-top:2px solid var(--gold);margin-top:-2px}
+  .spec-drag-row.drag-over-below{border-bottom:2px solid var(--gold);margin-bottom:-2px}
+
+  /* ── Gallery editor ── */
+  .gallery-images-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:10px}
+  .gallery-img-card{position:relative;border-radius:8px;overflow:hidden;border:2px solid var(--gray);background:var(--surface)}
+  .gallery-img-card img{width:100%;height:100px;object-fit:cover;display:block}
+  .gallery-img-card .caption-input{width:100%;border:none;border-top:1px solid var(--gray);padding:6px 8px;font-size:11px;font-family:inherit}
+  .gallery-img-card .caption-input:focus{outline:none;background:#fffbeb}
+  .gallery-img-card .img-remove{position:absolute;top:4px;right:4px;width:22px;height:22px;background:rgba(0,0,0,0.6);color:white;border:none;border-radius:50%;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+  /* ── Gallery layout picker ── */
+  .gallery-page-editor{border:2px solid var(--gray);border-radius:12px;padding:16px;margin-bottom:14px;background:white}
+  .gallery-page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .gallery-page-header h4{font-size:14px;font-weight:700;color:var(--navy);margin:0}
+  .layout-options{display:flex;gap:8px}
+  .layout-opt{border:2px solid var(--gray);border-radius:8px;padding:6px 10px;font-size:11px;font-weight:600;cursor:pointer;background:white;transition:all 0.15s;font-family:inherit}
+  .layout-opt:hover{border-color:var(--navy)}
+  .layout-opt.active{border-color:var(--gold);background:var(--gold);color:var(--navy)}
+  .gallery-slot-grid{display:grid;gap:6px}
+  .gallery-slot{border:2px dashed var(--gray);border-radius:6px;min-height:60px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;transition:border-color 0.15s}
+  .gallery-slot:hover{border-color:var(--gold)}
+  .gallery-slot.filled{border-style:solid;border-color:var(--gray)}
+  .gallery-slot img{width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0}
+  .gallery-slot .slot-label{font-size:11px;color:var(--gray-dark);pointer-events:none;z-index:1}
+  .gallery-slot .slot-remove{position:absolute;top:4px;right:4px;width:20px;height:20px;background:rgba(0,0,0,0.6);color:white;border:none;border-radius:50%;font-size:11px;cursor:pointer;z-index:2;display:none;align-items:center;justify-content:center}
+  .gallery-slot.filled .slot-remove{display:flex}
+  .gallery-slot .slot-caption{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.5);z-index:2}
+  .gallery-slot .slot-caption input{width:100%;border:none;background:transparent;color:white;font-size:10px;padding:4px 6px;font-family:inherit}
+  .gallery-slot .slot-caption input::placeholder{color:rgba(255,255,255,0.5)}
+
+  /* ── Crop modal ── */
+  .crop-overlay{position:fixed;inset:0;background:rgba(10,33,64,0.7);z-index:600;display:flex;align-items:center;justify-content:center;padding:16px}
+  .crop-modal{background:white;border-radius:16px;max-width:600px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.4)}
+  .crop-modal-header{padding:16px 24px;border-bottom:1px solid var(--gray);display:flex;justify-content:space-between;align-items:center}
+  .crop-modal-header h3{font-size:16px;font-weight:700;color:var(--navy);margin:0}
+  .crop-preview-area{position:relative;width:100%;overflow:hidden;background:#1a1a1a;cursor:grab}
+  .crop-preview-area.dragging{cursor:grabbing}
+  .crop-preview-area img{position:absolute;inset:0;width:100%;height:100%;user-select:none;-webkit-user-drag:none;object-fit:cover}
+  .crop-frame-hint{position:absolute;inset:0;border:2px dashed rgba(255,255,255,0.25);pointer-events:none;z-index:1}
+  .crop-controls{padding:16px 24px;display:flex;align-items:center;gap:12px}
+  .crop-controls label{font-size:12px;font-weight:600;color:var(--navy)}
+  .crop-controls input[type=range]{flex:1}
+  .crop-modal-footer{padding:12px 24px;border-top:1px solid var(--gray);display:flex;justify-content:flex-end;gap:8px}
+  .crop-btn-inline{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;background:white;border:2px solid var(--gray);border-radius:6px;font-size:12px;font-weight:600;color:var(--navy);cursor:pointer;font-family:inherit;margin-top:4px}
+  .crop-btn-inline:hover{border-color:var(--navy)}
+
+  /* ── Gallery page preview modal (eksakt PDF-utseende) ──
+     CSS-klasser nedenfor speiler render.html for å gi WYSIWYG-preview. */
+  .gpp-overlay{position:fixed;inset:0;background:rgba(10,33,64,0.7);z-index:600;display:flex;align-items:center;justify-content:center;padding:24px}
+  .gpp-modal{background:white;border-radius:12px;max-width:540px;width:100%;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.4);overflow:hidden}
+  .gpp-header{padding:14px 20px;border-bottom:1px solid var(--gray);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+  .gpp-header h3{font-size:15px;font-weight:700;color:var(--navy);margin:0}
+  .gpp-header .gpp-close{background:none;border:none;font-size:22px;color:var(--gray-dark);cursor:pointer;padding:4px 8px;line-height:1}
+  .gpp-body{flex:1;overflow:auto;padding:20px;background:#D6D1CA;display:flex;justify-content:center;align-items:flex-start}
+  /* A4-side: fast aspect-ratio 210/297, max bredde fyller modal */
+  .gpp-page{width:100%;aspect-ratio:210/297;background:#fff;box-shadow:0 4px 30px rgba(0,0,0,0.15);overflow:hidden;position:relative;display:flex;flex-direction:column}
+  .gpp-gallery{display:flex;flex-direction:column;height:100%;padding:6% 6% 3%;font-family:'Inter',sans-serif}
+  .gpp-gallery-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:4%}
+  .gpp-gallery-header h2{font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;font-weight:400;color:#0A0A0A;margin:0}
+  .gpp-gallery-subtitle{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#9A9590;font-weight:500}
+  .gpp-grid{flex:1 1 0;min-height:0;display:grid;gap:6px}
+  .gpp-grid-2up_h{grid-template-columns:1fr;grid-template-rows:1fr 1fr}
+  .gpp-grid-3up_h{grid-template-columns:1fr;grid-template-rows:1fr 1fr 1fr}
+  .gpp-grid-4up_h{grid-template-columns:1fr;grid-template-rows:1fr 1fr 1fr 1fr}
+  .gpp-grid-4up_sw{grid-template-columns:1fr 1fr;grid-template-rows:1.2fr 1fr 1.2fr}
+  .gpp-grid-5up{grid-template-columns:1fr 1fr;grid-template-rows:1.4fr 1fr 1fr}
+  .gpp-grid-4up{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+  .gpp-grid-2up{grid-template-columns:1fr 1fr;grid-template-rows:1fr}
+  .gpp-grid-1up{grid-template-columns:1fr;grid-template-rows:1fr;gap:0}
+  .gpp-gi{overflow:hidden;border-radius:1px;position:relative;min-height:0;min-width:0}
+  .gpp-gi img{width:100%;height:100%;object-fit:cover;display:block}
+  .gpp-gi-wide{grid-column:1/-1}
+  .gpp-grid-4up_sw > .gpp-gi:nth-child(1){grid-column:1/-1;grid-row:1}
+  .gpp-grid-4up_sw > .gpp-gi:nth-child(2){grid-column:1;grid-row:2}
+  .gpp-grid-4up_sw > .gpp-gi:nth-child(3){grid-column:2;grid-row:2}
+  .gpp-grid-4up_sw > .gpp-gi:nth-child(4){grid-column:1/-1;grid-row:3}
+  .gpp-gi-caption{position:absolute;bottom:0;left:0;right:0;padding:14px 10px 6px;background:linear-gradient(to top,rgba(0,0,0,0.5),transparent);font-size:7px;color:#fff;letter-spacing:0.5px}
+  .gpp-page-indicator{text-align:center;padding-top:3%;font-size:7px;letter-spacing:1px;color:#9A9590}
+  .gpp-footer{padding:10px 20px;border-top:1px solid var(--gray);font-size:11px;color:var(--gray-dark);text-align:center;flex-shrink:0}
+
+  /* ── Rich text editor ── */
+  .rte-toolbar{display:flex;gap:2px;padding:6px 8px;background:var(--surface);border:2px solid var(--gray);border-bottom:none;border-radius:8px 8px 0 0;flex-wrap:wrap}
+  .rte-toolbar button{background:white;border:1px solid var(--gray);border-radius:4px;padding:4px 10px;font-size:12px;font-family:inherit;cursor:pointer;color:var(--navy)}
+  .rte-toolbar button:hover{background:var(--gray);border-color:var(--navy)}
+  .rte-sep{width:1px;background:var(--gray);margin:0 4px}
+  .rte-editor{width:100%;min-height:160px;max-height:400px;overflow-y:auto;padding:12px 14px;border:2px solid var(--gray);border-radius:0 0 8px 8px;font-size:15px;font-family:inherit;color:var(--text);line-height:1.6;outline:none}
+  .rte-editor:focus{border-color:var(--navy)}
+  .rte-editor p{margin:0 0 8px}
+  .rte-editor ul{margin:0 0 8px 18px;padding:0}
+  .rte-editor li{margin-bottom:2px}
+
+  /* ── Char limits ── */
+  .char-count{font-size:11px;color:var(--gray-dark);text-align:right;margin-top:2px}
+  .char-count.warn{color:var(--yellow)}
+  .char-count.over{color:var(--red);font-weight:600}
+  .limit-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;background:var(--yellow-bg);color:var(--yellow);margin-left:6px}
+
+  /* ── Suggested-row chips ── */
+  .suggested-chips{margin-top:12px;padding:10px 12px;background:#f9fafb;border:1px dashed var(--gray);border-radius:6px}
+  .suggested-chips-label{font-size:11px;color:var(--gray-dark);margin-bottom:6px;font-weight:500}
+  .suggested-chips-row{display:flex;flex-wrap:wrap;gap:6px}
+  .chip-suggest{background:white;border:1px solid var(--gray);color:var(--text);padding:4px 10px;border-radius:14px;font-size:12px;cursor:pointer;font-family:inherit;transition:all 0.12s}
+  .chip-suggest:hover{background:var(--blue);color:white;border-color:var(--blue)}
+
+  /* ── Generate text button ── */
+  .btn-generate{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity 0.15s}
+  .btn-generate:hover{opacity:0.88}
+  .btn-generate:disabled{opacity:0.4;cursor:not-allowed}
+
+  /* ── AI equipment panel ── */
+  .equip-ai-panel{background:#f8f7ff;border:1px solid #e0ddf5;border-radius:8px;padding:12px 14px;margin-bottom:16px}
+  .equip-ai-header{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;color:#5b4da0}
+  .equip-ai-header .sec-toggle{color:#5b4da0;font-size:16px}
+
+  /* ── Toast ── */
+  .toast{position:fixed;bottom:24px;right:24px;padding:14px 24px;border-radius:10px;font-size:14px;font-weight:600;z-index:999;transition:opacity 0.3s,transform 0.3s;opacity:0;transform:translateY(12px);pointer-events:none}
+  .toast.show{opacity:1;transform:translateY(0)}
+  .toast.success{background:var(--green-bg);color:var(--green);border:1px solid #86efac}
+  .toast.error{background:var(--red-bg);color:var(--red);border:1px solid #fca5a5}
+
+  /* ── Sortable drag ghost ── */
+  .sec-card.dragging{opacity:0.5}
+  .sec-card.drag-over{border-top:3px solid var(--gold)}
+  .sec-card.sec-excluded{opacity:0.5;border:2px dashed var(--gray)}
+  .sec-card.sec-excluded .sec-card-body{display:none!important}
+  .btn-excl{font-size:11px;padding:3px 10px;border-radius:16px;border:none;cursor:pointer;font-family:inherit;font-weight:600;margin-left:8px}
+  .btn-excl-on{background:var(--green-bg);color:var(--green)}
+  .btn-excl-off{background:var(--red-bg);color:var(--red)}
+
+  .empty-state{text-align:center;padding:48px 20px;color:var(--gray-dark);font-size:15px}
+
+  /* ── Status indicator ── */
+  .save-indicator{font-size:12px;color:var(--gray-dark);padding:4px 10px}
+  .save-indicator.saving{color:var(--gold)}
+  .save-indicator.saved{color:var(--green)}
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loadingScreen" class="loading-screen" style="display:none">
+  <div class="loading-text" id="loadingText">Starter…</div>
+</div>
+
+<!-- Login -->
+<div id="loginScreen" class="login-screen" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">HOUSE OF YACHTS</div>
+    <div class="login-sub">Prospekt-editor</div>
+    <div class="login-form">
+      <div><label for="loginEmail">E-post</label>
+        <input type="email" id="loginEmail" placeholder="navn@h-y.no" autocomplete="email"></div>
+      <div><label for="loginPassword">Passord</label>
+        <input type="password" id="loginPassword" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter')doLogin()"></div>
+    </div>
+    <div class="login-error" id="loginError"></div>
+    <button class="btn-login" id="loginBtn" onclick="doLogin()">Logg inn</button>
+  </div>
+</div>
+
+<!-- App -->
+<div id="appScreen" style="display:none">
+
+  <div class="header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-name">HOUSE OF YACHTS</div>
+        <div class="brand-sub">Internportal</div>
+      </div>
+      <div class="header-title">Prospekt-editor</div>
+      <div class="header-right">
+        <span class="user-label" id="userLabel"></span>
+        <a href="/" class="btn-nav">← Portal</a>
+        <button class="btn-nav" onclick="doLogout()">Logg ut</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Picker view -->
+  <div id="pickerView">
+    <div class="picker-wrap">
+      <div class="picker-title">Prospekt-editor</div>
+      <div class="picker-sub">Opprett eller rediger prospekt for et oppdrag</div>
+
+      <select class="deal-select" id="dealSelect" onchange="onDealSelect()">
+        <option value="">Laster oppdrag…</option>
+      </select>
+      <div style="margin-top:14px;display:flex;gap:10px;justify-content:center">
+        <button class="btn-primary" id="createBtn" disabled onclick="createProspekt()">+ Nytt prospekt</button>
+      </div>
+
+      <div class="prospekt-list" id="prospektList"></div>
+    </div>
+  </div>
+
+  <!-- Editor view -->
+  <div id="editorView" style="display:none">
+    <div class="editor-wrap">
+
+      <div class="editor-header">
+        <div>
+          <h2 id="editorTitle">Redigerer prospekt</h2>
+          <span class="save-indicator" id="saveIndicator"></span>
+        </div>
+        <div class="editor-actions">
+          <button class="btn-outline" onclick="backToPicker()">← Tilbake</button>
+          <button class="btn-outline" onclick="previewProspekt()">Forhåndsvisning</button>
+          <button class="btn-outline" onclick="downloadPdf()">⬇ Last ned PDF</button>
+          <button class="btn-gold" id="saveBtn" onclick="saveProspekt()">Lagre</button>
+          <button class="btn-primary" id="publishBtn" onclick="togglePublish()">Publiser</button>
+        </div>
+      </div>
+
+      <div class="section-grid" id="sectionGrid">
+        <!-- Sections rendered by JS -->
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Constants ────────────────────────────────────────────────────────────────
+const IDENTITY = `${window.location.origin}/.netlify/identity`;
+const API      = `${window.location.origin}/.netlify/functions/prospekt`;
+const $ = id => document.getElementById(id);
+
+let accessToken = null;
+let currentProspekt = null;  // full prospekt object from API
+let autoSaveTimer = null;
+
+// ── Screens ──────────────────────────────────────────────────────────────────
+function showScreen(id) {
+  for (const s of ['loadingScreen','loginScreen','appScreen']) $(s).style.display = 'none';
+  $(id).style.display = id === 'appScreen' ? 'block' : 'flex';
+}
+
+// ── Auth ─────────────────────────────────────────────────────────────────────
+async function fetchUser(tok) {
+  const r = await fetch(`${IDENTITY}/user`, { headers: { Authorization: `Bearer ${tok}` } });
+  if (!r.ok) throw new Error('Session utløpt');
+  return r.json();
+}
+
+(async function init() {
+  showScreen('loadingScreen');
+  const tok = localStorage.getItem('hoy_access_token');
+  if (tok) {
+    try {
+      accessToken = tok;
+      const u = await fetchUser(tok);
+      onLogin(u);
+      return;
+    } catch { localStorage.removeItem('hoy_access_token'); }
+  }
+  showScreen('loginScreen');
+})();
+
+async function doLogin() {
+  const email = $('loginEmail').value.trim();
+  const pass  = $('loginPassword').value;
+  const err   = $('loginError');
+  const btn   = $('loginBtn');
+  if (!email || !pass) { err.textContent = 'Fyll inn begge felt'; err.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = 'Logger inn…';
+  err.style.display = 'none';
+  try {
+    const r = await fetch(`${IDENTITY}/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `grant_type=password&username=${encodeURIComponent(email)}&password=${encodeURIComponent(pass)}`,
+    });
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error_description || 'Feil passord eller e-post'); }
+    const data = await r.json();
+    accessToken = data.access_token;
+    localStorage.setItem('hoy_access_token', accessToken);
+    const u = await fetchUser(accessToken);
+    onLogin(u);
+  } catch (e) {
+    err.textContent = e.message; err.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Logg inn';
+  }
+}
+
+function doLogout() {
+  localStorage.removeItem('hoy_access_token');
+  accessToken = null;
+  location.reload();
+}
+
+async function onLogin(user) {
+  $('userLabel').textContent = user.email || '';
+  showScreen('appScreen');
+  await loadPicker();
+}
+
+// ── API helper ───────────────────────────────────────────────────────────────
+async function api(qs, method = 'GET', body = null) {
+  const url = `${API}?${new URLSearchParams(qs)}`;
+  const r = await fetch(url, {
+    method,
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  const text = await r.text();
+  let data;
+  try { data = JSON.parse(text); } catch { throw new Error(`Server error (${r.status}): ${text.substring(0, 100)}`); }
+  if (!r.ok) throw new Error(data.error || `Feil ${r.status}`);
+  return data;
+}
+
+// ── Toast ────────────────────────────────────────────────────────────────────
+function toast(msg, type = 'success') {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// PICKER VIEW
+// ════════════════════════════════════════════════════════════════════════════════
+
+async function loadPicker() {
+  const sel = $('dealSelect');
+  sel.innerHTML = '<option value="">Laster oppdrag…</option>';
+
+  let deals = [];
+  let prospekter = [];
+
+  try {
+    // Load deals and existing prospekter in parallel
+    const results = await Promise.allSettled([
+      api({ deals: 1 }),
+      api({ list: 1 }),
+    ]);
+
+    if (results[0].status === 'fulfilled') deals = results[0].value || [];
+    else { console.error('Deals-feil:', results[0].reason); toast('Feil ved lasting av deals: ' + results[0].reason?.message, 'error'); }
+
+    if (results[1].status === 'fulfilled') prospekter = results[1].value || [];
+    else { console.error('Prospekter-feil:', results[1].reason); toast('Feil ved lasting av prospekter: ' + results[1].reason?.message, 'error'); }
+  } catch (e) {
+    console.error('loadPicker error:', e);
+    toast('Kunne ikke laste data: ' + e.message, 'error');
+  }
+
+  // Populate deal dropdown (only deals without prospekt)
+  sel.innerHTML = '<option value="">— Velg oppdrag —</option>';
+  for (const d of deals) {
+    if (d.has_prospekt) continue;
+    const opt = document.createElement('option');
+    opt.value = d.id;
+    opt.textContent = d.name;
+    sel.appendChild(opt);
+  }
+  if (deals.length === 0) {
+    sel.innerHTML = '<option value="">Ingen oppdrag funnet</option>';
+  }
+
+  $('createBtn').disabled = true;
+
+  // Render existing prospekter
+  const list = $('prospektList');
+  if (prospekter.length === 0) {
+    list.innerHTML = '<div class="empty-state">Ingen prospekter opprettet ennå</div>';
+    return;
+  }
+
+  list.innerHTML = `<h3>Eksisterende prospekter</h3>`;
+  for (const p of prospekter) {
+    const date = new Date(p.updated_at).toLocaleDateString('nb-NO', { day:'numeric', month:'short', year:'numeric' });
+    const card = document.createElement('div');
+    card.className = 'pl-card';
+    card.onclick = () => openEditor(p.id);
+    card.innerHTML = `
+      <div>
+        <div class="pl-name">${esc(p.boat_name || p.deal_name)}</div>
+        <div class="pl-meta">Sist endret: ${date}</div>
+      </div>
+      <span class="pl-badge ${p.status}">${p.status === 'published' ? 'Publisert' : 'Utkast'}</span>
+    `;
+    list.appendChild(card);
+  }
+}
+
+function onDealSelect() {
+  $('createBtn').disabled = !$('dealSelect').value;
+}
+
+async function createProspekt() {
+  const dealId = $('dealSelect').value;
+  if (!dealId) return;
+  $('createBtn').disabled = true;
+  $('createBtn').textContent = 'Oppretter…';
+  try {
+    const p = await api({ action: 'create' }, 'POST', { deal_id: dealId });
+    toast('Prospekt opprettet');
+    await openEditor(p.id);
+  } catch (e) {
+    // Hvis det allerede finnes — åpne det
+    if (e.message.includes('already exists')) {
+      toast('Prospekt finnes allerede — åpner', 'success');
+      // Re-fetch to get the ID
+      await loadPicker();
+    } else {
+      toast(e.message, 'error');
+    }
+  }
+  $('createBtn').disabled = false;
+  $('createBtn').textContent = '+ Nytt prospekt';
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// EDITOR VIEW
+// ════════════════════════════════════════════════════════════════════════════════
+
+async function openEditor(id) {
+  currentProspekt = await api({ id });
+  $('pickerView').style.display = 'none';
+  $('editorView').style.display = 'block';
+  $('editorTitle').textContent = currentProspekt.boat_name || 'Nytt prospekt';
+  $('publishBtn').textContent = currentProspekt.status === 'published' ? 'Avpubliser' : 'Publiser';
+
+  // Load available images for this deal
+  await loadAvailableImages();
+
+  renderSections();
+}
+
+function backToPicker() {
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  currentProspekt = null;
+  $('editorView').style.display = 'none';
+  $('pickerView').style.display = 'block';
+  loadPicker();
+}
+
+// ── Section definitions ──────────────────────────────────────────────────────
+const SECTION_DEFS = {
+  cover:       { title: 'Forside',           icon: '🖼️', required: true },
+  overview:    { title: 'Oversikt & Specs',  icon: '📋', required: true },
+  gallery:     { title: 'Bildegalleri',      icon: '📷', required: false },
+  equipment:   { title: 'Utstyrsliste',      icon: '⚙️', required: false },
+  declaration: { title: 'Egenerklæring',     icon: '📝', required: false },
+  freetext:    { title: 'Fritekst',          icon: '✏️', required: false },
+  contact:     { title: 'Kontaktside',       icon: '📞', required: true },
+};
+
+// ── Page-level ordering helpers ──────────────────────────────────────────────
+// sections_order stores page-level entries like 'gallery:0', 'gallery:1', 'equipment', etc.
+// Legacy section-level entries ('gallery', 'freetext') are expanded on load.
+
+function buildPageOrder(p) {
+  const raw = p.sections_order || Object.keys(SECTION_DEFS);
+  const expanded = [];
+  for (const entry of raw) {
+    if (entry === 'gallery') {
+      // Legacy: expand to per-page entries
+      const count = (p.gallery_pages || []).length;
+      if (count === 0) {
+        expanded.push('gallery:0'); // Show one empty card so user can add pages
+      } else {
+        for (let i = 0; i < count; i++) expanded.push(`gallery:${i}`);
+      }
+    } else if (entry === 'freetext') {
+      // Freetext currently only has 1 page, but keep expandable
+      expanded.push('freetext:0');
+    } else if (!entry.includes(':') && !SECTION_DEFS[entry]) {
+      continue; // skip unknown
+    } else {
+      expanded.push(entry);
+    }
+  }
+  // Ensure all gallery pages are represented (in case pages were added after order was saved)
+  const galCount = (p.gallery_pages || []).length;
+  for (let i = 0; i < galCount; i++) {
+    if (!expanded.includes(`gallery:${i}`)) {
+      // Insert after the last gallery entry, or after overview
+      const lastGal = expanded.reduce((acc, e, idx) => e.startsWith('gallery:') ? idx : acc, -1);
+      const insertAt = lastGal >= 0 ? lastGal + 1 : expanded.indexOf('overview') + 1 || 2;
+      expanded.splice(insertAt, 0, `gallery:${i}`);
+    }
+  }
+  // Ensure freetext is present
+  if (!expanded.some(e => e.startsWith('freetext'))) {
+    const contactIdx = expanded.indexOf('contact');
+    expanded.splice(contactIdx >= 0 ? contactIdx : expanded.length, 0, 'freetext:0');
+  }
+  return expanded;
+}
+
+function parseEntry(entry) {
+  // 'gallery:2' → { section: 'gallery', index: 2 }
+  // 'equipment' → { section: 'equipment', index: null }
+  const parts = entry.split(':');
+  return { section: parts[0], index: parts.length > 1 ? parseInt(parts[1]) : null };
+}
+
+function getEntryDef(entry) {
+  const { section, index } = parseEntry(entry);
+  const def = SECTION_DEFS[section];
+  if (!def) return null;
+  // For multi-page sections, create a modified title
+  if (section === 'gallery' && index !== null) {
+    const total = (currentProspekt.gallery_pages || []).length;
+    return { ...def, title: `Bildegalleri ${index + 1}`, required: false, isPage: true, pageIndex: index, section };
+  }
+  if (section === 'freetext' && index !== null) {
+    return { ...def, title: 'Fritekst', required: false, isPage: true, pageIndex: index, section };
+  }
+  return { ...def, isPage: false, pageIndex: null, section };
+}
+
+function renderSections() {
+  const grid = $('sectionGrid');
+  grid.innerHTML = '';
+  const order = buildPageOrder(currentProspekt);
+  // Store the page-level order back
+  currentProspekt.sections_order = order;
+
+  for (const entry of order) {
+    const def = getEntryDef(entry);
+    if (!def) continue;
+    const { section } = parseEntry(entry);
+
+    const isExcluded = section === 'declaration' && currentProspekt.declaration_excluded;
+    const isFixed = def.required; // cover, overview, contact
+    const card = document.createElement('div');
+    card.className = 'sec-card' + (isExcluded ? ' sec-excluded' : '');
+    card.dataset.entry = entry;
+    card.draggable = !isFixed;
+
+    // Declaration toggle button
+    let excludeBtn = '';
+    if (section === 'declaration') {
+      const hasDecl = currentProspekt.declaration_oneflow_id || (currentProspekt.declaration_sections && currentProspekt.declaration_sections.length > 0);
+      if (hasDecl) {
+        excludeBtn = isExcluded
+          ? `<button class="btn-excl btn-excl-off" onclick="event.stopPropagation();toggleDeclarationExcluded()" title="Inkluder i prospektet">Ekskludert</button>`
+          : `<button class="btn-excl btn-excl-on" onclick="event.stopPropagation();toggleDeclarationExcluded()" title="Ekskluder fra prospektet">Inkludert ✓</button>`;
+      }
+    }
+
+    // Gallery page delete button (only when >1 gallery pages exist)
+    let deleteBtn = '';
+    if (section === 'gallery' && def.pageIndex !== null) {
+      const galPageCount = (currentProspekt.gallery_pages || []).length;
+      if (galPageCount > 1) {
+        deleteBtn = `<button class="btn-icon btn-icon-del" onclick="event.stopPropagation();removeGalleryPage(${def.pageIndex})" title="Fjern galleriside" style="width:26px;height:26px;font-size:14px;margin-left:4px">×</button>`;
+      }
+    }
+
+    card.innerHTML = `
+      <div class="sec-card-header" onclick="toggleSection(this)">
+        <div class="sec-card-title">
+          ${!isFixed ? '<span class="drag-handle" title="Dra for å sortere">⠿</span>' : ''}
+          <span>${def.icon} ${def.title}</span>
+          ${isFixed ? '<span style="font-size:11px;color:var(--gray-dark)">(obligatorisk)</span>' : ''}
+          ${excludeBtn}
+        </div>
+        <div style="display:flex;align-items:center;gap:4px">
+          ${deleteBtn}
+          <span class="sec-toggle">▾</span>
+        </div>
+      </div>
+      <div class="sec-card-body" id="sec-${entry.replace(':','-')}"></div>
+    `;
+    grid.appendChild(card);
+
+    // Render section-specific content
+    renderEntryBody(entry);
+  }
+
+  // Set up drag & drop
+  setupSectionDrag();
+}
+
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.sec-toggle');
+  body.classList.toggle('open');
+  toggle.classList.toggle('open');
+}
+
+// ── Section body renderers ───────────────────────────────────────────────────
+
+function renderEntryBody(entry) {
+  const el = $(`sec-${entry.replace(':','-')}`);
+  if (!el) return;
+  const p = currentProspekt;
+  const { section, index } = parseEntry(entry);
+
+  switch (section) {
+    case 'cover': el.innerHTML = renderCoverSection(p); break;
+    case 'overview': el.innerHTML = renderOverviewSection(p); setupSpecDrag(); break;
+    case 'gallery': el.innerHTML = renderGalleryPageEditor(p, index); break;
+    case 'equipment': el.innerHTML = renderEquipmentSection(p); setupEquipDrag(); break;
+    case 'declaration': el.innerHTML = renderDeclarationSection(p); break;
+    case 'freetext': el.innerHTML = renderFreetextSection(p, index); break;
+    case 'contact': el.innerHTML = renderContactSection(p); break;
+  }
+}
+
+// Legacy wrapper — still used by fetchDeclaration etc.
+function renderSectionBody(key) {
+  // Find matching entry in current order
+  const order = currentProspekt.sections_order || [];
+  const entry = order.find(e => e === key || e.startsWith(key + ':')) || key;
+  renderEntryBody(entry);
+}
+
+function renderCoverSection(p) {
+  return `
+    <div class="field-row">
+      <div class="field">
+        <label>Båtnavn</label>
+        <input type="text" value="${esc(p.boat_name||'')}" onchange="updateField('boat_name',this.value)">
+      </div>
+      <div class="field">
+        <label>Årsmodell</label>
+        <input type="number" value="${p.model_year||''}" onchange="updateField('model_year',parseInt(this.value)||null)">
+      </div>
+    </div>
+    <div class="field">
+      <label>Prisantydning</label>
+      <input type="text" value="${esc(p.asking_price||'')}" placeholder="2.590.000" onchange="updateField('asking_price',this.value)">
+      <div class="field-hint">Vises som "NOK [verdi],-"</div>
+    </div>
+    <div class="field">
+      <label>Forsidebilde</label>
+      ${renderImageUpload('cover_image_url', p.cover_image_url)}
+    </div>
+  `;
+}
+
+function renderOverviewSection(p) {
+  const specs = p.specs || [];
+  const caps = p.capacities || [];
+  const MAX_INTRO = 400;
+  const MAX_BODY = 2500;
+  // 18 er grensen for at spec-kolonnen holder seg luftig på A4. Teller også
+  // skillelinjer. Høyere tall gir overflow-risiko mot Kapasiteter-blokken.
+  const MAX_SPECS = 18;
+  const MAX_CAPS = 5;
+
+  // Fullt sett av foreslåtte rader — meglerne ser disse som forslag slik at
+  // de ikke glemmer felter som HubSpot mangler men de selv har info om.
+  const SUGGESTED_SPECS = [
+    'Merke','Modell','Årsmodell','Lengde','Bredde','Motor','Motortype',
+    'Effekt','Maks fart','Drivstoff','Materiale','Farge','Timer',
+    'CE-kategori','MVA','Beliggenhet'
+  ];
+  const SUGGESTED_CAPS = ['Kahytter','Soveplasser','Bad/WC','Ferskvann','Septik','Gråvann'];
+
+  const existingSpecLabels = new Set(
+    specs.filter(r => !r.divider && r.label).map(r => r.label.trim().toLowerCase())
+  );
+  const missingSpecs = SUGGESTED_SPECS.filter(l => !existingSpecLabels.has(l.toLowerCase()));
+  const existingCapLabels = new Set(
+    caps.filter(r => !r.divider && r.label).map(r => r.label.trim().toLowerCase())
+  );
+  const missingCaps = SUGGESTED_CAPS.filter(l => !existingCapLabels.has(l.toLowerCase()));
+
+  const suggestedSpecsHtml = missingSpecs.length && specs.length < MAX_SPECS
+    ? `<div class="suggested-chips">
+         <div class="suggested-chips-label">Foreslåtte rader (fyll inn manuelt):</div>
+         <div class="suggested-chips-row">
+           ${missingSpecs.map(l => `<button class="chip-suggest" onclick="addSuggestedRow('specs',${JSON.stringify(l).replace(/"/g,'&quot;')})">+ ${esc(l)}</button>`).join('')}
+         </div>
+       </div>`
+    : '';
+
+  const suggestedCapsHtml = missingCaps.length && caps.length < MAX_CAPS
+    ? `<div class="suggested-chips">
+         <div class="suggested-chips-label">Foreslåtte rader:</div>
+         <div class="suggested-chips-row">
+           ${missingCaps.map(l => `<button class="chip-suggest" onclick="addSuggestedRow('capacities',${JSON.stringify(l).replace(/"/g,'&quot;')})">+ ${esc(l)}</button>`).join('')}
+         </div>
+       </div>`
+    : '';
+
+  const introLen = (p.description_intro||'').length;
+  const bodyLen = (p.description_body||'').length;
+  const introClass = introLen > MAX_INTRO ? 'over' : introLen > MAX_INTRO * 0.85 ? 'warn' : '';
+  const bodyClass = bodyLen > MAX_BODY ? 'over' : bodyLen > MAX_BODY * 0.85 ? 'warn' : '';
+
+  return `
+    <div class="field">
+      <label>Oversiktsbilde (topp)</label>
+      ${renderImageUpload('overview_image_url', p.overview_image_url)}
+      <div class="field-hint">Bruk et helprofilbilde av båten sett fra siden — dette skaper den beste overgangen til teksten under.</div>
+    </div>
+    <div class="field">
+      <label>Intro-tekst (kursiv, 1-2 setninger)</label>
+      <textarea rows="2" maxlength="${MAX_INTRO + 50}" oninput="updateCharCount(this,${MAX_INTRO},'introCount')" onchange="updateField('description_intro',this.value)">${esc(p.description_intro||'')}</textarea>
+      <div class="char-count ${introClass}" id="introCount">${introLen} / ${MAX_INTRO} tegn</div>
+    </div>
+    <div class="field">
+      <label>
+        Beskrivelse
+        <button class="btn-generate" onclick="openAIGenerator()" id="genTextBtn">✨ Generer med AI</button>
+      </label>
+      <div class="rte-toolbar">
+        <button type="button" onclick="rteCmd('bold')" title="Fet"><b>B</b></button>
+        <button type="button" onclick="rteCmd('italic')" title="Kursiv"><i>I</i></button>
+        <span class="rte-sep"></span>
+        <button type="button" onclick="rteCmd('insertUnorderedList')" title="Punktliste">• Liste</button>
+        <button type="button" onclick="rteCmd('formatBlock','<p>')" title="Nytt avsnitt">¶ Avsnitt</button>
+        <span class="rte-sep"></span>
+        <button type="button" onclick="rteCmd('removeFormat')" title="Fjern formatering">✕ Fjern</button>
+      </div>
+      <div class="rte-editor" contenteditable="true" id="descBodyField"
+        oninput="handleRteInput()" onpaste="handleRtePaste(event)">${p.description_body||''}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="field-hint">Marker tekst og bruk knappene over for formatering.</div>
+        <div class="char-count ${bodyClass}" id="bodyCount">${bodyLen} / ${MAX_BODY} tegn</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Visningstekst</label>
+      <input type="text" value="${esc(p.visning_text||'')}" placeholder="Visning kan avtales med megler" onchange="updateField('visning_text',this.value)">
+    </div>
+    <hr style="border:none;border-top:1px solid var(--gray);margin:20px 0">
+    <div class="field">
+      <label style="display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap">
+        <span>Spesifikasjoner <span class="limit-badge">${specs.length} / ${MAX_SPECS}</span></span>
+        <button class="btn-outline" style="font-size:12px;padding:5px 10px" onclick="refreshSpecsFromHubSpot()" title="Hent ferske verdier fra HubSpot (overskriver manuelle endringer i Spesifikasjoner og Kapasiteter)">🔄 Hent fra HubSpot</button>
+      </label>
+      <div id="specsEditor">${renderSpecRows(specs, 'specs')}</div>
+      ${specs.length < MAX_SPECS ? `<div style="margin-top:8px;display:flex;gap:8px"><button class="btn-outline" style="font-size:13px;padding:6px 14px" onclick="addSpecRow('specs')">+ Rad</button><button class="btn-outline" style="font-size:13px;padding:6px 14px" onclick="addSpecDivider('specs')">— Skillelinje</button></div>` : `<div class="field-hint" style="color:var(--yellow)">Maks ${MAX_SPECS} rader — fjern en for å legge til ny</div>`}
+      ${suggestedSpecsHtml}
+    </div>
+    <div class="field">
+      <label>Kapasiteter <span class="limit-badge">${caps.length} / ${MAX_CAPS}</span></label>
+      <div id="capsEditor">${renderSpecRows(caps, 'capacities')}</div>
+      ${caps.length < MAX_CAPS ? `<button class="btn-outline" style="margin-top:8px;font-size:13px;padding:6px 14px" onclick="addSpecRow('capacities')">+ Legg til rad</button>` : `<div class="field-hint" style="color:var(--yellow)">Maks ${MAX_CAPS} rader</div>`}
+      ${suggestedCapsHtml}
+    </div>
+  `;
+}
+
+// ── Rich text editor helpers ──
+function rteCmd(cmd, arg) {
+  document.execCommand(cmd, false, arg || null);
+  const el = document.getElementById('descBodyField');
+  if (el) el.focus();
+}
+
+// Strip formatting on paste — keep only text and paragraph breaks
+function handleRtePaste(e) {
+  e.preventDefault();
+  const plain = (e.clipboardData || window.clipboardData).getData('text/plain');
+  // Split by double newlines → paragraphs, single newlines → <br>
+  const html = plain.split(/\n\n+/).map(p => p.trim()).filter(Boolean)
+    .map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
+  document.execCommand('insertHTML', false, html || plain);
+}
+
+function handleRteInput() {
+  const el = document.getElementById('descBodyField');
+  if (!el) return;
+  const html = el.innerHTML;
+  currentProspekt.description_body = html;
+  // Update char count based on text content
+  const textLen = el.textContent.length;
+  const MAX_BODY = 2500;
+  const countEl = document.getElementById('bodyCount');
+  if (countEl) {
+    countEl.textContent = `${textLen} / ${MAX_BODY} tegn`;
+    countEl.className = 'char-count' + (textLen > MAX_BODY ? ' over' : textLen > MAX_BODY * 0.85 ? ' warn' : '');
+  }
+  scheduleAutoSave();
+}
+
+function updateCharCount(el, max, countId) {
+  const len = el.value.length;
+  const countEl = $(countId);
+  if (!countEl) return;
+  countEl.textContent = `${len} / ${max} tegn`;
+  countEl.className = 'char-count' + (len > max ? ' over' : len > max * 0.85 ? ' warn' : '');
+}
+
+function openAIGenerator() {
+  if (!currentProspekt?.deal_id) return toast('Ingen deal valgt', 'error');
+  // Open annonsegenerator in new tab with the deal pre-selected
+  window.open(`/annonsegenerator/?deal=${currentProspekt.deal_id}`, '_blank');
+  toast('Annonsegenerator åpnet i ny fane. Kopier teksten tilbake hit når du er fornøyd.');
+}
+
+// Legacy generateText — kept for reference but no longer called
+async function _generateText_legacy() {
+  if (!currentProspekt?.deal_id) return toast('Ingen deal valgt', 'error');
+  const btn = $('genTextBtn');
+  btn.disabled = true;
+  btn.textContent = '✨ Genererer…';
+  try {
+    const boatRes = await fetch(`/.netlify/functions/annonsegenerator?fetch_boat=${currentProspekt.deal_id}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const boatData = await boatRes.json();
+
+    const genRes = await fetch(`/.netlify/functions/annonsegenerator`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'generate',
+        deal_id: currentProspekt.deal_id,
+        format: 'prospekt',
+        boat_data: boatData,
+      }),
+    });
+    const genData = await genRes.json();
+
+    if (genData.error) throw new Error(genData.error);
+
+    // Try to split into intro + body
+    const text = genData.text || genData.content || '';
+    const parts = text.split(/\n\n+/);
+    if (parts.length >= 2) {
+      currentProspekt.description_intro = parts[0].replace(/<\/?p>/g, '').trim();
+      currentProspekt.description_body = parts.slice(1).map(p => `<p>${p.trim()}</p>`).join('\n');
+    } else {
+      currentProspekt.description_body = `<p>${text}</p>`;
+    }
+
+    renderSectionBody('overview');
+    $('sec-overview').classList.add('open');
+    scheduleAutoSave();
+    toast('Tekst generert');
+  } catch (e) {
+    console.error('Generate text error:', e);
+    toast('Kunne ikke generere tekst: ' + e.message, 'error');
+  }
+  btn.disabled = false;
+  btn.textContent = '✨ Generer med AI';
+}
+
+function renderSpecRows(rows, field) {
+  return rows.map((r, i) => {
+    if (r.divider) return `
+      <div class="spec-editor-row spec-drag-row" data-field="${field}" data-idx="${i}" style="justify-content:center;padding:4px 0">
+        <span class="equip-drag" title="Dra for å sortere" onmousedown="this.parentElement.draggable=true">⠿</span>
+        <hr style="flex:1;border:none;border-top:1px solid var(--gray)">
+        <button class="btn-icon btn-icon-del" style="width:24px;height:24px;font-size:12px" onclick="removeSpecRow('${field}',${i})">×</button>
+      </div>`;
+    return `
+      <div class="spec-editor-row spec-drag-row" data-field="${field}" data-idx="${i}">
+        <span class="equip-drag" title="Dra for å sortere" onmousedown="this.parentElement.draggable=true">⠿</span>
+        <input type="text" value="${esc(r.label||'')}" placeholder="Egenskap" style="font-size:13px;padding:7px 10px"
+          onchange="updateSpecRow('${field}',${i},'label',this.value)">
+        <input type="text" value="${esc(r.value||'')}" placeholder="Verdi" style="font-size:13px;padding:7px 10px"
+          onchange="updateSpecRow('${field}',${i},'value',this.value)">
+        <button class="btn-icon btn-icon-del" onclick="removeSpecRow('${field}',${i})">×</button>
+      </div>`;
+  }).join('');
+}
+
+const GALLERY_LAYOUTS = {
+  '1up':    { label: 'Full',         desc: '1 fullside',                    slots: 1 },
+  '2up_h':  { label: '2 stablet',    desc: '2 liggende over hverandre',     slots: 2 },
+  '3up_h':  { label: '3 stablet',    desc: '3 liggende stablet',            slots: 3 },
+  '4up_h':  { label: '4 stablet',    desc: '4 liggende stablet',            slots: 4 },
+  '4up_sw': { label: 'Sandwich',     desc: '1 topp + 2 firkant + 1 bunn',   slots: 4 },
+  '5up':    { label: '1+4',          desc: '1 stort + 4 små',               slots: 5 },
+  '4up':    { label: '2×2',          desc: '4 i rutenett (for miks)',       slots: 4 },
+  '2up':    { label: '2 høykant',    desc: '2 høykantbilder side om side',  slots: 2 },
+};
+
+function renderGalleryPageEditor(p, pageIdx) {
+  const pages = p.gallery_pages || [];
+  const page = pages[pageIdx];
+  if (!page) {
+    return `
+      <div style="text-align:center;padding:24px 16px">
+        <div class="field-hint" style="margin-bottom:12px">Ingen galleribilder lagt til ennå.</div>
+        <button class="btn-outline" style="font-size:13px;padding:8px 16px" onclick="addGalleryPage()">+ Legg til galleriside</button>
+        <a href="/prospekt/bilder.html" target="_blank" style="display:block;margin-top:8px;font-size:11px;color:var(--gold)">Last opp bilder →</a>
+      </div>
+    `;
+  }
+
+  const pi = pageIdx;
+  const layout = page.layout || '5up';
+  const info = GALLERY_LAYOUTS[layout] || GALLERY_LAYOUTS['5up'];
+  const images = page.images || [];
+
+  const layoutBtns = Object.entries(GALLERY_LAYOUTS).map(([key, l]) =>
+    `<button class="layout-opt ${key === layout ? 'active' : ''}" onclick="changeGalleryLayout(${pi},'${key}')">${l.label}</button>`
+  ).join('');
+
+  const slotCount = info.slots;
+  const slots = [];
+  for (let si = 0; si < slotCount; si++) {
+    const img = images[si];
+    const isWide = (layout === '5up' && si === 0)
+                || (layout === '4up_sw' && (si === 0 || si === 3));
+    const filled = img ? 'filled' : '';
+    const caption = img ? `<div class="slot-caption"><input type="text" value="${esc(img.caption||'')}" placeholder="Bildetekst…" onclick="event.stopPropagation()" onchange="updateGalleryCaption(${pi},${si},this.value)"></div>` : '';
+    const removeBtn = img ? `<button class="slot-remove" onclick="event.stopPropagation();removeGallerySlot(${pi},${si})">×</button>` : '';
+    const cropBtn = img ? `<button class="slot-remove" style="right:auto;left:4px;background:rgba(0,0,0,0.6);font-size:10px" onclick="event.stopPropagation();openCropModal(${pi},${si})" title="Juster bildeposisjon">✂</button>` : '';
+    const label = img ? '' : `<span class="slot-label">${isWide ? 'Stort bilde' : 'Velg bilde'}</span>`;
+    const posStyle = img?.posX !== undefined ? `object-position:${img.posX||50}% ${img.posY||50}%;` : '';
+    const zoomStyle = img?.zoom && img.zoom > 1 ? `transform:scale(${img.zoom});` : '';
+    const imgTagStyled = img ? `<img src="${esc(img.url)}" alt="" style="${posStyle}${zoomStyle}">` : '';
+
+    let slotInline = '';
+    if (layout === '5up' && si === 0) slotInline = 'grid-column:1/-1';
+    else if (layout === '4up_sw' && si === 0) slotInline = 'grid-column:1/-1;grid-row:1';
+    else if (layout === '4up_sw' && si === 1) slotInline = 'grid-column:1;grid-row:2';
+    else if (layout === '4up_sw' && si === 2) slotInline = 'grid-column:2;grid-row:2';
+    else if (layout === '4up_sw' && si === 3) slotInline = 'grid-column:1/-1;grid-row:3';
+
+    slots.push(`<div class="gallery-slot ${filled} ${isWide ? 'wide' : ''}" style="${slotInline}" onclick="pickGallerySlot(${pi},${si})">${imgTagStyled}${label}${removeBtn}${cropBtn}${caption}</div>`);
+  }
+
+  let gridStyle;
+  if (layout === '5up')         gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:140px 100px 100px';
+  else if (layout === '4up_sw') gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:110px 85px 110px';
+  else if (layout === '4up_h')  gridStyle = 'grid-template-columns:1fr;grid-template-rows:72px 72px 72px 72px';
+  else if (layout === '3up_h')  gridStyle = 'grid-template-columns:1fr;grid-template-rows:95px 95px 95px';
+  else if (layout === '2up_h')  gridStyle = 'grid-template-columns:1fr;grid-template-rows:140px 140px';
+  else if (layout === '4up')    gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:120px 120px';
+  else if (layout === '2up')    gridStyle = 'grid-template-columns:1fr 1fr;grid-template-rows:160px';
+  else                          gridStyle = 'grid-template-columns:1fr;grid-template-rows:260px';
+
+  const filledCount = images.filter(im => im && im.url).length;
+  const previewBtn = filledCount > 0
+    ? `<button class="btn-outline" style="font-size:11px;padding:5px 10px" onclick="openGalleryPagePreview(${pi})" title="Forhåndsvis hvordan siden blir i PDF">👁 Forhåndsvis</button>`
+    : '';
+
+  const totalPages = pages.length;
+
+  return `
+    <div class="field-hint" style="margin-bottom:8px">
+      Klikk på en posisjon for å velge bilde. Dra kortet for å flytte denne siden i prospektet.<br>
+      <strong>Tips:</strong> De fleste båtbilder er liggende — bruk «2 stablet», «3 stablet», «4 stablet» eller «Sandwich» for best resultat. «2×2» og «1+4» passer for miks, «2 høykant» og «Full» for høykant.
+    </div>
+    <div class="gallery-page-editor">
+      <div class="gallery-page-header">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div class="layout-options">${layoutBtns}</div>
+          ${previewBtn}
+          ${totalPages > 1 ? `<button class="btn-icon btn-icon-del" onclick="removeGalleryPage(${pi})" title="Fjern side">×</button>` : ''}
+        </div>
+      </div>
+      <div class="gallery-slot-grid" style="${gridStyle}">
+        ${slots.join('')}
+      </div>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:10px;align-items:center">
+      ${totalPages < 4 ? `<button class="btn-outline" style="font-size:12px;padding:6px 12px" onclick="addGalleryPage()">+ Ny galleriside</button>` : ''}
+      <a href="/prospekt/bilder.html" target="_blank" style="font-size:11px;color:var(--gold)">Last opp bilder →</a>
+    </div>
+  `;
+}
+
+function renderEquipmentSection(p) {
+  const cats = p.equipment_categories || [];
+  const MAX_CATS = 8;
+  const totalItems = cats.reduce((sum, c) => sum + (c.items||[]).length, 0);
+  const MAX_ITEMS = 60;
+  return `
+    <div class="equip-ai-panel" id="equipAiPanel">
+      <div class="equip-ai-header" onclick="toggleEquipAiPanel()" style="cursor:pointer">
+        <span>✨ AI-assistert utstyrsliste</span>
+        <span class="sec-toggle" id="equipAiToggle">▾</span>
+      </div>
+      <div id="equipAiBody" style="display:none;padding:12px 0 0">
+        <div class="field-hint" style="margin-bottom:8px">
+          AI sorterer utstyr fra HubSpot, befaringsnotat og eventuell innlimt tekst i riktige kategorier.
+          Den legger aldri til utstyr på egenhånd — kun det som er eksplisitt nevnt i kildene.
+        </div>
+        <textarea id="equipExtraText" rows="4" placeholder="Lim inn utstyrsliste fra selger, gammel annonse, produsentliste e.l. (valgfritt)"
+          style="font-size:13px;width:100%;box-sizing:border-box;margin-bottom:10px"></textarea>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn-generate" onclick="generateEquipment()" id="equipGenBtn">✨ Generer utstyrsliste</button>
+          <span class="field-hint" id="equipGenStatus"></span>
+        </div>
+      </div>
+    </div>
+    <div class="field-hint" style="margin-bottom:12px">Maks ${MAX_CATS} kategorier og ~${MAX_ITEMS} utstyrsrader totalt for å passe på én A4-side. <span class="limit-badge">${totalItems} / ${MAX_ITEMS} rader</span></div>
+    <div id="equipEditor">
+      ${cats.map((c, ci) => renderEquipCategory(c, ci)).join('')}
+    </div>
+    ${cats.length < MAX_CATS ? `<button class="btn-outline" style="margin-top:10px;font-size:13px;padding:6px 14px" onclick="addEquipCategory()">+ Ny kategori</button>` : `<div class="field-hint" style="color:var(--yellow);margin-top:8px">Maks ${MAX_CATS} kategorier</div>`}
+  `;
+}
+
+function renderEquipCategory(cat, ci) {
+  const items = cat.items || [];
+  const isOpen = items.length > 0;
+  // Show existing items + 3 empty slots for quick entry
+  const EMPTY_SLOTS = 3;
+  const totalSlots = items.length + EMPTY_SLOTS;
+
+  const itemRows = [];
+  for (let ii = 0; ii < totalSlots; ii++) {
+    const text = ii < items.length ? items[ii].text || '' : '';
+    const isExisting = ii < items.length;
+    // Sub-items: array of strings (migrate old single .sub to array)
+    let subs = [];
+    if (isExisting) {
+      if (Array.isArray(items[ii].subs)) subs = items[ii].subs;
+      else if (items[ii].sub) subs = [items[ii].sub];
+    }
+    const hasSubs = subs.length > 0;
+    itemRows.push(`
+      <div class="equip-item-row" ${isExisting ? `data-ci="${ci}" data-ii="${ii}"` : ''}>
+        ${isExisting ? `<span class="equip-drag" title="Dra for å sortere"
+          onmousedown="this.parentElement.draggable=true"
+          onmouseup="this.parentElement.draggable=false">⠿</span>` : '<span style="width:15px"></span>'}
+        <input type="text" value="${esc(text)}" placeholder="${isExisting ? 'Utstyr…' : 'Nytt utstyr…'}"
+          onchange="handleEquipInput(${ci},${ii},this.value)" onkeydown="equipKeyDown(event,${ci},${ii})"
+          style="${!isExisting ? 'border-style:dashed;opacity:0.7' : ''}">
+        ${isExisting ? `<button class="btn-icon" onclick="toggleEquipSubs(${ci},${ii})" title="Legg til detaljer" style="width:26px;height:26px;font-size:13px;background:${hasSubs ? 'var(--gold)' : 'var(--blue-bg)'};color:${hasSubs ? 'white' : 'var(--blue)'};border:none;border-radius:6px;cursor:pointer">↳</button>` : ''}
+        ${isExisting ? `<button class="btn-icon btn-icon-del" onclick="removeEquipItem(${ci},${ii})" style="width:26px;height:26px;font-size:13px">×</button>` : '<div style="width:52px"></div>'}
+      </div>
+      ${isExisting && hasSubs ? subs.map((s, si) => `
+        <div class="equip-item-row equip-sub-row" style="padding-left:20px" data-parent-ii="${ii}">
+          <input type="text" value="${esc(s)}" placeholder="Detalj…"
+            style="font-size:12px;font-style:italic;border-style:dashed;opacity:0.7;padding:5px 8px"
+            onchange="updateEquipSub(${ci},${ii},${si},this.value)">
+          <button class="btn-icon btn-icon-del" onclick="removeEquipSub(${ci},${ii},${si})" style="width:22px;height:22px;font-size:11px">×</button>
+        </div>
+      `).join('') + `
+        <div class="equip-item-row equip-sub-row" style="padding-left:20px" data-parent-ii="${ii}">
+          <input type="text" value="" placeholder="+ Ny detalj…"
+            style="font-size:12px;font-style:italic;border-style:dashed;opacity:0.5;padding:5px 8px"
+            onchange="addEquipSub(${ci},${ii},this.value)">
+          <div style="width:22px"></div>
+        </div>
+      ` : ''}
+    `);
+  }
+
+  return `
+    <div class="equip-cat-card">
+      <div class="equip-cat-header" onclick="toggleEquipCat(${ci})" style="cursor:pointer">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="sec-toggle ${isOpen ? 'open' : ''}" id="equipToggle-${ci}">▾</span>
+          <input type="text" value="${esc(cat.name||'')}" placeholder="Kategorinavn"
+            style="font-size:13px;font-weight:700;padding:5px 8px;border:1px solid var(--gray);border-radius:4px;width:200px"
+            onclick="event.stopPropagation()" onchange="updateEquipCatName(${ci},this.value)">
+          <span style="font-size:11px;color:var(--gray-dark)">${items.length} stk</span>
+        </div>
+        <button class="btn-icon btn-icon-del" onclick="event.stopPropagation();removeEquipCategory(${ci})">×</button>
+      </div>
+      <div id="equipItems-${ci}" style="display:${isOpen ? 'block' : 'none'};padding:10px 0 0">
+        ${itemRows.join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderDeclarationSection(p) {
+  const sections = p.declaration_sections;
+  const oneflowState = p.declaration_oneflow_state || '';
+  const oneflowId = p.declaration_oneflow_id || '';
+  const hasData = oneflowId || (sections && sections.length > 0 && sections.some(s => (s.questions || []).some(q => q.answer)));
+  const otherNotes = p.declaration_other_notes || '';
+
+  // Status-badge
+  let statusHtml = '';
+  if (oneflowId) {
+    const stateLabel = oneflowState === 'signed' ? '✅ Signert' : oneflowState === 'pending' ? '⏳ Venter på signatur' : oneflowState === 'draft' ? '📝 Utkast' : oneflowState;
+    const stateColor = oneflowState === 'signed' ? 'var(--green)' : oneflowState === 'pending' ? 'var(--yellow)' : 'var(--gray-dark)';
+    statusHtml = `
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--surface);border-radius:8px;margin-bottom:14px;border:1px solid var(--gray)">
+        <span style="font-size:13px;font-weight:600;color:${stateColor}">${stateLabel}</span>
+        <span style="font-size:11px;color:var(--gray-dark)">Oneflow #${oneflowId}</span>
+        <button class="btn-outline" style="margin-left:auto;font-size:12px;padding:6px 12px" onclick="fetchDeclaration()">↻ Oppdater</button>
+      </div>
+    `;
+  }
+
+  if (!hasData) {
+    return `
+      <div class="field-hint" style="margin-bottom:12px">
+        Egenerklæringen hentes fra selgers signerte Oneflow-skjema. Klikk knappen under for å importere.
+      </div>
+      ${statusHtml}
+      <div style="background:#fff8e6;border:1px solid #f5c65a;border-radius:6px;padding:12px 14px;margin:14px 0;font-size:12.5px;line-height:1.55;color:#5a4300">
+        <b>OBS — for at automatisk henting skal fungere:</b>
+        <ul style="margin:6px 0 0 18px;padding:0">
+          <li>Oneflow-kontrakten må bruke <b>Egenerklæring-malen</b> (template #5128144)</li>
+          <li>Kontraktnavnet i Oneflow må inneholde <b>dealnummer</b> (f.eks. <code>25065</code>) <b>eller</b> båtnavnet</li>
+          <li>Anbefalt navn: <code>25065 - Saxdor 320 GTC - Egenerklæring</code></li>
+          <li>Skjemaet bør være <b>signert</b> av selger før du henter (ellers blir svarfelt tomme)</li>
+        </ul>
+      </div>
+      <div style="text-align:center;padding:20px 20px 30px">
+        <button class="btn-primary" onclick="fetchDeclaration()" id="fetchDeclBtn" style="font-size:15px;padding:14px 28px">
+          📄 Hent egenerklæring fra Oneflow
+        </button>
+        <div class="field-hint" style="margin-top:10px">
+          Søker automatisk etter egenerklæring knyttet til denne dealen i Oneflow.
+        </div>
+        <div id="declStatus" style="margin-top:12px;font-size:13px;color:var(--gray-dark)"></div>
+      </div>
+    `;
+  }
+
+  // Sjekk om noen spørsmål faktisk har svar
+  const answeredCount = sections.reduce((sum, s) => sum + (s.questions || []).filter(q => q.answer).length, 0);
+
+  // Vis hentet data (read-only preview med mulighet for oppdatering)
+  let debugHtml = '';
+  if (answeredCount === 0 && p._raw_fields) {
+    // Ingen svar mappet — vis raw data for debugging
+    const rf = p._raw_fields;
+    const fieldLines = Object.entries(rf).map(([k, v]) => `<b>${esc(k)}</b>: ${esc(String(v || '(tom)'))}`).join('<br>');
+    debugHtml = `
+      <div style="margin-top:16px;padding:14px;background:#fff3cd;border:1px solid #ffc107;border-radius:8px">
+        <div style="font-size:13px;font-weight:700;color:#856404;margin-bottom:8px">⚠️ Ingen svar ble mappet. Her er rå-dataen fra Oneflow:</div>
+        <div style="font-size:11px;font-family:monospace;color:#333;line-height:1.8;max-height:300px;overflow-y:auto">${fieldLines || '<i>Ingen data-felter funnet i kontrakten.</i>'}</div>
+        <div class="field-hint" style="margin-top:8px">Send dette til utvikler så vi kan mappe feltene riktig.</div>
+      </div>
+    `;
+  }
+
+  return `
+    ${statusHtml}
+    <div id="declEditor">
+      ${answeredCount > 0 ? sections.map((sec, si) => renderDeclSectionReadonly(sec, si)).join('') : '<div class="field-hint">Data hentet, men feltene kunne ikke mappes automatisk ennå.</div>'}
+    </div>
+    ${otherNotes ? `
+      <div style="margin-top:12px;padding:12px 16px;background:var(--surface);border-radius:8px;border:1px solid var(--gray)">
+        <div style="font-size:11px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Andre merknader</div>
+        <div style="font-size:13px;color:var(--text);line-height:1.5">${esc(otherNotes)}</div>
+      </div>
+    ` : ''}
+    ${debugHtml}
+    <div id="declStatus" style="margin-top:8px;font-size:13px;color:var(--gray-dark)"></div>
+  `;
+}
+
+function renderDeclSectionReadonly(sec, si) {
+  const questions = (sec.questions || []).filter(q => q.answer);
+  if (questions.length === 0) return '';
+  return `
+    <div class="equip-cat-card" style="margin-bottom:14px">
+      <div class="equip-cat-header" onclick="toggleDeclSection(${si})" style="cursor:pointer">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="sec-toggle open" id="declToggle-${si}">▾</span>
+          <span class="equip-cat-name">${esc(sec.title)}</span>
+          <span style="font-size:11px;color:var(--gray-dark)">${questions.length} svar</span>
+        </div>
+      </div>
+      <div id="declItems-${si}" style="display:block;padding:6px 0 0">
+        ${questions.map(q => {
+          const isJa = q.answer === 'Ja';
+          const ansColor = isJa ? 'var(--green)' : 'var(--blue)';
+          const ansBg = isJa ? 'var(--green-bg)' : 'var(--blue-bg)';
+          const commentHtml = q.comment ? `<div style="font-size:12px;color:var(--gray-dark);font-style:italic;padding:2px 0 4px 12px;border-left:2px solid var(--gold);margin:4px 12px 0">${esc(q.comment)}</div>` : '';
+          return `
+            <div style="padding:6px 12px;border-bottom:1px solid var(--gray);display:flex;align-items:center;gap:8px">
+              <span style="flex:1;font-size:13px;color:var(--text)">${esc(q.question)}</span>
+              <span style="padding:3px 10px;border-radius:4px;font-size:12px;font-weight:600;background:${ansBg};color:${ansColor}">${esc(q.answer)}</span>
+            </div>
+            ${commentHtml}
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+async function fetchDeclaration() {
+  const statusEl = document.getElementById('declStatus');
+  const btn = document.getElementById('fetchDeclBtn');
+  if (statusEl) statusEl.innerHTML = '<span style="color:var(--navy)">Søker i Oneflow…</span>';
+  if (btn) { btn.disabled = true; btn.textContent = 'Henter…'; }
+
+  const showError = (msg, hint) => {
+    const hintHtml = hint ? `<div style="margin-top:6px;font-size:12px;color:#5a4300">${esc(hint)}</div>` : '';
+    if (statusEl) {
+      statusEl.innerHTML = `
+        <div style="background:#fdecea;border:1px solid #f5a5a0;border-radius:6px;padding:10px 14px;text-align:left">
+          <div style="color:#8a1c14;font-weight:600;font-size:13px">❌ ${esc(msg)}</div>
+          ${hintHtml}
+        </div>`;
+    }
+    if (btn) { btn.disabled = false; btn.textContent = '📄 Hent egenerklæring fra Oneflow'; }
+  };
+
+  try {
+    const res = await api({ action: 'fetch_declaration' }, 'POST', { id: currentProspekt.id });
+    if (!res.found) {
+      showError(
+        res.message || 'Fant ingen egenerklæring i Oneflow.',
+        'Sjekk at kontraktnavnet i Oneflow inneholder dealnummer (f.eks. 25065) eller båtnavnet, og at malen er Egenerklæring (#5128144).'
+      );
+      return;
+    }
+
+    // Sjekk at parser faktisk fant svar
+    const parsedSections = res.declaration_sections || [];
+    const answered = parsedSections.reduce((sum, s) => sum + (s.questions || []).filter(q => q.answer).length, 0);
+    const missing = res.missing_questions || [];
+
+    if (res.parse_error) {
+      showError(
+        'Kunne ikke tolke PDF-innholdet: ' + res.parse_error,
+        'PDF-en ble hentet, men tekstekstraksjon feilet. Kontakt utvikler.'
+      );
+      return;
+    }
+
+    if (answered === 0) {
+      const stateTxt = res.contract_state === 'signed' ? '' :
+        ` Kontrakten har status "${res.contract_state}" — vent til selger har signert før du henter igjen.`;
+      showError(
+        'Fant kontrakten, men ingen svar kunne leses.',
+        'Sjekk at Oneflow-skjemaet er fylt ut.' + stateTxt
+      );
+      return;
+    }
+
+    if (missing.length > 0) {
+      console.warn('Missing questions after parse:', missing);
+      toast(`Hentet ${answered} svar, men ${missing.length} spørsmål kunne ikke mappes — se konsollen`);
+    } else {
+      toast(`Egenerklæring hentet (${answered} svar)`);
+    }
+
+    console.log('Parsed sections:', parsedSections);
+    console.log('Parsed metadata:', res.declaration_metadata);
+
+    // Oppdater currentProspekt med hentet data
+    currentProspekt.declaration_sections = parsedSections;
+    currentProspekt.declaration_other_notes = res.declaration_other_notes || '';
+    currentProspekt.declaration_metadata = res.declaration_metadata || {};
+    currentProspekt.declaration_oneflow_id = res.contract_id;
+    currentProspekt.declaration_oneflow_state = res.contract_state;
+
+    // Re-render seksjonen
+    renderSectionBody('declaration');
+    $('sec-declaration').classList.add('open');
+  } catch (e) {
+    showError('Teknisk feil: ' + e.message, 'Prøv igjen om et par sekunder, eller kontakt utvikler hvis problemet vedvarer.');
+  }
+}
+
+function toggleDeclarationExcluded() {
+  currentProspekt.declaration_excluded = !currentProspekt.declaration_excluded;
+  renderSections();
+  scheduleAutoSave();
+}
+
+function toggleDeclSection(si) {
+  const el = document.getElementById(`declItems-${si}`);
+  const toggle = document.getElementById(`declToggle-${si}`);
+  if (!el) return;
+  const isOpen = el.style.display !== 'none';
+  el.style.display = isOpen ? 'none' : 'block';
+  if (toggle) toggle.classList.toggle('open', !isOpen);
+}
+
+function renderFreetextSection(p, pageIdx) {
+  const pages = p.freetext_pages || [];
+  const idx = pageIdx != null ? pageIdx : 0;
+  const pg = pages[idx] || {};
+  return `
+    <div class="field">
+      <label>Overskrift</label>
+      <input type="text" value="${esc(pg.heading||'')}" placeholder="F.eks. Tilstandsrapport"
+        onchange="updateFreetextField(0,'heading',this.value)">
+    </div>
+    <div class="field">
+      <label>Undertittel (valgfritt)</label>
+      <input type="text" value="${esc(pg.subtitle||'')}"
+        onchange="updateFreetextField(0,'subtitle',this.value)">
+    </div>
+    <div class="field">
+      <label>Innhold</label>
+      <textarea rows="10" onchange="updateFreetextField(0,'content',this.value)">${esc(pg.content||'')}</textarea>
+      <div class="field-hint">Bruk &lt;h3&gt; for underoverskrifter og &lt;p&gt; for avsnitt</div>
+    </div>
+  `;
+}
+
+function renderContactSection(p) {
+  // Auto-set broker photo if not already set
+  const brokerPhotoHtml = p.broker_photo_url
+    ? `<div class="img-preview">
+        <img src="${esc(p.broker_photo_url)}" alt="">
+        <button class="img-remove" onclick="removeImage('broker_photo_url')">×</button>
+       </div>`
+    : `<div class="field-hint">Meglerbilde settes automatisk. <button class="btn-outline" style="font-size:12px;padding:4px 10px" onclick="openImagePicker('broker_photo_url')">Velg manuelt</button></div>`;
+
+  return `
+    <div class="field-row">
+      <div class="field">
+        <label>Meglernavn</label>
+        <input type="text" value="${esc(p.broker_name||'')}" onchange="updateField('broker_name',this.value)">
+      </div>
+      <div class="field">
+        <label>Tittel</label>
+        <input type="text" value="${esc(p.broker_role||'')}" onchange="updateField('broker_role',this.value)">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Telefon</label>
+        <input type="text" value="${esc(p.broker_phone||'')}" onchange="updateField('broker_phone',this.value)">
+      </div>
+      <div class="field">
+        <label>E-post</label>
+        <input type="text" value="${esc(p.broker_email||'')}" onchange="updateField('broker_email',this.value)">
+      </div>
+    </div>
+    <div class="field">
+      <label>Meglerbilde</label>
+      ${brokerPhotoHtml}
+    </div>
+    <div class="field">
+      <label>Kontaktside-bilde (bakgrunn)</label>
+      ${renderImageUpload('contact_image_url', p.contact_image_url)}
+    </div>
+    <hr style="border:none;border-top:1px solid var(--gray);margin:20px 0">
+    <div class="field-row">
+      <div class="field">
+        <label>CTA-label</label>
+        <input type="text" value="${esc(p.cta_label||'Besøk oss for visning')}" placeholder="Besøk oss for visning" onchange="updateField('cta_label',this.value)">
+      </div>
+      <div class="field">
+        <label>CTA-adresse</label>
+        <input type="text" value="${esc(p.cta_address||'Dicks vei 12, 1366 Lysaker')}" placeholder="Dicks vei 12, 1366 Lysaker" onchange="updateField('cta_address',this.value)">
+      </div>
+    </div>
+  `;
+}
+
+// ── Image picker helper ──────────────────────────────────────────────────────
+
+let availableImages = [];  // cached list from Supabase Storage
+
+async function loadAvailableImages() {
+  if (!currentProspekt?.deal_id) return;
+  try {
+    availableImages = await api({ images: currentProspekt.deal_id });
+  } catch (e) {
+    console.error('Could not load images:', e);
+    availableImages = [];
+  }
+}
+
+function renderImageUpload(field, currentUrl) {
+  if (currentUrl) {
+    // Add crop button for cover and overview images
+    const showCrop = (field === 'cover_image_url' || field === 'overview_image_url');
+    const cropBtn = showCrop
+      ? `<button class="crop-btn-inline" onclick="openSingleImageCrop('${field}')">✂ Juster posisjon</button>`
+      : '';
+    return `
+      <div class="img-preview">
+        <img src="${esc(currentUrl)}" alt="">
+        <button class="img-remove" onclick="removeImage('${field}')">×</button>
+      </div>
+      ${cropBtn}
+    `;
+  }
+  return `<button class="img-picker-btn" onclick="openImagePicker('${field}')">📷 Velg bilde</button>`;
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// DATA UPDATE FUNCTIONS
+// ════════════════════════════════════════════════════════════════════════════════
+
+function updateField(field, value) {
+  currentProspekt[field] = value;
+  scheduleAutoSave();
+}
+
+// ── Specs / Capacities ──
+function updateSpecRow(field, idx, prop, value) {
+  const arr = currentProspekt[field] || [];
+  if (arr[idx]) { arr[idx][prop] = value; currentProspekt[field] = arr; scheduleAutoSave(); }
+}
+
+function addSpecRow(field) {
+  const arr = currentProspekt[field] || [];
+  arr.push({ label: '', value: '' });
+  currentProspekt[field] = arr;
+  renderSectionBody('overview');
+  $('sec-overview').classList.add('open');
+  setupSpecDrag();
+}
+
+function addSpecDivider(field) {
+  const arr = currentProspekt[field] || [];
+  arr.push({ divider: true });
+  currentProspekt[field] = arr;
+  renderSectionBody('overview');
+  $('sec-overview').classList.add('open');
+  setupSpecDrag();
+}
+
+function addSuggestedRow(field, label) {
+  const arr = currentProspekt[field] || [];
+  arr.push({ label, value: '' });
+  currentProspekt[field] = arr;
+  renderSectionBody('overview');
+  $('sec-overview').classList.add('open');
+  setupSpecDrag();
+  scheduleAutoSave();
+}
+
+async function refreshSpecsFromHubSpot() {
+  if (!currentProspekt?.id) return;
+  const ok = confirm(
+    'Dette henter ferske verdier fra HubSpot og overskriver Spesifikasjoner og Kapasiteter.\n\n' +
+    'Manuelle endringer i disse feltene går tapt. Fortsette?'
+  );
+  if (!ok) return;
+  try {
+    const data = await api({ action: 'refresh-specs' }, 'POST', { id: currentProspekt.id });
+    currentProspekt.specs = data.specs || [];
+    currentProspekt.capacities = data.capacities || [];
+    renderSectionBody('overview');
+    $('sec-overview').classList.add('open');
+    setupSpecDrag();
+    toast('Spesifikasjoner oppdatert fra HubSpot', 'success');
+  } catch (e) {
+    console.error('refresh-specs error:', e);
+    toast('Feil ved henting fra HubSpot: ' + e.message, 'error');
+  }
+}
+
+function removeSpecRow(field, idx) {
+  const arr = currentProspekt[field] || [];
+  arr.splice(idx, 1);
+  currentProspekt[field] = arr;
+  renderSectionBody('overview');
+  $('sec-overview').classList.add('open');
+  setupSpecDrag();
+  scheduleAutoSave();
+}
+
+function setupSpecDrag() {
+  ['specsEditor', 'capsEditor'].forEach(editorId => {
+    const editor = document.getElementById(editorId);
+    if (!editor) return;
+    let dragRow = null;
+
+    // Remove old listeners by cloning
+    const fresh = editor.cloneNode(true);
+    editor.parentNode.replaceChild(fresh, editor);
+
+    fresh.addEventListener('dragstart', e => {
+      const row = e.target.closest('.spec-drag-row');
+      if (!row || !row.draggable) { e.preventDefault(); return; }
+      e.stopPropagation();
+      dragRow = row;
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', '');
+    });
+
+    fresh.addEventListener('dragend', e => {
+      if (dragRow) {
+        dragRow.classList.remove('dragging');
+        dragRow.draggable = false;
+        dragRow = null;
+      }
+      fresh.querySelectorAll('.spec-drag-row').forEach(r => {
+        r.classList.remove('drag-over-above', 'drag-over-below');
+      });
+    });
+
+    fresh.addEventListener('dragover', e => {
+      e.preventDefault();
+      const target = e.target.closest('.spec-drag-row');
+      if (!target || target === dragRow) return;
+      fresh.querySelectorAll('.spec-drag-row').forEach(r => {
+        r.classList.remove('drag-over-above', 'drag-over-below');
+      });
+      const rect = target.getBoundingClientRect();
+      if (e.clientY < rect.top + rect.height / 2) {
+        target.classList.add('drag-over-above');
+      } else {
+        target.classList.add('drag-over-below');
+      }
+    });
+
+    fresh.addEventListener('drop', e => {
+      e.preventDefault();
+      const target = e.target.closest('.spec-drag-row');
+      if (!target || !dragRow || target === dragRow) return;
+
+      const field = dragRow.dataset.field;
+      const fromIdx = parseInt(dragRow.dataset.idx);
+      const toIdx = parseInt(target.dataset.idx);
+
+      const arr = currentProspekt[field] || [];
+      if (fromIdx < 0 || fromIdx >= arr.length) return;
+
+      const rect = target.getBoundingClientRect();
+      const insertBelow = e.clientY >= rect.top + rect.height / 2;
+
+      const [moved] = arr.splice(fromIdx, 1);
+      let targetIdx = toIdx;
+      if (fromIdx < toIdx) targetIdx--;
+      if (insertBelow) targetIdx++;
+      arr.splice(targetIdx, 0, moved);
+
+      currentProspekt[field] = arr;
+      renderSectionBody('overview');
+      $('sec-overview').classList.add('open');
+      setupSpecDrag();
+      scheduleAutoSave();
+    });
+  });
+}
+
+// ── Equipment AI ──
+function toggleEquipAiPanel() {
+  const body = $('equipAiBody');
+  const tog = $('equipAiToggle');
+  if (!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  if (tog) tog.classList.toggle('open', !open);
+}
+
+async function generateEquipment() {
+  if (!currentProspekt?.id) return toast('Ingen prospekt valgt', 'error');
+  const btn = $('equipGenBtn');
+  const status = $('equipGenStatus');
+  btn.disabled = true;
+  btn.textContent = '⏳ Genererer…';
+  if (status) status.textContent = 'Henter data fra HubSpot + befaringsnotat…';
+
+  try {
+    const extraText = ($('equipExtraText')?.value || '').trim();
+    const data = await api({ action: 'generate-equipment' }, 'POST', {
+      id: currentProspekt.id,
+      extra_text: extraText,
+    });
+
+    if (data.source === 'empty') {
+      toast('Ingen utstyrsdata funnet. Lim inn tekst fra selger og prøv igjen.', 'error');
+      btn.disabled = false;
+      btn.textContent = '✨ Generer utstyrsliste';
+      if (status) status.textContent = '';
+      return;
+    }
+
+    const aiCategories = data.categories || [];
+    mergeEquipmentCategories(aiCategories);
+    toast(`Utstyrsliste oppdatert (${aiCategories.reduce((s,c) => s + (c.items||[]).length, 0)} rader fordelt på ${aiCategories.length} kategorier)`, 'success');
+
+  } catch (e) {
+    console.error('generate-equipment error:', e);
+    toast('Feil ved generering: ' + e.message, 'error');
+  }
+
+  btn.disabled = false;
+  btn.textContent = '✨ Generer utstyrsliste';
+  if (status) status.textContent = '';
+}
+
+function mergeEquipmentCategories(aiCategories) {
+  const existing = currentProspekt.equipment_categories || [];
+
+  // Bygg lookup: lowercase navn → eksisterende kategori-indeks
+  const existingMap = {};
+  existing.forEach((c, i) => { existingMap[c.name.toLowerCase()] = i; });
+
+  for (const aiCat of aiCategories) {
+    const key = aiCat.name.toLowerCase();
+    const newItems = (aiCat.items || []).filter(i => i.text && i.text.trim());
+
+    if (key in existingMap) {
+      // Kategori finnes — flett inn nye items som ikke allerede er der
+      const cat = existing[existingMap[key]];
+      const existingTexts = new Set(
+        (cat.items || []).map(i => (i.text || '').toLowerCase().trim())
+      );
+      for (const item of newItems) {
+        if (!existingTexts.has(item.text.toLowerCase().trim())) {
+          cat.items = cat.items || [];
+          cat.items.push({ text: item.text.trim() });
+        }
+      }
+    } else {
+      // Ny kategori — legg til
+      existing.push({
+        name: aiCat.name,
+        items: newItems.map(i => ({ text: i.text.trim() })),
+      });
+    }
+  }
+
+  currentProspekt.equipment_categories = existing;
+  renderSectionBody('equipment');
+  $('sec-equipment').classList.add('open');
+  scheduleAutoSave();
+}
+
+// ── Equipment ──
+function toggleEquipCat(ci) {
+  const el = document.getElementById(`equipItems-${ci}`);
+  const tog = document.getElementById(`equipToggle-${ci}`);
+  if (!el) return;
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  if (tog) tog.classList.toggle('open', !open);
+}
+
+function updateEquipCatName(ci, value) {
+  const cats = currentProspekt.equipment_categories || [];
+  if (cats[ci]) { cats[ci].name = value; scheduleAutoSave(); }
+}
+
+function handleEquipInput(ci, ii, value) {
+  const cats = currentProspekt.equipment_categories || [];
+  if (!cats[ci]) return;
+  const items = cats[ci].items = cats[ci].items || [];
+  if (ii < items.length) {
+    // Editing existing item
+    if (value.trim() === '') {
+      // Empty → remove it
+      items.splice(ii, 1);
+      renderSectionBody('equipment');
+      $('sec-equipment').classList.add('open');
+    } else {
+      items[ii].text = value;
+    }
+  } else {
+    // New slot — only add if not empty
+    if (value.trim()) {
+      items.push({ text: value.trim() });
+      // Re-render to get fresh empty slots
+      renderSectionBody('equipment');
+      $('sec-equipment').classList.add('open');
+    }
+  }
+  scheduleAutoSave();
+}
+
+function equipKeyDown(e, ci, ii) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    // Move focus to next input
+    const row = e.target.closest('.equip-item-row');
+    const next = row?.nextElementSibling?.querySelector('input');
+    if (next) next.focus();
+  }
+}
+
+function addEquipCategory() {
+  const cats = currentProspekt.equipment_categories || [];
+  cats.push({ name: '', items: [] });
+  currentProspekt.equipment_categories = cats;
+  renderSectionBody('equipment');
+  $('sec-equipment').classList.add('open');
+}
+
+function removeEquipCategory(ci) {
+  const cats = currentProspekt.equipment_categories || [];
+  cats.splice(ci, 1);
+  currentProspekt.equipment_categories = cats;
+  renderSectionBody('equipment');
+  $('sec-equipment').classList.add('open');
+  scheduleAutoSave();
+}
+
+function updateEquipItem(ci, ii, prop, value) {
+  const cats = currentProspekt.equipment_categories || [];
+  if (cats[ci]?.items?.[ii]) { cats[ci].items[ii][prop] = value; scheduleAutoSave(); }
+}
+
+function toggleEquipSubs(ci, ii) {
+  const cats = currentProspekt.equipment_categories || [];
+  const item = cats[ci]?.items?.[ii];
+  if (!item) return;
+  // Migrate old .sub to .subs array
+  if (!Array.isArray(item.subs)) {
+    item.subs = item.sub ? [item.sub] : [];
+    delete item.sub;
+  }
+  // If already has subs, collapse (remove all subs). If empty, add one empty slot.
+  if (item.subs.length > 0) {
+    // Don't remove — just toggle visibility by re-rendering (subs stay in data)
+    // Actually: add a new empty sub to prompt entry
+    item.subs.push('');
+  } else {
+    item.subs.push('');
+  }
+  renderSectionBody('equipment');
+  $('sec-equipment').classList.add('open');
+}
+
+function updateEquipSub(ci, ii, si, value) {
+  const cats = currentProspekt.equipment_categories || [];
+  const item = cats[ci]?.items?.[ii];
+  if (!item || !Array.isArray(item.subs)) return;
+  if (value.trim() === '') {
+    item.subs.splice(si, 1);
+    renderSectionBody('equipment');
+    $('sec-equipment').classList.add('open');
+  } else {
+    item.subs[si] = value.trim();
+  }
+  scheduleAutoSave();
+}
+
+function addEquipSub(ci, ii, value) {
+  if (!value.trim()) return;
+  const cats = currentProspekt.equipment_categories || [];
+  const item = cats[ci]?.items?.[ii];
+  if (!item) return;
+  if (!Array.isArray(item.subs)) item.subs = [];
+  item.subs.push(value.trim());
+  renderSectionBody('equipment');
+  $('sec-equipment').classList.add('open');
+  scheduleAutoSave();
+}
+
+function removeEquipSub(ci, ii, si) {
+  const cats = currentProspekt.equipment_categories || [];
+  const item = cats[ci]?.items?.[ii];
+  if (!item || !Array.isArray(item.subs)) return;
+  item.subs.splice(si, 1);
+  renderSectionBody('equipment');
+  $('sec-equipment').classList.add('open');
+  scheduleAutoSave();
+}
+
+function addEquipItem(ci) {
+  const cats = currentProspekt.equipment_categories || [];
+  if (!cats[ci]) return;
+  cats[ci].items = cats[ci].items || [];
+  cats[ci].items.push({ text: '' });
+  currentProspekt.equipment_categories = cats;
+  renderSectionBody('equipment');
+  $('sec-equipment').classList.add('open');
+}
+
+function removeEquipItem(ci, ii) {
+  const cats = currentProspekt.equipment_categories || [];
+  if (cats[ci]?.items) { cats[ci].items.splice(ii, 1); }
+  currentProspekt.equipment_categories = cats;
+  renderSectionBody('equipment');
+  $('sec-equipment').classList.add('open');
+  scheduleAutoSave();
+}
+
+// ── Equipment drag & drop (item reordering within/between categories) ──
+function setupEquipDrag() {
+  const editor = document.getElementById('equipEditor');
+  if (!editor) return;
+  let dragRow = null;
+
+  editor.addEventListener('dragstart', e => {
+    const row = e.target.closest('.equip-item-row[data-ci]');
+    if (!row || !row.draggable) { e.preventDefault(); return; }
+    e.stopPropagation(); // Prevent section-level drag from activating
+    dragRow = row;
+    row.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', ''); // Required for Firefox
+  });
+
+  editor.addEventListener('dragend', e => {
+    if (dragRow) {
+      dragRow.classList.remove('dragging');
+      dragRow.draggable = false;
+      dragRow = null;
+    }
+    editor.querySelectorAll('.equip-item-row').forEach(r => {
+      r.classList.remove('drag-over-above', 'drag-over-below');
+    });
+  });
+
+  editor.addEventListener('dragover', e => {
+    e.preventDefault();
+    const target = e.target.closest('.equip-item-row[data-ci]');
+    if (!target || target === dragRow) return;
+    editor.querySelectorAll('.equip-item-row').forEach(r => {
+      r.classList.remove('drag-over-above', 'drag-over-below');
+    });
+    const rect = target.getBoundingClientRect();
+    if (e.clientY < rect.top + rect.height / 2) {
+      target.classList.add('drag-over-above');
+    } else {
+      target.classList.add('drag-over-below');
+    }
+  });
+
+  editor.addEventListener('drop', e => {
+    e.preventDefault();
+    const target = e.target.closest('.equip-item-row[data-ci]');
+    if (!target || !dragRow || target === dragRow) return;
+
+    const fromCi = parseInt(dragRow.dataset.ci);
+    const fromIi = parseInt(dragRow.dataset.ii);
+    const toCi = parseInt(target.dataset.ci);
+    const toIi = parseInt(target.dataset.ii);
+
+    const cats = currentProspekt.equipment_categories || [];
+    if (!cats[fromCi]?.items || !cats[toCi]?.items) return;
+
+    const rect = target.getBoundingClientRect();
+    const insertBelow = e.clientY >= rect.top + rect.height / 2;
+
+    // Remove from source
+    const [moved] = cats[fromCi].items.splice(fromIi, 1);
+
+    // Adjust target index
+    let targetIdx = toIi;
+    if (fromCi === toCi && fromIi < toIi) targetIdx--;
+    if (insertBelow) targetIdx++;
+
+    cats[toCi].items.splice(targetIdx, 0, moved);
+
+    currentProspekt.equipment_categories = cats;
+    renderSectionBody('equipment');
+    $('sec-equipment').classList.add('open');
+    // Keep all non-empty categories open
+    cats.forEach((c, i) => {
+      if ((c.items || []).length > 0) {
+        const catEl = document.getElementById(`equipItems-${i}`);
+        if (catEl) catEl.style.display = 'block';
+      }
+    });
+    scheduleAutoSave();
+  });
+}
+
+// ── Freetext ──
+function updateFreetextField(pageIdx, prop, value) {
+  const pages = currentProspekt.freetext_pages || [];
+  if (!pages[pageIdx]) pages[pageIdx] = {};
+  pages[pageIdx][prop] = value;
+  currentProspekt.freetext_pages = pages;
+  scheduleAutoSave();
+}
+
+// ── Gallery ──
+function updateGalleryCaption(pageIdx, imgIdx, value) {
+  const pages = currentProspekt.gallery_pages || [];
+  if (pages[pageIdx]?.images?.[imgIdx]) {
+    pages[pageIdx].images[imgIdx].caption = value;
+    scheduleAutoSave();
+  }
+}
+
+function removeGallerySlot(pageIdx, slotIdx) {
+  const pages = currentProspekt.gallery_pages || [];
+  if (pages[pageIdx]?.images?.[slotIdx]) {
+    pages[pageIdx].images.splice(slotIdx, 1);
+    renderEntryBody(`gallery:${pageIdx}`);
+    const bodyEl = $(`sec-gallery-${pageIdx}`);
+    if (bodyEl) bodyEl.classList.add('open');
+    scheduleAutoSave();
+  }
+}
+
+function removeGalleryPage(pageIdx) {
+  const pages = currentProspekt.gallery_pages || [];
+  pages.splice(pageIdx, 1);
+  currentProspekt.gallery_pages = pages;
+  // Remove from sections_order and renumber gallery entries
+  const order = currentProspekt.sections_order || [];
+  const entryToRemove = `gallery:${pageIdx}`;
+  const newOrder = order.filter(e => e !== entryToRemove).map(e => {
+    if (e.startsWith('gallery:')) {
+      const idx = parseInt(e.split(':')[1]);
+      if (idx > pageIdx) return `gallery:${idx - 1}`;
+    }
+    return e;
+  });
+  currentProspekt.sections_order = newOrder;
+  renderSections();
+  scheduleAutoSave();
+}
+
+function addGalleryPage() {
+  const pages = currentProspekt.gallery_pages || [];
+  if (pages.length >= 4) return toast('Maks 4 gallerisider', 'error');
+  const newIdx = pages.length;
+  pages.push({ layout: '4up', images: [] });
+  currentProspekt.gallery_pages = pages;
+  // Add entry to sections_order after the last gallery entry (skip if placeholder already exists)
+  const order = currentProspekt.sections_order || [];
+  const entryKey = `gallery:${newIdx}`;
+  if (!order.includes(entryKey)) {
+    const lastGalIdx = order.reduce((acc, e, i) => e.startsWith('gallery:') ? i : acc, -1);
+    const insertAt = lastGalIdx >= 0 ? lastGalIdx + 1 : 2; // after overview if no gallery yet
+    order.splice(insertAt, 0, entryKey);
+  }
+  currentProspekt.sections_order = order;
+  renderSections();
+  scheduleAutoSave();
+}
+
+function changeGalleryLayout(pageIdx, newLayout) {
+  const pages = currentProspekt.gallery_pages || [];
+  if (!pages[pageIdx]) return;
+  const SLOT_COUNTS = {
+    '1up': 1, '2up': 2, '2up_h': 2, '3up_h': 3,
+    '4up': 4, '4up_h': 4, '4up_sw': 4, '5up': 5,
+  };
+  pages[pageIdx].layout = newLayout;
+  // Trim excess images if new layout has fewer slots
+  const maxSlots = SLOT_COUNTS[newLayout] || 5;
+  if ((pages[pageIdx].images || []).length > maxSlots) {
+    pages[pageIdx].images = pages[pageIdx].images.slice(0, maxSlots);
+  }
+  currentProspekt.gallery_pages = pages;
+  renderEntryBody(`gallery:${pageIdx}`);
+  const bodyEl = $(`sec-gallery-${pageIdx}`);
+  if (bodyEl) bodyEl.classList.add('open');
+  scheduleAutoSave();
+}
+
+// ── Gallery page preview modal ────────────────────────────────────────────────
+// Viser én gallery-side i eksakt PDF-utseende (A4-aspect-ratio, samme grid-CSS).
+// Leser direkte fra currentProspekt.gallery_pages, så ingen lagring kreves —
+// megler kan eksperimentere med layout og crop og se resultatet umiddelbart.
+function openGalleryPagePreview(pageIdx) {
+  const pages = currentProspekt.gallery_pages || [];
+  const page = pages[pageIdx];
+  if (!page) return;
+
+  // Lukk eksisterende preview-modal hvis åpen
+  document.querySelectorAll('.gpp-overlay').forEach(el => el.remove());
+
+  const layout = page.layout || '5up';
+  const images = (page.images || []).filter(img => img && img.url);
+
+  const giHtml = images.map((img, ii) => {
+    const wide = (layout === '5up' && ii === 0) ? ' gpp-gi-wide' : '';
+    const posStyle = img.posX !== undefined ? `object-position:${img.posX}% ${img.posY}%;` : '';
+    const zoomStyle = img.zoom && img.zoom > 1 ? `transform:scale(${img.zoom});` : '';
+    const imgStyle = (posStyle || zoomStyle) ? ` style="${posStyle}${zoomStyle}"` : '';
+    const cap = img.caption ? `<div class="gpp-gi-caption">${esc(img.caption)}</div>` : '';
+    return `<div class="gpp-gi${wide}"><img src="${esc(img.url)}" alt=""${imgStyle}>${cap}</div>`;
+  }).join('');
+
+  const boatName = currentProspekt.boat_name || '';
+  const modelYear = currentProspekt.model_year || '';
+  const totalPages = pages.filter(p => (p.images || []).some(im => im && im.url)).length;
+  const visibleIdx = pages.slice(0, pageIdx + 1).filter(p => (p.images || []).some(im => im && im.url)).length;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'gpp-overlay';
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+  overlay.innerHTML = `
+    <div class="gpp-modal">
+      <div class="gpp-header">
+        <h3>Forhåndsvisning — Galleriside ${pageIdx + 1}</h3>
+        <button class="gpp-close" onclick="this.closest('.gpp-overlay').remove()" title="Lukk">×</button>
+      </div>
+      <div class="gpp-body">
+        <div class="gpp-page">
+          <div class="gpp-gallery">
+            <div class="gpp-gallery-header">
+              <h2>Bildegalleri</h2>
+              <span class="gpp-gallery-subtitle">${esc(boatName)}${modelYear ? ' &middot; ' + esc(String(modelYear)) : ''}</span>
+            </div>
+            <div class="gpp-grid gpp-grid-${layout}">
+              ${giHtml || '<div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;color:#9A9590;font-size:10px">Ingen bilder lagt til</div>'}
+            </div>
+            <div class="gpp-page-indicator">${visibleIdx} / ${totalPages || 1}</div>
+          </div>
+        </div>
+      </div>
+      <div class="gpp-footer">
+        Endringer lagres automatisk — denne forhåndsvisningen oppdateres neste gang du åpner den.
+      </div>
+    </div>
+  `;
+
+  // ESC for å lukke
+  const escHandler = (e) => {
+    if (e.key === 'Escape') {
+      overlay.remove();
+      document.removeEventListener('keydown', escHandler);
+    }
+  };
+  document.addEventListener('keydown', escHandler);
+
+  document.body.appendChild(overlay);
+}
+
+function pickGallerySlot(pageIdx, slotIdx) {
+  openImagePicker((urls) => {
+    if (urls.length === 0) return;
+    const pages = currentProspekt.gallery_pages || [];
+    if (!pages[pageIdx]) return;
+    const images = pages[pageIdx].images || [];
+    // Replace or insert at slot position
+    if (images[slotIdx]) {
+      images[slotIdx].url = urls[0];
+    } else {
+      // Fill empty slots up to this index
+      while (images.length < slotIdx) images.push({ url: '', caption: '' });
+      images[slotIdx] = { url: urls[0], caption: '' };
+    }
+    pages[pageIdx].images = images;
+    currentProspekt.gallery_pages = pages;
+    renderEntryBody(`gallery:${pageIdx}`);
+    const bodyEl = $(`sec-gallery-${pageIdx}`);
+    if (bodyEl) bodyEl.classList.add('open');
+    scheduleAutoSave();
+    toast('Bilde valgt');
+  }, false);  // single pick for specific slot
+}
+
+// ── Crop modal ──────────────────────────────────────────────────────────────
+
+// ── Crop modal (frame-aware) ─────────────────────────────────────────────────
+// Shows the image inside the exact aspect ratio it occupies in the prospekt.
+// User drags to reposition the image within that frame.
+
+let cropState = {
+  mode: 'gallery',  // 'gallery' | 'single' (cover/overview)
+  field: null,       // for single mode: 'cover_image_url' etc.
+  pi: 0, si: 0,     // for gallery mode
+  posX: 50, posY: 50, zoom: 1,
+  dragging: false, startX: 0, startY: 0, startPosX: 50, startPosY: 50,
+  aspectRatio: '16/9',
+};
+
+// Aspect ratios matching the ACTUAL prospekt PDF layout (A4 = 210×297mm):
+// Usable gallery area after 6% padding + header ~4% ≈ 185×235mm
+// Landscape-friendly layouts (stablet / sandwich) dominate — most boat photos are landscape.
+// 2up_h: 2 stacked rows ≈ 185×115mm each ≈ 16:10
+// 3up_h: 3 stacked rows ≈ 185×76mm each ≈ 24:10
+// 4up_h: 4 stacked rows ≈ 185×57mm each ≈ 32:10 (thin bands)
+// 4up_sw: sandwich — top/bottom full-width landscape ≈ 21:10, middle pair ≈ 1:1
+// 5up: top hero ≈ 19:10, bottom four ≈ 13:10
+// 4up: 2×2 grid ≈ 4:5 portrait-ish
+// 2up: side-by-side ≈ 1:2 portrait
+// 1up: full page ≈ 88:100
+function getGallerySlotAspectRatio(layout, slotIdx) {
+  if (layout === '5up')    return slotIdx === 0 ? '19 / 10' : '13 / 10';
+  if (layout === '4up_sw') return (slotIdx === 0 || slotIdx === 3) ? '21 / 10' : '1 / 1';
+  if (layout === '4up_h')  return '32 / 10';
+  if (layout === '3up_h')  return '24 / 10';
+  if (layout === '2up_h')  return '16 / 10';
+  if (layout === '4up')    return '4 / 5';
+  if (layout === '2up')    return '1 / 2';
+  if (layout === '1up')    return '88 / 100';
+  return '16 / 9';
+}
+
+function openCropModal(pi, si) {
+  const pages = currentProspekt.gallery_pages || [];
+  const img = pages[pi]?.images?.[si];
+  if (!img) return;
+
+  const layout = pages[pi]?.layout || '5up';
+  const ar = getGallerySlotAspectRatio(layout, si);
+
+  cropState = {
+    mode: 'gallery', field: null, pi, si,
+    posX: img.posX ?? 50, posY: img.posY ?? 50, zoom: img.zoom || 1,
+    dragging: false, startX: 0, startY: 0, startPosX: 50, startPosY: 50,
+    aspectRatio: ar,
+  };
+  showCropOverlay(img.url);
+}
+
+function openSingleImageCrop(field) {
+  const url = currentProspekt[field];
+  if (!url) return;
+
+  const cropData = currentProspekt[field.replace('_url', '_crop')] || {};
+  const ar = field === 'cover_image_url' ? '89 / 100' : '2 / 1';
+
+  cropState = {
+    mode: 'single', field, pi: 0, si: 0,
+    posX: cropData.posX ?? 50, posY: cropData.posY ?? 50, zoom: cropData.zoom || 1,
+    dragging: false, startX: 0, startY: 0, startPosX: 50, startPosY: 50,
+    aspectRatio: ar,
+  };
+  showCropOverlay(url);
+}
+
+function showCropOverlay(imgUrl) {
+  const existing = document.querySelector('.crop-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'crop-overlay';
+  overlay.onclick = (e) => { if (e.target === overlay) closeCropModal(); };
+  overlay.innerHTML = `
+    <div class="crop-modal">
+      <div class="crop-modal-header">
+        <h3>Dra bildet for å justere posisjon</h3>
+        <button style="background:none;border:none;font-size:22px;color:var(--gray-dark);cursor:pointer" onclick="closeCropModal()">×</button>
+      </div>
+      <div class="crop-preview-area" id="cropArea" style="aspect-ratio:${cropState.aspectRatio}">
+        <img src="${esc(imgUrl)}" id="cropImg"
+          style="object-position:${cropState.posX}% ${cropState.posY}%;transform:scale(${cropState.zoom})">
+        <div class="crop-frame-hint"></div>
+      </div>
+      <div class="crop-controls">
+        <label>Zoom</label>
+        <input type="range" min="1" max="2.5" step="0.05" value="${cropState.zoom}" oninput="updateCropZoom(this.value)">
+        <span id="cropZoomLabel" style="font-size:12px;color:var(--gray-dark);min-width:35px">${Math.round(cropState.zoom * 100)}%</span>
+      </div>
+      <div class="crop-modal-footer">
+        <button class="btn-outline" onclick="resetCrop()">Nullstill</button>
+        <button class="btn-gold" onclick="applyCrop()">Bruk</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  // Setup drag — moving image within the frame
+  const area = document.getElementById('cropArea');
+  area.addEventListener('mousedown', startCropDrag);
+  document.addEventListener('mousemove', doCropDrag);
+  document.addEventListener('mouseup', endCropDrag);
+  // Touch
+  area.addEventListener('touchstart', (e) => { e.preventDefault(); startCropDrag(e.touches[0]); }, { passive: false });
+  document.addEventListener('touchmove', (e) => { if (cropState.dragging) { e.preventDefault(); doCropDrag(e.touches[0]); } }, { passive: false });
+  document.addEventListener('touchend', endCropDrag);
+}
+
+function startCropDrag(e) {
+  cropState.dragging = true;
+  cropState.startX = e.clientX;
+  cropState.startY = e.clientY;
+  cropState.startPosX = cropState.posX;
+  cropState.startPosY = cropState.posY;
+  const area = document.getElementById('cropArea');
+  if (area) area.classList.add('dragging');
+}
+
+function doCropDrag(e) {
+  if (!cropState.dragging) return;
+  const area = document.getElementById('cropArea');
+  if (!area) return;
+  const rect = area.getBoundingClientRect();
+  // Invert direction: dragging right → posX decreases (image moves right = we see more left)
+  const dx = -(e.clientX - cropState.startX) / rect.width * 100;
+  const dy = -(e.clientY - cropState.startY) / rect.height * 100;
+  cropState.posX = Math.max(0, Math.min(100, cropState.startPosX + dx));
+  cropState.posY = Math.max(0, Math.min(100, cropState.startPosY + dy));
+  updateCropPreview();
+}
+
+function endCropDrag() {
+  if (!cropState.dragging) return;
+  cropState.dragging = false;
+  const area = document.getElementById('cropArea');
+  if (area) area.classList.remove('dragging');
+}
+
+function updateCropZoom(val) {
+  cropState.zoom = parseFloat(val);
+  document.getElementById('cropZoomLabel').textContent = Math.round(cropState.zoom * 100) + '%';
+  updateCropPreview();
+}
+
+function updateCropPreview() {
+  const img = document.getElementById('cropImg');
+  if (!img) return;
+  img.style.objectPosition = `${cropState.posX}% ${cropState.posY}%`;
+  img.style.transform = `scale(${cropState.zoom})`;
+}
+
+function resetCrop() {
+  cropState.posX = 50;
+  cropState.posY = 50;
+  cropState.zoom = 1;
+  document.querySelector('.crop-controls input[type=range]').value = 1;
+  document.getElementById('cropZoomLabel').textContent = '100%';
+  updateCropPreview();
+}
+
+function applyCrop() {
+  const posX = Math.round(cropState.posX);
+  const posY = Math.round(cropState.posY);
+  const zoom = cropState.zoom;
+
+  if (cropState.mode === 'gallery') {
+    const pages = currentProspekt.gallery_pages || [];
+    const img = pages[cropState.pi]?.images?.[cropState.si];
+    if (img) { img.posX = posX; img.posY = posY; img.zoom = zoom; }
+    closeCropModal();
+    renderEntryBody(`gallery:${cropState.pi}`);
+    const bodyEl = $(`sec-gallery-${cropState.pi}`);
+    if (bodyEl) bodyEl.classList.add('open');
+  } else {
+    // Single image (cover / overview)
+    const cropField = cropState.field.replace('_url', '_crop');
+    currentProspekt[cropField] = { posX, posY, zoom };
+    closeCropModal();
+    // Re-render the relevant section
+    if (cropState.field === 'cover_image_url') { renderSectionBody('cover'); $('sec-cover').classList.add('open'); }
+    else if (cropState.field === 'overview_image_url') { renderSectionBody('overview'); $('sec-overview').classList.add('open'); }
+  }
+
+  scheduleAutoSave();
+  toast('Bildeposisjon lagret');
+}
+
+function closeCropModal() {
+  const overlay = document.querySelector('.crop-overlay');
+  if (overlay) overlay.remove();
+  document.removeEventListener('mousemove', doCropDrag);
+  document.removeEventListener('mouseup', endCropDrag);
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// IMAGE PICKER
+// ════════════════════════════════════════════════════════════════════════════════
+
+let pickerCallback = null;
+let pickerMulti = false;
+
+function openImagePicker(fieldOrCallback, multi = false) {
+  pickerMulti = multi;
+  if (typeof fieldOrCallback === 'string') {
+    // Single image field
+    pickerCallback = (urls) => {
+      if (urls.length > 0) {
+        currentProspekt[fieldOrCallback] = urls[0];
+        const section = fieldOrCallback.includes('contact') || fieldOrCallback.includes('broker') ? 'contact'
+          : fieldOrCallback === 'overview_image_url' ? 'overview' : 'cover';
+        renderSectionBody(section);
+        $(`sec-${section}`).classList.add('open');
+        scheduleAutoSave();
+        toast('Bilde valgt');
+      }
+    };
+  } else {
+    pickerCallback = fieldOrCallback;
+  }
+  renderPickerModal();
+}
+
+function renderPickerModal() {
+  // Remove existing modal if any
+  const existing = document.querySelector('.picker-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'picker-overlay';
+  overlay.onclick = (e) => { if (e.target === overlay) closePickerModal(); };
+
+  const imgs = availableImages;
+
+  // Group by folder
+  const grouped = {};
+  for (const img of imgs) {
+    const key = img.folder || 'Øvrige';
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(img);
+  }
+
+  const gridHtml = imgs.length === 0
+    ? `<div class="picker-empty">
+         Ingen bilder lastet opp for dette oppdraget ennå.<br><br>
+         <a href="/prospekt/bilder.html" target="_blank" style="color:var(--gold);font-weight:600">Åpne bildeopplasting →</a>
+       </div>`
+    : Object.entries(grouped).map(([folder, folderImgs]) => `
+        <div style="font-size:11px;font-weight:700;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;margin:12px 0 8px;grid-column:1/-1">${esc(folder)}</div>
+        ${folderImgs.map(img => `
+          <div class="picker-img" data-url="${esc(img.url)}" onclick="togglePickerImage(this)">
+            <img src="${esc(img.url)}" alt="${esc(img.name)}" loading="lazy">
+            <div class="picker-check">✓</div>
+            <div class="picker-img-name">${esc(img.name)}</div>
+          </div>
+        `).join('')}
+      `).join('');
+
+  overlay.innerHTML = `
+    <div class="picker-modal">
+      <div class="picker-modal-header">
+        <h3>${pickerMulti ? 'Velg bilder' : 'Velg bilde'}</h3>
+        <button class="picker-modal-close" onclick="closePickerModal()">×</button>
+      </div>
+      <div class="picker-modal-body">
+        <div class="picker-grid">${gridHtml}</div>
+      </div>
+      <div class="picker-modal-footer">
+        <span class="picker-selected-count" style="font-size:13px;color:var(--gray-dark)">Ingen valgt</span>
+        <div style="display:flex;gap:8px">
+          <button class="btn-outline" onclick="closePickerModal()">Avbryt</button>
+          <button class="btn-gold" onclick="confirmPickerSelection()">Velg</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+function togglePickerImage(el) {
+  if (!pickerMulti) {
+    // Deselect all others for single pick
+    document.querySelectorAll('.picker-img.selected').forEach(e => e.classList.remove('selected'));
+  }
+  el.classList.toggle('selected');
+  updatePickerCount();
+}
+
+function updatePickerCount() {
+  const count = document.querySelectorAll('.picker-img.selected').length;
+  const label = document.querySelector('.picker-selected-count');
+  if (label) label.textContent = count === 0 ? 'Ingen valgt' : `${count} valgt`;
+}
+
+function confirmPickerSelection() {
+  const urls = [...document.querySelectorAll('.picker-img.selected')].map(el => el.dataset.url);
+  const cb = pickerCallback;  // save before closing
+  closePickerModal();
+  if (cb) cb(urls);
+}
+
+function closePickerModal() {
+  const overlay = document.querySelector('.picker-overlay');
+  if (overlay) overlay.remove();
+  pickerCallback = null;
+}
+
+// openGalleryPicker replaced by pickGallerySlot — individual slot picking
+
+function removeImage(field) {
+  currentProspekt[field] = null;
+  const section = field.includes('contact') || field.includes('broker') ? 'contact'
+    : field === 'overview_image_url' ? 'overview' : 'cover';
+  renderSectionBody(section);
+  $(`sec-${section}`).classList.add('open');
+  scheduleAutoSave();
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// SAVE / PUBLISH
+// ════════════════════════════════════════════════════════════════════════════════
+
+function scheduleAutoSave() {
+  $('saveIndicator').textContent = 'Ulagrede endringer';
+  $('saveIndicator').className = 'save-indicator';
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => saveProspekt(true), 3000);
+}
+
+async function saveProspekt(isAuto = false) {
+  if (!currentProspekt) return;
+  if (autoSaveTimer) { clearTimeout(autoSaveTimer); autoSaveTimer = null; }
+
+  $('saveIndicator').textContent = 'Lagrer…';
+  $('saveIndicator').className = 'save-indicator saving';
+  if (!isAuto) { $('saveBtn').disabled = true; $('saveBtn').textContent = 'Lagrer…'; }
+
+  try {
+    const { id, created_at, updated_at, status, pdf_url, deal_id, deal_name, ...fields } = currentProspekt;
+    await api({ action: 'update' }, 'POST', { id, ...fields });
+    $('saveIndicator').textContent = 'Lagret ✓';
+    $('saveIndicator').className = 'save-indicator saved';
+    if (!isAuto) toast('Lagret');
+  } catch (e) {
+    $('saveIndicator').textContent = 'Feil ved lagring';
+    $('saveIndicator').className = 'save-indicator';
+    toast(e.message, 'error');
+  }
+
+  if (!isAuto) { $('saveBtn').disabled = false; $('saveBtn').textContent = 'Lagre'; }
+}
+
+async function togglePublish() {
+  const isPublished = currentProspekt.status === 'published';
+
+  // ── Avpubliser (enkel) ──
+  if (isPublished) {
+    try {
+      await api({ action: 'unpublish' }, 'POST', { id: currentProspekt.id });
+      currentProspekt.status = 'draft';
+      $('publishBtn').textContent = 'Publiser';
+      toast('Avpublisert');
+    } catch (e) { toast(e.message, 'error'); }
+    return;
+  }
+
+  // ── Publiser: lagre → sett offentlig URL på boat i HubSpot ──
+  const btn = $('publishBtn');
+  btn.disabled = true;
+  btn.textContent = 'Publiserer…';
+
+  try {
+    await saveProspekt(false);
+
+    const res = await api({ action: 'publish' }, 'POST', { id: currentProspekt.id });
+
+    currentProspekt.status = 'published';
+    btn.textContent = 'Avpubliser';
+
+    if (res.hubspot?.propertySet) {
+      toast('Publisert og synlig for kunder ✓');
+    } else if (res.hubspot?.error) {
+      toast('Publisert, men HubSpot-oppdatering feilet: ' + res.hubspot.error, 'error');
+    } else {
+      toast('Publisert ✓');
+    }
+  } catch (e) {
+    toast(e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    if (currentProspekt.status !== 'published') btn.textContent = 'Publiser';
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// PREVIEW
+// ════════════════════════════════════════════════════════════════════════════════
+
+function previewProspekt() {
+  // Save first, then open render page in new tab
+  saveProspekt(false).then(() => {
+    if (!currentProspekt?.id) return;
+    window.open(`/prospekt/render.html?id=${currentProspekt.id}`, '_blank');
+  });
+}
+
+function downloadPdf() {
+  // Save first, then open render page (user can Ctrl+P / Cmd+P to save as PDF)
+  saveProspekt(false).then(() => {
+    if (!currentProspekt?.id) return;
+    // Open render page — print dialog opens automatically when ?print=1
+    window.open(`/prospekt/render.html?id=${currentProspekt.id}&print=1`, '_blank');
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// SECTION DRAG & DROP (reordering)
+// ════════════════════════════════════════════════════════════════════════════════
+
+function setupSectionDrag() {
+  const grid = $('sectionGrid');
+  let dragEl = null;
+
+  grid.addEventListener('dragstart', e => {
+    const card = e.target.closest('.sec-card');
+    if (!card || !card.draggable) return;
+    dragEl = card;
+    card.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+
+  grid.addEventListener('dragend', e => {
+    if (dragEl) { dragEl.classList.remove('dragging'); dragEl = null; }
+    grid.querySelectorAll('.sec-card').forEach(c => c.classList.remove('drag-over'));
+  });
+
+  grid.addEventListener('dragover', e => {
+    e.preventDefault();
+    const target = e.target.closest('.sec-card');
+    if (!target || target === dragEl) return;
+    grid.querySelectorAll('.sec-card').forEach(c => c.classList.remove('drag-over'));
+    target.classList.add('drag-over');
+  });
+
+  grid.addEventListener('drop', e => {
+    e.preventDefault();
+    const target = e.target.closest('.sec-card');
+    if (!target || target === dragEl || !dragEl) return;
+
+    const cards = [...grid.querySelectorAll('.sec-card')];
+    const fromIdx = cards.indexOf(dragEl);
+    const toIdx = cards.indexOf(target);
+
+    // Count fixed entries at the top (cover, overview)
+    const order = currentProspekt.sections_order || [];
+    const fixedCount = order.filter((e, i) => {
+      const { section } = parseEntry(e);
+      return SECTION_DEFS[section]?.required && i < 2;
+    }).length;
+    if (toIdx < fixedCount) return; // can't drop before fixed entries
+
+    const moved = order.splice(fromIdx, 1)[0];
+    order.splice(toIdx, 0, moved);
+    currentProspekt.sections_order = order;
+
+    renderSections();
+    scheduleAutoSave();
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// UTILITIES
+// ════════════════════════════════════════════════════════════════════════════════
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+<script src="/tracker.js"></script>
+</body>
+</html>

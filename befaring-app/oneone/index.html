@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>1:1 Pipeline & Coaching — House of Yachts</title>
+  <style>
+    :root{
+      --navy:#0a2140;--gold:#c9a84c;--white:#fff;--surface:#f5f7fa;
+      --gray:#dde3ec;--gray-dark:#6b7a8d;--text:#12233a;
+      --green:#166534;--green-bg:#dcfce7;
+      --red:#991b1b;--red-bg:#fee2e2;
+      --yellow:#92400e;--yellow-bg:#fef3c7;
+      --blue:#1e40af;--blue-bg:#dbeafe;
+      --radius:12px;--shadow:0 2px 16px rgba(10,33,64,0.10);
+    }
+    *,*::before,*::after{box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--surface);color:var(--text);margin:0;min-height:100vh}
+
+    .loading-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy);color:rgba(255,255,255,0.55);font-size:15px}
+    .auth-error{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy)}
+    .auth-error-box{background:white;border-radius:16px;padding:40px;text-align:center;max-width:400px}
+    .auth-error-box h2{color:var(--red);margin:0 0 12px}
+    .auth-error-box a{color:var(--navy);font-weight:600}
+
+    .header{background:var(--navy);color:white;padding:14px 20px;position:sticky;top:0;z-index:200;box-shadow:0 2px 16px rgba(0,0,0,0.35)}
+    .header-inner{max-width:960px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .brand-name{font-size:14px;font-weight:800;letter-spacing:0.8px}
+    .brand-sub{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--gold)}
+    .header-title{font-size:16px;font-weight:700;color:rgba(255,255,255,0.9)}
+    .btn-nav{background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.18);border-radius:20px;color:rgba(255,255,255,0.85);padding:6px 14px;font-size:12px;cursor:pointer;text-decoration:none}
+    .btn-nav:hover{background:rgba(255,255,255,0.2)}
+
+    .main{max-width:960px;margin:0 auto;padding:24px 16px 100px}
+
+    .panel{background:white;border-radius:14px;box-shadow:var(--shadow);padding:22px 24px;margin-bottom:18px}
+    .panel h2{font-size:15px;font-weight:800;letter-spacing:0.6px;text-transform:uppercase;color:var(--navy);margin:0 0 4px}
+    .panel-sub{font-size:13px;color:var(--gray-dark);margin-bottom:18px}
+    .panel-section-title{font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--gray-dark);margin:18px 0 10px}
+
+    /* Picker row */
+    .picker{display:grid;grid-template-columns:1fr 180px auto;gap:12px;align-items:end}
+    @media (max-width:640px){.picker{grid-template-columns:1fr}}
+    .field label{display:block;font-size:12px;font-weight:700;color:var(--navy);margin-bottom:4px}
+    .field input,.field select,.field textarea{width:100%;padding:11px 13px;border:2px solid var(--gray);border-radius:10px;font-size:14px;background:var(--surface);font-family:inherit;color:var(--text)}
+    .field textarea{min-height:62px;resize:vertical;background:white}
+    .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--navy);background:white}
+
+    .btn{background:var(--navy);color:white;border:none;border-radius:10px;padding:12px 22px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity 0.2s}
+    .btn:hover{opacity:0.88}
+    .btn:disabled{opacity:0.4;cursor:not-allowed}
+    .btn-secondary{background:white;color:var(--navy);border:2px solid var(--gray)}
+    .btn-secondary:hover{border-color:var(--navy);opacity:1}
+    .btn-success{background:var(--green)}
+
+    /* Stat grid */
+    .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:6px}
+    .stat{background:var(--surface);border-radius:10px;padding:12px 14px}
+    .stat-label{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--gray-dark);letter-spacing:0.5px}
+    .stat-value{font-size:22px;font-weight:800;color:var(--navy);margin-top:2px}
+    .stat-goal{font-size:11px;color:var(--gray-dark);margin-top:2px}
+
+    /* Forrige commitments */
+    .commit-row{display:grid;grid-template-columns:1fr 160px;gap:10px;padding:10px 12px;border:1px solid var(--gray);border-radius:10px;margin-bottom:8px;background:var(--surface)}
+    @media (max-width:640px){.commit-row{grid-template-columns:1fr}}
+    .commit-text{font-size:14px;color:var(--text);padding:6px 0}
+    .commit-status{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+    .pill{padding:5px 10px;border-radius:14px;font-size:11px;font-weight:700;background:white;border:1.5px solid var(--gray);color:var(--gray-dark);cursor:pointer}
+    .pill.active.done{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+    .pill.active.partial{border-color:var(--yellow);background:var(--yellow-bg);color:var(--yellow)}
+    .pill.active.dropped{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+    .pill.active.open{border-color:var(--blue);background:var(--blue-bg);color:var(--blue)}
+    .commit-note{grid-column:1/-1;margin-top:6px}
+    .commit-note input{width:100%;padding:7px 10px;border:1px solid var(--gray);border-radius:8px;font-size:13px;background:white}
+
+    /* Toppsaker */
+    .deal-card{border:2px solid var(--gray);border-radius:12px;padding:14px 16px;margin-bottom:10px;background:var(--surface)}
+    .deal-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:6px;flex-wrap:wrap}
+    .deal-name{font-size:15px;font-weight:700;color:var(--navy)}
+    .deal-meta{font-size:12px;color:var(--gray-dark)}
+    .deal-meta b{color:var(--text);font-weight:600}
+    .deal-stuck{display:inline-block;padding:3px 10px;background:var(--yellow-bg);color:var(--yellow);font-size:11px;font-weight:700;border-radius:10px;margin-left:6px}
+    .deal-stuck.fresh{background:var(--green-bg);color:var(--green)}
+    .deal-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+    @media (max-width:640px){.deal-fields{grid-template-columns:1fr}}
+    .deal-fields textarea{min-height:38px}
+
+    /* Commit add row */
+    .commit-add{display:flex;gap:8px;margin-top:8px}
+    .commit-add input{flex:1;padding:10px 12px;border:2px solid var(--gray);border-radius:10px;background:white}
+    .commit-add input:focus{outline:none;border-color:var(--navy)}
+    .commit-add button{padding:10px 14px;background:var(--navy);color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer}
+    .commit-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+    .commit-item{display:flex;justify-content:space-between;gap:8px;padding:9px 12px;background:white;border:1px solid var(--gray);border-radius:8px;font-size:14px}
+    .commit-item button{background:none;border:none;color:var(--red);cursor:pointer;font-size:18px;line-height:1}
+
+    /* Pressure slider */
+    .pressure-row{display:flex;align-items:center;gap:12px}
+    .pressure-row input[type=range]{flex:1}
+    .pressure-row .pressure-val{font-size:22px;font-weight:800;color:var(--navy);min-width:38px;text-align:center}
+
+    /* Action bar */
+    .actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+    .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--navy);color:white;padding:12px 22px;border-radius:10px;font-weight:700;box-shadow:0 6px 24px rgba(0,0,0,0.3);z-index:300;display:none}
+
+    .hidden{display:none!important}
+
+    /* History list */
+    .history-item{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface);border-radius:10px;margin-bottom:6px;cursor:pointer;transition:background 0.15s}
+    .history-item:hover{background:var(--gray)}
+    .history-date{font-weight:700;color:var(--navy)}
+    .history-pressure{font-size:12px;color:var(--gray-dark)}
+  </style>
+</head>
+<body>
+
+<div id="loadingScreen" class="loading-screen">Laster…</div>
+
+<div id="authError" class="auth-error" style="display:none">
+  <div class="auth-error-box">
+    <h2>Ingen tilgang</h2>
+    <p>Denne modulen er kun for admin. <a href="/">Tilbake til portalen</a></p>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+
+  <div class="header">
+    <div class="header-inner">
+      <div>
+        <div class="brand-name">HOUSE OF YACHTS</div>
+        <div class="brand-sub">Intern portal</div>
+      </div>
+      <div class="header-title">1:1 Pipeline & Coaching</div>
+      <a href="/" class="btn-nav">← Tilbake</a>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- Picker -->
+    <div class="panel">
+      <h2>Forbered møte</h2>
+      <div class="panel-sub">Velg megler og dato. Tall, deals og forrige commitments hentes automatisk.</div>
+      <div class="picker">
+        <div class="field">
+          <label>Megler</label>
+          <select id="brokerSelect"></select>
+        </div>
+        <div class="field">
+          <label>Møtedato</label>
+          <input type="date" id="meetingDate">
+        </div>
+        <button class="btn" id="prepBtn" onclick="loadPrep()">Forbered →</button>
+      </div>
+      <div id="historyBox" style="margin-top:16px"></div>
+    </div>
+
+    <!-- Meeting form (hidden until prep loaded) -->
+    <div id="meetingForm" class="hidden">
+
+      <!-- Forrige commitments -->
+      <div class="panel" id="prevPanel">
+        <h2>1) Status forrige commitments</h2>
+        <div class="panel-sub" id="prevSub"></div>
+        <div id="prevList"></div>
+      </div>
+
+      <!-- Sjekk inn -->
+      <div class="panel">
+        <h2>2) Sjekk inn</h2>
+        <div class="panel-sub">Kort puls — 1 min.</div>
+        <div class="field" style="margin-bottom:10px">
+          <label>Høydepunkt siden sist</label>
+          <textarea id="highlight"></textarea>
+        </div>
+        <div class="field" style="margin-bottom:10px">
+          <label>Lavpunkt siden sist</label>
+          <textarea id="lowlight"></textarea>
+        </div>
+        <div class="field">
+          <label>Opplevd trykk (1–10)</label>
+          <div class="pressure-row">
+            <input type="range" id="pressure" min="1" max="10" value="5" oninput="document.getElementById('pressureVal').textContent=this.value">
+            <span class="pressure-val" id="pressureVal">5</span>
+          </div>
+        </div>
+        <div class="field" style="margin-top:10px">
+          <label>Kommentar (hvis ≤ 6 eller ≥ 9)</label>
+          <input type="text" id="pressureNote" placeholder="Frivillig">
+        </div>
+      </div>
+
+      <!-- Tall vs mål -->
+      <div class="panel">
+        <h2>3) Tall vs. mål</h2>
+        <div class="panel-sub" id="periodLabel"></div>
+        <div class="stat-grid" id="statGrid"></div>
+        <div class="panel-section-title">Egne tall</div>
+        <div class="field" style="margin-bottom:10px">
+          <label>Kalde henvendelser (manuelt — definisjon uavklart)</label>
+          <input type="number" id="coldOutreach" min="0">
+        </div>
+      </div>
+
+      <!-- Toppsaker -->
+      <div class="panel">
+        <h2>4) Pipeline — toppsaker</h2>
+        <div class="panel-sub">Aktive deals i Pipeline B, sortert etter dager siden sist aktivitet.</div>
+        <div id="dealsList"></div>
+      </div>
+
+      <!-- Mikro-mål -->
+      <div class="panel">
+        <h2>5) Mikro-mål denne perioden</h2>
+        <div class="panel-sub">Én konkret endring/test megleren forplikter seg til. Hold det kort.</div>
+        <div class="field">
+          <textarea id="microGoal" placeholder="F.eks. ringe alle interessenter på Delphia 40.3 før onsdag"></textarea>
+        </div>
+      </div>
+
+      <!-- Avslutning -->
+      <div class="panel">
+        <h2>6) Commitments + feedback</h2>
+        <div class="panel-sub">2–3 forpliktelser til neste 1:1. Disse hentes inn automatisk neste gang.</div>
+
+        <div class="panel-section-title">Commitments til neste møte</div>
+        <div class="commit-add">
+          <input type="text" id="commitInput" placeholder="Skriv en commitment og trykk Enter" onkeydown="if(event.key==='Enter'){addCommit();event.preventDefault();}">
+          <button onclick="addCommit()">+ Legg til</button>
+        </div>
+        <div class="commit-list" id="commitList"></div>
+
+        <div class="panel-section-title">Til megler — fortsett med</div>
+        <div class="field"><textarea id="feedbackContinue"></textarea></div>
+
+        <div class="panel-section-title">Til megler — test/endre</div>
+        <div class="field"><textarea id="feedbackChange"></textarea></div>
+
+        <div class="panel-section-title">Fra megler — til deg som leder</div>
+        <div class="field"><textarea id="feedbackFromBroker" placeholder="Hva kan jeg gjøre annerledes som leder?"></textarea></div>
+
+        <div class="panel-section-title">Oppfølging / to-do's (for deg)</div>
+        <div class="field"><textarea id="followUpTodos"></textarea></div>
+      </div>
+
+      <!-- Actions -->
+      <div class="actions">
+        <button class="btn btn-secondary" onclick="copyAsMarkdown()">Kopier som Markdown</button>
+        <button class="btn btn-success" id="saveBtn" onclick="saveMeeting()">💾 Lagre møte</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+'use strict';
+
+const API = `${window.location.origin}/.netlify/functions/oneone`;
+const IDENTITY = `${window.location.origin}/.netlify/identity`;
+let accessToken = null;
+
+// State
+let state = {
+  brokers: [],
+  currentBroker: null,
+  prep: null,        // siste prep-respons
+  commitments: [],   // commitments som skal lagres (til neste møte)
+  dealEdits: {},     // dealId → { next_step }
+  prevStatus: {},    // commitmentId → { status, status_note }
+  meetingId: null,   // hvis vi redigerer eksisterende
+};
+
+function parseJwt(token){
+  try { const b=token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'); return JSON.parse(atob(b)); }
+  catch { return null; }
+}
+
+async function init(){
+  const tok = localStorage.getItem('hoy_access_token');
+  if (!tok){ window.location.href='/'; return; }
+  try{
+    const r = await fetch(`${IDENTITY}/user`,{ headers:{Authorization:`Bearer ${tok}`}});
+    if (!r.ok) throw new Error('expired');
+  } catch { localStorage.removeItem('hoy_access_token'); window.location.href='/'; return; }
+  const jwt = parseJwt(tok);
+  if (jwt?.email?.toLowerCase() !== 'sindre@h-y.no'){
+    document.getElementById('loadingScreen').style.display='none';
+    document.getElementById('authError').style.display='flex';
+    return;
+  }
+  accessToken = tok;
+  document.getElementById('loadingScreen').style.display='none';
+  document.getElementById('app').style.display='';
+  document.getElementById('meetingDate').value = new Date().toISOString().slice(0,10);
+  await loadBrokers();
+}
+
+async function api(path, method='GET', body=null){
+  const opts = { method, headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${accessToken}` }};
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(`${API}${path}`, opts);
+  return r.json();
+}
+
+function toast(msg, isErr=false){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = isErr ? 'var(--red)' : 'var(--navy)';
+  t.style.display = 'block';
+  setTimeout(()=>{ t.style.display='none'; }, 2400);
+}
+
+async function loadBrokers(){
+  const r = await api('?action=brokers');
+  state.brokers = r.brokers || [];
+  const sel = document.getElementById('brokerSelect');
+  sel.innerHTML = state.brokers.map(b => `<option value="${b.id}">${b.display_name}</option>`).join('');
+  sel.addEventListener('change', loadHistory);
+  await loadHistory();
+}
+
+async function loadHistory(){
+  const brokerId = document.getElementById('brokerSelect').value;
+  if (!brokerId) return;
+  const r = await api(`?action=meetings&broker_id=${brokerId}`);
+  const list = r.meetings || [];
+  const box = document.getElementById('historyBox');
+  if (!list.length){ box.innerHTML = '<div style="font-size:13px;color:var(--gray-dark)">Ingen tidligere møter registrert ennå.</div>'; return; }
+  box.innerHTML = `
+    <div class="panel-section-title" style="margin:6px 0 8px">Tidligere møter</div>
+    ${list.slice(0,5).map(m => `
+      <div class="history-item" onclick="openMeeting('${m.id}')">
+        <div>
+          <div class="history-date">${formatDate(m.meeting_date)}</div>
+          <div class="history-pressure">Trykk: ${m.pressure_score ?? '—'}/10</div>
+        </div>
+        <div style="font-size:18px;color:var(--gray-dark)">→</div>
+      </div>
+    `).join('')}
+  `;
+}
+
+function formatDate(iso){
+  if (!iso) return '—';
+  const [y,m,d] = iso.split('-');
+  return `${d}.${m}.${y}`;
+}
+function formatNok(n){
+  if (!n) return '—';
+  return new Intl.NumberFormat('no-NO').format(Math.round(n)) + ' kr';
+}
+
+async function loadPrep(){
+  const brokerId = document.getElementById('brokerSelect').value;
+  const meetingDate = document.getElementById('meetingDate').value;
+  if (!brokerId || !meetingDate){ toast('Velg megler og dato', true); return; }
+  document.getElementById('prepBtn').textContent = 'Henter…';
+  document.getElementById('prepBtn').disabled = true;
+  try {
+    const r = await api(`?action=prep&broker_id=${brokerId}&meeting_date=${meetingDate}`);
+    if (r.error){ toast(r.error, true); return; }
+    state.prep = r;
+    state.currentBroker = r.broker;
+    state.commitments = [];
+    state.dealEdits = {};
+    state.prevStatus = {};
+    state.meetingId = null;
+    renderForm();
+  } catch(e){
+    toast('Feil: ' + e.message, true);
+  } finally {
+    document.getElementById('prepBtn').textContent = 'Forbered →';
+    document.getElementById('prepBtn').disabled = false;
+  }
+}
+
+function renderForm(){
+  document.getElementById('meetingForm').classList.remove('hidden');
+
+  const p = state.prep;
+  const g = p.goals || {};
+  const a = p.activity || {};
+
+  // Forrige commitments
+  const prevPanel = document.getElementById('prevPanel');
+  const prevSub = document.getElementById('prevSub');
+  const prevList = document.getElementById('prevList');
+  if (!p.prev_meeting){
+    prevPanel.classList.add('hidden');
+  } else {
+    prevPanel.classList.remove('hidden');
+    prevSub.textContent = `Fra møte ${formatDate(p.prev_meeting.meeting_date)}.`;
+    if (!p.prev_commitments.length){
+      prevList.innerHTML = '<div style="font-size:13px;color:var(--gray-dark)">Ingen commitments fra forrige møte.</div>';
+    } else {
+      prevList.innerHTML = p.prev_commitments.map(c => `
+        <div class="commit-row" data-id="${c.id}">
+          <div class="commit-text">${escapeHtml(c.text)}</div>
+          <div class="commit-status">
+            ${['done','partial','dropped','open'].map(s => `
+              <span class="pill ${s} ${(state.prevStatus[c.id]?.status || c.status) === s ? 'active' : ''}"
+                    onclick="setPrevStatus('${c.id}','${s}')">${labelFor(s)}</span>
+            `).join('')}
+          </div>
+          <div class="commit-note">
+            <input type="text" placeholder="Kommentar (valgfritt)"
+                   value="${escapeHtml(state.prevStatus[c.id]?.status_note || c.status_note || '')}"
+                   oninput="setPrevNote('${c.id}', this.value)">
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
+  // Periode
+  document.getElementById('periodLabel').textContent = `Periode: ${formatDate(p.period_start)} – ${formatDate(p.period_end)}`;
+
+  // Statistikk
+  const stats = [
+    { label:'Nye prospekt',    value: a.new_prospects ?? '—',    goal: null },
+    { label:'Signerte oppdrag', value: a.new_mandates_signed ?? '—', goal: g.new_mandates_per_week ? `mål: ~${g.new_mandates_per_week*2}/14d` : null },
+    { label:'Salg',            value: a.sales_count ?? '—',       goal: g.sales_per_period ? `mål: ${g.sales_per_period}` : null },
+    { label:'Pipeline-verdi lagt til', value: formatNok(a.pipeline_value_added), goal: null },
+    { label:'Salgssum (closed won)', value: formatNok(a.sales_amount), goal: null },
+    { label:'Møter logget', value: a.meetings_count ?? '—', goal: g.meetings_per_week ? `mål: ~${g.meetings_per_week*2}/14d` : null },
+    { label:'Calls logget (info)', value: a.calls_count ?? '—', goal: null },
+  ];
+  document.getElementById('statGrid').innerHTML = stats.map(s => `
+    <div class="stat">
+      <div class="stat-label">${s.label}</div>
+      <div class="stat-value">${s.value}</div>
+      ${s.goal ? `<div class="stat-goal">${s.goal}</div>` : ''}
+    </div>
+  `).join('');
+
+  // Toppsaker
+  const deals = a.top_deals || [];
+  const dealsList = document.getElementById('dealsList');
+  if (!deals.length){
+    dealsList.innerHTML = '<div style="font-size:13px;color:var(--gray-dark)">Ingen aktive deals i Pipeline B for denne megleren.</div>';
+  } else {
+    dealsList.innerHTML = deals.map(d => {
+      const stuckClass = d.days_since_activity > 14 ? '' : 'fresh';
+      return `
+        <div class="deal-card">
+          <div class="deal-card-top">
+            <div>
+              <div class="deal-name">${escapeHtml(d.name)}</div>
+              <div class="deal-meta"><b>${escapeHtml(d.stage)}</b> · ${formatNok(d.amount)} · ${d.days_in_pipeline}d i pipeline</div>
+            </div>
+            <div class="deal-stuck ${stuckClass}">${d.days_since_activity}d siden aktivitet</div>
+          </div>
+          <div class="deal-fields">
+            <div class="field">
+              <label>Hva stopper oss</label>
+              <textarea data-deal-id="${d.id}" data-field="blocker"></textarea>
+            </div>
+            <div class="field">
+              <label>Neste konkrete steg</label>
+              <textarea data-deal-id="${d.id}" data-field="next_step">${escapeHtml(d.next_step || '')}</textarea>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Reset form fields
+  ['highlight','lowlight','pressureNote','coldOutreach','microGoal',
+   'feedbackContinue','feedbackChange','feedbackFromBroker','followUpTodos']
+    .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('pressure').value = 5;
+  document.getElementById('pressureVal').textContent = '5';
+  document.getElementById('commitList').innerHTML = '';
+
+  // Scroll til form
+  document.getElementById('meetingForm').scrollIntoView({ behavior:'smooth' });
+}
+
+function labelFor(s){
+  return { done:'✓ Gjort', partial:'~ Delvis', dropped:'✗ Droppet', open:'○ Åpen' }[s] || s;
+}
+
+function escapeHtml(s){
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function setPrevStatus(id, status){
+  state.prevStatus[id] = state.prevStatus[id] || {};
+  state.prevStatus[id].status = status;
+  renderForm();
+}
+function setPrevNote(id, note){
+  state.prevStatus[id] = state.prevStatus[id] || {};
+  state.prevStatus[id].status_note = note;
+}
+
+function addCommit(){
+  const input = document.getElementById('commitInput');
+  const text = input.value.trim();
+  if (!text) return;
+  state.commitments.push({ text });
+  input.value = '';
+  renderCommits();
+}
+function removeCommit(i){
+  state.commitments.splice(i, 1);
+  renderCommits();
+}
+function renderCommits(){
+  document.getElementById('commitList').innerHTML = state.commitments.map((c,i) => `
+    <div class="commit-item">
+      <span>${escapeHtml(c.text)}</span>
+      <button onclick="removeCommit(${i})" title="Fjern">×</button>
+    </div>
+  `).join('');
+}
+
+function collectDealNotes(){
+  const notes = {};
+  document.querySelectorAll('[data-deal-id]').forEach(el => {
+    const id = el.dataset.dealId;
+    const field = el.dataset.field;
+    notes[id] = notes[id] || { id, name: '', blocker: '', next_step: '' };
+    notes[id][field] = el.value;
+  });
+  // Berik med navn fra state
+  (state.prep?.activity?.top_deals || []).forEach(d => {
+    if (notes[d.id]) notes[d.id].name = d.name;
+  });
+  return Object.values(notes).filter(n => n.blocker || n.next_step);
+}
+
+async function saveMeeting(){
+  if (!state.prep){ toast('Last prep først', true); return; }
+
+  const dealNotes = collectDealNotes();
+  // Lagre deal-notater + commitments som markdown i 'notes'-feltet
+  const dealNotesMd = dealNotes.length
+    ? '\n\n## Deal-notater\n' + dealNotes.map(n =>
+        `- **${n.name}**\n  - Blocker: ${n.blocker || '—'}\n  - Neste steg: ${n.next_step || '—'}`
+      ).join('\n')
+    : '';
+
+  const payload = {
+    broker_id:           state.prep.broker.id,
+    meeting_date:        state.prep.meeting_date,
+    period_start:        state.prep.period_start,
+    period_end:          state.prep.period_end,
+    pressure_score:      parseInt(document.getElementById('pressure').value, 10),
+    pressure_note:       document.getElementById('pressureNote').value || null,
+    highlight:           document.getElementById('highlight').value || null,
+    lowlight:            document.getElementById('lowlight').value || null,
+    cold_outreach:       parseInt(document.getElementById('coldOutreach').value, 10) || null,
+    meetings_booked:     state.prep.activity?.meetings_count ?? null,
+    micro_goal:          document.getElementById('microGoal').value || null,
+    feedback_continue:   document.getElementById('feedbackContinue').value || null,
+    feedback_change:     document.getElementById('feedbackChange').value || null,
+    feedback_from_broker:document.getElementById('feedbackFromBroker').value || null,
+    follow_up_todos:     document.getElementById('followUpTodos').value || null,
+    notes: dealNotesMd || null,
+    commitments: state.commitments,
+    prev_commitment_reviews: Object.entries(state.prevStatus).map(([id, v]) => ({ id, ...v })),
+  };
+
+  document.getElementById('saveBtn').textContent = 'Lagrer…';
+  document.getElementById('saveBtn').disabled = true;
+  try {
+    const r = await api('?action=save_meeting', 'POST', payload);
+    if (r.error){ toast(r.error, true); return; }
+    state.meetingId = r.meeting_id;
+    toast('Møte lagret ✓');
+    loadHistory();
+  } catch (e) {
+    toast('Feil: ' + e.message, true);
+  } finally {
+    document.getElementById('saveBtn').textContent = '💾 Lagre møte';
+    document.getElementById('saveBtn').disabled = false;
+  }
+}
+
+function copyAsMarkdown(){
+  if (!state.prep) return;
+  const p = state.prep;
+  const a = p.activity || {};
+  const dealNotes = collectDealNotes();
+
+  const md = [];
+  md.push(`# 1:1 — ${p.broker.display_name}`);
+  md.push(`**Dato:** ${formatDate(p.meeting_date)} · **Periode:** ${formatDate(p.period_start)}–${formatDate(p.period_end)}`);
+  md.push('');
+
+  if (p.prev_commitments?.length){
+    md.push('## Status forrige commitments');
+    p.prev_commitments.forEach(c => {
+      const s = state.prevStatus[c.id]?.status || c.status || 'open';
+      const note = state.prevStatus[c.id]?.status_note || c.status_note || '';
+      md.push(`- [${s === 'done' ? 'x' : ' '}] ${c.text} — *${labelFor(s)}*${note ? ` · ${note}` : ''}`);
+    });
+    md.push('');
+  }
+
+  md.push('## Sjekk inn');
+  md.push(`- **Trykk:** ${document.getElementById('pressure').value}/10`);
+  md.push(`- **Høydepunkt:** ${document.getElementById('highlight').value || '—'}`);
+  md.push(`- **Lavpunkt:** ${document.getElementById('lowlight').value || '—'}`);
+  md.push('');
+
+  md.push('## Tall vs. mål');
+  md.push(`- Nye prospekt: ${a.new_prospects ?? '—'}`);
+  md.push(`- Signerte oppdrag: ${a.new_mandates_signed ?? '—'}`);
+  md.push(`- Salg: ${a.sales_count ?? '—'} (${formatNok(a.sales_amount)})`);
+  md.push(`- Pipeline-verdi lagt til: ${formatNok(a.pipeline_value_added)}`);
+  md.push(`- Møter logget: ${a.meetings_count ?? '—'}`);
+  md.push(`- Kalde henvendelser: ${document.getElementById('coldOutreach').value || '—'}`);
+  md.push('');
+
+  if (dealNotes.length){
+    md.push('## Toppsaker');
+    dealNotes.forEach(n => {
+      md.push(`### ${n.name}`);
+      md.push(`- Blocker: ${n.blocker || '—'}`);
+      md.push(`- Neste steg: ${n.next_step || '—'}`);
+    });
+    md.push('');
+  }
+
+  const microGoal = document.getElementById('microGoal').value;
+  if (microGoal){
+    md.push('## Mikro-mål');
+    md.push(microGoal);
+    md.push('');
+  }
+
+  if (state.commitments.length){
+    md.push('## Commitments til neste møte');
+    state.commitments.forEach((c,i) => md.push(`${i+1}. ${c.text}`));
+    md.push('');
+  }
+
+  const fc = document.getElementById('feedbackContinue').value;
+  const fch = document.getElementById('feedbackChange').value;
+  const fb = document.getElementById('feedbackFromBroker').value;
+  if (fc || fch || fb){
+    md.push('## Feedback');
+    if (fc) md.push(`- **Fortsett med:** ${fc}`);
+    if (fch) md.push(`- **Test/endre:** ${fch}`);
+    if (fb) md.push(`- **Fra megler:** ${fb}`);
+    md.push('');
+  }
+
+  const todos = document.getElementById('followUpTodos').value;
+  if (todos){
+    md.push('## Oppfølging / to-do\'s');
+    md.push(todos);
+  }
+
+  const text = md.join('\n');
+  navigator.clipboard.writeText(text).then(() => toast('Kopiert ✓'));
+}
+
+async function openMeeting(id){
+  const r = await api(`?action=meeting&id=${id}`);
+  if (r.error){ toast(r.error, true); return; }
+  const m = r.meeting;
+  if (!m) return;
+  // Last samme prep, men berik form med lagrede verdier
+  document.getElementById('brokerSelect').value = m.broker_id;
+  document.getElementById('meetingDate').value = m.meeting_date;
+  await loadPrep();
+
+  // Override felter
+  document.getElementById('highlight').value = m.highlight || '';
+  document.getElementById('lowlight').value = m.lowlight || '';
+  document.getElementById('pressure').value = m.pressure_score || 5;
+  document.getElementById('pressureVal').textContent = m.pressure_score || 5;
+  document.getElementById('pressureNote').value = m.pressure_note || '';
+  document.getElementById('coldOutreach').value = m.cold_outreach ?? '';
+  document.getElementById('microGoal').value = m.micro_goal || '';
+  document.getElementById('feedbackContinue').value = m.feedback_continue || '';
+  document.getElementById('feedbackChange').value = m.feedback_change || '';
+  document.getElementById('feedbackFromBroker').value = m.feedback_from_broker || '';
+  document.getElementById('followUpTodos').value = m.follow_up_todos || '';
+
+  state.commitments = (r.commitments || []).map(c => ({ text: c.text }));
+  renderCommits();
+  state.meetingId = m.id;
+}
+
+init();
+</script>
+</body>
+</html>

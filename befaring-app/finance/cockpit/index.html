@@ -477,16 +477,17 @@ function renderBrokers(data) {
     const row = document.createElement('div');
     row.className = 'broker-row';
     const outstandingClass = b.outstanding > 0 ? 'pending' : 'ok';
-    // YTD-avvik: utbetalt - opptjent (samme tidshorisont som de andre tallene)
-    // Stort avvik > 500 kr → varsel; under det = avrundingsstøy
+    // YTD-avvik: kun reelle over-/underbetalinger fra ferdige lønnskjøringer (PAID-rader).
+    // "Utestående" dekker oppdrag som ennå ikke er lønnskjørt — det er IKKE et avvik.
+    // Stort avvik > 500 kr → varsel; under det = avrundingsstøy.
     const gap = Number(b.gap) || 0;
     const hasGap = Math.abs(gap) > 500;
     const gapSign = gap >= 0 ? '+' : '';
-    const gapLabel = gap > 0 ? 'overbetalt' : 'rest å utbetale';
+    const gapLabel = gap > 0 ? 'overbetalt på lønnskjørte oppdrag' : 'underbetalt på lønnskjørte oppdrag';
     const allTimeGap = Number(b.all_time_gap) || 0;
-    const allTimeTooltip = `All-time: opptjent ${fmtNok(b.all_time_earned)} kr · utbetalt ${fmtNok(b.all_time_paid)} kr · avvik ${allTimeGap >= 0 ? '+' : ''}${fmtNok(allTimeGap)} kr`;
+    const allTimeTooltip = `All-time: opptjent ${fmtNok(b.all_time_earned)} kr · utbetalt ${fmtNok(b.all_time_paid)} kr · avvik på lønnskjørte ${allTimeGap >= 0 ? '+' : ''}${fmtNok(allTimeGap)} kr`;
     const gapHtml = hasGap
-      ? `<span>Avvik YTD: <span class="pending" title="${gap > 0 ? 'Utbetalt mer enn opptjent i 2026 — overbetaling som bør krediteres eller forklares som adjustment' : 'Utbetalt mindre enn opptjent i 2026 — gjenstående å utbetale eller forklares som avtalt avkortning'}">${gapSign}${fmtNok(gap)} kr (${gapLabel})</span></span>`
+      ? `<span>Avvik YTD: <span class="pending" title="Reelt avvik på oppdrag som ER lønnskjørt — kreditt eller adjustment kreves. (Utestående-tallet over er noe annet: oppdrag som venter på neste lønnskjøring.)">${gapSign}${fmtNok(gap)} kr (${gapLabel})</span></span>`
       : '';
     row.innerHTML = `
       <div class="broker-name-block">
