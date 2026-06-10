@@ -782,11 +782,14 @@ async function syncToPowerOffice(sb, assignment) {
       ExternalImportReference: `oneflow_party_${sellerParty?.id || oneflowId}`,
     };
     if (fields['Contact Address 1'] || fields['Contact Zip 1'] || fields['Contact City 1']) {
+      // CountryCode-hierarki: Oneflow data_field → party country_code → 'NO' fallback
+      const countryCode = (fields['Contact Country 1'] || sellerParty?.country_code || 'NO')
+        .toString().toUpperCase().slice(0, 2);
       cstPayload.MailAddress = {
         AddressLine1: fields['Contact Address 1'] || null,
         ZipCode:      fields['Contact Zip 1']     || null,
         City:         fields['Contact City 1']    || null,
-        CountryCode:  'NO',
+        CountryCode:  countryCode,
       };
     }
     const cstRes = await po('/customers', 'POST', cstPayload);
