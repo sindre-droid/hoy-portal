@@ -601,110 +601,171 @@ async function handleSigningDates(sb, params) {
   };
 }
 
-// ── PowerOffice sync: opprett Customer (selger) + Project for et oppdrag ──
-// Returnerer { ok, customer_id, project_id, ... } eller { ok: false, step, error }
+// ── Megler-email → PowerOffice Employee ID ─────────────────────────────────
+// Brukes som ProjectManagerEmployeeId og InvoiceCcEmailAddress.
+const BROKER_TO_PO_EMPLOYEE = {
+  'sindre@h-y.no':    49201149,
+  'daniel@h-y.no':   146826015,
+  'henrik@h-y.no':   144184031,
+  'jeanette@h-y.no':  49205223, // legacy, ikke aktiv lenger men beholdt for retry på gamle oppdrag
+};
+
+// ── PowerOffice sync v2: data fra Oneflow salgsavtale, ikke HubSpot ────────
+// Kilde: signert salgsavtale (template 5130587). Henter selger fra data_fields,
+// megler fra "Deal Owner Email". Setter Code = oppdragsnummer (eksplisitt),
+// ProjectManager = ansvarlig megler, Customer.InvoiceCcEmailAddress = meglerens email.
+//
+// Returnerer { ok, customer_id, project_id, reused_customer?, reused_project? }
+// eller { ok: false, step, reason, ... }.
 //
 // Idempotens:
-// - Customer: bruker ExternalImportReference = `hubspot_contact_{contactId}`.
-//   Forsøker først å finne eksisterende via assignment_numbers (samme contact tidligere).
-//   Hvis ikke funnet, oppretter ny. Søker ikke i PowerOffice direkte (krever ofte
-//   eget filter-syntax vi ikke har verifisert).
-// - Project: vi oppretter alltid ett nytt project per assignment. Caller bør
-//   skippe hvis assignment.poweroffice_project_id allerede er satt.
-async function syncToPowerOffice(sb, dealId, number, boatName) {
-  // 1. Finn primary contact på dealen
-  const assocRes = await hs(`/crm/v4/objects/deals/${dealId}/associations/contacts?limit=20`);
-  if (!assocRes.ok || !(assocRes.data?.results?.length)) {
-    return { ok: false, step: 'contact', error: 'Ingen kontakt assosiert med deal' };
+// - Customer: søker først i po_customers-mirror på EmailAddress (case-insensitive),
+//   gjenbruker hvis match. Ellers POST med ExternalImportReference = `oneflow_party_{id}`.
+// - Project: sjekker po_projects-mirror på Code = oppdragsnummer. Gjenbruker hvis funnet.
+//
+// Forutsetninger:
+// - assignment_numbers-raden har oneflow_oppdragsavtale_contract_id satt
+// - Salgsavtalen er signert (state === 'signed')
+async function syncToPowerOffice(sb, assignment) {
+  const number = assignment.number;
+  const dealName = assignment.deal_name || '';
+  const boatName = assignment.vessel_name || dealName;
+
+  // 0. Finn oppdragsavtalen (template 5130587) for denne dealen i Oneflow
+  let oneflowId = null;
+  try {
+    const allContracts = await fetchAllOneflowContracts();
+    const match = matchOneflowForDeal(allContracts, dealName, boatName);
+    const signedSales = match.matched_contracts.find(c => c.type === 'oppdragsavtale' && c.state === 'signed');
+    if (signedSales) {
+      oneflowId = signedSales.id;
+    } else {
+      const pendingSales = match.matched_contracts.find(c => c.type === 'oppdragsavtale');
+      if (pendingSales) {
+        return { ok: false, step: 'precheck', reason: 'WAITING_FOR_CONTRACT_SIGN', contract_id: pendingSales.id, state: pendingSales.state };
+      }
+      return { ok: false, step: 'precheck', reason: 'NO_ONEFLOW_CONTRACT', message: 'Fant ingen salgsavtale matching deal — opprett manuelt i PowerOffice' };
+    }
+  } catch (e) {
+    return { ok: false, step: 'oneflow_search', error: e.message };
   }
 
-  // Velg primary om mulig (label = "Primary contact"), ellers første
-  const primary = assocRes.data.results.find(r =>
-    (r.associationTypes || []).some(t =>
-      (t.label || '').toLowerCase().includes('primary')
-    )
-  ) || assocRes.data.results[0];
-  const contactId = String(primary.toObjectId);
-
-  // 2. Hent contact properties
-  const props = [
-    'firstname','lastname','email','phone','company',
-    'address','zip','city','country','organisasjonsnummer',
-  ].join(',');
-  const contactRes = await hs(`/crm/v3/objects/contacts/${contactId}?properties=${props}`);
-  if (!contactRes.ok) {
-    return { ok: false, step: 'contact', error: 'Kunne ikke hente kontakt', data: contactRes.data };
+  // 1. Hent salgsavtalen
+  const cRes = await ofApi(`/contracts/${oneflowId}`);
+  if (!cRes.ok) {
+    return { ok: false, step: 'oneflow_contract', status: cRes.status, error: cRes.data };
   }
-  const p = contactRes.data.properties || {};
+  if (cRes.data.state !== 'signed') {
+    return { ok: false, step: 'oneflow_state', reason: 'WAITING_FOR_CONTRACT_SIGN', state: cRes.data.state };
+  }
 
-  // 3. Idempotens-merknad: vi bruker ExternalImportReference = `hubspot_contact_{id}`
-  //    på Customer. Hvis samme contact har vært selger før, vil PowerOffice få en ny
-  //    customer med samme ExternalImportReference (duplikatrisiko). Forbedring kan
-  //    legges inn senere: lagre PO_customer_id på HubSpot contact som custom property,
-  //    eller bruk PowerOffice $filter-syntax når vi har verifisert den.
+  // 2. Hent data_fields og bygg name → value map
+  const dfRes = await ofApi(`/contracts/${oneflowId}/data_fields`);
+  if (!dfRes.ok) {
+    return { ok: false, step: 'oneflow_data_fields', status: dfRes.status, error: dfRes.data };
+  }
+  const fields = {};
+  for (const d of (dfRes.data?.data || [])) {
+    if (d.name) fields[d.name] = (d.value || '').toString().trim();
+  }
+
+  // 3. Parties — finn selger-party (individual, ikke HoY)
+  const pRes = await ofApi(`/contracts/${oneflowId}/parties`);
+  const parties = pRes.ok ? (pRes.data?.data || []) : [];
+  const sellerParty = parties.find(p => p.type === 'individual')
+                   || parties.find(p => !/house of yachts/i.test(p.name || ''));
+
+  // 4. Mapper ut
+  const brokerEmail = (fields['Deal Owner Email'] || '').toLowerCase().trim();
+  const brokerFullname = fields['Deal Owner Fullname'] || '';
+  const employeeId = BROKER_TO_PO_EMPLOYEE[brokerEmail] || null;
+  if (!employeeId) {
+    return { ok: false, step: 'broker_mapping', reason: 'UNKNOWN_BROKER_EMAIL', broker_email: brokerEmail };
+  }
+
+  const sellerEmail = (fields['Contact Email 1'] || '').toLowerCase().trim();
+  const sellerFullname = fields['Contact Fullname 1']
+                      || `${fields['Contact Firstname 1'] || ''} ${fields['Contact Lastname 1'] || ''}`.trim()
+                      || sellerParty?.name
+                      || `Selger ${oneflowId}`;
+  const boatType = fields['Company Name'] || fields['Deal name'] || assignment.deal_name || 'Båt';
+
+  // 5. Idempotens — Customer: prøv å finne via email i mirror
   let customerId = null;
   let customerCreated = false;
-
-  // 4. Opprett Customer
-  const isCompany = !!p.company;
-  const cstPayload = {
-    Name: p.company || `${p.firstname || ''} ${p.lastname || ''}`.trim() || `Selger ${contactId}`,
-    IsPerson: !isCompany,
-    FirstName: isCompany ? null : (p.firstname || null),
-    LastName:  isCompany ? null : (p.lastname  || null),
-    IsActive: true,
-    EmailAddress: p.email || null,
-    InvoiceEmailAddress: p.email || '',
-    PhoneNumber: p.phone || null,
-    OrganizationNumber: p.organisasjonsnummer || null,
-    PaymentTerm: 14,
-    InvoiceDeliveryType: 'PdfByEmail',
-    ExternalImportReference: `hubspot_contact_${contactId}`,
-  };
-
-  // MailAddress kun hvis vi har noe — tom adresse trigger 400 i noen tilfeller
-  if (p.address || p.zip || p.city) {
-    cstPayload.MailAddress = {
-      AddressLine1: p.address || null,
-      ZipCode:      p.zip     || null,
-      City:         p.city    || null,
-      CountryCode:  (p.country || 'NO').toString().toUpperCase().slice(0, 2),
-    };
+  if (sellerEmail) {
+    const { data: existingCustomers } = await sb
+      .from('po_customers')
+      .select('id, raw_data')
+      .limit(50); // henter litt og filtrerer i kode (Supabase ilike på JSONB-path kan være tricky)
+    const match = (existingCustomers || []).find(c => {
+      const e = (c.raw_data?.EmailAddress || c.raw_data?.emailAddress || '').toLowerCase();
+      return e === sellerEmail;
+    });
+    if (match) customerId = match.id;
   }
 
-  const cstRes = await po('/customers', 'POST', cstPayload);
-  if (!cstRes.ok) {
+  // 6. Opprett Customer hvis ikke funnet
+  if (!customerId) {
+    const cstPayload = {
+      Name: sellerFullname,
+      IsPerson: true,
+      FirstName: fields['Contact Firstname 1'] || null,
+      LastName:  fields['Contact Lastname 1']  || null,
+      IsActive: true,
+      EmailAddress:        sellerEmail || null,
+      InvoiceEmailAddress: sellerEmail || '',
+      InvoiceCcEmailAddress: brokerEmail || null, // ← Sindres krav: megleren får fakturakopi
+      PhoneNumber: fields['Contact Phone 1'] || fields['Contact Mobilephone 1'] || null,
+      PaymentTerm: 14,
+      InvoiceDeliveryType: 'PdfByEmail',
+      ExternalImportReference: `oneflow_party_${sellerParty?.id || oneflowId}`,
+    };
+    if (fields['Contact Address 1'] || fields['Contact Zip 1'] || fields['Contact City 1']) {
+      cstPayload.MailAddress = {
+        AddressLine1: fields['Contact Address 1'] || null,
+        ZipCode:      fields['Contact Zip 1']     || null,
+        City:         fields['Contact City 1']    || null,
+        CountryCode:  'NO',
+      };
+    }
+    const cstRes = await po('/customers', 'POST', cstPayload);
+    if (!cstRes.ok) {
+      return { ok: false, step: 'customer_create', status: cstRes.status, error: cstRes.data, sent: cstPayload };
+    }
+    customerId = cstRes.data?.Id;
+    customerCreated = true;
+  }
+
+  // 7. Idempotens — Project: sjekk om Code = oppdragsnr finnes
+  const { data: existingProjects } = await sb
+    .from('po_projects')
+    .select('id, code, contract_no')
+    .eq('code', number)
+    .limit(1);
+  if (existingProjects && existingProjects.length > 0) {
     return {
-      ok: false,
-      step: 'customer',
-      error: 'Customer create feilet',
-      status: cstRes.status,
-      data: cstRes.data,
-      sent: cstPayload,
+      ok: true,
+      reused_project: true,
+      project_id: existingProjects[0].id,
+      customer_id: customerId,
+      customer_created: customerCreated,
+      note: `Prosjekt med Code=${number} finnes allerede — gjenbruker. Sjekk i PO at det er riktig.`,
     };
   }
-  customerId = cstRes.data?.Id;
-  customerCreated = true;
 
-  // 5. Opprett Project
+  // 8. Opprett Project
   const prjPayload = {
-    Name: `${number} - ${boatName}`,
+    Name: `${number} - ${boatType}`,
+    Code: number,
     CustomerId: customerId,
     IsActive: true,
     ContractNo: number,
+    ProjectManagerEmployeeId: employeeId,
   };
   const prjRes = await po('/projects', 'POST', prjPayload);
   if (!prjRes.ok) {
-    return {
-      ok: false,
-      step: 'project',
-      customer_id: customerId,
-      customer_created: customerCreated,
-      error: 'Project create feilet',
-      status: prjRes.status,
-      data: prjRes.data,
-      sent: prjPayload,
-    };
+    return { ok: false, step: 'project_create', status: prjRes.status, error: prjRes.data, sent: prjPayload };
   }
 
   return {
@@ -712,7 +773,9 @@ async function syncToPowerOffice(sb, dealId, number, boatName) {
     customer_id: customerId,
     customer_created: customerCreated,
     project_id: prjRes.data?.Id,
-    contact_id: contactId,
+    project_manager_employee_id: employeeId,
+    broker_email: brokerEmail,
+    seller_email: sellerEmail,
   };
 }
 
@@ -891,20 +954,25 @@ async function handleAssign(sb, body, adminEmail) {
     syncResults.poweroffice = false;
     // Ingen sync — hopp rett til neste steg uten å sette synced_at
   } else try {
-    const poResult = await syncToPowerOffice(sb, deal_id, number, boatName);
+    const poResult = await syncToPowerOffice(sb, assignment);
     if (poResult.ok) {
       syncResults.poweroffice = true;
       await sb.from('assignment_numbers').update({
         poweroffice_synced: true,
         poweroffice_synced_at: new Date().toISOString(),
+        poweroffice_status: poResult.reused_project ? 'REUSED' : 'CREATED',
         poweroffice_customer_id: String(poResult.customer_id),
         poweroffice_project_id:  String(poResult.project_id),
       }).eq('id', assignment.id);
     } else {
-      console.error('PowerOffice sync feilet:', JSON.stringify(poResult));
-      // Mark attempt time så UI viser "Prøv igjen" istedenfor "—"
+      const wait = poResult.reason === 'WAITING_FOR_CONTRACT_SIGN';
+      const status = wait ? 'WAITING_FOR_CONTRACT_SIGN' : (poResult.reason || 'FAILED');
+      console.error(`PowerOffice sync ${status}:`, JSON.stringify(poResult));
       await sb.from('assignment_numbers')
-        .update({ poweroffice_synced_at: new Date().toISOString() })
+        .update({
+          poweroffice_synced_at: new Date().toISOString(),
+          poweroffice_status: status,
+        })
         .eq('id', assignment.id);
     }
   } catch (e) {
@@ -1179,13 +1247,13 @@ async function handleRetryPowerOffice(sb, body) {
     };
   }
 
-  const boatName = assignment.vessel_name || assignment.deal_name;
-  const result = await syncToPowerOffice(sb, deal_id, assignment.number, boatName);
+  const result = await syncToPowerOffice(sb, assignment);
 
   if (result.ok) {
     await sb.from('assignment_numbers').update({
       poweroffice_synced: true,
       poweroffice_synced_at: new Date().toISOString(),
+      poweroffice_status: result.reused_project ? 'REUSED' : 'CREATED',
       poweroffice_customer_id: String(result.customer_id),
       poweroffice_project_id:  String(result.project_id),
     }).eq('id', assignment.id);
@@ -1193,9 +1261,13 @@ async function handleRetryPowerOffice(sb, body) {
     return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, ...result }) };
   }
 
-  // Feil — logg attempt-tid og returner detalj
+  // Feil — logg attempt-tid + status og returner detalj
+  const status = result.reason === 'WAITING_FOR_CONTRACT_SIGN' ? 'WAITING_FOR_CONTRACT_SIGN' : (result.reason || 'FAILED');
   await sb.from('assignment_numbers')
-    .update({ poweroffice_synced_at: new Date().toISOString() })
+    .update({
+      poweroffice_synced_at: new Date().toISOString(),
+      poweroffice_status: status,
+    })
     .eq('id', assignment.id);
 
   return { statusCode: 502, headers: CORS, body: JSON.stringify(result) };
