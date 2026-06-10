@@ -774,10 +774,11 @@ async function syncToPowerOffice(sb, assignment) {
       IsActive: true,
       EmailAddress:        sellerEmail || null,
       InvoiceEmailAddress: sellerEmail || '',
-      InvoiceCcEmailAddress: brokerEmail || null, // ← Sindres krav: megleren får fakturakopi
+      InvoiceEmailAddressCC: brokerEmail || null, // ← Sindres krav: megleren får fakturakopi ("Kopi til e-post" i PO UI)
       PhoneNumber: fields['Contact Phone 1'] || fields['Contact Mobilephone 1'] || null,
       PaymentTerm: 14,
       InvoiceDeliveryType: 'PdfByEmail',
+      SalesPersonEmployeeId: employeeId, // ← ansvarlig megler som "Selger" på kunden
       ExternalImportReference: `oneflow_party_${sellerParty?.id || oneflowId}`,
     };
     if (fields['Contact Address 1'] || fields['Contact Zip 1'] || fields['Contact City 1']) {
