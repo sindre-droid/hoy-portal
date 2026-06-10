@@ -79,11 +79,21 @@ exports.handler = async (event) => {
       const r = await po(`/customers/${q.customer_id}`);
       return { statusCode: 200, headers: h, body: JSON.stringify(r, null, 2) };
     }
+    if (q.customer_no) {
+      // CustomerNo er kundenr i UI — slå opp via list + filter
+      const r = await po(`/customers?PageSize=500`);
+      const items = r.data?.Items || r.data?.value || r.data || [];
+      const match = (Array.isArray(items) ? items : []).find(c => String(c.CustomerNo || c.customerNo) === String(q.customer_no));
+      if (!match) return { statusCode: 404, headers: h, body: JSON.stringify({ error: `Kundenr ${q.customer_no} ikke funnet`, total_searched: items.length }) };
+      // Hent full Customer med all detail
+      const fullRes = await po(`/customers/${match.Id}`);
+      return { statusCode: 200, headers: h, body: JSON.stringify(fullRes, null, 2) };
+    }
     if (q.project_id) {
       const r = await po(`/projects/${q.project_id}`);
       return { statusCode: 200, headers: h, body: JSON.stringify(r, null, 2) };
     }
-    return { statusCode: 400, headers: h, body: JSON.stringify({ error: 'Send ?customer_id=X eller ?project_id=Y' }) };
+    return { statusCode: 400, headers: h, body: JSON.stringify({ error: 'Send ?customer_id=X (intern Id), ?customer_no=Y (kundenr fra UI), eller ?project_id=Z' }) };
   } catch (e) {
     return { statusCode: 500, headers: h, body: JSON.stringify({ error: e.message }) };
   }
