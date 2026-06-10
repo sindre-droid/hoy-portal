@@ -712,25 +712,56 @@ async function syncToPowerOffice(sb, assignment) {
                       || `Selger ${oneflowId}`;
   const boatType = fields['Company Name'] || fields['Deal name'] || assignment.deal_name || 'Båt';
 
-  // 5. Idempotens — Customer: prøv lokal mirror (best-effort, tabell finnes
-  // ikke nødvendigvis). Hvis ikke funnet, oppretter vi ny — Sindre rydder
-  // duplikater manuelt i PO ved behov (sjelden samme selger har flere oppdrag).
+  // 5. Idempotens — sjekk PROSJEKT først via live PO API. Hvis Project med
+  // Code=oppdragsnr finnes, så er Customer allerede knyttet til det — vi skal
+  // verken opprette ny Customer eller nytt Project. Bare returnere reuse.
+  let existingProjectId = null;
+  let existingProjectCustomerId = null;
+  try {
+    const liveProjectsRes = await po(`/projects?PageSize=500`);
+    if (liveProjectsRes.ok) {
+      const items = liveProjectsRes.data?.Items || liveProjectsRes.data?.value || liveProjectsRes.data || [];
+      const found = (Array.isArray(items) ? items : []).find(p => String(p.Code) === String(number));
+      if (found) {
+        existingProjectId = found.Id;
+        existingProjectCustomerId = found.CustomerId;
+      }
+    }
+  } catch (e) {
+    console.error('PO live project lookup failed:', e.message);
+  }
+
+  if (existingProjectId) {
+    return {
+      ok: true,
+      reused_project: true,
+      project_id: existingProjectId,
+      customer_id: existingProjectCustomerId,
+      customer_created: false,
+      project_manager_employee_id: employeeId,
+      note: `Prosjekt Code=${number} fantes allerede i PO. Ingen ny Customer opprettet. Sjekk i PO at Kunde og Prosjektleder er riktig.`,
+    };
+  }
+
+  // 6. Idempotens — Customer: live PO-lookup på email-match. Vi skal IKKE
+  // opprette duplikater av kunder som allerede finnes (ofte er selger en
+  // person vi har handlet med før).
   let customerId = null;
   let customerCreated = false;
   if (sellerEmail) {
     try {
-      const { data: existingCustomers, error } = await sb
-        .from('po_customers')
-        .select('id, raw_data')
-        .limit(200);
-      if (!error && existingCustomers) {
-        const match = existingCustomers.find(c => {
-          const e = (c.raw_data?.EmailAddress || c.raw_data?.emailAddress || '').toLowerCase();
+      const liveCustRes = await po(`/customers?PageSize=500`);
+      if (liveCustRes.ok) {
+        const items = liveCustRes.data?.Items || liveCustRes.data?.value || liveCustRes.data || [];
+        const match = (Array.isArray(items) ? items : []).find(c => {
+          const e = (c.EmailAddress || c.emailAddress || '').toLowerCase();
           return e === sellerEmail;
         });
-        if (match) customerId = match.id;
+        if (match) customerId = match.Id;
       }
-    } catch { /* tabell finnes ikke — hopp over lookup */ }
+    } catch (e) {
+      console.error('PO live customer lookup failed:', e.message);
+    }
   }
 
   // 6. Opprett Customer hvis ikke funnet
@@ -765,24 +796,7 @@ async function syncToPowerOffice(sb, assignment) {
     customerCreated = true;
   }
 
-  // 7. Idempotens — Project: sjekk om Code = oppdragsnr finnes
-  const { data: existingProjects } = await sb
-    .from('po_projects')
-    .select('id, code, contract_no')
-    .eq('code', number)
-    .limit(1);
-  if (existingProjects && existingProjects.length > 0) {
-    return {
-      ok: true,
-      reused_project: true,
-      project_id: existingProjects[0].id,
-      customer_id: customerId,
-      customer_created: customerCreated,
-      note: `Prosjekt med Code=${number} finnes allerede — gjenbruker. Sjekk i PO at det er riktig.`,
-    };
-  }
-
-  // 8. Opprett Project
+  // 7. Opprett Project (Code-konflikt er allerede sjekket i steg 5)
   const prjPayload = {
     Name: `${number} - ${boatType}`,
     Code: number,
@@ -795,6 +809,16 @@ async function syncToPowerOffice(sb, assignment) {
   if (!prjRes.ok) {
     return { ok: false, step: 'project_create', status: prjRes.status, error: prjRes.data, sent: prjPayload };
   }
+
+  return {
+    ok: true,
+    customer_id: customerId,
+    customer_created: customerCreated,
+    project_id: prjRes.data?.Id,
+    project_manager_employee_id: employeeId,
+    broker_email: brokerEmail,
+    seller_email: sellerEmail,
+  };
 
   return {
     ok: true,
