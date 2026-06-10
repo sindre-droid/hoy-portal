@@ -631,21 +631,43 @@ async function syncToPowerOffice(sb, assignment) {
   const dealName = assignment.deal_name || '';
   const boatName = assignment.vessel_name || dealName;
 
-  // 0. Finn oppdragsavtalen (template 5130587) for denne dealen i Oneflow
+  // 0. Finn salgsavtalen (template 5130587) for denne dealen i Oneflow.
+  // I motsetning til matchOneflowForDeal (som hopper over kontrakter med
+  // oppdragsnr-prefix), søker vi her bredt — kontraktene ER ofte renamet
+  // til "{number} - {boatName}" ved tildeling, og det er nettopp dem vi vil ha.
   let oneflowId = null;
   try {
     const allContracts = await fetchAllOneflowContracts();
-    const match = matchOneflowForDeal(allContracts, dealName, boatName);
-    const signedSales = match.matched_contracts.find(c => c.type === 'oppdragsavtale' && c.state === 'signed');
-    if (signedSales) {
-      oneflowId = signedSales.id;
-    } else {
-      const pendingSales = match.matched_contracts.find(c => c.type === 'oppdragsavtale');
-      if (pendingSales) {
-        return { ok: false, step: 'precheck', reason: 'WAITING_FOR_CONTRACT_SIGN', contract_id: pendingSales.id, state: pendingSales.state };
-      }
-      return { ok: false, step: 'precheck', reason: 'NO_ONEFLOW_CONTRACT', message: 'Fant ingen salgsavtale matching deal — opprett manuelt i PowerOffice' };
+    const salgsavtaler = allContracts.filter(c => {
+      const tid = parseInt(c._private_ownerside?.template_id || c.template?._id || c.template?.id || 0);
+      return OF_TEMPLATES.oppdragsavtale.includes(tid);
+    });
+
+    const prefixRe = new RegExp(`^${number}\\s*[-–]`);
+    const dealSearch = [number, boatName, dealName].filter(Boolean).filter(s => String(s).length > 2);
+
+    // Sortér: signerte først, så nyeste først
+    salgsavtaler.sort((a, b) => {
+      const aSigned = (a.state === 3 || a.state === 'signed') ? 1 : 0;
+      const bSigned = (b.state === 3 || b.state === 'signed') ? 1 : 0;
+      if (aSigned !== bSigned) return bSigned - aSigned;
+      return (b.updated_time || '').localeCompare(a.updated_time || '');
+    });
+
+    // Match: enten "26050 -" prefix på navnet, eller fuzzy mot deal/båt-navn
+    const matching = salgsavtaler.find(c => {
+      const name = (c._private?.name || c.name || '').trim();
+      if (prefixRe.test(name)) return true;
+      return fuzzyMatch(name.toLowerCase(), dealSearch);
+    });
+
+    if (!matching) {
+      return { ok: false, step: 'precheck', reason: 'NO_ONEFLOW_CONTRACT', message: `Fant ingen salgsavtale matching ${number}/${boatName} — opprett manuelt i PowerOffice` };
     }
+    if (matching.state !== 3 && matching.state !== 'signed') {
+      return { ok: false, step: 'precheck', reason: 'WAITING_FOR_CONTRACT_SIGN', contract_id: matching.id, state: matching.state, contract_name: matching._private?.name || matching.name };
+    }
+    oneflowId = matching.id;
   } catch (e) {
     return { ok: false, step: 'oneflow_search', error: e.message };
   }
