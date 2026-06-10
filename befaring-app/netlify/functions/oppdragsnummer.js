@@ -705,11 +705,33 @@ async function syncToPowerOffice(sb, assignment) {
     return { ok: false, step: 'broker_mapping', reason: 'UNKNOWN_BROKER_EMAIL', broker_email: brokerEmail };
   }
 
-  const sellerEmail = (fields['Contact Email 1'] || '').toLowerCase().trim();
-  const sellerFullname = fields['Contact Fullname 1']
-                      || `${fields['Contact Firstname 1'] || ''} ${fields['Contact Lastname 1'] || ''}`.trim()
+  // Pick first non-empty Contact * N (1, 2 eller 3). Salgsavtalen kan ha
+  // flere selgere fylt ut, men én skal være primær. Hvis Contact 1 er tom,
+  // fall tilbake til 2 eller 3.
+  const pick = (base) => {
+    for (const n of [1, 2, 3]) {
+      const v = (fields[`Contact ${base} ${n}`] || '').toString().trim();
+      if (v) return v;
+    }
+    return '';
+  };
+
+  const sellerEmail = pick('Email').toLowerCase();
+  const sellerFirstname = pick('Firstname');
+  const sellerLastname  = pick('Lastname');
+  const sellerFullname  = pick('Fullname')
+                      || `${sellerFirstname} ${sellerLastname}`.trim()
                       || sellerParty?.name
                       || `Selger ${oneflowId}`;
+  const sellerPhone   = pick('Phone') || pick('Mobilephone') || null;
+  const sellerAddress = pick('Address');
+  const sellerZip     = pick('Zip');
+  const sellerCity    = pick('City');
+  const sellerCountry = pick('Country');
+  const sellerDobOrOrg = pick('Date of Birth'); // 6 siffer = fnr/fødselsdato, 9 = orgnr
+
+  // Firma- vs person-selger basert på Oneflow party type
+  const isCompany = sellerParty?.type === 'company';
   const boatType = fields['Company Name'] || fields['Deal name'] || assignment.deal_name || 'Båt';
 
   // 5. Idempotens — sjekk PROSJEKT først via live PO API. Hvis Project med
@@ -766,29 +788,40 @@ async function syncToPowerOffice(sb, assignment) {
 
   // 6. Opprett Customer hvis ikke funnet
   if (!customerId) {
+    // Felles felter for person og firma
     const cstPayload = {
-      Name: sellerFullname,
-      IsPerson: true,
-      FirstName: fields['Contact Firstname 1'] || null,
-      LastName:  fields['Contact Lastname 1']  || null,
       IsActive: true,
       EmailAddress:        sellerEmail || null,
       InvoiceEmailAddress: sellerEmail || '',
-      InvoiceEmailAddressCC: brokerEmail || null, // ← Sindres krav: megleren får fakturakopi ("Kopi til e-post" i PO UI)
-      PhoneNumber: fields['Contact Phone 1'] || fields['Contact Mobilephone 1'] || null,
+      InvoiceEmailAddressCC: brokerEmail || null,
+      PhoneNumber: sellerPhone,
       PaymentTerm: 14,
       InvoiceDeliveryType: 'PdfByEmail',
-      SalesPersonEmployeeId: employeeId, // ← ansvarlig megler som "Selger" på kunden
+      SalesPersonEmployeeId: employeeId,
       ExternalImportReference: `oneflow_party_${sellerParty?.id || oneflowId}`,
     };
-    if (fields['Contact Address 1'] || fields['Contact Zip 1'] || fields['Contact City 1']) {
-      // CountryCode-hierarki: Oneflow data_field → party country_code → 'NO' fallback
-      const countryCode = (fields['Contact Country 1'] || sellerParty?.country_code || 'NO')
+
+    if (isCompany) {
+      // Firma-selger (eks. CORMATE AS, Bomi Ship D.oo).
+      // Org-nr ligger i samme felt som fødselsnr på salgsavtalen ("Date of Birth").
+      cstPayload.Name = sellerParty?.name || sellerFullname;
+      cstPayload.IsPerson = false;
+      cstPayload.OrganizationNumber = sellerDobOrOrg || sellerParty?.identification_number || null;
+    } else {
+      // Person-selger
+      cstPayload.Name = sellerFullname;
+      cstPayload.IsPerson = true;
+      cstPayload.FirstName = sellerFirstname || null;
+      cstPayload.LastName  = sellerLastname  || null;
+    }
+
+    if (sellerAddress || sellerZip || sellerCity) {
+      const countryCode = (sellerCountry || sellerParty?.country_code || 'NO')
         .toString().toUpperCase().slice(0, 2);
       cstPayload.MailAddress = {
-        AddressLine1: fields['Contact Address 1'] || null,
-        ZipCode:      fields['Contact Zip 1']     || null,
-        City:         fields['Contact City 1']    || null,
+        AddressLine1: sellerAddress || null,
+        ZipCode:      sellerZip     || null,
+        City:         sellerCity    || null,
         CountryCode:  countryCode,
       };
     }
