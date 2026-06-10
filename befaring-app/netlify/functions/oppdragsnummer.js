@@ -884,7 +884,13 @@ async function handleAssign(sb, body, adminEmail) {
   }
 
   // 7. PowerOffice — opprett Customer (selger) + Project for oppdraget
-  try {
+  // Gated bak feature flag mens vi bygger om kilden til Oneflow + fikser
+  // Code, ProjectManager og kunde-mapping (kjent rot fra første versjon).
+  if (process.env.POWEROFFICE_AUTO_SYNC !== 'true') {
+    console.log(`[${number}] PowerOffice auto-sync PAUSET (POWEROFFICE_AUTO_SYNC != 'true')`);
+    syncResults.poweroffice = false;
+    // Ingen sync — hopp rett til neste steg uten å sette synced_at
+  } else try {
     const poResult = await syncToPowerOffice(sb, deal_id, number, boatName);
     if (poResult.ok) {
       syncResults.poweroffice = true;
