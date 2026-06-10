@@ -690,19 +690,25 @@ async function syncToPowerOffice(sb, assignment) {
                       || `Selger ${oneflowId}`;
   const boatType = fields['Company Name'] || fields['Deal name'] || assignment.deal_name || 'Båt';
 
-  // 5. Idempotens — Customer: prøv å finne via email i mirror
+  // 5. Idempotens — Customer: prøv lokal mirror (best-effort, tabell finnes
+  // ikke nødvendigvis). Hvis ikke funnet, oppretter vi ny — Sindre rydder
+  // duplikater manuelt i PO ved behov (sjelden samme selger har flere oppdrag).
   let customerId = null;
   let customerCreated = false;
   if (sellerEmail) {
-    const { data: existingCustomers } = await sb
-      .from('po_customers')
-      .select('id, raw_data')
-      .limit(50); // henter litt og filtrerer i kode (Supabase ilike på JSONB-path kan være tricky)
-    const match = (existingCustomers || []).find(c => {
-      const e = (c.raw_data?.EmailAddress || c.raw_data?.emailAddress || '').toLowerCase();
-      return e === sellerEmail;
-    });
-    if (match) customerId = match.id;
+    try {
+      const { data: existingCustomers, error } = await sb
+        .from('po_customers')
+        .select('id, raw_data')
+        .limit(200);
+      if (!error && existingCustomers) {
+        const match = existingCustomers.find(c => {
+          const e = (c.raw_data?.EmailAddress || c.raw_data?.emailAddress || '').toLowerCase();
+          return e === sellerEmail;
+        });
+        if (match) customerId = match.id;
+      }
+    } catch { /* tabell finnes ikke — hopp over lookup */ }
   }
 
   // 6. Opprett Customer hvis ikke funnet
