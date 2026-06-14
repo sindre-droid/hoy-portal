@@ -262,7 +262,7 @@
 
       <div style="background:#f0f4f8;border-left:3px solid var(--navy);padding:10px 14px;border-radius:6px;margin-bottom:14px;font-size:12px;color:var(--gray-dark);line-height:1.55">
         <strong style="color:var(--navy)">Telleregler (10,2 % feriepenger):</strong>
-        Ferie regnes etter ferieloven §5 — <strong>lørdag teller</strong>, kun søndag og lovbestemte helligdager ekskluderes (25 dager = 4 uker + 1 dag).
+        Ferie regnes som Mon–Fri-dager. Etter ferieloven §5 legges <strong>1 auto-tilleggsdag</strong> til for hver 5. ferie-dag tatt ut i året. Total kvote: 25 dager/år (= 4 uker + 1 dag, maks 21 Mon-Fri-dager + 4 auto).
         Egenmelding teller kalenderdager (helg inkludert). Sykt barn teller Mon–Fri.
       </div>
 
@@ -363,11 +363,11 @@
           <div class="field-row">
             <div class="field">
               <label for="fStart">Fra-dato</label>
-              <input type="date" id="fStart">
+              <input type="date" id="fStart" oninput="onDateChange()">
             </div>
             <div class="field" id="fEndWrap">
               <label for="fEnd">Til-dato</label>
-              <input type="date" id="fEnd">
+              <input type="date" id="fEnd" oninput="onDateChange()">
               <div class="field-help" id="fEndHelp">La være tom for én dag</div>
             </div>
           </div>
@@ -400,9 +400,16 @@
 
           <div class="field" id="fHalfWrap" style="display:none">
             <label class="checkbox-row">
-              <input type="checkbox" id="fHalfDay">
+              <input type="checkbox" id="fHalfDay" onchange="onDateChange()">
               <span>Halv dag (4 t / 0.5 dag)</span>
             </label>
+            <div class="field-help" id="fHalfHelp" style="display:none">Halv dag kan kun velges når fra-dato = til-dato</div>
+          </div>
+
+          <div id="fCostPreview" style="display:none;background:#eff6ff;border-left:3px solid var(--blue-mid);padding:10px 14px;border-radius:6px;margin-bottom:14px;font-size:13px;line-height:1.55">
+            <div><strong id="fCostMain" style="color:var(--navy)">—</strong> <span style="color:var(--gray-dark)" id="fCostSub">—</span></div>
+            <div id="fCostSaturdayHint" style="color:#92400e;font-size:12px;margin-top:4px;display:none">⚠️ Lørdag(er) i perioden teller som virkedag etter ferieloven §5</div>
+            <div id="fCostExceedHint" style="color:var(--red);font-size:12px;margin-top:4px;font-weight:600;display:none"></div>
           </div>
 
           <div class="field" id="fDealWrap">
@@ -739,6 +746,8 @@ let dealsLoaded = false;
 let myEntries     = [];
 let adminPending  = [];
 let teamCalendar  = [];
+let holidaysSet   = new Set();   // fylles ved loadSummary
+let lastBalance   = null;        // for å sjekke kvote i live preview
 
 let pendingDecision = null;  // { id, action, summary }
 
@@ -864,6 +873,8 @@ async function loadSummary() {
   try {
     const r = await api('summary', { year: currentYear });
     isAdmin = !!r.user.is_admin;
+    if (Array.isArray(r.holidays)) holidaysSet = new Set(r.holidays);
+    lastBalance = r.balance;
     $('currentYear').textContent = r.balance.year;
     $('currentYearMy').textContent = r.balance.year;
 
@@ -881,10 +892,18 @@ async function loadSummary() {
     $('bVacRemaining').textContent = fmtNumber(t.vacation.remaining);
     $('bVacUsed').textContent      = fmtNumber(t.vacation.used_days);
     $('bVacQuota').textContent     = t.vacation.quota;
-    if (t.vacation.pending_days > 0) {
-      $('bVacPending').textContent = `${fmtNumber(t.vacation.pending_days)} dager venter på godkjenning`;
-      $('bVacPending').style.display = 'block';
-    } else $('bVacPending').style.display = 'none';
+    // Tillegg-info
+    const vp = $('bVacPending');
+    const autoParts = [];
+    if (t.vacation.auto_added > 0) autoParts.push(`${t.vacation.auto_added} auto-tillegg`);
+    if (t.vacation.pending_days > 0) autoParts.push(`${fmtNumber(t.vacation.pending_days)} venter`);
+    if (autoParts.length > 0) {
+      vp.textContent = autoParts.join(' · ');
+      vp.style.display = 'block';
+      vp.style.color = t.vacation.pending_days > 0 ? '#92400e' : 'var(--gray-dark)';
+    } else {
+      vp.style.display = 'none';
+    }
 
     // Egenmelding
     $('bSickRemaining').textContent = fmtNumber(t.sick_self.remaining);
@@ -924,7 +943,7 @@ function selectType(type) {
   $('fTimeWrap').style.display     = (type === 'overtime') ? 'block' : 'none';
   $('fHoursWrap').style.display    = (type === 'timeoff') ? 'block' : 'none';
   $('fDealWrap').style.display     = (type === 'overtime') ? 'block' : 'none';
-  $('fHalfWrap').style.display     = (type === 'vacation' || type === 'timeoff') ? 'block' : 'none';
+  $('fHalfWrap').style.display     = (type === 'timeoff') ? 'block' : 'none';
   $('fSickTypeWrap').style.display = (type === 'sick') ? 'block' : 'none';
   $('fEndWrap').style.display      = (type === 'overtime') ? 'none' : 'block';
   if (type === 'overtime') $('fEnd').value = '';
@@ -942,11 +961,147 @@ function selectType(type) {
 
   // Reset deal-/description-state når man bytter type
   onDealChange();
+  // Oppdater half_day + preview etter at type-spesifikke felt vises/skjules
+  onDateChange();
+}
+
+// ── Klient-side telling (matcher backend) ─────────────────────────────────
+// Tell Mon-Fri virkedager (uten lørdag, uten helligdag). Auto-tillegg
+// (1 per 5) regnes på årsnivå basert på akkumulert saldo.
+function countFerieDaysJS(startStr, endStr) {
+  const a = new Date(startStr + 'T00:00:00');
+  const b = new Date(endStr + 'T00:00:00');
+  let n = 0;
+  for (let d = new Date(a); d <= b; d.setDate(d.getDate() + 1)) {
+    const dow = d.getDay();
+    if (dow === 0 || dow === 6) continue;
+    const iso = d.toISOString().slice(0, 10);
+    if (holidaysSet.has(iso)) continue;
+    n++;
+  }
+  return n;
+}
+
+function autoExtraVacationDaysJS(raw) {
+  return Math.floor(raw / 5);
+}
+
+function countMonFriDaysJS(startStr, endStr) {
+  const a = new Date(startStr + 'T00:00:00');
+  const b = new Date(endStr + 'T00:00:00');
+  let n = 0;
+  for (let d = new Date(a); d <= b; d.setDate(d.getDate() + 1)) {
+    const dow = d.getDay();
+    if (dow === 0 || dow === 6) continue;
+    const iso = d.toISOString().slice(0, 10);
+    if (holidaysSet.has(iso)) continue;
+    n++;
+  }
+  return n;
+}
+
+// ── Oppdater half_day-tilgjengelighet + live preview ─────────────────────
+function onDateChange() {
+  const start = $('fStart').value;
+  const end   = $('fEnd').value || start;
+  const sameDay = start && end && start === end;
+
+  // Half-day kun for én dag
+  const half = $('fHalfDay');
+  const halfHelp = $('fHalfHelp');
+  if (!sameDay) {
+    half.checked = false;
+    half.disabled = true;
+    halfHelp.style.display = 'block';
+  } else {
+    half.disabled = false;
+    halfHelp.style.display = 'none';
+  }
+
+  // 48t-sperre-tekst på timeoff oppdateres uansett (selectType)
+  updateCostPreview();
+}
+
+function updateCostPreview() {
+  const box = $('fCostPreview');
+  const start = $('fStart').value;
+  const end   = $('fEnd').value || start;
+  if (!start) { box.style.display = 'none'; return; }
+  if (!(currentType === 'vacation' || currentType === 'sick')) { box.style.display = 'none'; return; }
+
+  let main, sub = '', saturdays = 0, days;
+  const calDays = daysBetween(start, end);
+
+  if (currentType === 'vacation') {
+    const newRaw = countFerieDaysJS(start, end);
+    days = newRaw;
+    // Beregn akkumulert: projekterte totaler etter denne søknaden
+    const currentRaw = (lastBalance?.vacation?.raw_selected_days || 0) + (lastBalance?.vacation?.raw_pending_days || 0);
+    const projectedRaw = currentRaw + newRaw;
+    const projectedAuto = autoExtraVacationDaysJS(projectedRaw);
+    const currentAuto = autoExtraVacationDaysJS(currentRaw);
+    const extraAutoFromThis = projectedAuto - currentAuto;
+    const totalDeducted = newRaw + extraAutoFromThis;
+
+    main = `<strong>${newRaw} ${newRaw === 1 ? 'dag' : 'dager'} valgt</strong>`;
+    if (extraAutoFromThis > 0) {
+      main += ` · <strong>${totalDeducted} dager</strong> trekkes (inkl. ${extraAutoFromThis} auto-tillegg)`;
+    } else {
+      main += ` · trekkes ${newRaw} fra saldoen`;
+    }
+    sub = ` · ${calDays} kalenderdager totalt`;
+
+    // Hint om auto-tillegg
+    const hint = $('fCostSaturdayHint');
+    if (extraAutoFromThis > 0) {
+      hint.innerHTML = `📅 ${extraAutoFromThis} auto-tilleggsdag${extraAutoFromThis === 1 ? '' : 'er'} legges til (ferieloven §5: +1 dag per 5 ferie-dager). Totalsaldo etter denne: ${projectedRaw + projectedAuto} / 25.`;
+      hint.style.color = '#92400e';
+      hint.style.display = 'block';
+    } else if (projectedRaw > 0) {
+      hint.innerHTML = `Akkumulert: ${projectedRaw} Mon-Fri-dager valgt. Auto-tillegg utløses for hver 5. dag.`;
+      hint.style.color = 'var(--gray-dark)';
+      hint.style.display = 'block';
+    } else {
+      hint.style.display = 'none';
+    }
+  } else if (currentType === 'sick') {
+    const stype = $('fSickType').value;
+    if (stype === 'self') {
+      days = calDays;
+      main = `<strong>${days} ${days === 1 ? 'kal.dag' : 'kal.dager'}</strong> trekkes fra egenmeldingssaldo`;
+    } else {
+      days = countMonFriDaysJS(start, end);
+      main = `<strong>${days} ${days === 1 ? 'dag' : 'dager'}</strong> trekkes fra "sykt barn"-saldo (Mon-Fri)`;
+      if (calDays !== days) sub = ` · ${calDays} kalenderdager totalt`;
+    }
+  }
+
+  $('fCostMain').innerHTML = main;
+  $('fCostSub').textContent = sub;
+  // Hint-teksten settes inne i vacation-blocken; for sick skjules den
+  if (currentType !== 'vacation') $('fCostSaturdayHint').style.display = 'none';
+
+  // Kvote-advarsel for ferie (sjekker total deducted inkl. auto-tillegg)
+  const exHint = $('fCostExceedHint');
+  exHint.style.display = 'none';
+  if (currentType === 'vacation' && lastBalance) {
+    const currentRaw = (lastBalance.vacation.raw_selected_days || 0) + (lastBalance.vacation.raw_pending_days || 0);
+    const projectedRaw = currentRaw + days;
+    const projectedDeducted = projectedRaw + autoExtraVacationDaysJS(projectedRaw);
+    if (projectedDeducted > lastBalance.vacation.quota) {
+      const over = projectedDeducted - lastBalance.vacation.quota;
+      exHint.textContent = `❌ Overstiger kvoten med ${over} dag(er) etter auto-tillegg — du har ${fmtNumber(lastBalance.vacation.remaining)} igjen`;
+      exHint.style.display = 'block';
+    }
+  }
+
+  box.style.display = 'block';
 }
 
 function onSickTypeChange() {
   const v = $('fSickType').value;
   $('fSickHelp').style.display = v === 'self' ? 'block' : 'none';
+  updateCostPreview();
 }
 
 function updateDuration() {
@@ -1004,6 +1159,7 @@ function resetForm() {
   onSickTypeChange();
   $('fDesc').value = '';
   $('fError').style.display = 'none';
+  $('fCostPreview').style.display = 'none';
 }
 
 async function ensureDealsLoaded() {
@@ -1081,6 +1237,18 @@ async function submitEntry() {
         throw new Error('Avspasering må sendes inn senest 48 timer før uttak');
       }
       body.hours = hours;
+    } else if (currentType === 'vacation') {
+      // Sperre: total trukket (inkl. auto-tillegg) må ikke overstige kvote
+      const newRaw = countFerieDaysJS(startDate, endDate);
+      if (lastBalance) {
+        const currentRaw = (lastBalance.vacation.raw_selected_days || 0) + (lastBalance.vacation.raw_pending_days || 0);
+        const projectedRaw = currentRaw + newRaw;
+        const projectedDeducted = projectedRaw + autoExtraVacationDaysJS(projectedRaw);
+        if (projectedDeducted > lastBalance.vacation.quota) {
+          const over = projectedDeducted - lastBalance.vacation.quota;
+          throw new Error(`Ferien ville overskride kvoten med ${over} dag(er) etter auto-tillegg. Du har ${fmtNumber(lastBalance.vacation.remaining)} dager igjen.`);
+        }
+      }
     } else if (currentType === 'sick') {
       body.sick_type = $('fSickType').value;
       // Egen sykdom: maks 3 kalenderdager per periode
@@ -1197,7 +1365,8 @@ function formatAmount(e) {
   // Ferie/sykdom: bruk cost_days fra backend (saldo-trukket dager)
   // Med fallback til kalenderdager hvis cost_days mangler (gamle entries)
   const days = e.cost_days != null ? Number(e.cost_days) : daysBetween(e.start_date, e.end_date);
-  if (e.half_day) return '<strong>0.5</strong> dag';
+  // half_day gjelder kun timeoff (avspaseringsuttak), ikke ferie/sykdom
+  if (e.type === 'timeoff' && e.half_day) return '<strong>0.5</strong> dag';
   // Vis også kalenderperiode i grått hvis cost_days < kalenderdager
   const calDays = daysBetween(e.start_date, e.end_date);
   const extra = (calDays !== days)
@@ -1480,7 +1649,7 @@ function openEdit(id) {
   // Vis felter avhengig av type
   $('eTimeWrap').style.display     = (e.type === 'overtime' && (e.start_time || e.end_time)) ? 'grid' : 'none';
   $('eHoursWrap').style.display    = (e.type === 'overtime' || e.type === 'timeoff') ? 'block' : 'none';
-  $('eHalfWrap').style.display     = (e.type === 'vacation' || e.type === 'timeoff') ? 'block' : 'none';
+  $('eHalfWrap').style.display     = (e.type === 'timeoff') ? 'block' : 'none';
   $('eSickTypeWrap').style.display = (e.type === 'sick') ? 'block' : 'none';
 
   $('editError').style.display = 'none';
@@ -1552,7 +1721,7 @@ function hSelectType(type) {
   hCurrentType = type;
   document.querySelectorAll('#hTypeSeg .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.htype === type));
   $('hHoursWrap').style.display    = (type === 'overtime' || type === 'timeoff') ? 'block' : 'none';
-  $('hHalfWrap').style.display     = (type === 'vacation' || type === 'timeoff') ? 'block' : 'none';
+  $('hHalfWrap').style.display     = (type === 'timeoff') ? 'block' : 'none';
   $('hSickTypeWrap').style.display = (type === 'sick') ? 'block' : 'none';
   $('hEndWrap').style.display      = (type === 'overtime') ? 'none' : 'block';
   if (type === 'overtime') $('hEnd').value = '';

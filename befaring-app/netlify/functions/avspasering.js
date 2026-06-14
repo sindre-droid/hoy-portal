@@ -174,6 +174,14 @@ function escapeHtml(s) {
   })[c]);
 }
 
+// ── Formater dager for feilmelding ──────────────────────────────────────────
+function fmtDays(n) {
+  if (n == null) return '–';
+  const v = Number(n);
+  if (Math.abs(v - Math.round(v)) < 0.01) return String(Math.round(v));
+  return v.toFixed(1).replace('.', ',');
+}
+
 // ── Tidsbasert overtidsberegning med kvartereretning oppover ───────────────
 // Hvert påbegynte kvarter (15 min) teller som ett helt kvarter.
 // Returnerer { hours, minutes } eller kaster ved ugyldig input.
@@ -210,19 +218,27 @@ async function fetchHolidaysSet(supabase) {
   return new Set((data || []).map(h => h.date));
 }
 
-// ── Tell ferie-virkedager (ferieloven §5: kun søn + helligdag ekskluderes) ──
-// Lørdag TELLER som virkedag. 25 virkedager/år = 4 uker + 1 dag.
+// ── Tell ferie-Mon-Fri-dager (uten lørdag, uten helligdag) ─────────────────
+// Brukes per oppføring. Auto-tillegg (1 per 5 valgte dager) skjer på årsnivå
+// i computeBalance for å sikre at 25-dagers-kvoten holdes uavhengig av hvordan
+// ferien stykkes opp.
 function countFerieDays(startDate, endDate, holidaysSet) {
   const start = new Date(startDate + 'T00:00:00');
   const end   = new Date(endDate   + 'T00:00:00');
   let n = 0;
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    if (d.getDay() === 0) continue;                // kun søndag eks.
+    const dow = d.getDay();
+    if (dow === 0 || dow === 6) continue;          // skip søn + lør
     const iso = d.toISOString().slice(0, 10);
     if (holidaysSet.has(iso)) continue;            // helligdag
     n++;
   }
   return n;
+}
+
+// Auto-tillegg etter ferieloven §5: 1 ekstra dag per 5 valgte dager
+function autoExtraVacationDays(rawDays) {
+  return Math.floor(rawDays / 5);
 }
 
 // ── Tell Mon-Fri-dager (sykt barn etter folketrygdloven §9-6) ───────────────
@@ -247,7 +263,7 @@ function computeCostDays(entry, holidaysSet) {
     return Number(entry.hours) || 0;
   }
   if (entry.type === 'vacation') {
-    if (entry.half_day) return 0.5;
+    // half_day ignoreres for ferie (kun timeoff bruker half_day)
     return countFerieDays(entry.start_date, entry.end_date, holidaysSet);
   }
   if (entry.type === 'sick') {
@@ -304,8 +320,9 @@ async function computeBalance(supabase, email, year) {
       const hrs = Number(e.hours) || 0;
       if (isApproved) timeoffApproved += hrs; else timeoffPending += hrs;
     } else if (e.type === 'vacation') {
-      // Ferie: ferieloven §5 — lørdag teller, kun søn + helligdag ekskluderes
-      const days = e.half_day ? 0.5 : countFerieDays(e.start_date, e.end_date, holidays);
+      // Ferie: tell rene Mon-Fri-dager per oppføring. Auto-tillegg
+      // (+1 per 5 dager) regnes etterpå på årsnivå.
+      const days = countFerieDays(e.start_date, e.end_date, holidays);
       if (isApproved) vacationApproved += days; else vacationPending += days;
     } else if (e.type === 'sick') {
       if (e.sick_type === 'child') {
@@ -332,12 +349,23 @@ async function computeBalance(supabase, email, year) {
       pending_hours:  timeoffPending,
     },
     avspasering_balance: overtimeApproved - timeoffApproved, // disponibel timebank
-    vacation: {
-      quota: VACATION_DAYS_PER_YEAR,
-      used_days:    vacationApproved,
-      pending_days: vacationPending,
-      remaining:    VACATION_DAYS_PER_YEAR - vacationApproved - vacationPending,
-    },
+    vacation: (() => {
+      // Auto-tillegg: 1 per 5 ferie-dager etter ferieloven §5
+      const autoApproved = autoExtraVacationDays(vacationApproved);
+      const autoCombined = autoExtraVacationDays(vacationApproved + vacationPending);
+      const totalApprovedWithAuto = vacationApproved + autoApproved;
+      const totalCombinedWithAuto = vacationApproved + vacationPending + autoCombined;
+      return {
+        quota: VACATION_DAYS_PER_YEAR,
+        raw_selected_days:   vacationApproved,                                       // godkjente Mon-Fri-dager
+        raw_pending_days:    vacationPending,
+        auto_added:          autoApproved,                                           // auto-tillegg fra godkjente
+        auto_added_combined: autoCombined,                                           // inkl. ventende
+        used_days:           totalApprovedWithAuto,                                  // totalt trukket (godkjent)
+        pending_days:        totalCombinedWithAuto - totalApprovedWithAuto,          // ventende sin del av total
+        remaining:           VACATION_DAYS_PER_YEAR - totalCombinedWithAuto,
+      };
+    })(),
     sick_self: {
       quota: SICK_DAYS_PER_YEAR,
       used_days:    sickSelfApproved,
@@ -396,9 +424,18 @@ exports.handler = async (event) => {
         pendingCount = count || 0;
       }
 
+      // Hent helligdager til frontend (for live "kost"-preview ved registrering)
+      const { data: holidayData } = await supabase
+        .from('norwegian_holidays')
+        .select('date')
+        .gte('date', `${year}-01-01`)
+        .lte('date', `${year + 1}-12-31`);
+      const holidays = (holidayData || []).map(h => h.date);
+
       return ok({
         user: { email: userEmail, name: userName, is_admin: isAdmin },
         balance,
+        holidays,
         admin_pending_count: pendingCount,
       });
     }
@@ -528,13 +565,16 @@ exports.handler = async (event) => {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(endDate)) return err(400, 'Ugyldig end_date');
       if (endDate < startDate) return err(400, 'end_date må være ≥ start_date');
 
+      // half_day gjelder kun for avspaseringsuttak (timeoff) og kun for én dag
+      const halfDay = type === 'timeoff' && !!body.half_day && startDate === endDate;
+
       const insert = {
         user_email:  userEmail,
         user_name:   userName,
         type,
         start_date:  startDate,
         end_date:    endDate,
-        half_day:    !!body.half_day,
+        half_day:    halfDay,
         description: body.description || null,
         status:      'pending',
       };
@@ -571,6 +611,20 @@ exports.handler = async (event) => {
           return err(400, 'Avspasering må sendes inn senest 48 timer før uttak');
         }
         insert.hours = Number(body.hours);
+      } else if (type === 'vacation') {
+        // Sperre: må sjekke at TOTAL deducted (inkl. auto-tillegg) holder seg
+        // innenfor 25-dagers-kvoten
+        const holidaysSet = await fetchHolidaysSet(supabase);
+        const newRaw = countFerieDays(startDate, endDate, holidaysSet);
+        const year = startDate.slice(0, 4);
+        const balance = await computeBalance(supabase, userEmail, parseInt(year, 10));
+        const currentRaw = balance.vacation.raw_selected_days + balance.vacation.raw_pending_days;
+        const projectedRaw = currentRaw + newRaw;
+        const projectedDeducted = projectedRaw + autoExtraVacationDays(projectedRaw);
+        if (projectedDeducted > VACATION_DAYS_PER_YEAR) {
+          const wouldExceedBy = projectedDeducted - VACATION_DAYS_PER_YEAR;
+          return err(400, `Ferien (${newRaw} dager + auto-tillegg etter ferieloven §5) ville overskride kvoten med ${wouldExceedBy} dag(er). Du har ${fmtDays(balance.vacation.remaining)} dager igjen.`);
+        }
       } else if (type === 'sick') {
         if (!['self','child'].includes(body.sick_type)) return err(400, 'Egenmelding krever sick_type (self|child)');
         insert.sick_type = body.sick_type;
@@ -659,13 +713,16 @@ exports.handler = async (event) => {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(endDate)) return err(400, 'Ugyldig end_date');
       if (endDate < startDate) return err(400, 'end_date må være ≥ start_date');
 
+      // half_day gjelder kun for avspaseringsuttak (timeoff) og kun for én dag
+      const halfDayAdmin = type === 'timeoff' && !!body.half_day && startDate === endDate;
+
       const insert = {
         user_email:    targetEmail,
         user_name:     targetEmp.name,
         type,
         start_date:    startDate,
         end_date:      endDate,
-        half_day:      !!body.half_day,
+        half_day:      halfDayAdmin,
         description:   body.description || 'Historikk-import',
         status:        'approved',
         decided_by:    userEmail,
@@ -777,6 +834,12 @@ exports.handler = async (event) => {
       }
       if (body.hours !== undefined)      update.hours = body.hours === null ? null : Number(body.hours);
       if (body.half_day !== undefined)   update.half_day = !!body.half_day;
+      // half_day gir bare mening for én dag — fjern hvis dates ikke matcher
+      if (update.half_day || existing.half_day) {
+        const start = update.start_date ?? existing.start_date;
+        const end   = update.end_date   ?? existing.end_date;
+        if (start !== end) update.half_day = false;
+      }
       if (body.deal_id !== undefined)    update.deal_id = body.deal_id || null;
       if (body.deal_name !== undefined)  update.deal_name = body.deal_name || null;
       if (body.sick_type !== undefined)  update.sick_type = body.sick_type || null;
