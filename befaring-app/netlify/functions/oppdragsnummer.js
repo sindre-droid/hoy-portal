@@ -1589,26 +1589,29 @@ async function handleStats(sb, params) {
 }
 
 // ── POST action=backfill_signing_dates — Bulk-find signing dates from Oneflow ─
-// Fetches ALL Oneflow contracts once, matches all assignments missing dates.
-// Pass { force: true } to re-check ALL assignments (fixes wrong dates from updated_time bug).
+// Fetches ALL Oneflow contracts once, matches assignments missing dates.
+// Processes max 25 assignments per call to avoid Netlify function timeout.
+// Returns { remaining } > 0 if there are more — frontend calls again.
 async function handleBackfillSigningDates(sb, body = {}) {
-  // 1. Get assignments to check
-  let query = sb.from('assignment_numbers').select('number, vessel_name, deal_name');
-  if (!body.force) {
-    query = query.is('oppdragsavtale_signed_at', null);
-  }
-  const { data: missing, error } = await query;
+  const BATCH_SIZE = 25; // Safe within ~10s timeout
+
+  // 1. Get assignments missing signing date (limited batch)
+  const { data: missing, error } = await sb
+    .from('assignment_numbers')
+    .select('number, vessel_name, deal_name')
+    .is('oppdragsavtale_signed_at', null)
+    .limit(BATCH_SIZE);
 
   if (error) {
     return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: error.message }) };
   }
 
   if (!missing || !missing.length) {
-    return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, updated: 0, message: 'Alle har dato' }) };
+    return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, updated: 0, remaining: 0, message: 'Alle har dato' }) };
   }
 
-  // 2. Fetch ALL Oneflow contracts once (deep)
-  const allContracts = await fetchAllOneflowContracts(10);
+  // 2. Fetch Oneflow contracts (limit pages to save time)
+  const allContracts = await fetchAllOneflowContracts(5);
 
   // 3. Match each assignment (in memory, no DB calls yet)
   const toUpdate = []; // { number, date }
@@ -1669,6 +1672,12 @@ async function handleBackfillSigningDates(sb, body = {}) {
     updated += results.filter(r => !r.error).length;
   }
 
+  // 5. Check if more remain
+  const { count: remainCount } = await sb
+    .from('assignment_numbers')
+    .select('number', { count: 'exact', head: true })
+    .is('oppdragsavtale_signed_at', null);
+
   return {
     statusCode: 200,
     headers: CORS,
@@ -1678,6 +1687,7 @@ async function handleBackfillSigningDates(sb, body = {}) {
       updated,
       not_found: notFound.length,
       not_found_details: notFound,
+      remaining: remainCount || 0,
     }),
   };
 }
@@ -1765,6 +1775,28 @@ async function handleSetSigningDate(sb, body) {
   return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true }) };
 }
 
+// ── POST action=reset_signing_dates — NULL out all signing dates so backfill re-fetches them ─
+// One-time fix: clears wrong dates stored from the updated_time bug.
+// After reset, the stats page will show "X oppdrag mangler signeringsdato" and the
+// normal "Hent datoer fra Oneflow" button handles the rest.
+async function handleResetSigningDates(sb) {
+  const { data, error } = await sb
+    .from('assignment_numbers')
+    .update({ oppdragsavtale_signed_at: null })
+    .not('oppdragsavtale_signed_at', 'is', null)
+    .select('number');
+
+  if (error) {
+    return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: error.message }) };
+  }
+
+  return {
+    statusCode: 200,
+    headers: CORS,
+    body: JSON.stringify({ ok: true, reset: data?.length || 0 }),
+  };
+}
+
 // ── Handler ────────────────────────────────────────────────────────────────
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: CORS, body: '' };
@@ -1806,6 +1838,7 @@ exports.handler = async (event) => {
     if (action === 'backfill_brokers')  return handleBackfillBrokers(sb);
     if (action === 'set_signing_date')       return handleSetSigningDate(sb, body);
     if (action === 'backfill_signing_dates')    return handleBackfillSigningDates(sb, body);
+    if (action === 'reset_signing_dates')      return handleResetSigningDates(sb);
     if (action === 'backfill_hubspot_property') return handleBackfillHubspotProperty(sb);
     if (action === 'retry_oneflow')   return handleRetryOneflow(sb, body, auth.email);
     if (action === 'retry_poweroffice') return handleRetryPowerOffice(sb, body);
