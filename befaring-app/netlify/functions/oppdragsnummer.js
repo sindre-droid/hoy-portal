@@ -307,10 +307,13 @@ function fuzzyMatch(contractName, searchTerms) {
     const tWords = term.toLowerCase().replace(/[^a-zæøå0-9\s]/g, '').split(/\s+/).filter(w => w.length > 1);
     if (tWords.length === 0) continue;
 
-    // Numeric words (model numbers like "3407") must match exactly — they distinguish similar boats
-    const numericWords = tWords.filter(w => /^\d+$/.test(w));
-    const numericOk = numericWords.every(tw => cWords.includes(tw));
-    if (!numericOk) continue; // Skip if any model number doesn't match
+    // Numeric words in the CONTRACT must exist in the search term — prevents
+    // "Cormate Chase 34-13" matching "Cormate Chase 34-07" (3413 ≠ 3407),
+    // while allowing "SeaDan 400 Pro Fly" to match "SeaDan 400 Pro Fly 2006"
+    // (extra year in search is fine, contract's "400" is in search)
+    const cNumerics = cWords.filter(w => /^\d+$/.test(w));
+    const tNumerics = tWords.filter(w => /^\d+$/.test(w));
+    if (cNumerics.length > 0 && !cNumerics.every(cn => tNumerics.includes(cn))) continue;
 
     const matched = tWords.filter(tw => cWords.some(cw => {
       if (cw === tw) return true;
