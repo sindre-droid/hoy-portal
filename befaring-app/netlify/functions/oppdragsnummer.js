@@ -994,16 +994,24 @@ async function handleAssign(sb, body, adminEmail) {
   // Otherwise fall back to fuzzy matching (legacy behavior).
   try {
     let contracts;
+    let allContractsFull; // Keep full data for signing date extraction
     if (body.oneflow_contract_ids && body.oneflow_contract_ids.length > 0) {
       // Frontend explicitly selected these contracts — fetch them by ID
       const selectedIds = body.oneflow_contract_ids.map(String);
-      const allContracts = await fetchAllOneflowContracts();
-      contracts = allContracts
+      allContractsFull = await fetchAllOneflowContracts();
+      contracts = allContractsFull
         .filter(c => selectedIds.includes(String(c.id)))
-        .map(c => ({ id: c.id, _id: c._id, name: c._private?.name || c.name || '' }));
+        .map(c => ({ id: c.id, _id: c._id, name: c._private?.name || c.name || '', state: c.state, updated_time: c.updated_time, template_id: parseInt(c._private_ownerside?.template_id || c.template?._id || 0) }));
     } else {
-      const allContracts = await fetchAllOneflowContracts();
-      contracts = findOneflowContractsInList(allContracts, dealName, boatName);
+      allContractsFull = await fetchAllOneflowContracts();
+      contracts = findOneflowContractsInList(allContractsFull, dealName, boatName);
+      // Enrich with state/updated_time from full data
+      const fullById = {};
+      for (const c of allContractsFull) fullById[c.id] = c;
+      contracts = contracts.map(c => {
+        const full = fullById[c.id];
+        return { ...c, state: full?.state, updated_time: full?.updated_time, template_id: parseInt(full?._private_ownerside?.template_id || full?.template?._id || 0) };
+      });
     }
     let oneflowOk = false;
 
@@ -1031,6 +1039,20 @@ async function handleAssign(sb, body, adminEmail) {
       syncResults.oneflow = true;
       oneflowUpdate.oneflow_synced = true;
     }
+
+    // Extract signing date from matched oppdragsavtale/salgsavtale contract
+    const signedOA = contracts.find(c => {
+      const isSigned = c.state === 3 || c.state === 'signed';
+      const nameLower = (c.name || '').toLowerCase();
+      const isOA = OF_TEMPLATES.oppdragsavtale.includes(c.template_id) || nameLower.includes('salgsavtale') || nameLower.includes('oppdragsavtale');
+      return isSigned && isOA && c.updated_time;
+    });
+    if (signedOA) {
+      oneflowUpdate.oppdragsavtale_signed_at = typeof signedOA.updated_time === 'number'
+        ? new Date(signedOA.updated_time * 1000).toISOString()
+        : signedOA.updated_time;
+    }
+
     await sb.from('assignment_numbers').update(oneflowUpdate).eq('id', assignment.id);
   } catch (e) {
     console.error('Oneflow sync exception:', e.message);
