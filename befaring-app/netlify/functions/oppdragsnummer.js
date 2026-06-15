@@ -371,7 +371,7 @@ function matchOneflowForDeal(allContracts, dealName, boatName) {
         name: displayName,
         type: docType,
         state: stateLabel,
-        updated: c.updated_time || null,
+        updated: c.state_updated_time || c.updated_time || null,
       });
     }
   }
@@ -576,10 +576,13 @@ async function handleSigningDates(sb, params) {
         const isSigned = c.state === 3 || c.state === 'signed';
         if (!isSigned) continue;
 
-        if (c.updated_time) {
-          const ts = typeof c.updated_time === 'number'
-            ? new Date(c.updated_time * 1000).toISOString()
-            : c.updated_time;
+        // Use state_updated_time (when contract became "signed") — NOT updated_time
+        // which changes on any edit (including renames during oppdragsnummer assignment)
+        const signTime = c.state_updated_time || c.updated_time;
+        if (signTime) {
+          const ts = typeof signTime === 'number'
+            ? new Date(signTime * 1000).toISOString()
+            : signTime;
           dates[num] = ts;
 
           // Persist to Supabase so we never look this up again
@@ -1001,16 +1004,16 @@ async function handleAssign(sb, body, adminEmail) {
       allContractsFull = await fetchAllOneflowContracts();
       contracts = allContractsFull
         .filter(c => selectedIds.includes(String(c.id)))
-        .map(c => ({ id: c.id, _id: c._id, name: c._private?.name || c.name || '', state: c.state, updated_time: c.updated_time, template_id: parseInt(c._private_ownerside?.template_id || c.template?._id || 0) }));
+        .map(c => ({ id: c.id, _id: c._id, name: c._private?.name || c.name || '', state: c.state, state_updated_time: c.state_updated_time, template_id: parseInt(c._private_ownerside?.template_id || c.template?._id || 0) }));
     } else {
       allContractsFull = await fetchAllOneflowContracts();
       contracts = findOneflowContractsInList(allContractsFull, dealName, boatName);
-      // Enrich with state/updated_time from full data
+      // Enrich with state/state_updated_time from full data
       const fullById = {};
       for (const c of allContractsFull) fullById[c.id] = c;
       contracts = contracts.map(c => {
         const full = fullById[c.id];
-        return { ...c, state: full?.state, updated_time: full?.updated_time, template_id: parseInt(full?._private_ownerside?.template_id || full?.template?._id || 0) };
+        return { ...c, state: full?.state, state_updated_time: full?.state_updated_time, template_id: parseInt(full?._private_ownerside?.template_id || full?.template?._id || 0) };
       });
     }
     let oneflowOk = false;
@@ -1041,16 +1044,19 @@ async function handleAssign(sb, body, adminEmail) {
     }
 
     // Extract signing date from matched oppdragsavtale/salgsavtale contract
+    // Use state_updated_time (when contract became "signed") — NOT updated_time
+    // which changes on any edit (including renames during oppdragsnummer assignment)
     const signedOA = contracts.find(c => {
       const isSigned = c.state === 3 || c.state === 'signed';
       const nameLower = (c.name || '').toLowerCase();
       const isOA = OF_TEMPLATES.oppdragsavtale.includes(c.template_id) || nameLower.includes('salgsavtale') || nameLower.includes('oppdragsavtale');
-      return isSigned && isOA && c.updated_time;
+      return isSigned && isOA && c.state_updated_time;
     });
     if (signedOA) {
-      oneflowUpdate.oppdragsavtale_signed_at = typeof signedOA.updated_time === 'number'
-        ? new Date(signedOA.updated_time * 1000).toISOString()
-        : signedOA.updated_time;
+      const signTime = signedOA.state_updated_time;
+      oneflowUpdate.oppdragsavtale_signed_at = typeof signTime === 'number'
+        ? new Date(signTime * 1000).toISOString()
+        : signTime;
     }
 
     await sb.from('assignment_numbers').update(oneflowUpdate).eq('id', assignment.id);
@@ -1584,12 +1590,14 @@ async function handleStats(sb, params) {
 
 // ── POST action=backfill_signing_dates — Bulk-find signing dates from Oneflow ─
 // Fetches ALL Oneflow contracts once, matches all assignments missing dates.
-async function handleBackfillSigningDates(sb) {
-  // 1. Get all assignments missing signing date
-  const { data: missing, error } = await sb
-    .from('assignment_numbers')
-    .select('number, vessel_name, deal_name')
-    .is('oppdragsavtale_signed_at', null);
+// Pass { force: true } to re-check ALL assignments (fixes wrong dates from updated_time bug).
+async function handleBackfillSigningDates(sb, body = {}) {
+  // 1. Get assignments to check
+  let query = sb.from('assignment_numbers').select('number, vessel_name, deal_name');
+  if (!body.force) {
+    query = query.is('oppdragsavtale_signed_at', null);
+  }
+  const { data: missing, error } = await query;
 
   if (error) {
     return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: error.message }) };
@@ -1631,10 +1639,13 @@ async function handleBackfillSigningDates(sb) {
       if (!isOppdragsavtale) continue;
       if (!isSigned) continue;
 
-      if (c.updated_time) {
-        foundDate = typeof c.updated_time === 'number'
-          ? new Date(c.updated_time * 1000).toISOString()
-          : c.updated_time;
+      // Use state_updated_time (when contract became "signed") — NOT updated_time
+      // which changes on any edit (including renames during oppdragsnummer assignment)
+      const signTime = c.state_updated_time || c.updated_time;
+      if (signTime) {
+        foundDate = typeof signTime === 'number'
+          ? new Date(signTime * 1000).toISOString()
+          : signTime;
       }
       break;
     }
@@ -1794,7 +1805,7 @@ exports.handler = async (event) => {
     if (action === 'bootstrap')        return handleBootstrap(sb, auth.email);
     if (action === 'backfill_brokers')  return handleBackfillBrokers(sb);
     if (action === 'set_signing_date')       return handleSetSigningDate(sb, body);
-    if (action === 'backfill_signing_dates')    return handleBackfillSigningDates(sb);
+    if (action === 'backfill_signing_dates')    return handleBackfillSigningDates(sb, body);
     if (action === 'backfill_hubspot_property') return handleBackfillHubspotProperty(sb);
     if (action === 'retry_oneflow')   return handleRetryOneflow(sb, body, auth.email);
     if (action === 'retry_poweroffice') return handleRetryPowerOffice(sb, body);

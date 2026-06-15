@@ -956,6 +956,7 @@ async function loadStats() {
     warnings.push(`<div class="backfill-bar">
       <span>⚠️ ${parts.join(' + ')} oppdrag mangler signeringsdato — månedstallene kan være upresise</span>
       <button id="backfillDatesBtn" onclick="runBackfillDates()">Hent datoer fra Oneflow</button>
+      <button id="forceBackfillDatesBtn" onclick="runBackfillDates(true)" style="margin-left:6px;font-size:11px;opacity:0.7" title="Henter riktig signeringsdato på nytt for alle oppdrag">🔄 Oppdater alle</button>
     </div>`);
   }
 
@@ -1075,14 +1076,14 @@ async function runBackfill() {
   }
 }
 
-async function runBackfillDates() {
-  const btn = document.getElementById('backfillDatesBtn');
+async function runBackfillDates(force = false) {
+  const btn = document.getElementById(force ? 'forceBackfillDatesBtn' : 'backfillDatesBtn');
   if (!btn) return;
   btn.disabled = true;
-  btn.textContent = 'Søker i Oneflow...';
+  btn.textContent = force ? '🔄 Oppdaterer alle...' : 'Søker i Oneflow...';
 
   try {
-    const data = await api('?action=backfill_signing_dates', 'POST', {});
+    const data = await api('?action=backfill_signing_dates', 'POST', { force: !!force });
     if (data.ok) {
       const msg = data.not_found > 0
         ? `✓ ${data.updated} funnet, ${data.not_found} ikke funnet`
