@@ -922,29 +922,9 @@ function syncPill(ok) {
 
 const MONTH_NAMES = ['jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov','des'];
 
-// One-time migration: fix signing dates that used updated_time (rename date) instead of state_updated_time (actual signing date)
-// Runs in background — does NOT block stats loading
-function migrateSigningDates() {
-  const MIGRATION_KEY = 'hoy_signing_date_fix_v1';
-  if (localStorage.getItem(MIGRATION_KEY)) return;
-
-  // Step 1: Reset all dates to NULL (fast single query)
-  api('?action=reset_signing_dates', 'POST', {}).then(reset => {
-    if (!reset.ok) return;
-    if (reset.reset === 0) { localStorage.setItem(MIGRATION_KEY, '1'); return; }
-    localStorage.setItem(MIGRATION_KEY, '1');
-    // After reset, reload stats — the yellow "mangler dato" bar will appear
-    // and the user can click "Hent datoer fra Oneflow" as normal
-    loadStats();
-  }).catch(e => console.error('Signing date reset feil:', e));
-}
-
 async function loadStats() {
   const content = document.getElementById('statsContent');
   content.innerHTML = '<div class="list-empty">Laster statistikk...</div>';
-
-  // Fire-and-forget: one-time reset of wrong dates (does not block)
-  migrateSigningDates();
 
   const year = document.getElementById('statsYearFilter').value || new Date().getFullYear();
   const data = await api(`?stats=1&year=${year}`);

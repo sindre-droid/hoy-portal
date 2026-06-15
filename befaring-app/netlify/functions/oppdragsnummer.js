@@ -1605,8 +1605,8 @@ async function handleBackfillSigningDates(sb, body = {}) {
     return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, updated: 0, message: 'Alle har dato' }) };
   }
 
-  // 2. Fetch Oneflow contracts
-  const allContracts = await fetchAllOneflowContracts(5);
+  // 2. Fetch Oneflow contracts (10 pages = up to 1000, matches handleSigningDates)
+  const allContracts = await fetchAllOneflowContracts(10);
 
   // 3. Match each assignment (in memory, no DB calls yet)
   const toUpdate = []; // { number, date }
