@@ -583,28 +583,39 @@ async function loadOneflowStatus(queue) {
         const contracts = s.matched_contracts || [];
         const matchedEl = document.getElementById(`matched-${deal.deal_id}`);
         const matchedListEl = document.getElementById(`matched-list-${deal.deal_id}`);
-        if (matchedEl && matchedListEl && contracts.length) {
+        if (matchedEl && matchedListEl) {
           matchedEl.style.display = '';
           const stateLabels = { signed: 'Signert', pending: 'Venter', draft: 'Utkast' };
 
-          // Check for ambiguity (multiple contracts of same type)
-          const egCount = contracts.filter(c => c.type === 'egenerklaring').length;
-          const oaCount = contracts.filter(c => c.type === 'oppdragsavtale').length;
-          const hasAmbiguity = egCount > 1 || oaCount > 1;
+          if (contracts.length) {
+            // Check for ambiguity (multiple contracts of same type)
+            const egCount = contracts.filter(c => c.type === 'egenerklaring').length;
+            const oaCount = contracts.filter(c => c.type === 'oppdragsavtale').length;
+            const hasAmbiguity = egCount > 1 || oaCount > 1;
 
-          matchedListEl.innerHTML = contracts.map(c => `
-            <div class="matched-contract">
-              <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
-                <input type="checkbox" class="contract-check" data-deal="${deal.deal_id}" data-contract-id="${c.id}" ${hasAmbiguity ? (c.state === 'signed' ? 'checked' : '') : 'checked'}>
-                <a href="https://app.oneflow.com/contracts/${c.id}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(c.name)}</a>
-              </label>
-              <span class="matched-contract-state ${c.state}">${stateLabels[c.state] || c.state}</span>
-            </div>
-          `).join('');
+            matchedListEl.innerHTML = renderContractList(contracts, deal.deal_id, hasAmbiguity);
 
-          if (hasAmbiguity) {
-            matchedListEl.innerHTML += `<div class="matched-warning">⚠️ Flere kontrakter av samme type — velg hvilke som hører til denne dealen</div>`;
+            if (hasAmbiguity) {
+              matchedListEl.innerHTML += `<div class="matched-warning">⚠️ Flere kontrakter av samme type — velg hvilke som hører til denne dealen</div>`;
+            }
+          } else {
+            matchedListEl.innerHTML = '';
           }
+
+          // Always show search link (for manual override or when no matches)
+          matchedListEl.innerHTML += `
+            <div style="margin-top:8px">
+              <a href="#" class="oneflow-search-link" onclick="event.preventDefault();toggleOneflowSearch('${deal.deal_id}')" style="font-size:13px;color:var(--primary)">
+                ${contracts.length ? '+ Søk etter flere kontrakter' : '🔍 Søk i Oneflow manuelt'}
+              </a>
+              <div id="of-search-${deal.deal_id}" style="display:none;margin-top:8px">
+                <div style="display:flex;gap:8px">
+                  <input type="text" id="of-search-input-${deal.deal_id}" placeholder="Søk etter båtnavn..." style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px" onkeydown="if(event.key==='Enter')searchOneflow('${deal.deal_id}')">
+                  <button onclick="searchOneflow('${deal.deal_id}')" style="padding:6px 14px;background:var(--primary);color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer">Søk</button>
+                </div>
+                <div id="of-search-results-${deal.deal_id}" style="margin-top:8px"></div>
+              </div>
+            </div>`;
         }
 
         // Update card border and button
@@ -622,6 +633,66 @@ async function loadOneflowStatus(queue) {
     document.getElementById('queueBadge').textContent = readyCount;
   } catch (e) {
     console.error('Oneflow status feil:', e);
+  }
+}
+
+// ── Contract list rendering & Oneflow search ────────────────────────────────
+
+const STATE_LABELS = { signed: 'Signert', pending: 'Venter', draft: 'Utkast' };
+
+function renderContractList(contracts, dealId, hasAmbiguity) {
+  return contracts.map(c => `
+    <div class="matched-contract">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" class="contract-check" data-deal="${dealId}" data-contract-id="${c.id}" ${hasAmbiguity ? (c.state === 'signed' ? 'checked' : '') : 'checked'}>
+        <a href="https://app.oneflow.com/contracts/${c.id}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(c.name)}</a>
+      </label>
+      <span class="matched-contract-state ${c.state}">${STATE_LABELS[c.state] || c.state}</span>
+    </div>
+  `).join('');
+}
+
+function toggleOneflowSearch(dealId) {
+  const el = document.getElementById(`of-search-${dealId}`);
+  if (!el) return;
+  const showing = el.style.display !== 'none';
+  el.style.display = showing ? 'none' : '';
+  if (!showing) {
+    const input = document.getElementById(`of-search-input-${dealId}`);
+    if (input) input.focus();
+  }
+}
+
+async function searchOneflow(dealId) {
+  const input = document.getElementById(`of-search-input-${dealId}`);
+  const resultsEl = document.getElementById(`of-search-results-${dealId}`);
+  if (!input || !resultsEl) return;
+
+  const q = input.value.trim();
+  if (q.length < 2) { resultsEl.innerHTML = '<div style="font-size:12px;color:var(--gray-dark)">Skriv minst 2 tegn</div>'; return; }
+
+  resultsEl.innerHTML = '<div style="font-size:12px;color:var(--gray-dark)">Søker...</div>';
+
+  try {
+    const data = await api(`?search_oneflow=${encodeURIComponent(q)}`);
+    const results = data.results || [];
+
+    if (!results.length) {
+      resultsEl.innerHTML = '<div style="font-size:12px;color:var(--gray-dark)">Ingen kontrakter funnet</div>';
+      return;
+    }
+
+    resultsEl.innerHTML = results.map(c => `
+      <div class="matched-contract">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="checkbox" class="contract-check" data-deal="${dealId}" data-contract-id="${c.id}">
+          <a href="https://app.oneflow.com/contracts/${c.id}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(c.name)}</a>
+        </label>
+        <span class="matched-contract-state ${c.state}">${STATE_LABELS[c.state] || c.state}</span>
+      </div>
+    `).join('');
+  } catch (e) {
+    resultsEl.innerHTML = `<div style="font-size:12px;color:var(--red)">Feil: ${e.message}</div>`;
   }
 }
 

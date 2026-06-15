@@ -1366,6 +1366,45 @@ async function handleRetryPowerOffice(sb, body) {
 }
 
 
+// ── GET ?search_oneflow=TERM — Search Oneflow contracts by name ──────────
+async function handleSearchOneflow(params) {
+  const q = (params.search_oneflow || '').trim().toLowerCase();
+  if (q.length < 2) {
+    return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Søkeord for kort' }) };
+  }
+
+  const allContracts = await fetchAllOneflowContracts(5); // Up to 500
+  const qNorm = q.replace(/[^a-zæøå0-9]/g, '');
+
+  const results = [];
+  for (const c of allContracts) {
+    const name = c._private?.name || c.name || '';
+    const nameNorm = name.toLowerCase().replace(/[^a-zæøå0-9]/g, '');
+    if (!nameNorm.includes(qNorm)) continue;
+
+    const tid = parseInt(c._private_ownerside?.template_id || c.template?._id || c.template?.id || 0);
+    const isSigned = c.state === 3 || c.state === 'signed';
+    const isPending = c.state === 2 || c.state === 'pending';
+
+    // Determine type
+    const nameLower = name.toLowerCase();
+    let type = 'other';
+    if (OF_TEMPLATES.egenerklaring.includes(tid) || nameLower.includes('egenerklær')) type = 'egenerklaring';
+    else if (OF_TEMPLATES.oppdragsavtale.includes(tid) || nameLower.includes('salgsavtale') || nameLower.includes('oppdragsavtale')) type = 'oppdragsavtale';
+
+    results.push({
+      id: c.id,
+      name,
+      type,
+      state: isSigned ? 'signed' : isPending ? 'pending' : 'draft',
+    });
+
+    if (results.length >= 20) break; // Cap results
+  }
+
+  return { statusCode: 200, headers: CORS, body: JSON.stringify({ results }) };
+}
+
 // ── POST action=backfill_brokers — Enrich old records with broker email ──
 // Bootstrap-imported records have broker_email=null. This fetches deal owners
 // from HubSpot and backfills them. Uses batch search for speed.
@@ -1711,6 +1750,7 @@ exports.handler = async (event) => {
     if (params.queue)           return handleQueue(sb);
     if (params.oneflow_status)  return handleOneflowStatus(params);
     if (params.signing_dates)   return handleSigningDates(sb, params);
+    if (params.search_oneflow)  return handleSearchOneflow(params);
     if (params.stats)           return handleStats(sb, params);
     if (params.list)            return handleList(sb, params);
     if (params.next) {
