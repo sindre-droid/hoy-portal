@@ -1099,40 +1099,24 @@ async function runBackfillDates() {
   const btn = document.getElementById('backfillDatesBtn');
   if (!btn) return;
   btn.disabled = true;
-
-  let totalUpdated = 0;
-  let totalNotFound = 0;
-  let round = 0;
+  btn.textContent = 'Søker i Oneflow...';
 
   try {
-    // Loop: backend processes max 25 per call to avoid timeout
-    while (true) {
-      round++;
-      btn.textContent = round === 1 ? 'Søker i Oneflow...' : `Batch ${round}... (${totalUpdated} funnet)`;
-
-      const data = await api('?action=backfill_signing_dates', 'POST', {});
-      if (!data.ok) {
-        btn.textContent = data.error || 'Feilet';
-        btn.disabled = false;
-        return;
-      }
-
-      totalUpdated += data.updated || 0;
-      totalNotFound += data.not_found || 0;
-
-      // No more remaining — done
-      if (!data.remaining || data.remaining === 0) break;
+    const data = await api('?action=backfill_signing_dates', 'POST', {});
+    if (data.ok) {
+      const msg = data.not_found > 0
+        ? `✓ ${data.updated} funnet, ${data.not_found} ikke funnet`
+        : `✓ ${data.updated} oppdatert`;
+      btn.textContent = msg;
+      btn.style.background = 'var(--green)';
+      setTimeout(() => loadStats(), 500);
+    } else {
+      btn.textContent = data.error || 'Feilet';
+      btn.disabled = false;
     }
-
-    const msg = totalNotFound > 0
-      ? `✓ ${totalUpdated} funnet, ${totalNotFound} ikke funnet`
-      : `✓ ${totalUpdated} oppdatert`;
-    btn.textContent = msg;
-    btn.style.background = 'var(--green)';
-    setTimeout(() => loadStats(), 500);
   } catch (e) {
     console.error('Backfill dates feil:', e);
-    btn.textContent = `Feil: ${e.message} (${totalUpdated} funnet før feil)`;
+    btn.textContent = `Feil: ${e.message}`;
     btn.disabled = false;
   }
 }

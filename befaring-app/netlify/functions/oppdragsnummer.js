@@ -1589,28 +1589,23 @@ async function handleStats(sb, params) {
 }
 
 // ── POST action=backfill_signing_dates — Bulk-find signing dates from Oneflow ─
-// Fetches ALL Oneflow contracts once, matches assignments missing dates.
-// Processes max 25 assignments per call to avoid Netlify function timeout.
-// Returns { remaining } > 0 if there are more — frontend calls again.
+// Fetches ALL Oneflow contracts once, matches all assignments missing dates.
 async function handleBackfillSigningDates(sb, body = {}) {
-  const BATCH_SIZE = 25; // Safe within ~10s timeout
-
-  // 1. Get assignments missing signing date (limited batch)
+  // 1. Get ALL assignments missing signing date
   const { data: missing, error } = await sb
     .from('assignment_numbers')
     .select('number, vessel_name, deal_name')
-    .is('oppdragsavtale_signed_at', null)
-    .limit(BATCH_SIZE);
+    .is('oppdragsavtale_signed_at', null);
 
   if (error) {
     return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: error.message }) };
   }
 
   if (!missing || !missing.length) {
-    return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, updated: 0, remaining: 0, message: 'Alle har dato' }) };
+    return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, updated: 0, message: 'Alle har dato' }) };
   }
 
-  // 2. Fetch Oneflow contracts (limit pages to save time)
+  // 2. Fetch Oneflow contracts
   const allContracts = await fetchAllOneflowContracts(5);
 
   // 3. Match each assignment (in memory, no DB calls yet)
@@ -1672,12 +1667,6 @@ async function handleBackfillSigningDates(sb, body = {}) {
     updated += results.filter(r => !r.error).length;
   }
 
-  // 5. Check if more remain
-  const { count: remainCount } = await sb
-    .from('assignment_numbers')
-    .select('number', { count: 'exact', head: true })
-    .is('oppdragsavtale_signed_at', null);
-
   return {
     statusCode: 200,
     headers: CORS,
@@ -1687,7 +1676,6 @@ async function handleBackfillSigningDates(sb, body = {}) {
       updated,
       not_found: notFound.length,
       not_found_details: notFound,
-      remaining: remainCount || 0,
     }),
   };
 }
