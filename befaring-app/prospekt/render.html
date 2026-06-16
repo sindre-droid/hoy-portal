@@ -1721,38 +1721,74 @@ function buildEquipmentPages(p) {
   const cats = (p.equipment_categories || []).filter(c => c.items && c.items.length > 0);
   if (cats.length === 0) return '';
 
-  // Split into two balanced columns (by item count, not category count)
-  const totalItems = cats.reduce((s, c) => s + (c.items||[]).length, 0);
-  const halfTarget = Math.ceil(totalItems / 2);
-  let leftCount = 0, splitAt = cats.length;
-  for (let i = 0; i < cats.length; i++) {
-    leftCount += (cats[i].items||[]).length;
-    if (leftCount >= halfTarget) { splitAt = i + 1; break; }
-  }
-  const leftCats = cats.slice(0, splitAt);
-  const rightCats = cats.slice(splitAt);
+  // ── Paginering ──────────────────────────────────────────────────────────
+  // .page har overflow:hidden, så for langt innhold blir KLIPPET. Vi estimerer
+  // høyde (mm) per kategori/rad og fordeler over flere A4-sider (2 kolonner per
+  // side) slik at ingen kolonne overstiger budsjettet. Tilbakekompatibelt:
+  // små lister gir nøyaktig én side som før.
+  const ITEM_MM = 5.6;            // høyde per utstyrsrad (font 10px, lh 1.5, padding)
+  const SUB_MM = 3.8;             // høyde per detalj-linje (font 9px)
+  const CAT_OVERHEAD_MM = 11;     // kategori-overskrift + margin-bottom
+  const COL_BUDGET_MM = 200;      // konservativ kolonnehøyde (reell kapasitet ~245 mm)
 
-  function renderColumn(categories) {
-    return categories.map(cat => `
-      <div class="equip-category">
-        <div class="category-label">${esc(cat.name)}</div>
-        ${(cat.items || []).map(item => {
-          const text = item.text || item;
-          // Support both old .sub (string) and new .subs (array)
-          let subsArr = [];
-          if (Array.isArray(item.subs)) subsArr = item.subs.filter(s => s);
-          else if (item.sub) subsArr = [item.sub];
-          const subHtml = subsArr.map(s =>
-            `<div class="equip-sub-item">${esc(s)}</div>`
-          ).join('');
-          return `<div class="equip-item">${esc(text)}</div>${subHtml}`;
-        }).join('')}
-      </div>
-    `).join('');
-  }
+  const subsOf = (it) =>
+    Array.isArray(it.subs) ? it.subs.filter(Boolean) : (it.sub ? [it.sub] : []);
+  const itemMM = (it) => ITEM_MM + subsOf(it).length * SUB_MM;
+  const renderItem = (it) => {
+    const text = it.text || it;
+    const subHtml = subsOf(it)
+      .map(s => `<div class="equip-sub-item">${esc(s)}</div>`)
+      .join('');
+    return `<div class="equip-item">${esc(text)}</div>${subHtml}`;
+  };
+  const catBlock = (name, itemsHtml) =>
+    `<div class="equip-category"><div class="category-label">${esc(name)}</div>${itemsHtml}</div>`;
 
-  return `
-    <div class="page-label">Utstyrsliste</div>
+  // Bygg kolonner: hold kategorier samlet når de får plass; del store kategorier
+  // over flere kolonner med "(forts.)".
+  const columns = [];
+  let col = { html: '', mm: 0 };
+  const flush = () => { if (col.mm > 0) { columns.push(col); col = { html: '', mm: 0 }; } };
+
+  for (const cat of cats) {
+    const items = cat.items || [];
+    const catMM = CAT_OVERHEAD_MM + items.reduce((s, it) => s + itemMM(it), 0);
+
+    if (catMM <= COL_BUDGET_MM) {
+      if (col.mm > 0 && col.mm + catMM > COL_BUDGET_MM) flush();
+      col.html += catBlock(cat.name, items.map(renderItem).join(''));
+      col.mm += catMM;
+    } else {
+      // For stor for én kolonne — del opp
+      let i = 0, first = true;
+      while (i < items.length) {
+        if (col.mm > 0 && col.mm + CAT_OVERHEAD_MM + itemMM(items[i]) > COL_BUDGET_MM) flush();
+        let used = CAT_OVERHEAD_MM, chunk = '', any = false;
+        while (i < items.length) {
+          const im = itemMM(items[i]);
+          if (any && used + im > COL_BUDGET_MM) break;
+          chunk += renderItem(items[i]); used += im; i++; any = true;
+        }
+        col.html += catBlock(cat.name + (first ? '' : ' (forts.)'), chunk);
+        col.mm += used; first = false;
+        if (i < items.length) flush();
+      }
+    }
+  }
+  flush();
+
+  // Grupper kolonner 2 og 2 til sider
+  const pages = [];
+  for (let i = 0; i < columns.length; i += 2) pages.push(columns.slice(i, i + 2));
+
+  return pages.map((pageCols, pi) => {
+    const left = pageCols[0] ? pageCols[0].html : '';
+    const right = pageCols[1] ? pageCols[1].html : '';
+    const multi = pages.length > 1;
+    const indicator = multi
+      ? `<div class="gallery-page-indicator">${pi + 1} / ${pages.length}</div>` : '';
+    return `
+    <div class="page-label">Utstyrsliste${multi ? ' ' + (pi + 1) : ''}</div>
     <div class="page">
       <div class="equipment">
         <div class="equipment-header">
@@ -1760,12 +1796,13 @@ function buildEquipmentPages(p) {
           <p class="section-subtitle">Komplett oversikt over utstyr og tilbeh&oslash;r</p>
         </div>
         <div class="equipment-body">
-          <div>${renderColumn(leftCats)}</div>
-          <div>${renderColumn(rightCats)}</div>
+          <div>${left}</div>
+          <div>${right}</div>
         </div>
+        ${indicator}
       </div>
-    </div>
-  `;
+    </div>`;
+  }).join('');
 }
 
 function parseServiceEntries(text) {
