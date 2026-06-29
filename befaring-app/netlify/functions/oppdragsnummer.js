@@ -607,6 +607,15 @@ async function handleSigningDates(sb, params) {
   };
 }
 
+// ── Megler-alias: Marte jobber under Henrik, alt på hennes deals → Henrik ──
+const BROKER_ALIAS = {
+  'marte@h-y.no': 'henrik@h-y.no',
+};
+function resolveBrokerEmail(email) {
+  const e = (email || '').toLowerCase().trim();
+  return BROKER_ALIAS[e] || e;
+}
+
 // ── Megler-email → PowerOffice Employee ID ─────────────────────────────────
 // Brukes som ProjectManagerEmployeeId og InvoiceCcEmailAddress.
 const BROKER_TO_PO_EMPLOYEE = {
@@ -704,7 +713,7 @@ async function syncToPowerOffice(sb, assignment) {
                    || parties.find(p => !/house of yachts/i.test(p.name || ''));
 
   // 4. Mapper ut
-  const brokerEmail = (fields['Deal Owner Email'] || '').toLowerCase().trim();
+  const brokerEmail = resolveBrokerEmail(fields['Deal Owner Email']);
   const brokerFullname = fields['Deal Owner Fullname'] || '';
   const employeeId = BROKER_TO_PO_EMPLOYEE[brokerEmail] || null;
   if (!employeeId) {
@@ -909,12 +918,12 @@ async function handleAssign(sb, body, adminEmail) {
     .trim();
   const ownerId  = dealRes.data.properties.hubspot_owner_id;
 
-  // Resolve owner email
+  // Resolve owner email (apply alias: e.g. marte → henrik)
   let brokerEmail = null;
   if (ownerId) {
     try {
       const ownerRes = await hs(`/crm/v3/owners/${ownerId}`);
-      if (ownerRes.ok) brokerEmail = ownerRes.data.email;
+      if (ownerRes.ok) brokerEmail = resolveBrokerEmail(ownerRes.data.email);
     } catch { /* best-effort */ }
   }
 
@@ -1490,18 +1499,30 @@ async function handleBackfillBrokers(sb) {
   for (const row of missing) {
     const ownerId = dealOwnerMap[row.deal_id];
     if (!ownerId) { errors.push({ deal_id: row.deal_id, reason: 'no owner' }); continue; }
-    const email = ownerEmails[ownerId];
-    if (!email) { errors.push({ deal_id: row.deal_id, reason: 'owner email not found' }); continue; }
+    const rawEmail = ownerEmails[ownerId];
+    if (!rawEmail) { errors.push({ deal_id: row.deal_id, reason: 'owner email not found' }); continue; }
+    const email = resolveBrokerEmail(rawEmail);
 
     const { error: updErr } = await sb.from('assignment_numbers').update({ broker_email: email }).eq('id', row.id);
     if (updErr) { errors.push({ deal_id: row.deal_id, reason: updErr.message }); }
     else { updated++; }
   }
 
+  // Also fix any existing rows where broker_email is an alias (e.g. marte → henrik)
+  let aliasFixed = 0;
+  for (const [fromEmail, toEmail] of Object.entries(BROKER_ALIAS)) {
+    const { data: aliasRows, error: aErr } = await sb
+      .from('assignment_numbers')
+      .update({ broker_email: toEmail })
+      .eq('broker_email', fromEmail)
+      .select('id');
+    if (!aErr && aliasRows?.length) aliasFixed += aliasRows.length;
+  }
+
   return {
     statusCode: 200,
     headers: CORS,
-    body: JSON.stringify({ ok: true, total: missing.length, updated, errors: errors.length, details: errors }),
+    body: JSON.stringify({ ok: true, total: missing.length, updated, alias_fixed: aliasFixed, errors: errors.length, details: errors }),
   };
 }
 
