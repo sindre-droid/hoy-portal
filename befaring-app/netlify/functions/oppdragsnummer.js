@@ -720,13 +720,21 @@ async function syncToPowerOffice(sb, assignment) {
     return { ok: false, step: 'broker_mapping', reason: 'UNKNOWN_BROKER_EMAIL', broker_email: brokerEmail };
   }
 
-  // Pick first non-empty Contact * N (1, 2 eller 3). Salgsavtalen kan ha
-  // flere selgere fylt ut, men én skal være primær. Hvis Contact 1 er tom,
-  // fall tilbake til 2 eller 3.
-  const pick = (base) => {
+  // Finn primær kontakt — lås til én Contact N slik at navn, e-post, adresse
+  // etc. hører til samme person. Velg første slot som har e-post.
+  let primarySlot = 1;
+  for (const n of [1, 2, 3]) {
+    const email = (fields[`Contact Email ${n}`] || '').toString().trim();
+    if (email) { primarySlot = n; break; }
+  }
+  const pick = (base) => (fields[`Contact ${base} ${primarySlot}`] || '').toString().trim();
+  // Fallback: for felt som er tomme i primary slot, sjekk andre slots
+  const pickAny = (base) => {
+    const v = pick(base);
+    if (v) return v;
     for (const n of [1, 2, 3]) {
-      const v = (fields[`Contact ${base} ${n}`] || '').toString().trim();
-      if (v) return v;
+      const alt = (fields[`Contact ${base} ${n}`] || '').toString().trim();
+      if (alt) return alt;
     }
     return '';
   };
@@ -741,12 +749,12 @@ async function syncToPowerOffice(sb, assignment) {
                       || `${sellerFirstname} ${sellerLastname}`.trim()
                       || sellerParty?.name
                       || `Selger ${oneflowId}`;
-  const sellerPhone   = pick('Phone') || pick('Mobilephone') || null;
-  const sellerAddress = pick('Address');
-  const sellerZip     = pick('Zip');
-  const sellerCity    = pick('City');
-  const sellerCountry = pick('Country');
-  const sellerDobOrOrg = pick('Date of Birth'); // 11 siffer = personnr, 9 = orgnr
+  const sellerPhone   = pick('Phone') || pick('Mobilephone') || pickAny('Phone') || pickAny('Mobilephone') || null;
+  const sellerAddress = pick('Address') || pickAny('Address');
+  const sellerZip     = pick('Zip') || pickAny('Zip');
+  const sellerCity    = pick('City') || pickAny('City');
+  const sellerCountry = pick('Country') || pickAny('Country');
+  const sellerDobOrOrg = pick('Date of Birth') || pickAny('Date of Birth'); // 11 siffer = personnr, 9 = orgnr
 
   // Firma- vs person-selger basert på Oneflow party type
   const isCompany = sellerParty?.type === 'company';
