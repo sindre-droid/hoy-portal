@@ -731,7 +731,10 @@ async function syncToPowerOffice(sb, assignment) {
     return '';
   };
 
-  const sellerEmail = pick('Email').toLowerCase();
+  // Noen salgsavtaler har flere e-poster i ett felt (f.eks. "a@x.no / b@x.no").
+  // Bruk kun den første gyldige e-postadressen.
+  const sellerEmailRaw = pick('Email').toLowerCase();
+  const sellerEmail = sellerEmailRaw.split(/[\/,;]/).map(s => s.trim()).find(s => s.includes('@')) || sellerEmailRaw;
   const sellerFirstname = pick('Firstname');
   const sellerLastname  = pick('Lastname');
   const sellerFullname  = pick('Fullname')
@@ -743,7 +746,7 @@ async function syncToPowerOffice(sb, assignment) {
   const sellerZip     = pick('Zip');
   const sellerCity    = pick('City');
   const sellerCountry = pick('Country');
-  const sellerDobOrOrg = pick('Date of Birth'); // 6 siffer = fnr/fødselsdato, 9 = orgnr
+  const sellerDobOrOrg = pick('Date of Birth'); // 11 siffer = personnr, 9 = orgnr
 
   // Firma- vs person-selger basert på Oneflow party type
   const isCompany = sellerParty?.type === 'company';
