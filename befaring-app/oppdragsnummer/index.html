@@ -752,6 +752,27 @@ async function assignNumber(dealId, btn, force = false) {
 
 // ── Retry Oneflow sync ──────────────────────────────────────────────────────
 
+async function retryPowerOffice(dealId, badge) {
+  badge.textContent = 'Synker PO...';
+  badge.style.cursor = 'default';
+  try {
+    const data = await api('?action=retry_poweroffice', 'POST', { deal_id: dealId });
+    if (data.ok) {
+      badge.className = 'pill pill-ok';
+      badge.textContent = 'Synket';
+      badge.onclick = null;
+    } else {
+      badge.textContent = data.reason === 'WAITING_FOR_CONTRACT_SIGN'
+        ? 'Avtale ikke signert'
+        : (data.message || data.reason || 'Feilet');
+      badge.style.cursor = 'pointer';
+    }
+  } catch (e) {
+    badge.textContent = 'PO-feil';
+    badge.style.cursor = 'pointer';
+  }
+}
+
 async function retryOneflow(dealId, badge) {
   badge.textContent = 'Synker Oneflow...';
   badge.style.cursor = 'default';
@@ -905,7 +926,10 @@ async function loadList() {
                 ? `<span class="pill pill-no" style="cursor:pointer" onclick="retryOneflow('${esc(a.deal_id)}',this)">Prøv igjen</span>`
                 : '<span class="pill pill-no">—</span>'
             }</td>
-            <td>${syncPill(a.poweroffice_synced)}</td>
+            <td>${a.poweroffice_synced
+              ? syncPill(true)
+              : `<span class="pill pill-no" style="cursor:pointer" onclick="retryPowerOffice('${esc(a.deal_id)}',this)">Venter</span>`
+            }</td>
           </tr>`;
         }).join('')}
       </tbody>
