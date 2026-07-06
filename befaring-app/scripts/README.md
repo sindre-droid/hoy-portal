@@ -1,6 +1,32 @@
-# Scripts — Finance Cockpit V1
+# Scripts — Finance Cockpit V1 + Oppdrag-livsløp
 
 Disse skriptene kjøres som ledd i Fase 0 (Importskript før UI).
+
+## Oppdrag-livsløp Fase 0 (juli 2026)
+
+Bygger `oppdrag_livslop` — én rad per oppdragsnummer. Se
+`supabase/2026-07-03_oppdrag-livslop.sql` for schema + source-of-truth.
+
+```bash
+# 1. Kjør migrasjonen i Supabase SQL Editor: supabase/2026-07-03_oppdrag-livslop.sql
+# 2. Dry-run (fasit-CSV-ene ligger i HoY Internportal/):
+node scripts/import-oppdrag-livslop.js \
+  "../HoY Internportal/oppgjor-2025-fasit.csv" \
+  "../HoY Internportal/oppgjor-2026-fasit.csv" --dry-run
+# 3. Commit + automatisk verifisering:
+node scripts/import-oppdrag-livslop.js ... --commit
+# 4. Kun validering (akseptkriterium 1+2):
+node scripts/import-oppdrag-livslop.js ... --verify
+```
+
+Env: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ONEFLOW_API_TOKEN`,
+`ONEFLOW_USER_EMAIL`. `HUBSPOT_TOKEN` hentes automatisk fra
+`HoY Internportal/hubspot-token.txt` hvis ikke satt. `PIPELINE_B` valgfri
+(auto-detekteres via «Aktiv annonse»-stage).
+
+Fasit (akseptkriterium 1): 2025 = 75 solgte / 102 214 333 / 5 964 074.
+2026 per 3. juli = 37 / 47 379 000 / 2 631 850. Umatchede Oneflow-kontrakter
+og CSV-rader uten oppdragsnr rapporteres i `scripts/oppdrag-livslop-report-*.json`.
 
 ## Forutsetninger
 

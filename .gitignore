@@ -1,2 +1,6 @@
 HoY Internportal/hubspot-token.txt
 HoY Internportal/hoy-website
+
+# Lokale secrets
+.env
+befaring-app/.env
