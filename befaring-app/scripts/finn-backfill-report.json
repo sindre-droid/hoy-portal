@@ -1,5 +1,5 @@
 {
-  "generert": "2026-07-07T13:28:53.943Z",
+  "generert": "2026-07-07T13:37:42.528Z",
   "navnematch": [
     "23035",
     "23037",
@@ -91,7 +91,6 @@
     "23038",
     "23044",
     "24003",
-    "24011",
     "24015",
     "24019",
     "24021",
@@ -146,8 +145,6 @@
     "23044",
     "23047",
     "24007",
-    "24009",
-    "24011",
     "24017",
     "24018",
     "24022",
@@ -317,9 +314,5 @@
     "26055",
     "26056"
   ],
-  "manuell_datokonflikt": [
-    "24006 (ad 357464397): publisert 2024-06-16 ETTER solgt 2024-05-14 — trolig re-salgsannonse",
-    "24009 (ad 414213414): publisert 2025-06-26 ETTER solgt 2024-05-14 — trolig re-salgsannonse",
-    "24011 (ad 361411812): publisert 2024-07-16 ETTER solgt 2024-06-20 — trolig re-salgsannonse"
-  ]
+  "manuell_datokonflikt": []
 }

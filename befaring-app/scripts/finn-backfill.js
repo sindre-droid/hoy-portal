@@ -111,9 +111,12 @@ async function main() {
   // tidligste gyldige publisering vinner. «oppdragsnr;ingen» = aldri annonsert.
   const manualFinn = new Map();   // nr → [adId...]
   const manualIngen = new Set();  // nr som aldri ble annonsert (off-market)
+  const manualFjern = new Set();  // nr der annonsen fantes men koden er tapt (f.eks. re-salgsforsøk) — nullstill
   const manualFile = path.resolve(__dirname, 'finn-koder-manuell.csv');
   if (fs.existsSync(manualFile)) {
     for (const line of fs.readFileSync(manualFile, 'utf8').split('\n')) {
+      const fj = line.match(/^\s*(\d{5})\s*[;,:\t]\s*fjern/i);
+      if (fj) { manualFjern.add(fj[1]); continue; }
       const ing = line.match(/^\s*(\d{5})\s*[;,:\t]\s*ingen/i);
       if (ing) { manualIngen.add(ing[1]); continue; }
       const m = line.match(/^\s*(\d{5})\s*[;,:\t]\s*(\d{6,10})/);
@@ -205,6 +208,12 @@ async function main() {
     if (manualIngen.has(r.oppdragsnr)) {
       // Aldri annonsert (off-market) — nullstill ev. tidligere feil-tildelt FINN-data
       updates.push({ oppdragsnr: r.oppdragsnr, annonse_kilde: 'ingen',
+        annonse_publisert: null, finn_kode: null, prisantydning_finn: null });
+      continue;
+    }
+    if (manualFjern.has(r.oppdragsnr)) {
+      // Annonsen fantes, men koden er tapt (f.eks. kun re-salgsannonse igjen) — ukjent
+      updates.push({ oppdragsnr: r.oppdragsnr, annonse_kilde: null,
         annonse_publisert: null, finn_kode: null, prisantydning_finn: null });
       continue;
     }
