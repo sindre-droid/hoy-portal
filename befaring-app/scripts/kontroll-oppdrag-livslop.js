@@ -118,6 +118,25 @@ async function main() {
     nrs(r => r.merknad && /NUMMERKONFLIKT|sjekk manuelt/i.test(r.merknad)),
     'kjente enkeltsaker');
 
+  // FINN-backfill-rapport (skrives av finn-backfill.js) — manuell verifisering
+  const fbFile = path.resolve(__dirname, 'finn-backfill-report.json');
+  if (fs.existsSync(fbFile)) {
+    const fb = JSON.parse(fs.readFileSync(fbFile, 'utf8'));
+    const inTable = new Set(rows.map(r => r.oppdragsnr));
+    const only = a => [...new Set(a)].filter(n => inTable.has(n));
+    add('FINN-dato via navne-match — verifiser riktig båt', 'ADVARSEL', only(fb.navnematch || []),
+      'annonsen ble matchet på modellnavn+pris+tidsvindu, ikke direkte kobling — åpne annonsen (finn.no/mobility/item/<finn-kode>) og sjekk at det er riktig båt/selger');
+    add('Flere gyldige FINN-annonser — én valgt', 'ADVARSEL', only(fb.flere_gyldige || []),
+      'båten hadde flere annonser i tidsvinduet (re-publisering/duplikat) — direkte-koblet eller tidligste ble valgt, sjekk at datoen stemmer');
+    add('FINN-pris ≠ prisantydning i boats (>10 %)', 'ADVARSEL', only(fb.pris_avvik || []),
+      'annonseprisen på FINN avviker fra pris-feltet på båten i HubSpot — feil båt-kobling eller utdatert pris');
+    add('FINN-kandidater fantes, alle avvist av vaktene', 'ADVARSEL', only(fb.avvist_alle_kandidater || []),
+      'ingen annonse passerte tidsvindu/prisvakt — annonsen kan mangle, eller vaktene var for strenge; fyll inn manuelt hvis du kjenner koden');
+    add('Manuell FINN-kode med datokonflikt — sjekk solgt/OA-dato', 'ADVARSEL',
+      only((fb.manuell_datokonflikt || []).map(x => x.split(' ')[0])),
+      'din kode er brukt, men publiseringsdatoen kolliderer med solgt-/signeringsdato på oppdraget — én av datoene er trolig feil (ofte closedate i HubSpot)');
+  }
+
   // ── Konsollrapport ─────────────────────────────────────────────────────────
   console.log('\n── Sjekk-batteri ────────────────────────────────');
   let redCount = 0;

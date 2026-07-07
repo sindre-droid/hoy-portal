@@ -101,7 +101,7 @@ async function main() {
       properties: ['finn_kode', 'finn_annonse'],
     });
     for (const dl of res.data.results || []) {
-      const id = (dl.properties.finn_kode || '').trim() || adIdFromUrl(dl.properties.finn_annonse);
+      const id = adIdFromUrl(dl.properties.finn_kode) || adIdFromUrl(dl.properties.finn_annonse);
       if (id) dealFinn.set(String(dl.id), id);
     }
   }
@@ -159,7 +159,7 @@ async function main() {
     for (const line of fs.readFileSync(dhFile, 'utf8').split('\n')) {
       const p = line.split(';');
       if (!/^\d{8,10}$/.test(p[0] || '')) continue;
-      dhAds.push({ adId: p[0], makeModel: (p[3] || '').replace(/undefined/g, '').trim(), title: p[6] || '' });
+      dhAds.push({ adId: p[0], dhDate: p[2] || null, makeModel: (p[3] || '').replace(/undefined/g, '').trim(), title: p[6] || '' });
     }
     console.log(`Dealer Hub-eksport: ${dhAds.length} annonser`);
   }
@@ -178,7 +178,7 @@ async function main() {
   // re-salg). Vi samler ALLE kandidater per oppdrag, forkaster de som faller
   // utenfor oppdragets tidsvindu, og velger TIDLIGSTE gyldige publisering —
   // det er første gang båten kom ut som teller for syklustid.
-  const updates = [], rejected = [], notFound = [], multi = [];
+  const updates = [], rejected = [], notFound = [], multi = [], manualConflicts = [];
   let looked = 0;
   const adCache = new Map(); // adId → ad (samme annonse kan gjelde flere oppdrag)
 
@@ -234,24 +234,35 @@ async function main() {
       r.boat_hs_id && boatFinn.get(r.boat_hs_id),
     ].filter(Boolean));
 
+    const isManual = adId => (manualFinn.get(r.oppdragsnr) || []).includes(adId);
+
     const valid = [], localRejects = [];
     for (const adId of candidates) {
       if (!adCache.has(adId)) adCache.set(adId, await finnAd(adId));
-      const ad = adCache.get(adId);
+      let ad = adCache.get(adId);
+      // 404 på FINN (annonsen slettet) men finnes i Dealer Hub → bruk DH-dato
+      if ((!ad || ad.error) && /404/.test(ad?.error || '')) {
+        const dh = dhAds.find(x => x.adId === adId);
+        if (dh?.dhDate) ad = { published: dh.dhDate + 'T12:00:00Z', price: null, dealerhub: true };
+      }
       if (!ad || ad.error || !ad.published) {
         localRejects.push(`ad ${adId}: ${ad?.error || 'mangler published'}`);
         continue;
       }
       const pub = ad.published;
-      // Sanity: annonsen må tilhøre DENNE salgsperioden
-      if (r.solgt_dato && new Date(pub) - new Date(r.solgt_dato) > 7 * DAY) {
-        localRejects.push(`ad ${adId}: publisert ${pub.slice(0, 10)} ETTER solgt ${r.solgt_dato} — trolig re-salgsannonse`);
+      // Sanity: annonsen må tilhøre DENNE salgsperioden.
+      // MANUELLE koder er verifisert av Sindre og aksepteres uansett —
+      // datokonflikter flagges i rapporten (avdekker feil i solgt/OA-dato).
+      const conflicts = [];
+      if (r.solgt_dato && new Date(pub) - new Date(r.solgt_dato) > 7 * DAY)
+        conflicts.push(`publisert ${pub.slice(0, 10)} ETTER solgt ${r.solgt_dato} — trolig re-salgsannonse`);
+      if (r.oppdragsavtale_signert && new Date(r.oppdragsavtale_signert) - new Date(pub) > 90 * DAY)
+        conflicts.push(`publisert ${pub.slice(0, 10)} >90d før OA ${r.oppdragsavtale_signert.slice(0, 10)} — trolig tidligere salgsperiode`);
+      if (conflicts.length && !isManual(adId)) {
+        localRejects.push(`ad ${adId}: ${conflicts.join('; ')}`);
         continue;
       }
-      if (r.oppdragsavtale_signert && new Date(r.oppdragsavtale_signert) - new Date(pub) > 90 * DAY) {
-        localRejects.push(`ad ${adId}: publisert ${pub.slice(0, 10)} >90d før OA ${r.oppdragsavtale_signert.slice(0, 10)} — trolig tidligere salgsperiode`);
-        continue;
-      }
+      if (conflicts.length) manualConflicts.push(`${r.oppdragsnr} (ad ${adId}): ${conflicts.join('; ')}`);
       // Prisvakt for navne-matchede kandidater: annonseprisen må ligne på
       // oppdragets salgssum/prisantydning (±40 %) — luker annen båt av samme modell
       if (!trusted.has(adId)) {
@@ -261,7 +272,8 @@ async function main() {
           continue;
         }
       }
-      valid.push({ adId, pub, price: ad.price, trusted: trusted.has(adId) });
+      valid.push({ adId, pub, price: ad.price, trusted: trusted.has(adId) || isManual(adId),
+        manual: isManual(adId), dealerhub: !!ad.dealerhub });
     }
 
     if (!valid.length) {
@@ -270,15 +282,17 @@ async function main() {
       else notFound.push(`${r.oppdragsnr}: ${localRejects.join(' | ')}`);
       continue;
     }
-    // Direkte-koblede foran navne-matchede; innenfor samme gruppe: tidligste først
-    valid.sort((a, b) => (b.trusted - a.trusted) || a.pub.localeCompare(b.pub));
+    // Manuelle først, så direkte-koblede, så navne-matchede; ellers tidligste
+    valid.sort((a, b) => (b.manual - a.manual) || (b.trusted - a.trusted) || a.pub.localeCompare(b.pub));
     if (valid.length > 1) multi.push(`${r.oppdragsnr}: ${valid.length} gyldige annonser — valgte ${valid[0].trusted ? 'direkte-koblet' : 'tidligste'} (${valid.map(v => `${v.adId}@${v.pub.slice(0, 10)}${v.trusted ? '*' : ''}`).join(', ')})`);
     updates.push({
       oppdragsnr: r.oppdragsnr,
       finn_kode: valid[0].adId,
       prisantydning_finn: valid[0].price,
       annonse_publisert: valid[0].pub, // FINN er fasit — overstyrer HubSpot-stagedato
-      annonse_kilde: 'finn',
+      annonse_kilde: valid[0].dealerhub ? 'dealerhub' : 'finn',
+      _navnematch: !valid[0].trusted,   // persisteres ikke — kun til rapporten
+      _flerevalg: valid.length > 1,
     });
   }
   if (multi.length) { console.log(`\nFlere gyldige annonser (${multi.length}):`); multi.forEach(x => console.log('  ' + x)); }
@@ -318,10 +332,27 @@ async function main() {
     }
   }
 
+  // Rapport til kontrollpanelet: hvilke rader trenger manuell verifisering
+  const report = {
+    generert: new Date().toISOString(),
+    navnematch: updates.filter(u => u._navnematch).map(u => u.oppdragsnr),
+    flere_gyldige: updates.filter(u => u._flerevalg).map(u => u.oppdragsnr),
+    pris_avvik: prisAvvik.map(u => u.oppdragsnr),
+    avvist_alle_kandidater: rejected.map(x => x.split(':')[0].trim()),
+    ikke_funnet: notFound.map(x => x.split(':')[0].trim()),
+    manuell_datokonflikt: manualConflicts,
+  };
+  if (manualConflicts.length) {
+    console.log(`\nMANUELLE koder med datokonflikt (${manualConflicts.length}) — sjekk solgt/OA-dato på oppdraget:`);
+    manualConflicts.forEach(x => console.log('  ' + x));
+  }
+  fs.writeFileSync(path.resolve(__dirname, 'finn-backfill-report.json'), JSON.stringify(report, null, 2));
+  console.log('Rapport: scripts/finn-backfill-report.json');
+
   if (DRY_RUN) { console.log(`\nDRY RUN — ${updates.length} oppdateringer ikke skrevet. Kjør med --commit.`); return; }
 
   for (const u of updates) {
-    const { oppdragsnr, ...fields } = u;
+    const { oppdragsnr, _navnematch, _flerevalg, ...fields } = u;
     const { error: uErr } = await supabase.from('oppdrag_livslop')
       .update({ ...fields, updated_at: new Date().toISOString() }).eq('oppdragsnr', oppdragsnr);
     if (uErr) console.error(`  Feil ${oppdragsnr}:`, uErr.message);

@@ -548,7 +548,7 @@ async function main() {
     // fasit og skal ALDRI overskrives av HubSpot-datoer.
     let annonse = null;
     const exAnn = existingByNr.get(nr);
-    if (exAnn?.annonse_kilde === 'finn' && exAnn.annonse_publisert) {
+    if (['finn', 'dealerhub'].includes(exAnn?.annonse_kilde) && exAnn.annonse_publisert) {
       annonse = exAnn.annonse_publisert;
     } else if (dealB && pipeB?.aktivStageId) {
       annonse = dealB.properties[`hs_v2_date_entered_${pipeB.aktivStageId}`] || null;
