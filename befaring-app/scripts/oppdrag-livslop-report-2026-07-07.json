@@ -1,12 +1,12 @@
 {
-  "generated": "2026-07-07T10:51:46.361Z",
+  "generated": "2026-07-07T12:28:40.337Z",
   "dry_run": false,
   "counts": {
     "rows": 433,
     "byStatus": {
-      "solgt": 356,
+      "solgt": 357,
       "avsluttet_usolgt": 22,
-      "aktiv": 55
+      "aktiv": 54
     }
   },
   "fasit": {
@@ -43,7 +43,240 @@
     "25078",
     "25049"
   ],
-  "oneflow_unmatched": [],
+  "oneflow_unmatched": [
+    {
+      "id": 15255763,
+      "name": "Jeanneau 40.3 Lars B - salgsavtale",
+      "template": 5130587,
+      "kind": "oa",
+      "reason": "nomatch",
+      "signed": "2026-07-06T06:37:29+00:00"
+    },
+    {
+      "id": 15131242,
+      "name": "Salgsavtale 2 - Bavaria 36 2004",
+      "template": 5130587,
+      "kind": "oa",
+      "reason": "nomatch",
+      "signed": "2026-07-07T08:22:32+00:00"
+    },
+    {
+      "id": 14619046,
+      "name": "Swan 38 - salgsavtale",
+      "template": 5130587,
+      "kind": "oa",
+      "reason": "nomatch",
+      "signed": "2026-05-22T08:44:11+00:00"
+    },
+    {
+      "id": 13732589,
+      "name": "26008 - Salgsavtale - Nor-Tech 4000 Roadster",
+      "template": 5130587,
+      "kind": "oa",
+      "reason": "nomatch",
+      "signed": "2026-03-02T14:29:29+00:00"
+    },
+    {
+      "id": 12116979,
+      "name": "25085 - Salgsavtale",
+      "template": 5130587,
+      "kind": "oa",
+      "reason": "nomatch",
+      "signed": "2025-09-29T10:04:06+00:00"
+    },
+    {
+      "id": 11537367,
+      "name": "25064 - Salgsavtale",
+      "template": 5130587,
+      "kind": "oa",
+      "reason": "nomatch",
+      "signed": "2025-08-08T13:51:28+00:00"
+    },
+    {
+      "id": 10883080,
+      "name": "25043 - Salgsavtale",
+      "template": 5130587,
+      "kind": "oa",
+      "reason": "nomatch",
+      "signed": "2025-06-16T13:08:37+00:00"
+    },
+    {
+      "id": 10243209,
+      "name": "Budaksept - 25006 - Goldfish 28 Bullet",
+      "template": 5216188,
+      "kind": "budaksept",
+      "reason": "ambiguous(3)",
+      "signed": "2025-03-24T09:29:03+00:00"
+    },
+    {
+      "id": 9001948,
+      "name": "24065 - Salgsavtale",
+      "template": 5130587,
+      "kind": "oa",
+      "reason": "nomatch",
+      "signed": "2024-10-31T13:07:59+00:00"
+    },
+    {
+      "id": 8417465,
+      "name": "24060 - Salgsavtale",
+      "template": 5130587,
+      "kind": "oa",
+      "reason": "nomatch",
+      "signed": "2024-09-11T08:29:23+00:00"
+    },
+    {
+      "id": 8417406,
+      "name": "24059 - Salgsavtale",
+      "template": 5130587,
+      "kind": "oa",
+      "reason": "nomatch",
+      "signed": "2024-09-02T11:20:47+00:00"
+    },
+    {
+      "id": 8409640,
+      "name": "24058 - Salgsavtale",
+      "template": 5130587,
+      "kind": "oa",
+      "reason": "nomatch",
+      "signed": "2024-09-03T17:56:01+00:00"
+    },
+    {
+      "id": 8319958,
+      "name": "24057 - Salgsavtale",
+      "template": 5130587,
+      "kind": "oa",
+      "reason": "nomatch",
+      "signed": "2024-08-30T07:17:38+00:00"
+    },
+    {
+      "id": 8173953,
+      "name": "Salgsavtale - Galeon 500 Fly",
+      "template": 5130587,
+      "kind": "oa",
+      "reason": "nomatch",
+      "signed": "2024-08-14T07:25:58+00:00"
+    },
+    {
+      "id": 8134068,
+      "name": "24053 - Salgsavtale",
+      "template": 5130587,
+      "kind": "oa",
+      "reason": "nomatch",
+      "signed": "2024-08-07T11:28:29+00:00"
+    },
+    {
+      "id": 8118644,
+      "name": "24049 - Salgsavtale",
+      "template": 5131998,
+      "kind": "oa",
+      "reason": "nomatch",
+      "signed": "2024-08-07T11:23:02+00:00"
+    },
+    {
+      "id": 8114081,
+      "name": "240407 - Salgsavtale",
+      "template": 5130587,
+      "kind": "oa",
+      "reason": "nomatch",
+      "signed": "2024-08-01T12:04:45+00:00"
+    },
+    {
+      "id": 7688751,
+      "name": "Budakseptskjema - 24011 - Goldfish 38 SuperSport#3",
+      "template": 5216188,
+      "kind": "budaksept",
+      "reason": "ambiguous(4)",
+      "signed": "2024-06-09T06:25:33+00:00"
+    },
+    {
+      "id": 6344730,
+      "name": "23048 - Salgsavtale",
+      "template": 5131998,
+      "kind": "oa",
+      "reason": "nomatch",
+      "signed": "2024-01-07T11:59:38+00:00"
+    },
+    {
+      "id": 5777086,
+      "name": "23043 - Salgsavtale",
+      "template": 5131998,
+      "kind": "oa",
+      "reason": "nomatch",
+      "signed": "2023-10-12T07:28:27+00:00"
+    },
+    {
+      "id": 5544640,
+      "name": "Bavaria 36 - Salgsavtale",
+      "template": 5131998,
+      "kind": "oa",
+      "reason": "nomatch",
+      "signed": "2023-09-01T07:33:28+00:00"
+    },
+    {
+      "id": 5504396,
+      "name": "Budakseptbrev - 23019 - Bavaria Sport 330 HT#3",
+      "template": 5216188,
+      "kind": "budaksept",
+      "reason": "ambiguous(2)",
+      "signed": "2023-08-21T15:05:50+00:00"
+    },
+    {
+      "id": 5248293,
+      "name": "Bavaria 37 Oppdragsavtale",
+      "template": 5131998,
+      "kind": "oa",
+      "reason": "nomatch",
+      "signed": "2023-07-11T14:03:00+00:00"
+    },
+    {
+      "id": 5220928,
+      "name": "Askeladden C83 - Oppdragsavtale",
+      "template": 5130587,
+      "kind": "oa",
+      "reason": "ambiguous(2)",
+      "signed": "2023-07-02T13:37:14+00:00"
+    },
+    {
+      "id": 5215667,
+      "name": "Jeanneau Cap Camerat - Oppdragsavtale",
+      "template": 5130587,
+      "kind": "oa",
+      "reason": "nomatch",
+      "signed": "2023-06-29T12:45:34+00:00"
+    },
+    {
+      "id": 5172629,
+      "name": "LS - Cormate - Oppdragsavtale",
+      "template": 5130587,
+      "kind": "oa",
+      "reason": "nomatch",
+      "signed": "2023-06-22T16:36:58+00:00"
+    },
+    {
+      "id": 5165535,
+      "name": "Teco Group AS - Sigurd Lange",
+      "template": 5130587,
+      "kind": "oa",
+      "reason": "nomatch",
+      "signed": "2023-06-21T13:00:35+00:00"
+    },
+    {
+      "id": 5158683,
+      "name": "DS - Capelli - Oppdragsavtale",
+      "template": 5130587,
+      "kind": "oa",
+      "reason": "nomatch",
+      "signed": "2023-06-21T09:15:02+00:00"
+    },
+    {
+      "id": 5137120,
+      "name": "OB NS32 - Salgsavtale",
+      "template": 5130587,
+      "kind": "oa",
+      "reason": "nomatch",
+      "signed": "2023-06-22T09:21:39+00:00"
+    }
+  ],
   "flags": {
     "no_oa_date": [
       "17001",
@@ -250,33 +483,16 @@
       "23032",
       "23038",
       "23040",
-      "24011",
       "24014",
       "24018",
       "24019",
-      "24032",
-      "24038",
       "24044",
       "24047",
       "24052",
-      "24054",
-      "24056",
       "24064",
       "24089",
-      "25011",
-      "25033",
-      "25037",
-      "25038",
       "25048",
-      "25049",
-      "25077",
-      "25078",
-      "25080",
-      "25088",
-      "26001",
-      "26002",
-      "26011",
-      "26025"
+      "26011"
     ],
     "no_megler": [
       "21016",
@@ -579,7 +795,8 @@
     ],
     "won_not_in_csv": [
       "24048 (24048 - Grandezza 28 OC, closedate 2025-05-30)",
-      "25089 (25089 - Delphia 40.3, closedate 2026-04-09)"
+      "25089 (25089 - Delphia 40.3, closedate 2026-04-09)",
+      "26041 (26041 - Nimbus 300R 2005, closedate 2026-07-07)"
     ],
     "oa_after_sale": [
       "17001",
@@ -615,24 +832,11 @@
       "22033",
       "23002",
       "23005",
+      "23023",
       "23026",
       "23040",
-      "24011",
-      "24032",
-      "24038",
-      "24054",
-      "24056",
-      "25011",
-      "25033",
-      "25037",
-      "25038",
       "25048",
-      "25077",
-      "25088",
-      "26001",
-      "26002",
-      "26011",
-      "26025"
+      "26011"
     ]
   }
 }

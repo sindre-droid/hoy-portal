@@ -325,8 +325,9 @@ async function fetchAllOneflowContracts(maxPages) {
   const total = first.data?.count || 0;
   let contracts = [...(first.data?.data || [])];
   const pages = Math.min(maxPages, Math.ceil(total / 100)) - 1;
-  for (let i = 1; i <= pages; i++) {
-    const res = await ofApi(`/contracts?limit=100&offset=${i * 100}`);
+  const fetches = [];
+  for (let i = 1; i <= pages; i++) fetches.push(ofApi(`/contracts?limit=100&offset=${i * 100}`));
+  for (const res of await Promise.all(fetches)) {
     if (res.ok) contracts.push(...(res.data?.data || []));
   }
   console.log(`Oneflow: hentet ${contracts.length} av ${total} kontrakter`);
