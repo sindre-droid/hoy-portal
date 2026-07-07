@@ -38,6 +38,11 @@ const args = process.argv.slice(2);
 const asofIdx = args.indexOf('--asof');
 const TODAY = asofIdx > -1 ? new Date(args[asofIdx + 1]) : new Date();
 const YEAR_END = new Date(`${TODAY.getFullYear()}-12-31`);
+// Kun signeringer fra og med dette året inngår i tidsanalysene (--fra YYYY).
+// Eldre data er tynn og mindre relevant for dagens drift.
+const fraIdx = args.indexOf('--fra');
+const FRA_AAR = fraIdx > -1 ? Number(args[fraIdx + 1]) : 2024;
+const FRA_DATO = `${FRA_AAR}-01-01`;
 
 // ── H2-mål per megler (ex mva), avklart med Sindre 6. jul 2026 ──────────────
 const H2_MAAL = {
@@ -74,9 +79,21 @@ function stats(values) {
   return { n: s.length, median: quantile(s, 0.5), p25: quantile(s, 0.25), p75: quantile(s, 0.75) };
 }
 function kategori(r) {
-  if (r.battype_kilde === 'hubspot') return r.battype;
-  const m = KATEGORI_MAP[(r.battype || '').trim()];
-  return m ? m.kategori : null;
+  // battype er nå alltid kategori (mapping gjøres i importen); fallback for eldre data
+  return r.battype && r.battype === r.battype.toLowerCase() ? r.battype
+    : (KATEGORI_MAP[(r.batmodell || r.battype || '').trim()]?.kategori ?? null);
+}
+
+// Merke fra modellnavn — flerords-merker først, ellers første ord
+const BRANDS = ['Chris-Craft', 'Chris Craft', 'Sweden Yachts', 'X-Yachts', 'Hallberg Rassy',
+  'Boston Whaler', 'Nordic Star', 'Sea Ray', 'Italia Yacht', 'Fjord Terne', 'Nord West', 'Grand Banks'];
+function merke(r) {
+  const m = (r.batmodell || '').trim();
+  if (!m) return null;
+  const hit = BRANDS.find(b => m.toLowerCase().startsWith(b.toLowerCase()));
+  if (hit) return hit.replace('Chris Craft', 'Chris-Craft').replace('Fjord Terne', 'Fjord');
+  const w = m.split(/\s+/)[0];
+  return w.length > 1 ? w.replace(/^BW$/, 'Boston Whaler') : null;
 }
 function groupBy(arr, fn) {
   const m = new Map();
@@ -94,14 +111,15 @@ async function main() {
   if (error) throw error;
   console.log(`Lest ${rows.length} rader. As-of: ${TODAY.toISOString().slice(0, 10)}`);
 
-  // Basispopulasjon for tidsanalyser: ekte Oneflow-signeringsdato
-  const signerte = rows.filter(r => r.oppdragsavtale_kilde === 'oneflow' && r.oppdragsavtale_signert);
+  // Basispopulasjon for tidsanalyser: ekte Oneflow-signeringsdato, signert >= FRA_DATO
+  const signerte = rows.filter(r => r.oppdragsavtale_kilde === 'oneflow' && r.oppdragsavtale_signert
+    && r.oppdragsavtale_signert >= FRA_DATO);
   const solgte = signerte.filter(r => r.status === 'solgt' && r.solgt_dato);
   const aktive = rows.filter(r => r.status === 'aktiv');
 
   const L = [];
   L.push(`# Oppdrag-livsløp — Fase 1-analyse`);
-  L.push(`\n*Generert ${TODAY.toISOString().slice(0, 10)}. Datasett: ${rows.length} oppdrag, hvorav ${signerte.length} med ekte signeringsdato (Oneflow), ${solgte.length} solgte med både signerings- og salgsdato, ${aktive.length} aktive. Historiske oppdrag uten Oneflow-dato er holdt utenfor tidsanalysene.*`);
+  L.push(`\n*Generert ${TODAY.toISOString().slice(0, 10)}. Datasett: ${rows.length} oppdrag totalt; tidsanalysene bruker kun oppdrag signert fra og med ${FRA_AAR} med ekte Oneflow-signeringsdato: **${signerte.length} oppdrag**, hvorav ${solgte.length} solgte og ${aktive.length} aktive i porteføljen. Eldre data er utelatt som mindre relevant (endre med \`--fra YYYY\`).*`);
 
   // ── 1. Syklustid ───────────────────────────────────────────────────────────
   L.push(`\n## 1. Syklustid signert → solgt (dager)`);
@@ -123,13 +141,28 @@ async function main() {
   cycTable('Per båtkategori', [...groupBy(cyc, kategori)].sort((a, b) => b[1].length - a[1].length));
   cycTable('Per salgsår', [...groupBy(cyc, r => r.solgt_dato.slice(0, 4))].sort());
 
+  // Per merke — hva selges, hvor raskt og til hvilken pris (alle solgte >= FRA_AAR)
+  const solgteAlle = rows.filter(r => r.status === 'solgt' && (r.solgt_dato || '') >= FRA_DATO && r.salgssum > 0);
+  L.push(`\n**Per båtmerke** (solgt ${FRA_AAR}–, min. 3 salg — syklustid der signeringsdato finnes):\n`);
+  L.push(`| Merke | Solgt (stk) | Median salgssum | Median provisjon | Median dager sign.→solgt |`);
+  L.push(`|---|---|---|---|---|`);
+  const merkeGrupper = [...groupBy(solgteAlle, merke)]
+    .filter(([k, g]) => k !== 'ukjent' && g.length >= 3)
+    .sort((a, b) => b[1].length - a[1].length);
+  for (const [k, g] of merkeGrupper) {
+    const med = arr => quantile(arr.sort((a, b) => a - b), 0.5);
+    const cd = g.filter(r => r.oppdragsavtale_kilde === 'oneflow' && r.oppdragsavtale_signert)
+      .map(r => days(r.oppdragsavtale_signert, r.solgt_dato)).filter(x => x >= 0);
+    L.push(`| ${k} | ${g.length} | ${kr(med(g.map(r => Number(r.salgssum))))} | ${kr(med(g.map(r => Number(r.provisjon))))} | ${cd.length >= 3 ? Math.round(med(cd)) : '—'} |`);
+  }
+
   // Publisert-leddet (kun data etter pipeline-migreringen 13.04.2026)
   const pub = signerte.filter(r => r.annonse_publisert);
   const sigPub = pub.map(r => days(r.oppdragsavtale_signert, r.annonse_publisert)).filter(d => d >= 0 && d < 1000);
   const pubSolgt = pub.filter(r => r.status === 'solgt' && r.solgt_dato)
     .map(r => days(r.annonse_publisert, r.solgt_dato)).filter(d => d >= 0);
   const sp = stats(sigPub), ps = stats(pubSolgt);
-  L.push(`\n**Signert → publisert** (kun etter april 2026, n=${sp.n}): median ${sp.n ? Math.round(sp.median) : '—'} dager (mål: ≤7). **Publisert → solgt** (n=${ps.n}): median ${ps.n ? Math.round(ps.median) : '—'} dager. Publiseringsdatoer før pipeline-migreringen 13.04.2026 finnes ikke — dette leddet får full dekning fremover.`);
+  L.push(`\n**Signert → publisert** (n=${sp.n}): median ${sp.n ? Math.round(sp.median) : '—'} dager (mål: ≤7). **Publisert → solgt** (n=${ps.n}): median ${ps.n ? Math.round(ps.median) : '—'} dager. Publiseringsdatoer er FINN-verifisert der mulig (annonse_kilde='finn'), ellers HubSpot-stagedato (kun etter 13.04.2026).`);
 
   // ── 2. Close-rate 90/180/365 ───────────────────────────────────────────────
   L.push(`\n## 2. Close-rate — andel signerte oppdrag solgt innen X dager`);

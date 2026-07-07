@@ -135,7 +135,7 @@ async function main() {
   }
   const slim = rows.map(r => ({
     nr: r.oppdragsnr, megler: (r.megler_email || '').split('@')[0] || '—',
-    bat: r.battype || '—', status: r.status,
+    modell: r.batmodell || '—', bat: r.battype || '—', status: r.status,
     signert: (r.oppdragsavtale_signert || '').slice(0, 10),
     signert_kilde: r.oppdragsavtale_kilde || '',
     publisert: (r.annonse_publisert || '').slice(0, 10),
@@ -185,22 +185,42 @@ td.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap
 .flg.w { color:var(--amber); }
 .kilde { font-size:10.5px; color:var(--muted); }
 .mrk { font-size:11px; color:var(--muted); max-width:260px; }
+.btn { padding:7px 14px; border:1px solid var(--green); background:var(--green); color:#fff; border-radius:6px; font-size:12.5px; cursor:pointer; }
+.btn:hover { opacity:.9; }
+.rev { white-space:nowrap; }
+.rev button { border:1px solid #d8d4c8; background:#fff; border-radius:5px; padding:3px 8px; font-size:11.5px; cursor:pointer; margin-right:3px; }
+.rev button.on-ok { background:#3d7a66; color:#fff; border-color:#3d7a66; }
+.rev button.on-feil { background:var(--red); color:#fff; border-color:var(--red); }
+.rev input { width:150px; min-width:0; padding:4px 7px; font-size:11.5px; margin-top:4px; display:block; }
+tr.rev-feil td { background:#f6e3e2 !important; }
 </style></head><body><div class="wrap">
 <h1>Datakontroll — oppdrag_livslop</h1>
 <div class="sub">Generert ${today.toISOString().slice(0, 10)} · ${rows.length} oppdrag · klikk en sjekk for å filtrere til radene den gjelder · klikk kolonneoverskrift for sortering</div>
 <div class="checks" id="checks"></div>
 <div class="bar">
+  <select id="fFra">
+    <option value="2024" selected>Årgang 2024+</option>
+    <option value="2023">Årgang 2023+</option>
+    <option value="2021">Årgang 2021+</option>
+    <option value="">Alle årganger</option>
+  </select>
   <select id="fStatus"><option value="">Alle statuser</option><option>solgt</option><option>aktiv</option><option>avsluttet_usolgt</option></select>
   <select id="fMegler"><option value="">Alle meglere</option></select>
   <select id="fFlagg"><option value="">Alle rader</option><option value="ja">Kun flaggede</option><option value="nei">Kun rene</option></select>
+  <select id="fRev"><option value="">Alle vurderinger</option><option value="feil">Meldt feil</option><option value="ok">Bekreftet OK</option><option value="ingen">Ikke vurdert</option></select>
   <input id="fSok" placeholder="Søk oppdragsnr / båt / merknad…">
   <span class="count" id="count"></span>
 </div>
+<div class="bar">
+  <button id="btnExport" class="btn">⬇ Eksporter gjennomgang (JSON)</button>
+  <button id="btnCopy" class="btn">Kopier til utklippstavle</button>
+  <span class="count" id="revCount"></span>
+</div>
 <table><thead><tr>
-<th data-k="nr">Nr</th><th data-k="bat">Båt</th><th data-k="megler">Megler</th><th data-k="status">Status</th>
+<th data-k="nr">Nr</th><th data-k="modell">Båt (modell)</th><th data-k="bat">Kategori</th><th data-k="megler">Megler</th><th data-k="status">Status</th>
 <th data-k="signert">Signert</th><th data-k="publisert">Publisert</th><th data-k="solgt">Solgt</th>
 <th data-k="salgssum" class="num">Salgssum</th><th data-k="provisjon" class="num">Provisjon</th><th data-k="prisantydning" class="num">Prisantydn.</th>
-<th>Flagg / merknad</th>
+<th>Flagg / merknad</th><th>Din vurdering</th>
 </tr></thead><tbody id="tb"></tbody></table>
 </div>
 <script>
@@ -208,6 +228,45 @@ const ROWS = ${JSON.stringify(rows)};
 const CHECKS = ${JSON.stringify(checks)};
 const kr = v => v == null ? '' : Math.round(v).toLocaleString('no-NO');
 let sortK = 'nr', sortAsc = true, activeCheck = null;
+
+// ── Gjennomgang: lagres i nettleseren (localStorage), overlever regenerering ──
+const REVKEY = 'oppdrag-livslop-gjennomgang';
+let REV = {};
+try { REV = JSON.parse(localStorage.getItem(REVKEY) || '{}'); } catch (e) {}
+function saveRev() { localStorage.setItem(REVKEY, JSON.stringify(REV)); updRevCount(); }
+function setRev(nr, vurdering) {
+  const cur = REV[nr] || {};
+  if (cur.vurdering === vurdering) delete REV[nr]; // klikk igjen = angre
+  else REV[nr] = { ...cur, vurdering, tidspunkt: new Date().toISOString().slice(0, 16) };
+  saveRev(); render();
+}
+function setKommentar(nr, txt) {
+  REV[nr] = { ...(REV[nr] || {}), kommentar: txt, tidspunkt: new Date().toISOString().slice(0, 16) };
+  if (!txt && !REV[nr].vurdering) delete REV[nr];
+  saveRev();
+}
+function updRevCount() {
+  const v = Object.values(REV);
+  document.getElementById('revCount').textContent =
+    v.filter(x => x.vurdering === 'feil').length + ' meldt feil · ' +
+    v.filter(x => x.vurdering === 'ok').length + ' bekreftet OK';
+}
+function exportData() {
+  return JSON.stringify({ eksportert: new Date().toISOString(), gjennomgang:
+    Object.entries(REV).map(([nr, v]) => ({ oppdragsnr: nr, ...v })) }, null, 2);
+}
+document.getElementById('btnExport').onclick = () => {
+  const blob = new Blob([exportData()], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'oppdrag-livslop-gjennomgang.json';
+  a.click();
+};
+document.getElementById('btnCopy').onclick = async () => {
+  try { await navigator.clipboard.writeText(exportData());
+    document.getElementById('btnCopy').textContent = '✓ Kopiert'; }
+  catch (e) { prompt('Kopier manuelt:', exportData()); }
+};
 
 const cbox = document.getElementById('checks');
 CHECKS.forEach((c, i) => {
@@ -225,30 +284,44 @@ meglere.forEach(m => { const o = document.createElement('option'); o.textContent
 
 function render() {
   const st = document.getElementById('fStatus').value, mg = document.getElementById('fMegler').value,
-        fl = document.getElementById('fFlagg').value, q = document.getElementById('fSok').value.toLowerCase();
+        fl = document.getElementById('fFlagg').value, q = document.getElementById('fSok').value.toLowerCase(),
+        rv = document.getElementById('fRev').value,
+        fra = document.getElementById('fFra').value;
+  // Årgang = to første siffer i oppdragsnr (26xxx = 2026)
+  const aargang = nr => { const y = parseInt(String(nr).slice(0, 2)); return isNaN(y) ? 9999 : 2000 + y; };
   let list = ROWS.filter(r =>
+    (!fra || aargang(r.nr) >= Number(fra)) &&
     (!st || r.status === st) && (!mg || r.megler === mg) &&
     (!fl || (fl === 'ja') === (r.flagg.length > 0)) &&
-    (!q || (r.nr + ' ' + r.bat + ' ' + r.merknad).toLowerCase().includes(q)) &&
+    (!rv || (rv === 'ingen' ? !REV[r.nr]?.vurdering : REV[r.nr]?.vurdering === rv)) &&
+    (!q || (r.nr + ' ' + r.modell + ' ' + r.bat + ' ' + r.merknad).toLowerCase().includes(q)) &&
     (!activeCheck || r.flagg.some(f => f.includes(activeCheck))));
   list.sort((a, b) => { const x = a[sortK] ?? '', y = b[sortK] ?? '';
     return (typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), 'no')) * (sortAsc ? 1 : -1); });
   document.getElementById('count').textContent = list.length + ' rader';
   document.getElementById('tb').innerHTML = list.map(r => {
     const err = r.flagg.some(f => f.startsWith('✗'));
-    return '<tr class="' + (r.flagg.length ? 'flagged' + (err ? ' err' : '') : '') + '">' +
-    '<td><b>' + r.nr + '</b></td><td>' + r.bat + '</td><td>' + r.megler + '</td>' +
+    const rev = REV[r.nr];
+    return '<tr class="' + (r.flagg.length ? 'flagged' + (err ? ' err' : '') : '') + (rev?.vurdering === 'feil' ? ' rev-feil' : '') + '">' +
+    '<td><b>' + r.nr + '</b></td><td>' + r.modell + '</td><td>' + r.bat + '</td><td>' + r.megler + '</td>' +
     '<td><span class="pill ' + r.status + '">' + r.status.replace('_', ' ') + '</span></td>' +
     '<td>' + r.signert + (r.signert_kilde && r.signert_kilde !== 'oneflow' ? ' <span class="kilde">(' + r.signert_kilde + ')</span>' : '') + '</td>' +
     '<td>' + r.publisert + '</td><td>' + r.solgt + '</td>' +
     '<td class="num">' + kr(r.salgssum) + '</td><td class="num">' + kr(r.provisjon) + '</td><td class="num">' + kr(r.prisantydning) + '</td>' +
     '<td>' + r.flagg.map(f => '<div class="flg' + (f.startsWith('⚠') ? ' w' : '') + '">' + f + '</div>').join('') +
-      (r.merknad ? '<div class="mrk">' + r.merknad + '</div>' : '') + '</td></tr>';
+      (r.merknad ? '<div class="mrk">' + r.merknad + '</div>' : '') + '</td>' +
+    '<td class="rev">' +
+      '<button class="' + (rev?.vurdering === 'ok' ? 'on-ok' : '') + '" onclick="setRev(\\'' + r.nr + '\\',\\'ok\\')">OK</button>' +
+      '<button class="' + (rev?.vurdering === 'feil' ? 'on-feil' : '') + '" onclick="setRev(\\'' + r.nr + '\\',\\'feil\\')">Feil</button>' +
+      '<input placeholder="kommentar…" value="' + esc(rev?.kommentar || '') + '" onchange="setKommentar(\\'' + r.nr + '\\', this.value)">' +
+    '</td></tr>';
   }).join('');
+  updRevCount();
 }
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
 document.querySelectorAll('th[data-k]').forEach(th => th.onclick = () => {
   const k = th.dataset.k; if (sortK === k) sortAsc = !sortAsc; else { sortK = k; sortAsc = true; } render(); });
-['fStatus', 'fMegler', 'fFlagg', 'fSok'].forEach(id => document.getElementById(id).oninput = render);
+['fFra', 'fStatus', 'fMegler', 'fFlagg', 'fRev', 'fSok'].forEach(id => document.getElementById(id).oninput = render);
 render();
 </script></body></html>`;
 }

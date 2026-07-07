@@ -56,6 +56,13 @@ const PENDING_REVIEW = {
 };
 
 const BROKER_ALIAS = { 'marte@h-y.no': 'henrik@h-y.no' };
+
+// Modellnavn → kategori for rader uten HubSpot-båtkobling
+const KATEGORI_MAP = (() => {
+  try {
+    return JSON.parse(fs.readFileSync(path.resolve(__dirname, 'batkategori-mapping.json'), 'utf8')).mapping;
+  } catch { return {}; }
+})();
 const NAME_TO_EMAIL = {
   sindre: 'sindre@h-y.no', henrik: 'henrik@h-y.no', daniel: 'daniel@h-y.no',
   jeanette: 'jeanette@h-y.no', marte: 'henrik@h-y.no',
@@ -419,7 +426,7 @@ async function main() {
       [...dealsByNr.values(), ...dealsA.values()]
         .map(d => (d.properties.boat_id || '').trim()).filter(Boolean))];
     if (boatIds.length) {
-      boatsMap = await batchReadBoats(boatIds, [boatTypeProp, boatPriceProp].filter(Boolean));
+      boatsMap = await batchReadBoats(boatIds, [boatTypeProp, boatPriceProp, 'boat_name'].filter(Boolean));
       console.log(`Boats: hentet ${boatsMap.size} av ${boatIds.length}`);
     }
   }
@@ -468,7 +475,9 @@ async function main() {
 
   // 5. Bygg rader
   const { data: existingRows, error: exErr } = await supabase
-    .from('oppdrag_livslop').select('oppdragsnr, oppdragsavtale_kilde, oppdragsavtale_signert').limit(10000);
+    .from('oppdrag_livslop')
+    .select('oppdragsnr, oppdragsavtale_kilde, oppdragsavtale_signert, annonse_kilde, annonse_publisert')
+    .limit(10000);
   if (exErr) {
     if (DRY_RUN && /does not exist|42P01|find the table/i.test(exErr.message)) {
       console.log('\nNB: oppdrag_livslop-tabellen finnes ikke enda — kjør supabase/2026-07-03_oppdrag-livslop.sql før --commit.');
@@ -510,7 +519,13 @@ async function main() {
       oaTs = existing.oppdragsavtale_signert; oaKilde = 'manuell';
     } else if (of.oa?.ts) { oaTs = of.oa.ts; oaKilde = 'oneflow'; oaId = of.oa.id; }
     else if (asg?.oppdragsavtale_signed_at) { oaTs = asg.oppdragsavtale_signed_at; oaKilde = 'oneflow'; }
-    else if (asg?.assigned_at) { oaTs = asg.assigned_at; oaKilde = 'tildeling'; merknader.push('OA-dato = tildelingsdato (Oneflow ikke matchet)'); }
+    else if (asg?.assigned_at && !asg.assigned_at.startsWith('2026-04-15')) {
+      // Tildelingsdato-fallback gjelder KUN løpende drift (nummer tildeles ved
+      // signering). 385 historiske nummer ble bulk-importert 15.04.2026 —
+      // den datoen er import-tidspunkt, ikke signering, og skal aldri brukes.
+      oaTs = asg.assigned_at; oaKilde = 'tildeling';
+      merknader.push('OA-dato = tildelingsdato (Oneflow ikke matchet)');
+    }
 
     // Sanity: OA-dato ETTER salgsdato = feilmatchet kontrakt (fuzzy båtnavn-match
     // i oppdragsnummer-modulen kan treffe nyere kontrakt for samme båtmodell).
@@ -529,8 +544,13 @@ async function main() {
     // Annonse publisert (stage-historikk, ikke dagens stage).
     // Deals ble migrert til Listing/Sale-pipelinen 13.04.2026 — entered-datoer
     // fra den dagen er migreringsartefakter, ikke reelle publiseringsdatoer.
+    // FINN-verifiserte datoer (annonse_kilde='finn' fra finn-backfill.js) er
+    // fasit og skal ALDRI overskrives av HubSpot-datoer.
     let annonse = null;
-    if (dealB && pipeB?.aktivStageId) {
+    const exAnn = existingByNr.get(nr);
+    if (exAnn?.annonse_kilde === 'finn' && exAnn.annonse_publisert) {
+      annonse = exAnn.annonse_publisert;
+    } else if (dealB && pipeB?.aktivStageId) {
       annonse = dealB.properties[`hs_v2_date_entered_${pipeB.aktivStageId}`] || null;
       if (annonse && annonse.startsWith('2026-04-13')) {
         merknader.push('annonse_publisert = pipeline-migreringsdato — reell publiseringsdato ukjent');
@@ -538,19 +558,22 @@ async function main() {
       }
     }
 
-    // Båt
-    let battype = null, battypeKilde = null, prisantydning = null, boatHsId = null;
+    // Båt — batmodell (modellnavn) og battype (kategori) er separate felt
+    let battype = null, battypeKilde = null, prisantydning = null, boatHsId = null, batmodell = null;
     const boatId = ((dealB || dealA)?.properties.boat_id || '').trim() || null;
     if (boatId && boatsMap.has(boatId)) {
       const bp = boatsMap.get(boatId);
       battype = boatTypeProp ? (bp[boatTypeProp] || null) : null;
+      batmodell = (bp.boat_name || '').trim() || null;
       prisantydning = boatPriceProp ? parseNum(bp[boatPriceProp]) : null;
       boatHsId = boatId;
       if (battype) battypeKilde = 'hubspot';
     }
-    if (!battype && (csv?.boat || asg?.vessel_name || asg?.deal_name)) {
-      battype = csv?.boat || asg?.vessel_name || asg?.deal_name;
-      battypeKilde = 'csv';
+    if (!batmodell) batmodell = csv?.boat || asg?.vessel_name || asg?.deal_name || null;
+    if (!battype && batmodell) {
+      // Kategoriser modellnavnet via mapping (scripts/batkategori-mapping.json)
+      const m = KATEGORI_MAP[batmodell.trim()];
+      if (m) { battype = m.kategori; battypeKilde = 'csv'; }
       flags.boat_fallback_csv.push(nr);
     }
 
@@ -585,6 +608,7 @@ async function main() {
       provisjon: csv?.provisjon ?? null,
       omsetning_ex_mva: csv?.omsetning ?? null,
       battype, battype_kilde: battypeKilde,
+      batmodell,
       prisantydning,
       status,
       deal_a_id: asg?.deal_id || dealA?.id || null,
