@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oppdrag-livsløp — Fase 1 | House of Yachts</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root { --green:#0B3B30; --green-light:#1a5c4c; --gold:#C9A96A; --bg:#f7f6f3; --card:#ffffff; --text:#1d2521; --muted:#6b7570; --red:#b0413e; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:Georgia,'Times New Roman',serif; background:var(--bg); color:var(--text); padding:32px 20px 60px; }
+  .wrap { max-width:1000px; margin:0 auto; }
+  h1 { color:var(--green); font-size:26px; font-weight:normal; letter-spacing:.5px; }
+  .sub { color:var(--muted); font-size:14px; margin:6px 0 28px; font-family:Helvetica,Arial,sans-serif; }
+  h2 { color:var(--green); font-size:17px; margin:36px 0 6px; font-weight:normal; letter-spacing:.3px; border-bottom:1px solid #e3e0d8; padding-bottom:8px; }
+  .expl { font-family:Helvetica,Arial,sans-serif; font-size:13px; color:var(--muted); margin:8px 0 16px; line-height:1.5; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:14px; }
+  .card { background:var(--card); border-radius:10px; padding:20px 22px; box-shadow:0 1px 4px rgba(0,0,0,.06); }
+  .card .big { font-size:34px; color:var(--green); font-family:Helvetica,Arial,sans-serif; font-weight:600; }
+  .card .lbl { font-family:Helvetica,Arial,sans-serif; font-size:12.5px; color:var(--muted); margin-top:4px; line-height:1.4; }
+  .card.warn .big { color:var(--red); }
+  .chartbox { background:var(--card); border-radius:10px; padding:20px; box-shadow:0 1px 4px rgba(0,0,0,.06); margin-top:12px; }
+  .timeline { display:flex; align-items:center; gap:0; margin:18px 0 6px; font-family:Helvetica,Arial,sans-serif; flex-wrap:wrap; }
+  .tstep { background:var(--green); color:#fff; border-radius:8px; padding:14px 18px; text-align:center; min-width:130px; }
+  .tstep .t1 { font-size:13px; opacity:.85; } .tstep .t2 { font-size:15px; font-weight:600; margin-top:3px; }
+  .tarrow { text-align:center; padding:0 14px; min-width:110px; }
+  .tarrow .d { font-size:20px; font-weight:700; color:var(--green); }
+  .tarrow .d.bad { color:var(--red); }
+  .tarrow .l { font-size:11.5px; color:var(--muted); }
+  .tarrow .arrow { color:#c9c4b8; font-size:18px; }
+  table { width:100%; border-collapse:collapse; font-family:Helvetica,Arial,sans-serif; font-size:13.5px; background:var(--card); border-radius:10px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.06); }
+  th { background:var(--green); color:#fff; text-align:left; padding:10px 14px; font-weight:500; font-size:12.5px; }
+  td { padding:10px 14px; border-top:1px solid #efece5; }
+  td.num, th.num { text-align:right; }
+  .bar-cell { position:relative; }
+  .pill { display:inline-block; padding:2px 10px; border-radius:20px; font-size:12px; color:#fff; background:var(--green-light); }
+  .pill.red { background:var(--red); }
+  .footnote { font-family:Helvetica,Arial,sans-serif; font-size:11.5px; color:var(--muted); margin-top:26px; line-height:1.6; border-top:1px solid #e3e0d8; padding-top:14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Oppdrag-livsløp — hva tallene sier</h1>
+  <div class="sub">House of Yachts · oppdrag signert 2024–2026 (198 med verifisert signeringsdato) · kvalitetssikret mot Oneflow, FINN og oppgjørslistene · 7. juli 2026</div>
+
+  <div class="cards">
+    <div class="card"><div class="big">76 dager</div><div class="lbl">Median tid fra oppdragsgiver signerer til båten er solgt. Halvparten raskere, halvparten tregere (40–137 dager for de midterste 50 %).</div></div>
+    <div class="card"><div class="big">84 %</div><div class="lbl">Av signerte oppdrag ender som salg innen ett år. 45 % innen 90 dager.</div></div>
+    <div class="card warn"><div class="big">69 %</div><div class="lbl">Så mye av H2-målet (3,4 mill) dekkes statistisk av dagens 54 aktive oppdrag. Resten må komme fra nye signeringer.</div></div>
+    <div class="card warn"><div class="big">~20. okt</div><div class="lbl">Siste realistiske signeringsdato for at et oppdrag rekker å bli 2026-omsetning (10.10 for 2–5M, 25.10 for <1M).</div></div>
+  </div>
+
+  <h2>Reisen til et oppdrag</h2>
+  <div class="expl">Fra signering til salg — median antall dager per steg. Publiserings-steget er det eneste dere styrer helt selv, og det ligger langt over målet.</div>
+  <div class="chartbox">
+    <div class="timeline">
+      <div class="tstep"><div class="t1">Oppdragsavtale</div><div class="t2">Signert</div></div>
+      <div class="tarrow"><div class="d bad">12 dager</div><div class="l">mål: ≤ 7 dager</div><div class="arrow">→</div></div>
+      <div class="tstep"><div class="t1">Annonse</div><div class="t2">Publisert</div></div>
+      <div class="tarrow"><div class="d">67 dager</div><div class="l">median</div><div class="arrow">→</div></div>
+      <div class="tstep" style="background:var(--gold);color:#1d2521;"><div class="t1">Båten er</div><div class="t2">Solgt</div></div>
+    </div>
+    <div class="expl" style="margin-bottom:0">⚠️ <b>12 dager fra oppdragsgivers signatur til annonsen er ute</b> — fortsatt over 7-dagersmålet. Hver uke spart her flytter salg inn i inneværende sesong. (Målt på 174 oppdrag; signeringstidspunkt fra Oneflow, publiseringsdato verifisert mot FINN.)</div>
+  </div>
+
+  <h2>Prisklasse avgjør tempoet</h2>
+  <div class="expl">Andel signerte oppdrag som er solgt innen 90 / 180 / 365 dager. Båter i 2–5 mill-klassen er de klart tyngste: kun 37 % solgt etter et halvt år.</div>
+  <div class="chartbox"><canvas id="closerate" height="120"></canvas></div>
+
+  <h2>Sesongen styrer</h2>
+  <div class="expl">Andel oppdrag solgt innen 180 dager, etter måneden avtalen ble signert. Vår-signeringer treffer kjøpesesongen — signeringer fra august og utover selger stadig dårligere samme år.</div>
+  <div class="chartbox"><canvas id="sesong" height="110"></canvas></div>
+
+  <h2>H2-prognosen per megler</h2>
+  <div class="expl">Forventet omsetning fra dagens aktive portefølje (basert på historisk sannsynlighet for salg gitt oppdragets alder og pris) målt mot H2-målene.</div>
+  <div class="chartbox"><canvas id="portefolje" height="110"></canvas></div>
+  <div class="expl">Gapet må dekkes av <b>nye signeringer før medio oktober</b>. Omregnet til aktivitet med dagens konverteringsrater:</div>
+  <table>
+    <tr><th>Megler</th><th class="num">Gap å dekke</th><th class="num">Salg trengs</th><th class="num">Oppdrag inn</th><th class="num">Befaringer</th><th class="num">Calls</th></tr>
+    <tr><td>Sindre</td><td class="num">267 000</td><td class="num">3–4</td><td class="num">4–5</td><td class="num">4–5</td><td class="num"><span class="pill">inbound</span></td></tr>
+    <tr><td>Henrik + Marte</td><td class="num">315 000</td><td class="num">~6</td><td class="num">~7</td><td class="num">8–9</td><td class="num">~113</td></tr>
+    <tr><td>Daniel</td><td class="num">471 000</td><td class="num">9–10</td><td class="num">11–12</td><td class="num">11–12</td><td class="num"><span class="pill red">~504</span></td></tr>
+  </table>
+
+  <div class="footnote">
+    <b>Datakvalitet:</b> Signeringsdatoer = oppdragsgivers signatur i Oneflow (153 kontrakter deltaker-verifisert).
+    Publiseringsdatoer verifisert mot FINN-annonsene (177 stk), inkl. Sindres manuelle gjennomgang av 60 matchinger.
+    Økonomi = oppgjørslistene, eksakt validert. Off-market-salg og tapte annonser er eksplisitt merket.
+    <b>Forbehold:</b> Prisklasse = prisantydning; mangler der båt-kobling i HubSpot mangler («ukjent»-segmentet).
+    Befaring/calls-rater er estimat fra kostnadsmodellen til CRM-loggingen har ~3 mnd ren data.
+    Uavklarte enkeltsaker: 24089/25089 (Delphia 40.3), 24048 (Grandezza 28 OC), Charter AD Astra, 26041 føres i oppgjørsliste.
+    Full metode og tall: <i>oppdrag-livslop-fase1-rapport.md</i> · kontroll: <i>oppdrag-livslop-kontroll.html</i>.
+  </div>
+</div>
+
+<script>
+const GREEN='#0B3B30', GREEN2='#3d7a66', GOLD='#C9A96A', RED='#b0413e', GREY='#c9c4b8';
+Chart.defaults.font.family='Helvetica,Arial,sans-serif';
+Chart.defaults.color='#4a534e';
+
+new Chart(document.getElementById('closerate'), {
+  type:'bar',
+  data:{ labels:['Under 1 mill','1–2 mill','2–5 mill','Ukjent prisantydning'],
+    datasets:[
+      {label:'Innen 90 dager', data:[56,47,29,47], backgroundColor:GOLD},
+      {label:'Innen 180 dager', data:[77,68,35,77], backgroundColor:GREEN2},
+      {label:'Innen 365 dager', data:[89,91,68,84], backgroundColor:GREEN}
+    ]},
+  options:{ responsive:true, scales:{ y:{ max:100, ticks:{ callback:v=>v+'%' } } },
+    plugins:{ tooltip:{ callbacks:{ label:c=>` ${c.dataset.label}: ${c.raw} %` } } } }
+});
+
+new Chart(document.getElementById('sesong'), {
+  type:'bar',
+  data:{ labels:['jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov'],
+    datasets:[{ label:'Solgt innen 180 dager', data:[100,67,86,72,83,48,50,63,36,100,40],
+      backgroundColor:['jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov'].map((m,i)=>[7,8,10].includes(i)?RED:GREEN) }]},
+  options:{ responsive:true, scales:{ y:{ max:100, ticks:{ callback:v=>v+'%' } } },
+    plugins:{ legend:{ display:false },
+      tooltip:{ callbacks:{ label:c=>` ${c.raw} % solgt innen 180 dager (obs: jan/des/okt har få målepunkter)` } } } }
+});
+
+new Chart(document.getElementById('portefolje'), {
+  type:'bar',
+  data:{ labels:['Sindre','Henrik + Marte','Daniel'],
+    datasets:[
+      {label:'Forventet fra dagens portefølje', data:[1033315,985046,329349], backgroundColor:GREEN},
+      {label:'Gap som må dekkes av nye oppdrag', data:[266685,314954,470651], backgroundColor:GREY}
+    ]},
+  options:{ responsive:true, indexAxis:'y',
+    scales:{ x:{ stacked:true, ticks:{ callback:v=>(v/1e6).toLocaleString('no')+' M' } }, y:{ stacked:true } },
+    plugins:{ tooltip:{ callbacks:{ label:c=>` ${c.dataset.label}: ${Math.round(c.raw).toLocaleString('no-NO')} kr` } } } }
+});
+</script>
+</body>
+</html>
