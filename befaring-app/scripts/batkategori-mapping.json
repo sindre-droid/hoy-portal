@@ -1,0 +1,725 @@
+{
+  "_kommentar": "Modellnavn → boat_type-kategori for rader uten HubSpot-boat. usikker=true bør gjennomgås av Sindre. Generert 6. jul 2026, forankret i eksisterende boat_type-tagging.",
+  "mapping": {
+    "1939 Jac M. Iversen 8mCR SY Marina": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "8mCr Anker og Jensen SY Christina": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Aquador 25 Wae": {
+      "kategori": "cabincruiser",
+      "usikker": true
+    },
+    "Argo Furuholmen OD 33": {
+      "kategori": "seilbat",
+      "usikker": true
+    },
+    "Axopar 28 Aft Cabin": {
+      "kategori": "pilothouse",
+      "usikker": false
+    },
+    "Axopar 28 Cabin": {
+      "kategori": "pilothouse",
+      "usikker": false
+    },
+    "Axopar 28 Open": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Axopar 37 Sun Top": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Axopar 37 XC": {
+      "kategori": "pilothouse",
+      "usikker": false
+    },
+    "Azimut S 40": {
+      "kategori": "cabincruiser",
+      "usikker": false
+    },
+    "BW  280 Outrage": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "BW 280 Outrage": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "BW 370 Outrage": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Baltic 52": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Bavaria 30 Sport": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Bavaria 36 AC": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Bavaria 37 Cruiser": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Bavaria 38 Cruiser": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Bavaria 38 Cruiser Dødsbo Thomas Borch Myhre": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Bavaria 39 Cr": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Bavaria 400 Sport": {
+      "kategori": "cabincruiser",
+      "usikker": false
+    },
+    "Bavaria 41H": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Bavaria 44 AC Tor Honningsvåg Dødsbo": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Bavaria C45 Style": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Bavaria CR41": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Bavaria Sport 330 HT": {
+      "kategori": "cabincruiser",
+      "usikker": false
+    },
+    "Bavaria Vision 44": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Bavaria s30": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Beneteau 38 GT": {
+      "kategori": "cabincruiser",
+      "usikker": false
+    },
+    "Beneteau First 27 Seascape": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Beneteau MC47": {
+      "kategori": "flybridge",
+      "usikker": false
+    },
+    "Beneteau Oceanis 45": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Beneteau Oceanis 473": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Beneteau Oceanis Clipper 361": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Beneteau Swift 34": {
+      "kategori": "pilothouse",
+      "usikker": false
+    },
+    "Boston Whaler 320": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Bostrøm 31": {
+      "kategori": "skjaergardsjeep",
+      "usikker": true
+    },
+    "Campi 400 Husbåt": {
+      "kategori": "cabincruiser",
+      "usikker": true
+    },
+    "Capelli T1000": {
+      "kategori": "rib",
+      "usikker": false
+    },
+    "Capelli Tempest 900": {
+      "kategori": "rib",
+      "usikker": false
+    },
+    "Carver MY466": {
+      "kategori": "flybridge",
+      "usikker": false
+    },
+    "Chris Craft Speedster Heritage": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Chris-Craft 20 Lancer": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Chris-Craft 21 Carina": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Chris-Craft 25 Corsair": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Chris-Craft 28 Corsair": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Chris-Craft 33 Corsair": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Comet 45 Sport": {
+      "kategori": "seilbat",
+      "usikker": true
+    },
+    "Cormate 23 SU": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Cormate 23 Super Utility": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Cormate 23 U": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Cormate Chase 34-13": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Cormate SU23": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Cormate SU27": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Cormate T-27": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Cormate T27-66": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Cormate T28-68": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Cormate Utility 23-56": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Cranchi 28 CSL": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Cranchi 34 Zaffiro": {
+      "kategori": "cabincruiser",
+      "usikker": true
+    },
+    "Cruisers 395": {
+      "kategori": "flybridge",
+      "usikker": true
+    },
+    "Dehler 38": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Delphia 40.3": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Draco 27 RS": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Dufour 385 GL": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Dufour 385GL": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Dufour 455 Grand Large": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Dufour Prestige 54": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Enter 360 Explicit": {
+      "kategori": "daycruiser",
+      "usikker": true
+    },
+    "Fairline Phantom 43": {
+      "kategori": "flybridge",
+      "usikker": false
+    },
+    "Fairline Phantom 48": {
+      "kategori": "flybridge",
+      "usikker": false
+    },
+    "Fairline Targa 43": {
+      "kategori": "pilothouse",
+      "usikker": false
+    },
+    "Finngulf 39": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Finnmaster P7": {
+      "kategori": "pilothouse",
+      "usikker": false
+    },
+    "Fjord 40 Open": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Fjord Terne 24": {
+      "kategori": "skjaergardsjeep",
+      "usikker": true
+    },
+    "Fjord Terne 28": {
+      "kategori": "skjaergardsjeep",
+      "usikker": true
+    },
+    "Flipper 880 ST": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Galeon 440": {
+      "kategori": "flybridge",
+      "usikker": false
+    },
+    "Gib''Sea 392": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Gobbi 425 SC 2004": {
+      "kategori": "cabincruiser",
+      "usikker": false
+    },
+    "Goldfish 23 Tender": {
+      "kategori": "rib",
+      "usikker": false
+    },
+    "Goldfish 25 RIB": {
+      "kategori": "rib",
+      "usikker": false
+    },
+    "Goldfish 28 Bullet": {
+      "kategori": "rib",
+      "usikker": false
+    },
+    "Goldfish 28 RIB": {
+      "kategori": "rib",
+      "usikker": false
+    },
+    "Goldfish 28 Tender": {
+      "kategori": "rib",
+      "usikker": false
+    },
+    "Goldfish 28 Tender 2x450R": {
+      "kategori": "rib",
+      "usikker": false
+    },
+    "Goldfish 29 Sport": {
+      "kategori": "rib",
+      "usikker": false
+    },
+    "Goldfish 29 Sport #072": {
+      "kategori": "rib",
+      "usikker": false
+    },
+    "Goldfish 30 Sport #007": {
+      "kategori": "rib",
+      "usikker": false
+    },
+    "Goldfish 30 Sport T-Top": {
+      "kategori": "rib",
+      "usikker": false
+    },
+    "Goldfish 32 SC": {
+      "kategori": "rib",
+      "usikker": false
+    },
+    "Goldfish 38 SuperSport": {
+      "kategori": "rib",
+      "usikker": false
+    },
+    "Goldfish 43 Ocean #002": {
+      "kategori": "rib",
+      "usikker": false
+    },
+    "Grand G850": {
+      "kategori": "rib",
+      "usikker": false
+    },
+    "Grandezza 28 OC": {
+      "kategori": "daycruiser",
+      "usikker": true
+    },
+    "Hallberg Rassy 43": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Hanse 315": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Hanse 341": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Hanse 345": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Hanse 388": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Hanse 430": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Hanse 430e": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Hanse 445": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Hydrolift X-26S-R": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Ibiza 19 Touring": {
+      "kategori": "skjaergardsjeep",
+      "usikker": true
+    },
+    "Ibiza 22 Touring": {
+      "kategori": "skjaergardsjeep",
+      "usikker": true
+    },
+    "Italia Yacht 9.98": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Jeanneau 38 Sun Shine": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Jeanneau 40 Leader": {
+      "kategori": "cabincruiser",
+      "usikker": false
+    },
+    "Jeanneau Cap Camerat 7,5 dc": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Jeanneau SO 49": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Jeanneau Sun Fast 36": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Jeanneau Sun Odyssey 449": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Malö 42": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Marex 350 CC": {
+      "kategori": "cabincruiser",
+      "usikker": false
+    },
+    "Moody 45 DS": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Najad 343 DE LUXE": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Nautitech 40 Open": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Nidelv 300 Sport": {
+      "kategori": "skjaergardsjeep",
+      "usikker": true
+    },
+    "Nimbus 230R": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Nimbus 230R+Båtplass": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Nimbus 250R": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Nimbus 250R - Diep Kanck": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Nimbus 250R MKII": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Nimbus 26 Nova": {
+      "kategori": "cabincruiser",
+      "usikker": false
+    },
+    "Nimbus 29 Nova": {
+      "kategori": "cabincruiser",
+      "usikker": false
+    },
+    "Nimbus 300R": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Nimbus 320 Coupe": {
+      "kategori": "cabincruiser",
+      "usikker": false
+    },
+    "Nimbus 320 Coupè": {
+      "kategori": "cabincruiser",
+      "usikker": false
+    },
+    "Nimbus 320 Coupé": {
+      "kategori": "cabincruiser",
+      "usikker": false
+    },
+    "Nimbus 35 Nova": {
+      "kategori": "cabincruiser",
+      "usikker": false
+    },
+    "Nimbus 35 Nova HT": {
+      "kategori": "cabincruiser",
+      "usikker": false
+    },
+    "Nimbus 380 Commander": {
+      "kategori": "cabincruiser",
+      "usikker": false
+    },
+    "Nimbus T11": {
+      "kategori": "cabincruiser",
+      "usikker": false
+    },
+    "Nimbus W9": {
+      "kategori": "daycruiser",
+      "usikker": true
+    },
+    "NordStar 34": {
+      "kategori": "pilothouse",
+      "usikker": false
+    },
+    "Nordic Star 32": {
+      "kategori": "pilothouse",
+      "usikker": true
+    },
+    "Nordic Star 32 Cruiser": {
+      "kategori": "pilothouse",
+      "usikker": true
+    },
+    "Nordic star 32 Cruiser": {
+      "kategori": "pilothouse",
+      "usikker": true
+    },
+    "Nordkapp 760 Enduro": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Nordkapp Noblesse 720": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "One Design Båtbygger Are Wiig": {
+      "kategori": "seilbat",
+      "usikker": true
+    },
+    "Paragon 25": {
+      "kategori": "pilothouse",
+      "usikker": false
+    },
+    "Pershing 64": {
+      "kategori": "yacht",
+      "usikker": false
+    },
+    "Princess V52": {
+      "kategori": "yacht",
+      "usikker": true
+    },
+    "Princess v55": {
+      "kategori": "yacht",
+      "usikker": true
+    },
+    "Quicksilver 875 Sundeck": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Regal 3760": {
+      "kategori": "flybridge",
+      "usikker": false
+    },
+    "Regina 38": {
+      "kategori": "seilbat",
+      "usikker": true
+    },
+    "Riva Rivamare 38": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Rupert R6": {
+      "kategori": "rib",
+      "usikker": false
+    },
+    "Saga 29 LS": {
+      "kategori": "skjaergardsjeep",
+      "usikker": true
+    },
+    "Scand 360 SE": {
+      "kategori": "cabincruiser",
+      "usikker": true
+    },
+    "Sea Ray 355 Sundancer": {
+      "kategori": "cabincruiser",
+      "usikker": false
+    },
+    "SeaDan 400 Pro Fly 2006": {
+      "kategori": "flybridge",
+      "usikker": false
+    },
+    "SeaSide 23": {
+      "kategori": "daycruiser",
+      "usikker": true
+    },
+    "Sealine SC39": {
+      "kategori": "cabincruiser",
+      "usikker": false
+    },
+    "Skilsø 33 Sport": {
+      "kategori": "pilothouse",
+      "usikker": true
+    },
+    "Storebro 420 Baltic": {
+      "kategori": "flybridge",
+      "usikker": true
+    },
+    "Stormway F-26": {
+      "kategori": "daycruiser",
+      "usikker": true
+    },
+    "Sunseeker Superhawk 48": {
+      "kategori": "yacht",
+      "usikker": true
+    },
+    "Sweden Yachts 370": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Sweden Yachts 38": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Sweden Yachts 41R": {
+      "kategori": "seilbat",
+      "usikker": false
+    },
+    "Targa 27.1": {
+      "kategori": "pilothouse",
+      "usikker": false
+    },
+    "Technohull GTX 36": {
+      "kategori": "rib",
+      "usikker": false
+    },
+    "Viknes 1030": {
+      "kategori": "pilothouse",
+      "usikker": true
+    },
+    "Viknes 1030 SB": {
+      "kategori": "pilothouse",
+      "usikker": true
+    },
+    "Wally 45 Tender": {
+      "kategori": "yacht",
+      "usikker": true
+    },
+    "Williams Turbjojet": {
+      "kategori": "rib",
+      "usikker": false
+    },
+    "Windy 27 Solano": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Windy 28 Ghibli": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Windy 31 Zonda": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Windy 33 Mistral": {
+      "kategori": "cabincruiser",
+      "usikker": false
+    },
+    "Windy 33 Nova": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Windy 35 Khamsin": {
+      "kategori": "cabincruiser",
+      "usikker": false
+    },
+    "Windy 8000": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "Windy 845 Oceancraft": {
+      "kategori": "daycruiser",
+      "usikker": false
+    },
+    "X-Yachts X99": {
+      "kategori": "seilbat",
+      "usikker": false
+    }
+  }
+}

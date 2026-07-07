@@ -396,7 +396,8 @@ async function main() {
   if (!SKIP_HUBSPOT) {
     pipeB = await getPipelines();
     console.log(`\nPipeline B: "${pipeB.label}" (${pipeB.id}) — Live/Aktiv annonse-stage: ${pipeB.aktivStageId || 'IKKE FUNNET'}`);
-    const dateProp = pipeB.aktivStageId ? `hs_date_entered_${pipeB.aktivStageId}` : null;
+    // NB: HubSpot bruker hs_v2_-prefiks for stage-historikk-properties
+    const dateProp = pipeB.aktivStageId ? `hs_v2_date_entered_${pipeB.aktivStageId}` : null;
     const deals = await searchDealsWithOppdragsnr(dateProp ? [dateProp] : []);
     console.log(`HubSpot: ${deals.length} deals med oppdragsnummer-property`);
     for (const d of deals) {
@@ -476,7 +477,7 @@ async function main() {
   const existingByNr = new Map((existingRows || []).map(r => [r.oppdragsnr, r]));
 
   const rows = [];
-  const flags = { no_oa_date: [], no_megler: [], boat_fallback_csv: [], won_not_in_csv: [] };
+  const flags = { no_oa_date: [], no_megler: [], boat_fallback_csv: [], won_not_in_csv: [], oa_after_sale: [] };
 
   for (const nr of [...allNumbers].sort()) {
     const csv = soldByNr.get(nr) || null;
@@ -510,12 +511,31 @@ async function main() {
     } else if (of.oa?.ts) { oaTs = of.oa.ts; oaKilde = 'oneflow'; oaId = of.oa.id; }
     else if (asg?.oppdragsavtale_signed_at) { oaTs = asg.oppdragsavtale_signed_at; oaKilde = 'oneflow'; }
     else if (asg?.assigned_at) { oaTs = asg.assigned_at; oaKilde = 'tildeling'; merknader.push('OA-dato = tildelingsdato (Oneflow ikke matchet)'); }
+
+    // Sanity: OA-dato ETTER salgsdato = feilmatchet kontrakt (fuzzy båtnavn-match
+    // i oppdragsnummer-modulen kan treffe nyere kontrakt for samme båtmodell).
+    // Gjelder typisk 2017–2020-salg. Nullstill — ikke bruk søppeldata.
+    const refDeal = dealB || dealA;
+    const refWon = refDeal && pipeB && pipeB.stageClass.get(refDeal.properties.dealstage) === 'won';
+    const soldRef = csv?.sold_date
+      || (refWon ? ((refDeal.properties.closedate || '').slice(0, 10) || null) : null);
+    if (oaTs && soldRef && oaTs.slice(0, 10) > soldRef) {
+      merknader.push(`OA-dato (${oaTs.slice(0, 10)}) etter salgsdato (${soldRef}) — feilmatch, nullstilt`);
+      oaTs = null; oaKilde = null; oaId = null;
+      flags.oa_after_sale.push(nr);
+    }
     if (!oaTs) flags.no_oa_date.push(nr);
 
-    // Annonse publisert (stage-historikk, ikke dagens stage)
+    // Annonse publisert (stage-historikk, ikke dagens stage).
+    // Deals ble migrert til Listing/Sale-pipelinen 13.04.2026 — entered-datoer
+    // fra den dagen er migreringsartefakter, ikke reelle publiseringsdatoer.
     let annonse = null;
     if (dealB && pipeB?.aktivStageId) {
-      annonse = dealB.properties[`hs_date_entered_${pipeB.aktivStageId}`] || null;
+      annonse = dealB.properties[`hs_v2_date_entered_${pipeB.aktivStageId}`] || null;
+      if (annonse && annonse.startsWith('2026-04-13')) {
+        merknader.push('annonse_publisert = pipeline-migreringsdato — reell publiseringsdato ukjent');
+        annonse = null;
+      }
     }
 
     // Båt
