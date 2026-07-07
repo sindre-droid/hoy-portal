@@ -114,6 +114,15 @@ async function main() {
   add('Solgt (2025+) uten rad i oppdragsnummer-modulen', 'ADVARSEL',
     nrs(r => r.status === 'solgt' && (r.solgt_dato || '') >= '2025-01-01' && !asgSet.has(r.oppdragsnr)),
     'nummeret finnes ikke i assignment_numbers — hull i modulen');
+  add('Samme FINN-kode på flere oppdrag', 'ADVARSEL', (() => {
+    const seen = new Map();
+    for (const r of rows) if (r.finn_kode) {
+      if (!seen.has(r.finn_kode)) seen.set(r.finn_kode, []);
+      seen.get(r.finn_kode).push(r.oppdragsnr);
+    }
+    return [...seen.values()].filter(v => v.length > 1).flat();
+  })(), 'to oppdrag deler annonse — re-salg av samme båt (OK) eller feilkobling');
+
   add('Merknad fra import (uavklarte)', 'ADVARSEL',
     nrs(r => r.merknad && /NUMMERKONFLIKT|sjekk manuelt/i.test(r.merknad)),
     'kjente enkeltsaker');
@@ -159,6 +168,7 @@ async function main() {
     signert_kilde: r.oppdragsavtale_kilde || '',
     publisert: (r.annonse_publisert || '').slice(0, 10),
     solgt: r.solgt_dato || '', salgssum: r.salgssum, provisjon: r.provisjon,
+    finn: r.finn_kode || '',
     prisantydning: r.prisantydning, merknad: r.merknad || '',
     flagg: flagged.get(r.oppdragsnr) || [],
   }));
@@ -237,7 +247,7 @@ tr.rev-feil td { background:#f6e3e2 !important; }
 </div>
 <table><thead><tr>
 <th data-k="nr">Nr</th><th data-k="modell">Båt (modell)</th><th data-k="bat">Kategori</th><th data-k="megler">Megler</th><th data-k="status">Status</th>
-<th data-k="signert">Signert</th><th data-k="publisert">Publisert</th><th data-k="solgt">Solgt</th>
+<th data-k="signert">Signert</th><th data-k="publisert">Publisert</th><th data-k="finn">FINN</th><th data-k="solgt">Solgt</th>
 <th data-k="salgssum" class="num">Salgssum</th><th data-k="provisjon" class="num">Provisjon</th><th data-k="prisantydning" class="num">Prisantydn.</th>
 <th>Flagg / merknad</th><th>Din vurdering</th>
 </tr></thead><tbody id="tb"></tbody></table>
@@ -325,7 +335,9 @@ function render() {
     '<td><b>' + r.nr + '</b></td><td>' + r.modell + '</td><td>' + r.bat + '</td><td>' + r.megler + '</td>' +
     '<td><span class="pill ' + r.status + '">' + r.status.replace('_', ' ') + '</span></td>' +
     '<td>' + r.signert + (r.signert_kilde && r.signert_kilde !== 'oneflow' ? ' <span class="kilde">(' + r.signert_kilde + ')</span>' : '') + '</td>' +
-    '<td>' + r.publisert + '</td><td>' + r.solgt + '</td>' +
+    '<td>' + r.publisert + '</td>' +
+    '<td>' + (r.finn ? '<a href="https://www.finn.no/mobility/item/' + r.finn + '" target="_blank" rel="noopener">' + r.finn + '</a>' : '') + '</td>' +
+    '<td>' + r.solgt + '</td>' +
     '<td class="num">' + kr(r.salgssum) + '</td><td class="num">' + kr(r.provisjon) + '</td><td class="num">' + kr(r.prisantydning) + '</td>' +
     '<td>' + r.flagg.map(f => '<div class="flg' + (f.startsWith('⚠') ? ' w' : '') + '">' + f + '</div>').join('') +
       (r.merknad ? '<div class="mrk">' + r.merknad + '</div>' : '') + '</td>' +

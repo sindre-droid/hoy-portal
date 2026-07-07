@@ -203,7 +203,9 @@ async function main() {
   for (const r of rows) {
     if (looked >= LIMIT) break;
     if (manualIngen.has(r.oppdragsnr)) {
-      updates.push({ oppdragsnr: r.oppdragsnr, annonse_kilde: 'ingen' });
+      // Aldri annonsert (off-market) — nullstill ev. tidligere feil-tildelt FINN-data
+      updates.push({ oppdragsnr: r.oppdragsnr, annonse_kilde: 'ingen',
+        annonse_publisert: null, finn_kode: null, prisantydning_finn: null });
       continue;
     }
     // Navne-match som siste utvei: boats med samme (normaliserte) modellnavn.

@@ -472,6 +472,33 @@ async function main() {
       if (!entry[kind] || (ts && ts < entry[kind].ts)) entry[kind] = { ts, id: c.id, how: m.how };
       ofDates.set(m.nr, entry);
     }
+
+    // ── OPPDRAGSGIVERS signaturtidspunkt (fasit for OA, avklart med Sindre) ──
+    // Kontraktens state_updated_time = når SISTE part signerte — ofte HoYs egen
+    // (sene) motsignering. Vi henter deltakernivå og bruker tidspunktet da
+    // oppdragsgiver(ne) hadde signert: siste ikke-@h-y.no-signatur.
+    const oaIds = [...new Set([...ofDates.values()].map(e => e.oa?.id).filter(Boolean))];
+    console.log(`Henter deltaker-signaturer for ${oaIds.length} oppdragsavtaler...`);
+    const counterpartyTs = new Map();
+    for (let i = 0; i < oaIds.length; i += 15) {
+      await Promise.all(oaIds.slice(i, i + 15).map(async id => {
+        const res = await ofApi(`/contracts/${id}`);
+        if (!res.ok) return;
+        const times = [];
+        for (const party of res.data.parties || []) {
+          for (const pt of party.participants || []) {
+            if (!pt.signatory || pt.sign_state !== 'signed') continue;
+            if ((pt.email || '').toLowerCase().endsWith('@h-y.no')) continue;
+            if (pt.sign_state_updated_time) times.push(pt.sign_state_updated_time);
+          }
+        }
+        if (times.length) counterpartyTs.set(id, times.sort().slice(-1)[0]);
+      }));
+    }
+    console.log(`Oppdragsgiver-signatur funnet på ${counterpartyTs.size} av ${oaIds.length}`);
+    for (const entry of ofDates.values()) {
+      if (entry.oa && counterpartyTs.has(entry.oa.id)) entry.oa.ts = counterpartyTs.get(entry.oa.id);
+    }
   }
 
   // 5. Bygg rader
@@ -519,7 +546,10 @@ async function main() {
     if (existing?.oppdragsavtale_kilde === 'manuell') {
       oaTs = existing.oppdragsavtale_signert; oaKilde = 'manuell';
     } else if (of.oa?.ts) { oaTs = of.oa.ts; oaKilde = 'oneflow'; oaId = of.oa.id; }
-    else if (asg?.oppdragsavtale_signed_at) { oaTs = asg.oppdragsavtale_signed_at; oaKilde = 'oneflow'; }
+    else if (asg?.oppdragsavtale_signed_at) {
+      oaTs = asg.oppdragsavtale_signed_at; oaKilde = 'oneflow';
+      merknader.push('OA-dato på kontraktnivå (cache) — ikke verifisert oppdragsgiver-signatur');
+    }
     else if (asg?.assigned_at && !asg.assigned_at.startsWith('2026-04-15')) {
       // Tildelingsdato-fallback gjelder KUN løpende drift (nummer tildeles ved
       // signering). 385 historiske nummer ble bulk-importert 15.04.2026 —
@@ -551,6 +581,8 @@ async function main() {
     const exAnn = existingByNr.get(nr);
     if (['finn', 'dealerhub'].includes(exAnn?.annonse_kilde) && exAnn.annonse_publisert) {
       annonse = exAnn.annonse_publisert;
+    } else if (exAnn?.annonse_kilde === 'ingen') {
+      annonse = null; // aldri annonsert (bekreftet av Sindre) — ikke bruk HubSpot-stagedato
     } else if (dealB && pipeB?.aktivStageId) {
       annonse = dealB.properties[`hs_v2_date_entered_${pipeB.aktivStageId}`] || null;
       if (annonse && annonse.startsWith('2026-04-13')) {
