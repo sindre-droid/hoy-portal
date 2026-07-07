@@ -57,6 +57,20 @@ const PENDING_REVIEW = {
 
 const BROKER_ALIAS = { 'marte@h-y.no': 'henrik@h-y.no' };
 
+// Manuelle datokorrigeringer fra Sindre (scripts/dato-korrigeringer.csv) — FASIT.
+// Format: oppdragsnr;signert(YYYY-MM-DD);solgt(YYYY-MM-DD). Tom verdi = ikke overstyr.
+const DATO_KORR = (() => {
+  const m = new Map();
+  const f = path.resolve(__dirname, 'dato-korrigeringer.csv');
+  if (fs.existsSync(f)) {
+    for (const line of fs.readFileSync(f, 'utf8').split('\n')) {
+      const p = line.trim().split(';');
+      if (/^\d{5}$/.test(p[0] || '')) m.set(p[0], { signert: p[1] || null, solgt: p[2] || null });
+    }
+  }
+  return m;
+})();
+
 // Modellnavn → kategori for rader uten HubSpot-båtkobling
 const KATEGORI_MAP = (() => {
   try {
@@ -629,6 +643,19 @@ async function main() {
       }
     } else if (!deal) { status = 'aktiv'; merknader.push('Ingen HubSpot-deal funnet'); }
     else status = 'aktiv';
+
+    // Manuelle datokorrigeringer (fasit fra Sindre) — overstyrer alt over
+    const korr = DATO_KORR.get(nr);
+    if (korr) {
+      if (korr.signert) { oaTs = korr.signert + 'T12:00:00Z'; oaKilde = 'manuell'; oaId = null; }
+      if (korr.solgt) {
+        if (csv?.sold_date && csv.sold_date !== korr.solgt) {
+          merknader.push(`Solgt-dato korrigert av Sindre (${korr.solgt}) avviker fra oppgjørsliste (${csv.sold_date}) — oppdater CSV-en`);
+        }
+        solgtDato = korr.solgt;
+      }
+      merknader.push('Datoer manuelt korrigert (dato-korrigeringer.csv)');
+    }
 
     rows.push({
       oppdragsnr: nr,
