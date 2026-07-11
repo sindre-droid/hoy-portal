@@ -83,3 +83,30 @@ Repo `sindre-droid/hoy-portal`:
 | 5FortyFive-token slettet i HubSpot | ⬜ etter cutover |
 
 NB: Oppgaven nevnte 3 moduler, men `header/boat-hero-text-buttons.module` refererte også Vercel-appen — den er også byttet. `-bk`-modulen er oppdatert for sikkerhets skyld (koster ingenting).
+
+---
+
+## Gjennomført 8. juli 2026 (audit-resultat)
+
+- ✅ Cutover fullført og verifisert: båtside laster galleriene fra vår Netlify-funksjon, null Vercel-kall
+- ✅ Private app «Harbour Yachting» (5FortyFive, files+custom read) slettet — var kun brukt av Vercel-proxyen (verifisert i app-loggen)
+- ✅ Private app «Campaign Documenter» slettet
+- ✅ Vår app «HOY migrate» beholdt (token matcher `pat-eu1-4ed0…723e`). **Anbefalt: roter tokenet** — det var synlig i skjermbilder under auditen
+- ✅ Eksterne brukere fjernet (Jeroen Vermunt/5fortyfive, Katrina Thunem + Anneilen/springagency Partner Admin, Phuc Le/businessaccelerator.nl Partner Admin, Hossein/compilemarketing, Ola/serotonic)
+- ✅ Audit-log sjekket: ingen eksport av data siste år
+- ✅ Sandboxes «HOY sandbox» + «HOY2 sandbox» (begge opprettet av Phuc Le) slettet — var fulle CRM-kopier
+- ✅ Design Manager kartlagt via API: kun våre 4 kjente rot-mapper, @marketplace harmløs
+
+### Funn: 5FortyFives aktivitet 16. juni 2026 (under tvisten)
+Phuc Le lastet opp en theme-build til live `HarbourYachting` (boilerplate-filer + template-previews) og bygde en **serverless galleri-funksjon** (`apis.functions/` → `/_hcms/api/harbour-yachting/folder`) — deres egen versjon av samme Vercel-erstatning vi bygde. Aldri koblet til modulene (de pekte på Vercel til 8. jul). Koden er lest og er harmløs (read-only Files-proxy). Funksjonen er nå **død (401)** fordi secret-tokenet = den slettede appen. Han åpnet også app-tokenet 12:19 samme dag. Våre endringer 22.–29. juni ligger intakt oppå. Ingen bakdører funnet.
+
+### Fullført 8. jul 2026 (kveld)
+- ✅ Wix + domene-registrar sjekket — ingen 5FortyFive-tilgang
+- ✅ Privacy & Consent → Partner Data Access skrudd av
+- ✅ Netlify (members + build hooks), Supabase (team), Oneflow (users), GitHub (collaborators/keys/hooks) — alt rent
+
+**AUDIT KOMPLETT. 5FortyFive har null teknisk tilgang til HoY-systemene.**
+
+### Valgfritt senere
+- ⬜ Roter «HOY migrate»-tokenet (var synlig i skjermbilder 8. jul — Sindre vurderte det som ikke kritisk nå). Ved rotasjon: oppdater `hubspot-token.txt` + `HUBSPOT_TOKEN` i Netlify + redeploy
+- ⬜ Rydd vekk død `apis.functions/`-mappe fra live-tema (kosmetisk)

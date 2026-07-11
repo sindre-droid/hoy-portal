@@ -47,10 +47,12 @@ const OF_TEMPLATES = {
   kjopekontrakt:  [5161707], // ikke brukt til felt enda — matches for komplett logg
 };
 
-// Nummer-korrigeringer i oppgjørslistene (avklart med Sindre 7. jul 2026):
-// CSV-rader med feil oppdragsnr mappes til riktig nummer til Excel-arket er rettet.
-const NR_KORR = {
-  '24089': '25089', // Delphia 40.3 — skrivefeil i oppgjørslisten, 25089 er riktig
+// Nummer-korrigeringer i oppgjørslistene:
+// CSV-rader med feil/manglende oppdragsnr mappes til riktig nummer til Excel er rettet.
+const NR_KORR = {}; // 24089→25089 løst i Excel 11. jul 2026
+// Rader UTEN oppdragsnr som har fått nummer i ettertid (matches på båtnavn):
+const NO_NR_KORR = {
+  'charter ad astra': '26068', // charteroppdrag, nummer tildelt 11. jul 2026
 };
 
 // Kjente datakonflikter under manuell avklaring.
@@ -222,6 +224,7 @@ function readOppgjorCsv(p) {
     let oppdragsnr = get(idx.oppdragsnr);
     if (NR_KORR[oppdragsnr]) oppdragsnr = NR_KORR[oppdragsnr];
     const boat = get(idx.boat);
+    if (!oppdragsnr && NO_NR_KORR[boat.toLowerCase().trim()]) oppdragsnr = NO_NR_KORR[boat.toLowerCase().trim()];
     const sold_date = parseNorwegianDate(get(idx.sold_date));
     if (!oppdragsnr && !boat && !sold_date) continue; // tom rad
     const row = {
@@ -388,9 +391,11 @@ async function main() {
     console.log(`CSV ${path.basename(p)}: ${sold.length} solgte med oppdragsnr, ${noNr.length} uten`);
   }
 
-  // Fasit per år (akseptkriterium 1)
+  // Fasit per år (akseptkriterium 1) — kun rader med oppgjørstall (provisjon).
+  // Charter o.l. med ren omsetning uten provisjon importeres, men telles ikke her.
   const fasit = {};
   for (const r of soldByNr.values()) {
+    if (r.provisjon == null && r.salgssum == null) continue;
     const y = r.sold_date ? r.sold_date.slice(0, 4) : '????';
     fasit[y] = fasit[y] || { n: 0, salgssum: 0, provisjon: 0 };
     fasit[y].n++; fasit[y].salgssum += r.salgssum || 0; fasit[y].provisjon += r.provisjon || 0;

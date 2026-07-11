@@ -1,12 +1,12 @@
 {
-  "generated": "2026-07-11T11:11:05.592Z",
+  "generated": "2026-07-11T11:40:10.080Z",
   "dry_run": false,
   "counts": {
-    "rows": 434,
+    "rows": 435,
     "byStatus": {
-      "solgt": 357,
+      "solgt": 362,
       "avsluttet_usolgt": 22,
-      "aktiv": 55
+      "aktiv": 51
     }
   },
   "fasit": {
@@ -16,26 +16,12 @@
       "provisjon": 5964074
     },
     "2026": {
-      "n": 37,
-      "salgssum": 47379000,
-      "provisjon": 2631850
+      "n": 43,
+      "salgssum": 54034000,
+      "provisjon": 3025550
     }
   },
-  "csv_no_oppdragsnr": [
-    {
-      "file": "oppgjor-2026-fasit.csv",
-      "line": 2,
-      "oppdragsnr": "",
-      "boat": "Charter AD Astra",
-      "seller": "Bomi Ship D.oo",
-      "sold_date": "2026-01-19",
-      "salgssum": null,
-      "provisjon": null,
-      "omsetning": 170000,
-      "assigned_by": "Sindre",
-      "sold_by": "Sindre"
-    }
-  ],
+  "csv_no_oppdragsnr": [],
   "csv_duplicates": [],
   "sold_missing_assignment": [
     "25080",
@@ -232,7 +218,7 @@
       "name": "Askeladden C83 - Oppdragsavtale",
       "template": 5130587,
       "kind": "oa",
-      "reason": "ambiguous(2)",
+      "reason": "ambiguous(3)",
       "signed": "2023-07-02T13:37:14+00:00"
     },
     {
@@ -490,7 +476,8 @@
       "24052",
       "24064",
       "25048",
-      "26011"
+      "26011",
+      "26068"
     ],
     "no_megler": [
       "21016",
@@ -790,12 +777,11 @@
       "26064",
       "26065",
       "26066",
-      "26067"
+      "26067",
+      "26068"
     ],
     "won_not_in_csv": [
-      "24048 (24048 - Grandezza 28 OC, closedate 2025-05-30)",
-      "25079 (25079 - Storebro 430 Biscay Royal Cruiser, closedate 2026-07-10)",
-      "26041 (26041 - Nimbus 300R 2005, closedate 2026-07-07)"
+      "24048 (24048 - Grandezza 28 OC, closedate 2025-05-30)"
     ],
     "oa_after_sale": [
       "17001",
@@ -835,7 +821,8 @@
       "23026",
       "23040",
       "25048",
-      "26011"
+      "26011",
+      "26068"
     ]
   }
 }

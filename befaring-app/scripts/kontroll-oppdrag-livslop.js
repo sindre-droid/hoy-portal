@@ -26,8 +26,10 @@ const supabase = createClient(process.env.SUPABASE_URL,
 
 // Fasit fra oppgjørslistene (oppdateres når nye lister importeres)
 const FASIT = {
+  // Oppdatert 11. jul 2026 (nye oppgjørslister: +26041/26042/26058, Delphia-fix,
+  // 26044-dato). NB: charter 26068 har oms uten provisjon — telles ikke her.
   2025: { n: 75, salgssum: 102_214_333, provisjon: 5_964_074 },
-  2026: { n: 37, salgssum: 47_379_000, provisjon: 2_631_850 },
+  2026: { n: 43, salgssum: 54_034_000, provisjon: 3_025_550 },
 };
 const KJENTE_MEGLERE = ['sindre@h-y.no', 'henrik@h-y.no', 'daniel@h-y.no', 'jeanette@h-y.no'];
 const DAY = 86_400_000;

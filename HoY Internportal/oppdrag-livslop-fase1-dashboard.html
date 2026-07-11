@@ -41,13 +41,13 @@
 <body>
 <div class="wrap">
   <h1>Oppdrag-livsløp — hva tallene sier</h1>
-  <div class="sub">House of Yachts · oppdrag signert 2024–2026 (198 med verifisert signeringsdato) · kvalitetssikret mot Oneflow, FINN og oppgjørslistene · 7. juli 2026</div>
+  <div class="sub">House of Yachts · oppdrag signert 2024–2026 (200 med verifisert signeringsdato) · kvalitetssikret mot Oneflow, FINN og oppgjørslistene · 11. juli 2026</div>
 
   <div class="cards">
-    <div class="card"><div class="big">76 dager</div><div class="lbl">Median tid fra oppdragsgiver signerer til båten er solgt. Halvparten raskere, halvparten tregere (40–137 dager for de midterste 50 %).</div></div>
-    <div class="card"><div class="big">84 %</div><div class="lbl">Av signerte oppdrag ender som salg innen ett år. 45 % innen 90 dager.</div></div>
-    <div class="card warn"><div class="big">69 %</div><div class="lbl">Så mye av H2-målet (3,4 mill) dekkes statistisk av dagens 54 aktive oppdrag. Resten må komme fra nye signeringer.</div></div>
-    <div class="card warn"><div class="big">~20. okt</div><div class="lbl">Siste realistiske signeringsdato for at et oppdrag rekker å bli 2026-omsetning (10.10 for 2–5M, 25.10 for <1M).</div></div>
+    <div class="card"><div class="big">73 dager</div><div class="lbl">Median tid fra oppdragsgiver signerer til båten er solgt. Halvparten raskere, halvparten tregere (39–133 dager for de midterste 50 %).</div></div>
+    <div class="card"><div class="big">84 %</div><div class="lbl">Av signerte oppdrag ender som salg innen ett år. 46 % innen 90 dager.</div></div>
+    <div class="card warn"><div class="big">65 %</div><div class="lbl">Så mye av H2-målet (3,4 mill) dekkes statistisk av dagens 51 aktive oppdrag. Resten må komme fra nye signeringer (juli-salgene er allerede booket i tillegg).</div></div>
+    <div class="card warn"><div class="big">~20. okt</div><div class="lbl">Siste realistiske signeringsdato for at et oppdrag rekker å bli 2026-omsetning (14.10 for 2–5M, 27.10 for <1M).</div></div>
   </div>
 
   <h2>Reisen til et oppdrag</h2>
@@ -57,7 +57,7 @@
       <div class="tstep"><div class="t1">Oppdragsavtale</div><div class="t2">Signert</div></div>
       <div class="tarrow"><div class="d bad">12 dager</div><div class="l">mål: ≤ 7 dager</div><div class="arrow">→</div></div>
       <div class="tstep"><div class="t1">Annonse</div><div class="t2">Publisert</div></div>
-      <div class="tarrow"><div class="d">67 dager</div><div class="l">median</div><div class="arrow">→</div></div>
+      <div class="tarrow"><div class="d">65 dager</div><div class="l">median</div><div class="arrow">→</div></div>
       <div class="tstep" style="background:var(--gold);color:#1d2521;"><div class="t1">Båten er</div><div class="t2">Solgt</div></div>
     </div>
     <div class="expl" style="margin-bottom:0">⚠️ <b>12 dager fra oppdragsgivers signatur til annonsen er ute</b> — fortsatt over 7-dagersmålet. Hver uke spart her flytter salg inn i inneværende sesong. (Målt på 174 oppdrag; signeringstidspunkt fra Oneflow, publiseringsdato verifisert mot FINN.)</div>
@@ -77,9 +77,9 @@
   <div class="expl">Gapet må dekkes av <b>nye signeringer før medio oktober</b>. Omregnet til aktivitet med dagens konverteringsrater:</div>
   <table>
     <tr><th>Megler</th><th class="num">Gap å dekke</th><th class="num">Salg trengs</th><th class="num">Oppdrag inn</th><th class="num">Befaringer</th><th class="num">Calls</th></tr>
-    <tr><td>Sindre</td><td class="num">267 000</td><td class="num">3–4</td><td class="num">4–5</td><td class="num">4–5</td><td class="num"><span class="pill">inbound</span></td></tr>
-    <tr><td>Henrik + Marte</td><td class="num">315 000</td><td class="num">~6</td><td class="num">~7</td><td class="num">8–9</td><td class="num">~113</td></tr>
-    <tr><td>Daniel</td><td class="num">471 000</td><td class="num">9–10</td><td class="num">11–12</td><td class="num">11–12</td><td class="num"><span class="pill red">~504</span></td></tr>
+    <tr><td>Sindre</td><td class="num">324 000</td><td class="num">4–5</td><td class="num">~5</td><td class="num">~5</td><td class="num"><span class="pill">inbound</span></td></tr>
+    <tr><td>Henrik + Marte</td><td class="num">362 000</td><td class="num">~7</td><td class="num">~8</td><td class="num">~10</td><td class="num">~129</td></tr>
+    <tr><td>Daniel</td><td class="num">495 000</td><td class="num">~10</td><td class="num">~12</td><td class="num">~12</td><td class="num"><span class="pill red">~534</span></td></tr>
   </table>
 
   <div class="footnote">
@@ -102,9 +102,9 @@ new Chart(document.getElementById('closerate'), {
   type:'bar',
   data:{ labels:['Under 1 mill','1–2 mill','2–5 mill','Ukjent prisantydning'],
     datasets:[
-      {label:'Innen 90 dager', data:[56,47,29,47], backgroundColor:GOLD},
-      {label:'Innen 180 dager', data:[77,68,35,77], backgroundColor:GREEN2},
-      {label:'Innen 365 dager', data:[89,91,68,84], backgroundColor:GREEN}
+      {label:'Innen 90 dager', data:[57,49,29,48], backgroundColor:GOLD},
+      {label:'Innen 180 dager', data:[78,69,35,78], backgroundColor:GREEN2},
+      {label:'Innen 365 dager', data:[89,91,70,84], backgroundColor:GREEN}
     ]},
   options:{ responsive:true, scales:{ y:{ max:100, ticks:{ callback:v=>v+'%' } } },
     plugins:{ tooltip:{ callbacks:{ label:c=>` ${c.dataset.label}: ${c.raw} %` } } } }
@@ -124,8 +124,8 @@ new Chart(document.getElementById('portefolje'), {
   type:'bar',
   data:{ labels:['Sindre','Henrik + Marte','Daniel'],
     datasets:[
-      {label:'Forventet fra dagens portefølje', data:[1033315,985046,329349], backgroundColor:GREEN},
-      {label:'Gap som må dekkes av nye oppdrag', data:[266685,314954,470651], backgroundColor:GREY}
+      {label:'Forventet fra dagens portefølje', data:[976259,937652,304977], backgroundColor:GREEN},
+      {label:'Gap som må dekkes av nye oppdrag', data:[323741,362348,495023], backgroundColor:GREY}
     ]},
   options:{ responsive:true, indexAxis:'y',
     scales:{ x:{ stacked:true, ticks:{ callback:v=>(v/1e6).toLocaleString('no')+' M' } }, y:{ stacked:true } },

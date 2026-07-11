@@ -720,6 +720,10 @@
     "X-Yachts X99": {
       "kategori": "seilbat",
       "usikker": false
+    },
+    "Charter AD Astra": {
+      "kategori": "charter",
+      "usikker": false
     }
   }
 }
