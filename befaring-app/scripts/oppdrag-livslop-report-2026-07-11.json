@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-11T11:40:10.080Z",
+  "generated": "2026-07-11T11:54:52.453Z",
   "dry_run": false,
   "counts": {
     "rows": 435,
@@ -780,9 +780,7 @@
       "26067",
       "26068"
     ],
-    "won_not_in_csv": [
-      "24048 (24048 - Grandezza 28 OC, closedate 2025-05-30)"
-    ],
+    "won_not_in_csv": [],
     "oa_after_sale": [
       "17001",
       "17002",

@@ -58,7 +58,8 @@ const NO_NR_KORR = {
 // Kjente datakonflikter under manuell avklaring.
 // Radene importeres med merknad og holdes utenfor fasit-valideringen.
 const PENDING_REVIEW = {
-  '24048': 'Bekreftet solgt og gjort opp (30.05.2025) men MANGLER i oppgjørsliste 2025 — Sindre fører den inn, deretter oppdateres fasit',
+  // 24048 LØST 11. jul 2026: solgt 15.10.2024 (835k), oppgjort 2025 — closedate i
+  // HubSpot er oppgjørsdato. Korrigert via dato-korrigeringer.csv.
 };
 
 const BROKER_ALIAS = { 'marte@h-y.no': 'henrik@h-y.no' };
@@ -71,7 +72,7 @@ const DATO_KORR = (() => {
   if (fs.existsSync(f)) {
     for (const line of fs.readFileSync(f, 'utf8').split('\n')) {
       const p = line.trim().split(';');
-      if (/^\d{5}$/.test(p[0] || '')) m.set(p[0], { signert: p[1] || null, solgt: p[2] || null });
+      if (/^\d{5}$/.test(p[0] || '')) m.set(p[0], { signert: p[1] || null, solgt: p[2] || null, salgssum: p[3] ? Number(p[3]) : null });
     }
   }
   return m;
@@ -547,6 +548,7 @@ async function main() {
     const dealA = dealsA.get(nr) || null;
     const of = ofDates.get(nr) || {};
     const merknader = [];
+    let korrSalgssum = null;
     if (PENDING_REVIEW[nr]) merknader.push(PENDING_REVIEW[nr]);
 
     // Megler
@@ -645,6 +647,8 @@ async function main() {
     else if (cls === 'won') {
       status = 'solgt';
       solgtDato = (deal.properties.closedate || '').slice(0, 10) || null;
+      // Manuell korrigering vinner over closedate (f.eks. 24048: solgt 2024, oppgjort 2025)
+      if (DATO_KORR.get(nr)?.solgt) solgtDato = DATO_KORR.get(nr).solgt;
       if (solgtDato && solgtDato >= '2025-01-01') {
         merknader.push('Closed-won i HubSpot men IKKE i oppgjørsliste — sjekk manuelt');
         flags.won_not_in_csv.push(`${nr} (${deal.properties.dealname}, closedate ${solgtDato})`);
@@ -665,6 +669,8 @@ async function main() {
         solgtDato = korr.solgt;
       }
       merknader.push('Datoer manuelt korrigert (dato-korrigeringer.csv)');
+      // Salgssum-overstyring (kun for salg utenfor fasit-listene, f.eks. 2024)
+      korrSalgssum = korr.salgssum || null;
     }
 
     rows.push({
@@ -674,7 +680,7 @@ async function main() {
       annonse_publisert: annonse,
       budaksept_signert: of.budaksept?.ts || null,
       solgt_dato: solgtDato,
-      salgssum: csv?.salgssum ?? null,
+      salgssum: csv?.salgssum ?? korrSalgssum,
       provisjon: csv?.provisjon ?? null,
       omsetning_ex_mva: csv?.omsetning ?? null,
       battype, battype_kilde: battypeKilde,
