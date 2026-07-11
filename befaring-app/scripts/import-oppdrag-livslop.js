@@ -47,12 +47,16 @@ const OF_TEMPLATES = {
   kjopekontrakt:  [5161707], // ikke brukt til felt enda — matches for komplett logg
 };
 
-// Kjente datakonflikter under manuell avklaring (Sindre, 4. juli 2026).
+// Nummer-korrigeringer i oppgjørslistene (avklart med Sindre 7. jul 2026):
+// CSV-rader med feil oppdragsnr mappes til riktig nummer til Excel-arket er rettet.
+const NR_KORR = {
+  '24089': '25089', // Delphia 40.3 — skrivefeil i oppgjørslisten, 25089 er riktig
+};
+
+// Kjente datakonflikter under manuell avklaring.
 // Radene importeres med merknad og holdes utenfor fasit-valideringen.
 const PENDING_REVIEW = {
-  '24089': 'NUMMERKONFLIKT: oppgjørsliste sier 24089, HubSpot/Supabase sier 25089 (Delphia 40.3) — avklares med Sindre',
-  '25089': 'NUMMERKONFLIKT: mulig duplikat av 24089 (Delphia 40.3, oppgjørslisten) — avklares med Sindre',
-  '24048': 'Closed-won i HubSpot (30.05.2025) men ikke i oppgjørsliste 2025 — avklares med Sindre',
+  '24048': 'Bekreftet solgt og gjort opp (30.05.2025) men MANGLER i oppgjørsliste 2025 — Sindre fører den inn, deretter oppdateres fasit',
 };
 
 const BROKER_ALIAS = { 'marte@h-y.no': 'henrik@h-y.no' };
@@ -215,7 +219,8 @@ function readOppgjorCsv(p) {
     const r = rows[i];
     const get = j => (r[j] || '').trim();
     if ((r[0] || '').toLowerCase().startsWith('sum')) break;
-    const oppdragsnr = get(idx.oppdragsnr);
+    let oppdragsnr = get(idx.oppdragsnr);
+    if (NR_KORR[oppdragsnr]) oppdragsnr = NR_KORR[oppdragsnr];
     const boat = get(idx.boat);
     const sold_date = parseNorwegianDate(get(idx.sold_date));
     if (!oppdragsnr && !boat && !sold_date) continue; // tom rad
