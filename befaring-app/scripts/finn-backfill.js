@@ -166,6 +166,28 @@ async function main() {
     }
     console.log(`Dealer Hub-eksport: ${dhAds.length} annonser`);
   }
+  // AKTIVE annonser på FINN akkurat nå (søke-API-et) — brukes til å koble
+  // aktive oppdrag mot sin live-annonse (navne-match, krever entydig treff)
+  const liveAds = [];
+  for (const page of [1, 2]) {
+    const res = await fetch(`https://cache.api.finn.no/iad/search/boat-sale?orgId=624959513&rows=50&page=${page}`,
+      { headers: { 'X-FINN-apikey': FINN_KEY }, signal: AbortSignal.timeout(15000) }).catch(() => null);
+    if (!res?.ok) continue;
+    const xml = await res.text();
+    for (const e of xml.match(/<entry>[\s\S]*?<\/entry>/g) || []) {
+      const id = (e.match(/<dc:identifier>(\d+)</) || [])[1];
+      const title = (e.match(/<title>([^<]+)/) || [])[1] || '';
+      if (id && !/ønskes kjøpt|søker på vegne/i.test(title)) liveAds.push({ adId: id, title });
+    }
+  }
+  console.log(`Aktive FINN-annonser (live): ${liveAds.length}`);
+  function liveCandidates(batmodell) {
+    const n = norm(batmodell);
+    if (n.length < 6) return [];
+    const hits = liveAds.filter(a => { const t = norm(a.title); return t.includes(n) || n.includes(t); });
+    return hits.length === 1 ? [hits[0].adId] : []; // kun entydige treff
+  }
+
   // Kandidater fra DH via navne-match (containment begge veier)
   function dhCandidates(batmodell) {
     const n = norm(batmodell);
@@ -194,13 +216,14 @@ async function main() {
       r.deal_b_id && dealFinn.get(r.deal_b_id),
       r.deal_a_id && dealFinn.get(r.deal_a_id),
       r.boat_hs_id && boatFinn.get(r.boat_hs_id),
-      ...(r.batmodell ? [...(nameFinn.get(norm(r.batmodell)) || []), ...dhCandidates(r.batmodell)] : []),
+      ...(r.batmodell ? [...(nameFinn.get(norm(r.batmodell)) || []), ...dhCandidates(r.batmodell),
+        ...(r.status === 'aktiv' ? liveCandidates(r.batmodell) : [])] : []),
     ].filter(Boolean)) allCandidateIds.add(id);
   }
   const idList = [...allCandidateIds];
   console.log(`Prefetcher ${idList.length} unike annonser fra FINN (parallelt)...`);
-  for (let i = 0; i < idList.length; i += 10) {
-    await Promise.all(idList.slice(i, i + 10).map(async id => adCache.set(id, await finnAd(id))));
+  for (let i = 0; i < idList.length; i += 25) {
+    await Promise.all(idList.slice(i, i + 25).map(async id => adCache.set(id, await finnAd(id))));
   }
 
   for (const r of rows) {
@@ -225,6 +248,8 @@ async function main() {
       const c = [...(nameFinn.get(norm(r.batmodell)) || []), ...dhCandidates(r.batmodell)];
       const uniq = [...new Set(c)];
       if (r.status === 'solgt' || uniq.length === 1) nameCandidates = uniq;
+      // Aktive oppdrag: match mot LIVE-annonsene (entydig navne-treff)
+      if (r.status === 'aktiv') nameCandidates = [...new Set([...nameCandidates, ...liveCandidates(r.batmodell)])];
     }
     const candidates = [...new Set([
       ...(manualFinn.get(r.oppdragsnr) || []),
