@@ -10,11 +10,11 @@ Alle solgte med ekte datoer: **n=136, median 73 dager** (P25 38, P75 128).
 
 | Segment | n | Median | P25 | P75 |
 |---|---|---|---|---|
-| 1-2M | 34 | 68 | 40 | 159 |
-| 2-5M | 15 | 84 | 52 | 302 |
-| <1M | 35 | 65 | 45 | 105 |
-| >5M | 1 | 95 | 95 | 95 |
-| ukjent | 51 | 73 | 27 | 120 |
+| 1-2M | 52 | 71 | 32 | 140 |
+| 2-5M | 21 | 91 | 55 | 295 |
+| <1M | 54 | 64 | 41 | 105 |
+| >5M | 3 | 101 | 98 | 140 |
+| ukjent | 6 | 50 | 25 | 88 |
 
 **Per båtkategori**
 
@@ -63,11 +63,11 @@ Alle solgte med ekte datoer: **n=136, median 73 dager** (P25 38, P75 128).
 | Segment | n (365d-kohort) | 90d | 180d | 365d |
 |---|---|---|---|---|
 | **Alle** | 154 | 45% | 68% | 84% |
-| 1-2M | 35 | 50% | 72% | 91% |
-| 2-5M | 20 | 29% | 35% | 70% |
-| <1M | 38 | 55% | 78% | 89% |
-| >5M | 3 | 0% | 25% | 33% |
-| ukjent | 58 | 47% | 78% | 84% |
+| 1-2M | 53 | 52% | 76% | 92% |
+| 2-5M | 30 | 26% | 36% | 63% |
+| <1M | 58 | 58% | 83% | 91% |
+| >5M | 7 | 0% | 38% | 43% |
+| ukjent | 6 | 40% | 86% | 100% |
 
 **Per signeringsmåned** (sesong — alle år samlet, 180-dagers vindu):
 
@@ -92,10 +92,11 @@ Basert på syklustid signert→solgt: median = 50/50-sjanse, P25 = «må gå for
 
 | Prisklasse | n | Deadline (median-syklus) | Optimistisk deadline (P25) |
 |---|---|---|---|
-| 1-2M | 34 | 2026-10-24 | 2026-11-21 |
-| 2-5M | 15 | 2026-10-08 | 2026-11-09 |
-| <1M | 35 | 2026-10-27 | 2026-11-16 |
-| ukjent | 51 | 2026-10-19 | 2026-12-04 |
+| 1-2M | 52 | 2026-10-21 | 2026-11-28 |
+| 2-5M | 21 | 2026-10-01 | 2026-11-06 |
+| <1M | 54 | 2026-10-28 | 2026-11-20 |
+| >5M | 3 | 2026-09-21 | 2026-09-24 |
+| ukjent | 6 | 2026-11-11 | 2026-12-06 |
 
 ## 4. Porteføljeprognose — forventet omsetning fra dagens aktive oppdrag innen nyttår
 
@@ -133,7 +134,7 @@ Forutsetninger: close-rate signert→solgt = **84%** (målt, 365d — erstatter 
 ## Dataforbehold
 
 - 235 oppdrag (mest 2021–24) mangler ekte signeringsdato til Oneflow-token er på plass — tidsanalysene bygger på 200 oppdrag
-- Prisklasse mangler på 251 oppdrag (ingen prisantydning fra boats) — de inngår i «ukjent»
+- Prisklasse mangler på 177 oppdrag (ingen prisantydning fra boats) — de inngår i «ukjent»
 - 0 båtmodeller har usikker kategori — se `scripts/batkategori-mapping.json` (usikker: true)
 - Befaringer/outreach: Trakt-rater er estimat til ~3 mnd ren CRM-data finnes (obligatorisk befaring-logging)
 - Uavklart: 24089/25089 (Delphia), 24048 (Grandezza), Charter AD Astra utenfor tabellen

@@ -62,6 +62,15 @@ Merk: Sindres potensial er dominert av få, store objekter (Steeler 22M, Riva 16
 i klassen med lavest og tregest close-rate. **Daniels gap (~0,5M) er det mest akutte** — krever
 ~10 salg / ~12 nye oppdrag / ~534 calls med hans nåværende rater, før medio oktober.
 
+**Priskutt-atferd (fasit fra FINN/Dealer Hub-hendelseslogg, 589 hendelser feb. 2025–aug. 2026):**
+Andelen annonser som får priskutt er lik på tvers av prisklassene (25–31 %; >5M høyest med 73 %) —
+men *timingen* skiller: median dager til første kutt er **28 (<1M) · 52 (1–2M) · 83 (2–5M) · 25 (>5M)**.
+Hypotesen «vi er redde for å kutte på dyre båter» stemmer altså ikke på frekvens, men på tempo:
+**på 2–5M kommer første kutt nesten tre måneder etter publisering** — i klassen med dårligst close-rate
+(35 % @180d) og der 9 % i snitt uansett tas som rabatt i sluttforhandling. Anbefalt diskusjon: fast
+prisvurderingspunkt ved 4–6 uker for alt over 2M. Datakilde: `scripts/finn-prishistorikk.csv`,
+oppdaterbar via Dealer Hub (intern-API `/api/v1/insight/ads/{adId}/ad-history`, header `target-marketplace: FINN`).
+
 **Datahull som tettes fremover, ikke bakover:** befaringer logges knapt (Trakt-estimater brukes til
 ~3 mnd ren CRM-data finnes), outreach ujevnt logget, 6 aktive mangler fortsatt pris (utfyllingslisten).
 

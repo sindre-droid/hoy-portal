@@ -64,7 +64,7 @@
   </div>
 
   <h2>Prisklasse avgjør tempoet</h2>
-  <div class="expl">Andel signerte oppdrag som er solgt innen 90 / 180 / 365 dager. Båter i 2–5 mill-klassen er de klart tyngste: kun 37 % solgt etter et halvt år.</div>
+  <div class="expl">Andel signerte oppdrag som er solgt innen 90 / 180 / 365 dager. Prisklasse fra annonseprisen (FINN-verifisert). Over 2 mill er tungt: 2–5M kun 36 % solgt etter et halvt år — over 5M selges nesten aldri første 90 dager.</div>
   <div class="chartbox"><canvas id="closerate" height="120"></canvas></div>
 
   <h2>Sesongen styrer</h2>
@@ -100,11 +100,11 @@ Chart.defaults.color='#4a534e';
 
 new Chart(document.getElementById('closerate'), {
   type:'bar',
-  data:{ labels:['Under 1 mill','1–2 mill','2–5 mill','Ukjent prisantydning'],
+  data:{ labels:['Under 1 mill','1–2 mill','2–5 mill','Over 5 mill'],
     datasets:[
-      {label:'Innen 90 dager', data:[55,50,29,47], backgroundColor:GOLD},
-      {label:'Innen 180 dager', data:[78,72,35,78], backgroundColor:GREEN2},
-      {label:'Innen 365 dager', data:[89,91,70,84], backgroundColor:GREEN}
+      {label:'Innen 90 dager', data:[58,52,26,0], backgroundColor:GOLD},
+      {label:'Innen 180 dager', data:[83,76,36,38], backgroundColor:GREEN2},
+      {label:'Innen 365 dager', data:[91,92,63,43], backgroundColor:GREEN}
     ]},
   options:{ responsive:true, scales:{ y:{ max:100, ticks:{ callback:v=>v+'%' } } },
     plugins:{ tooltip:{ callbacks:{ label:c=>` ${c.dataset.label}: ${c.raw} %` } } } }
