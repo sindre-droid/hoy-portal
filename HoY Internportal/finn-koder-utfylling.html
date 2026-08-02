@@ -24,7 +24,7 @@ tr.done td { opacity:.55; }
 .pill.avsluttet_usolgt { background:#8a8f8b; }
 </style></head><body><div class="wrap">
 <h1>FINN-koder — utfylling</h1>
-<div class="sub">10 oppdrag fra 2024+ mangler verifisert publiseringsdato.
+<div class="sub">7 oppdrag fra 2024+ mangler verifisert publiseringsdato.
 Lim inn FINN-koden (tallene i annonse-URL-en, f.eks. finn.no/mobility/item/<b>123456789</b>).
 Flere annonser for samme båt? Skriv alle, komma-separert — skriptet velger tidligste gyldige.
 Aldri annonsert (off-market)? Klikk «Aldri annonsert». Alt lagres i nettleseren underveis —
@@ -38,7 +38,7 @@ trykk «Kopier» når du er ferdig (eller delvis ferdig) og lim inn i chatten ti
 <tbody id="tb"></tbody></table>
 </div>
 <script>
-const ROWS = [{"nr":"26068","bat":"Charter AD Astra","megler":"sindre","status":"solgt","solgt":"2026-01-19"},{"nr":"26067","bat":"Bavaria 36 2004","megler":"henrik","status":"aktiv","solgt":""},{"nr":"26066","bat":"Jeanneau 40.3","megler":"henrik","status":"aktiv","solgt":""},{"nr":"25042","bat":"Hallberg Rassy 43","megler":"sindre","status":"solgt","solgt":"2025-06-25"},{"nr":"24013","bat":"Bavaria 39 Cr","megler":"","status":"solgt","solgt":"2024-06-27"},{"nr":"24011","bat":"Goldfish 28 Tender 2x450","megler":"sindre","status":"solgt","solgt":"2024-06-20"},{"nr":"24009","bat":"Bavaria 41H","megler":"","status":"solgt","solgt":"2024-05-14"},{"nr":"24008","bat":"Sunseeker 44 Camargue","megler":"sindre","status":"solgt","solgt":"2024-06-14"},{"nr":"24006","bat":"Goldfish 30 Sport","megler":"sindre","status":"solgt","solgt":"2024-05-14"},{"nr":"24002","bat":"Dufour 455 Grand Large","megler":"","status":"solgt","solgt":"2024-02-19"}];
+const ROWS = [{"nr":"25042","bat":"Hallberg Rassy 43","megler":"sindre","status":"solgt","solgt":"2025-06-25"},{"nr":"24013","bat":"Bavaria 39 Cr","megler":"","status":"solgt","solgt":"2024-06-27"},{"nr":"24011","bat":"Goldfish 28 Tender 2x450","megler":"sindre","status":"solgt","solgt":"2024-06-20"},{"nr":"24009","bat":"Bavaria 41H","megler":"","status":"solgt","solgt":"2024-05-14"},{"nr":"24008","bat":"Sunseeker 44 Camargue","megler":"sindre","status":"solgt","solgt":"2024-06-14"},{"nr":"24006","bat":"Goldfish 30 Sport","megler":"sindre","status":"solgt","solgt":"2024-05-14"},{"nr":"24002","bat":"Dufour 455 Grand Large","megler":"","status":"solgt","solgt":"2024-02-19"}];
 const KEY = 'finn-koder-utfylling';
 let V = {};
 try { V = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch(e) {}
