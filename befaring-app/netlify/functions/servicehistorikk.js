@@ -16,23 +16,33 @@
 // POST action=upload_url         → signed upload URL for ett dokument
 // POST action=add_document       → registrer opplastet fil i source_files
 // POST action=remove_document    → fjern fil fra run + slett fra storage
-// POST action=generate           → kjør Claude vision på alle dokumenter
+// POST action=generate           → kjør Claude vision på alle dokumenter (én batch)
+// POST action=generate_plan      → beregn batch-plan (hvor mange runder som trengs)
+// POST action=generate_batch     → ekstraher hendelser fra én batch dokumenter
+// POST action=generate_final     → sammenstill seks felter fra alle batch-resultater
 // POST action=update_edits       → lagre megler-redigert versjon
 // POST action=write_to_hubspot   → PATCH boat-objekt + arkiver eldre runs
 // POST action=delete_run         → slett et draft-run + alle dokumentene
+//
+// Batch-flyt (mange/store dokumenter): Anthropic har en hard 32 MB-grense per
+// request, og base64 blåser opp filene ~33 %. Frontend kaller generate_plan;
+// hvis planen har >1 batch kjøres generate_batch sekvensielt per batch
+// (Claude ekstraherer strukturerte hendelser fra hver delmengde, lagres i
+// ai_batches jsonb), og til slutt generate_final som sammenstiller de seks
+// feltene fra alle hendelsene i ett tekst-kall. Én batch → vanlig generate.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const { createClient } = require('@supabase/supabase-js');
-const SYSTEM_PROMPT = require('./servicehistorikk-prompt');
+const { SYSTEM_PROMPT, EXTRACT_PROMPT, FINAL_PROMPT } = require('./servicehistorikk-prompt');
 const { generateRapportPdf } = require('./servicehistorikk-pdf');
 
 // ── Konfig ──────────────────────────────────────────────────────────────────
 const PIPELINE_B      = process.env.PIPELINE_B || '3211644128';
 const BOAT_OBJ_TYPE   = '2-145214665';
 const STORAGE_BUCKET  = 'service-history-docs';
-const PROMPT_VERSION  = 'servicehist-v3';   // v3: eksplisitt JSON newline-escaping i prompt + backend-sanitizer
+const PROMPT_VERSION  = 'servicehist-v4';   // v4: batch-ekstraksjon + sammenstilling for store dokumentmengder
 const AI_MODEL        = 'claude-sonnet-4-6';
-const AI_MAX_TOKENS   = 4096;
+const AI_MAX_TOKENS   = 8192;
 
 // HubSpot boat-properties som oppdateres ved write_to_hubspot.
 // VIKTIG: highlight_1..6 skrives BEVISST IKKE av denne modulen — de feltene
@@ -47,9 +57,16 @@ const BOAT_TEXT_FIELDS = {
   known_notes:       'known_notes',
 };
 
-// File-grenser
-const MAX_FILE_BYTES   = 25 * 1024 * 1024;          // 25 MB per fil
-const MAX_TOTAL_BYTES  = 30 * 1024 * 1024;          // 30 MB total per generate-kall (Anthropic-grense)
+// File-grenser.
+// Anthropic Messages API har en hard 32 MB-grense per request, og base64
+// blåser opp rå bytes med ~33 % (×4/3) pluss JSON-overhead. Én fil må derfor
+// holde seg godt under 32/1,34 ≈ 23 MB rå — vi setter 20 MB. Samlet mengde er
+// ikke lenger begrenset av API-et (batch-flyten deler opp i flere kall), kun
+// av en romslig sanity-grense for tid/kost.
+const MAX_FILE_BYTES   = 20 * 1024 * 1024;          // 20 MB per fil
+const MAX_TOTAL_BYTES  = 100 * 1024 * 1024;         // 100 MB samlet (sanity, batches)
+const BATCH_MAX_BYTES  = 8 * 1024 * 1024;           // 8 MB rå per Anthropic-kall (~11 MB base64)
+const BATCH_MAX_FILES  = 6;                         // maks filer per Anthropic-kall
 const ACCEPTED_MIMES   = new Set([
   'application/pdf',
   'image/png', 'image/jpeg', 'image/jpg', 'image/heic', 'image/webp',
@@ -266,6 +283,119 @@ function parseAndValidateAIOutput(rawText) {
     highlights_listing: Array.isArray(parsed.highlights_listing) ? parsed.highlights_listing.map(s => String(s).trim()).filter(Boolean).slice(0, 6) : [],
   };
   return norm;
+}
+
+// Parse og valider EXTRACT_PROMPT-output ({ events: [], notes: [] }).
+function parseExtractOutput(rawText) {
+  const cleaned = rawText
+    .trim()
+    .replace(/^```json?\s*/i, '')
+    .replace(/\s*```$/, '')
+    .trim();
+  const sanitized = sanitizeJsonControlChars(cleaned);
+
+  let parsed;
+  try { parsed = JSON.parse(sanitized); }
+  catch (e) {
+    try { parsed = JSON.parse(cleaned); }
+    catch (_) { throw new Error(`Kunne ikke parse JSON fra ekstraksjon: ${e.message}`); }
+  }
+
+  const events = Array.isArray(parsed.events) ? parsed.events : [];
+  const notes  = Array.isArray(parsed.notes)  ? parsed.notes  : [];
+  return {
+    events: events.map(e => ({
+      date:     String(e?.date     || '').trim(),
+      workshop: String(e?.workshop || '').trim(),
+      work:     String(e?.work     || '').trim(),
+      hours:    String(e?.hours    || '').trim(),
+      amount:   String(e?.amount   || '').trim(),
+      doc:      String(e?.doc      || '').trim(),
+      kind:     String(e?.kind     || '').trim(),
+    })).filter(e => e.work || e.date),
+    notes: notes.map(n => ({
+      text: String(n?.text || '').trim(),
+      doc:  String(n?.doc  || '').trim(),
+    })).filter(n => n.text),
+  };
+}
+
+// ── Batch-helpers ───────────────────────────────────────────────────────────
+
+// Samle alle dokumenter for et run: runets egne filer + filer fra alle andre
+// ikke-arkiverte runs for samme boat (append-modell), dedupet på path og
+// (name + size). Samme logikk brukes av generate, generate_plan,
+// generate_batch og generate_final — MÅ være deterministisk på tvers av kall.
+async function collectAllFiles(supabase, run) {
+  let allFiles = [...(run.source_files || [])];
+  if (run.boat_id) {
+    const { data: priorRuns } = await supabase
+      .from('service_history_runs')
+      .select('id, source_files')
+      .eq('boat_id', run.boat_id)
+      .is('archived_at', null)
+      .neq('id', run.id);
+    for (const pr of (priorRuns || [])) {
+      for (const f of (pr.source_files || [])) {
+        const dup = allFiles.find(x =>
+          x.path === f.path ||
+          (x.name === f.name && x.size === f.size)
+        );
+        if (!dup) allFiles.push(f);
+      }
+    }
+  }
+  const seen = new Set();
+  return allFiles.filter(f => {
+    const key = `${f.name}|${f.size}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+// Deterministisk batch-plan: sortér på path (unik og stabil), pakk grådig
+// til BATCH_MAX_BYTES / BATCH_MAX_FILES. En fil større enn budsjettet får
+// sin egen batch (per-fil-grensen håndheves separat).
+function computeBatches(files) {
+  const sorted = [...files].sort((a, b) => (a.path || '').localeCompare(b.path || ''));
+  const batches = [];
+  let cur = [], curBytes = 0;
+  for (const f of sorted) {
+    const size = f.size || 0;
+    if (cur.length > 0 && (curBytes + size > BATCH_MAX_BYTES || cur.length >= BATCH_MAX_FILES)) {
+      batches.push(cur); cur = []; curBytes = 0;
+    }
+    cur.push(f); curBytes += size;
+  }
+  if (cur.length) batches.push(cur);
+  return batches;
+}
+
+// Fingeravtrykk av fillisten — brukes til å oppdage at dokumenter er lagt
+// til/fjernet mellom batch-kallene (da må analysen startes på nytt).
+function planHash(files) {
+  const s = files.map(f => f.path).sort().join('|');
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+  return h.toString(36);
+}
+
+// Felles validering for generate/generate_plan/generate_batch: per-fil-grense
+// og samlet sanity-grense. Returnerer feilmelding eller null.
+function validateFileSizes(files) {
+  let total = 0;
+  for (const f of files) {
+    const size = f.size || 0;
+    total += size;
+    if (size > MAX_FILE_BYTES) {
+      return `${f.name} er for stor (${Math.round(size / 1024 / 1024)} MB, maks ${Math.round(MAX_FILE_BYTES / 1024 / 1024)} MB per fil)`;
+    }
+  }
+  if (total > MAX_TOTAL_BYTES) {
+    return `Samlet filstørrelse (${Math.round(total / 1024 / 1024)} MB) overskrider grensen på ${Math.round(MAX_TOTAL_BYTES / 1024 / 1024)} MB — del opp i flere kjøringer`;
+  }
+  return null;
 }
 
 // ── Handler ─────────────────────────────────────────────────────────────────
@@ -564,41 +694,22 @@ exports.handler = async (event) => {
         if (!run) return err(404, 'Run not found');
         if (run.status === 'written') return err(409, 'Run er allerede skrevet til HubSpot — opprett et nytt run');
 
-        // Append-modell: hent dokumenter fra alle ikke-arkiverte runs for
-        // samme boat. Dedup på (name + size) — prior runs kan inneholde
-        // duplikater (samme fil opplastet flere ganger med ulik path), og
-        // hver ekstra fil koster både tid og tokens i AI-kallet.
-        let allFiles = [...(run.source_files || [])];
-        if (run.boat_id) {
-          const { data: priorRuns } = await supabase
-            .from('service_history_runs')
-            .select('id, source_files')
-            .eq('boat_id', run.boat_id)
-            .is('archived_at', null)
-            .neq('id', run_id);
-          for (const pr of (priorRuns || [])) {
-            for (const f of (pr.source_files || [])) {
-              const dup = allFiles.find(x =>
-                x.path === f.path ||
-                (x.name === f.name && x.size === f.size)
-              );
-              if (!dup) allFiles.push(f);
-            }
-          }
-        }
-        // Dedup også innen denne runens egne filer (defensiv, i tilfelle
-        // gamle runs har duplikater fra før dedup-fixen ble deployet).
-        const seen = new Set();
-        allFiles = allFiles.filter(f => {
-          const key = `${f.name}|${f.size}`;
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
+        // Samle dokumenter (append-modell + dedup) — se collectAllFiles.
+        const allFiles = await collectAllFiles(supabase, run);
         console.log(`[generate] run=${run_id} files=${allFiles.length}`);
 
         if (allFiles.length === 0) {
           return err(400, 'Ingen dokumenter å analysere — last opp minst én fil først');
+        }
+
+        const sizeErr = validateFileSizes(allFiles);
+        if (sizeErr) return err(413, sizeErr);
+
+        // Direkte én-kalls generering gjelder kun når alt får plass i ett
+        // Anthropic-kall. Frontend sjekker dette via generate_plan; guard her
+        // i tilfelle gamle klienter kaller generate direkte med for mye.
+        if (computeBatches(allFiles).length > 1) {
+          return err(413, 'For mange/store dokumenter for ett AI-kall — oppdater siden slik at analysen kjøres i flere runder');
         }
 
         // Sett status til 'processing' slik at frontend kan polle
@@ -616,12 +727,7 @@ exports.handler = async (event) => {
         }
 
         const fileBlocks = [];
-        let totalBytes = 0;
         for (const { f, buf } of downloads) {
-          totalBytes += buf.length;
-          if (totalBytes > MAX_TOTAL_BYTES) {
-            return err(413, `Samlet filstørrelse overskrider grensen (${Math.round(MAX_TOTAL_BYTES/1024/1024)} MB). Reduser antall dokumenter eller del opp i flere runs.`);
-          }
           const mime = (f.mime || detectMime(f.name)).toLowerCase();
           if (!ACCEPTED_MIMES.has(mime)) {
             return err(400, `Filtype ikke støttet for AI-analyse: ${f.name} (${mime})`);
@@ -681,6 +787,251 @@ exports.handler = async (event) => {
             prompt_version:   PROMPT_VERSION,
             ai_input_tokens:  aiResult.input_tokens,
             ai_output_tokens: aiResult.output_tokens,
+            ai_duration_ms:   aiResult.duration_ms,
+            ai_output_raw:    aiResult.text,
+            ai_output_parsed: parsed,
+            status:           'draft',
+            error_message:    null,
+          })
+          .eq('id', run_id)
+          .select()
+          .single();
+        if (error) throw error;
+
+        return ok(data);
+      }
+
+      // ── Batch-plan: hvor mange AI-runder trengs? ────────────────────────
+      if (action === 'generate_plan') {
+        const { run_id } = body;
+        if (!run_id) return err(400, 'run_id required');
+
+        const { data: run, error: runErr } = await supabase
+          .from('service_history_runs')
+          .select('*')
+          .eq('id', run_id)
+          .maybeSingle();
+        if (runErr) throw runErr;
+        if (!run) return err(404, 'Run not found');
+        if (run.status === 'written') return err(409, 'Run er allerede skrevet til HubSpot — opprett et nytt run');
+
+        const allFiles = await collectAllFiles(supabase, run);
+        if (allFiles.length === 0) {
+          return err(400, 'Ingen dokumenter å analysere — last opp minst én fil først');
+        }
+        const sizeErr = validateFileSizes(allFiles);
+        if (sizeErr) return err(413, sizeErr);
+
+        const batches = computeBatches(allFiles);
+        return ok({
+          batches:     batches.length,
+          hash:        planHash(allFiles),
+          total_files: allFiles.length,
+          total_bytes: allFiles.reduce((s, f) => s + (f.size || 0), 0),
+          batch_files: batches.map(b => b.map(f => f.name)),
+        });
+      }
+
+      // ── Ekstraher hendelser fra én batch dokumenter ─────────────────────
+      if (action === 'generate_batch') {
+        const { run_id, batch_index } = body;
+        if (!run_id || batch_index === undefined || batch_index === null) {
+          return err(400, 'run_id and batch_index required');
+        }
+
+        const apiKey = process.env.ANTHROPIC_API_KEY;
+        if (!apiKey) return err(500, 'AI not configured (ANTHROPIC_API_KEY mangler)');
+
+        const { data: run, error: runErr } = await supabase
+          .from('service_history_runs')
+          .select('*')
+          .eq('id', run_id)
+          .maybeSingle();
+        if (runErr) throw runErr;
+        if (!run) return err(404, 'Run not found');
+        if (run.status === 'written') return err(409, 'Run er allerede skrevet til HubSpot — opprett et nytt run');
+
+        const allFiles = await collectAllFiles(supabase, run);
+        const sizeErr = validateFileSizes(allFiles);
+        if (sizeErr) return err(413, sizeErr);
+
+        const batches = computeBatches(allFiles);
+        const hash    = planHash(allFiles);
+        const idx     = Number(batch_index);
+        if (!Number.isInteger(idx) || idx < 0 || idx >= batches.length) {
+          return err(409, `Ugyldig batch_index ${batch_index} (planen har ${batches.length} runder) — dokumentlisten kan ha endret seg, start analysen på nytt`);
+        }
+        const batch = batches[idx];
+
+        await supabase.from('service_history_runs').update({ status: 'processing' }).eq('id', run_id);
+
+        // Last ned og bygg content-blokker for kun denne batchen
+        let downloads;
+        try {
+          downloads = await Promise.all(
+            batch.map(f => downloadFromStorage(supabase, f.path).then(buf => ({ f, buf })))
+          );
+        } catch (e) {
+          console.error('Storage download failed:', e?.message);
+          return err(502, `Klarte ikke laste ned ett eller flere dokumenter: ${e?.message?.substring(0, 200)}`);
+        }
+
+        const fileBlocks = [];
+        for (const { f, buf } of downloads) {
+          const mime = (f.mime || detectMime(f.name)).toLowerCase();
+          if (!ACCEPTED_MIMES.has(mime)) {
+            return err(400, `Filtype ikke støttet for AI-analyse: ${f.name} (${mime})`);
+          }
+          fileBlocks.push(buildContentBlockForFile(buf, mime, f.name));
+        }
+
+        const boatCtx = await fetchBoatContext(run.deal_id, run.boat_id);
+        const userContent = [
+          { type: 'text', text: buildBoatInfoText(boatCtx.props) },
+          { type: 'text', text: `\nDOKUMENTER — runde ${idx + 1} av ${batches.length} (${batch.length} stk):\nEkstraher alle dokumenterte servicehendelser og anmerkninger fra dokumentene under, i henhold til instruksjonene.` },
+          ...fileBlocks,
+        ];
+
+        let aiResult;
+        try {
+          aiResult = await callAnthropic(EXTRACT_PROMPT, userContent, apiKey);
+        } catch (e) {
+          console.error(`Anthropic batch ${idx} failed:`, e?.message);
+          await supabase.from('service_history_runs').update({
+            status: 'failed',
+            error_message: `Batch ${idx + 1}/${batches.length}: ${e?.message?.substring(0, 800) || 'Ukjent feil'}`,
+            ai_model: AI_MODEL,
+            prompt_version: PROMPT_VERSION,
+          }).eq('id', run_id);
+          return err(502, `AI-tjenesten feilet på runde ${idx + 1}: ${e?.message?.substring(0, 200)}`);
+        }
+
+        let extracted;
+        try { extracted = parseExtractOutput(aiResult.text); }
+        catch (e) {
+          console.error(`Batch ${idx} parse failed:`, e?.message, 'raw:', aiResult.text.substring(0, 500));
+          await supabase.from('service_history_runs').update({
+            status: 'failed',
+            error_message: `Batch ${idx + 1}/${batches.length} parse: ${e?.message?.substring(0, 500)}`,
+          }).eq('id', run_id);
+          return err(502, `AI returnerte ikke gyldig JSON på runde ${idx + 1}`);
+        }
+
+        // Les-modifiser-skriv på ai_batches. Frontend kjører batchene
+        // SEKVENSIELT — parallelle kall ville kunne miste hverandres skriv.
+        // Hvis fillisten (hash) har endret seg siden forrige batch, nullstill.
+        let batchState = run.ai_batches;
+        if (!batchState || batchState.hash !== hash || batchState.count !== batches.length) {
+          batchState = { hash, count: batches.length, results: {} };
+        }
+        batchState.results[String(idx)] = {
+          files:         batch.map(f => f.name),
+          events:        extracted.events,
+          notes:         extracted.notes,
+          input_tokens:  aiResult.input_tokens,
+          output_tokens: aiResult.output_tokens,
+          duration_ms:   aiResult.duration_ms,
+        };
+
+        const { error: upErr } = await supabase
+          .from('service_history_runs')
+          .update({ ai_batches: batchState, error_message: null })
+          .eq('id', run_id);
+        if (upErr) throw upErr;
+
+        return ok({
+          batch_index: idx,
+          batches:     batches.length,
+          events:      extracted.events.length,
+          notes:       extracted.notes.length,
+        });
+      }
+
+      // ── Sammenstill seks felter fra alle batch-resultater ───────────────
+      if (action === 'generate_final') {
+        const { run_id } = body;
+        if (!run_id) return err(400, 'run_id required');
+
+        const apiKey = process.env.ANTHROPIC_API_KEY;
+        if (!apiKey) return err(500, 'AI not configured (ANTHROPIC_API_KEY mangler)');
+
+        const { data: run, error: runErr } = await supabase
+          .from('service_history_runs')
+          .select('*')
+          .eq('id', run_id)
+          .maybeSingle();
+        if (runErr) throw runErr;
+        if (!run) return err(404, 'Run not found');
+        if (run.status === 'written') return err(409, 'Run er allerede skrevet til HubSpot — opprett et nytt run');
+
+        const allFiles = await collectAllFiles(supabase, run);
+        const batches  = computeBatches(allFiles);
+        const hash     = planHash(allFiles);
+
+        const batchState = run.ai_batches;
+        if (!batchState || batchState.hash !== hash) {
+          return err(409, 'Dokumentlisten er endret siden analysen startet — trykk «Generer» på nytt');
+        }
+        for (let i = 0; i < batches.length; i++) {
+          if (!batchState.results?.[String(i)]) {
+            return err(409, `Runde ${i + 1} av ${batches.length} mangler — trykk «Generer» på nytt`);
+          }
+        }
+
+        // Slå sammen hendelser og noter i batch-rekkefølge
+        const events = [];
+        const notes  = [];
+        let batchInputTokens = 0, batchOutputTokens = 0;
+        for (let i = 0; i < batches.length; i++) {
+          const r = batchState.results[String(i)];
+          events.push(...(r.events || []));
+          notes.push(...(r.notes || []));
+          batchInputTokens  += r.input_tokens  || 0;
+          batchOutputTokens += r.output_tokens || 0;
+        }
+
+        const boatCtx = await fetchBoatContext(run.deal_id, run.boat_id);
+        const userContent = [
+          { type: 'text', text: buildBoatInfoText(boatCtx.props) },
+          { type: 'text', text: `\nEKSTRAHERTE SERVICEHENDELSER (${allFiles.length} dokumenter analysert i ${batches.length} runder):\n${JSON.stringify({ events, notes })}\n\nSammenstill de seks feltene i henhold til instruksjonene og returnér strukturert JSON.` },
+        ];
+
+        let aiResult;
+        try {
+          aiResult = await callAnthropic(FINAL_PROMPT, userContent, apiKey);
+        } catch (e) {
+          console.error('Anthropic final failed:', e?.message);
+          await supabase.from('service_history_runs').update({
+            status: 'failed',
+            error_message: `Sammenstilling: ${e?.message?.substring(0, 800) || 'Ukjent feil'}`,
+            ai_model: AI_MODEL,
+            prompt_version: PROMPT_VERSION,
+          }).eq('id', run_id);
+          return err(502, `AI-tjenesten feilet i sammenstillingen: ${e?.message?.substring(0, 200)}`);
+        }
+
+        let parsed;
+        try { parsed = parseAndValidateAIOutput(aiResult.text); }
+        catch (e) {
+          console.error('Final parse failed:', e?.message, 'raw:', aiResult.text.substring(0, 500));
+          await supabase.from('service_history_runs').update({
+            status: 'failed',
+            error_message: `Parse: ${e?.message?.substring(0, 500)}`,
+            ai_output_raw:  aiResult.text,
+            ai_model:       AI_MODEL,
+            prompt_version: PROMPT_VERSION,
+          }).eq('id', run_id);
+          return err(502, 'AI returnerte ikke gyldig JSON');
+        }
+
+        // Token-tall = ekstraksjonsrundene + sammenstillingen samlet
+        const { data, error } = await supabase
+          .from('service_history_runs')
+          .update({
+            ai_model:         AI_MODEL,
+            prompt_version:   PROMPT_VERSION,
+            ai_input_tokens:  batchInputTokens  + aiResult.input_tokens,
+            ai_output_tokens: batchOutputTokens + aiResult.output_tokens,
             ai_duration_ms:   aiResult.duration_ms,
             ai_output_raw:    aiResult.text,
             ai_output_parsed: parsed,

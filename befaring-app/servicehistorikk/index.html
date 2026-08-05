@@ -234,7 +234,7 @@
       <!-- Step 1: Documents -->
       <div class="section">
         <div class="section-title" id="step1Title"><span class="step">1</span> Dokumenter</div>
-        <div class="section-hint">Last opp fakturaer, kvitteringer og servicerapporter (PDF, PNG, JPEG, HEIC, WebP). Maks 25&nbsp;MB per fil, 30&nbsp;MB samlet.</div>
+        <div class="section-hint">Last opp fakturaer, kvitteringer og servicerapporter (PDF, PNG, JPEG, HEIC, WebP). Maks 20&nbsp;MB per fil. Mange dokumenter? Analysen deles automatisk opp i flere runder.</div>
 
         <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
           <div class="dropzone-icon">📄</div>
@@ -801,7 +801,7 @@ function attachDropzone() {
 }
 
 const ACCEPTED_EXT = ['pdf','png','jpg','jpeg','heic','webp'];
-const MAX_FILE_BYTES = 25 * 1024 * 1024;
+const MAX_FILE_BYTES = 20 * 1024 * 1024; // må matche backend (Anthropic 32 MB request-grense minus base64-overhead)
 
 async function handleFiles(files) {
   if (!currentRun) { toast('Mangler aktiv kjøring', 'error'); return; }
@@ -811,7 +811,7 @@ async function handleFiles(files) {
   for (const file of files) {
     const ext = (file.name.split('.').pop() || '').toLowerCase();
     if (!ACCEPTED_EXT.includes(ext)) { toast(`Filtype støttes ikke: ${file.name}`, 'error'); continue; }
-    if (file.size > MAX_FILE_BYTES)  { toast(`${file.name} er over 25 MB`, 'error'); continue; }
+    if (file.size > MAX_FILE_BYTES)  { toast(`${file.name} er over 20 MB`, 'error'); continue; }
     const result = await uploadOne(file);
     if (result?.duplicate) duplicates++;
   }
@@ -878,11 +878,74 @@ async function reloadCurrentRun() {
 // ════════════════════════════════════════════════════════════════════════════
 // GENERATE
 // ════════════════════════════════════════════════════════════════════════════
+// Kall generate_batch for én runde, med ett automatisk nytt forsøk ved
+// timeout/nettverksfeil (idempotent — serveren overskriver bare runden).
+async function runBatchWithRetry(runId, batchIndex) {
+  try {
+    return await api({ action: 'generate_batch' }, 'POST', { run_id: runId, batch_index: batchIndex });
+  } catch (e) {
+    if (e.message?.includes('504') || e.message?.includes('Failed to fetch') || e.message?.includes('Load failed')) {
+      await new Promise(r => setTimeout(r, 3000));
+      return await api({ action: 'generate_batch' }, 'POST', { run_id: runId, batch_index: batchIndex });
+    }
+    throw e;
+  }
+}
+
 async function runGenerate() {
   if (!currentRun) return;
   const btn = $('generateBtn');
   const meta = $('genMeta');
   btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Analyserer dokumenter…';
+  meta.innerHTML = 'Planlegger analysen…';
+
+  // Hent batch-plan: 1 batch → direkte generering (som før), flere → runde
+  // for runde med progresjon, deretter sammenstilling.
+  let plan = null;
+  try {
+    plan = await api({ action: 'generate_plan' }, 'POST', { run_id: currentRun.id });
+  } catch (e) {
+    toast('Kunne ikke planlegge analysen: ' + e.message, 'error');
+    btn.disabled = false; btn.textContent = 'Generer';
+    return;
+  }
+
+  if (plan.batches > 1) {
+    try {
+      for (let i = 0; i < plan.batches; i++) {
+        btn.innerHTML = `<span class="spinner"></span>Runde ${i + 1} av ${plan.batches}…`;
+        meta.innerHTML = `Analyserer dokumenter — runde <strong>${i + 1} av ${plan.batches}</strong> (${plan.total_files} dokumenter totalt). Dette tar noen minutter.`;
+        await runBatchWithRetry(currentRun.id, i);
+      }
+      btn.innerHTML = '<span class="spinner"></span>Sammenstiller…';
+      meta.innerHTML = 'Alle dokumenter analysert — sammenstiller servicehistorikken…';
+      const updated = await api({ action: 'generate_final' }, 'POST', { run_id: currentRun.id });
+      currentRun = updated;
+      hasReviewed = false;
+      renderRun();
+      toast('Servicehistorikk generert. Gjennomgå og rediger før du skriver til HubSpot.');
+    } catch (e) {
+      // Sammenstillingen kan i verste fall time ut (504) — den setter status
+      // 'draft' når den lykkes, så poll på samme måte som direkte-flyten.
+      if (e.message?.includes('504') || e.message?.includes('Failed to fetch') || e.message?.includes('Load failed')) {
+        meta.innerHTML = '<span class="spinner" style="display:inline-block;width:14px;height:14px;vertical-align:middle;margin-right:6px"></span>AI jobber fortsatt — venter på resultat…';
+        const resolved = await pollForResult(currentRun.id);
+        if (resolved) {
+          currentRun = resolved;
+          hasReviewed = false;
+          renderRun();
+          toast('Servicehistorikk generert. Gjennomgå og rediger før du skriver til HubSpot.');
+          return;
+        }
+      }
+      toast('AI-feil: ' + e.message, 'error');
+      btn.disabled = false; btn.textContent = 'Generer';
+      await reloadCurrentRun();
+    }
+    return;
+  }
+
   btn.innerHTML = '<span class="spinner"></span>Analyserer dokumenter…';
   meta.innerHTML = 'Dette kan ta 20–60 sekunder avhengig av antall dokumenter.';
 
