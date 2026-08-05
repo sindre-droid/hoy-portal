@@ -863,7 +863,26 @@ exports.handler = async (event) => {
         }
         const batch = batches[idx];
 
-        await supabase.from('service_history_runs').update({ status: 'processing' }).eq('id', run_id);
+        // Cache: hvis denne runden allerede er ekstrahert for nøyaktig samme
+        // filliste og prompt-versjon, gjenbruk resultatet. Gjør retry etter
+        // gateway-timeout og regenerering uten dokumentendringer billig.
+        const existingState = run.ai_batches;
+        if (existingState && existingState.hash === hash && existingState.pv === PROMPT_VERSION && existingState.results?.[String(idx)]) {
+          const cached = existingState.results[String(idx)];
+          return ok({
+            batch_index: idx,
+            batches:     batches.length,
+            cached:      true,
+            events:      (cached.events || []).length,
+            notes:       (cached.notes  || []).length,
+          });
+        }
+
+        // NB: krever at 'processing' er tillatt i shr_status_check-constrainten
+        // (migrering 2026-08-05). Uten den feiler denne skrivingen stille og
+        // frontend-polling tror runet er ferdig ('draft') før det er det.
+        const { error: procErr } = await supabase.from('service_history_runs').update({ status: 'processing' }).eq('id', run_id);
+        if (procErr) console.warn('Kunne ikke sette status=processing:', procErr.message);
 
         // Last ned og bygg content-blokker for kun denne batchen
         let downloads;
@@ -921,8 +940,8 @@ exports.handler = async (event) => {
         // SEKVENSIELT — parallelle kall ville kunne miste hverandres skriv.
         // Hvis fillisten (hash) har endret seg siden forrige batch, nullstill.
         let batchState = run.ai_batches;
-        if (!batchState || batchState.hash !== hash || batchState.count !== batches.length) {
-          batchState = { hash, count: batches.length, results: {} };
+        if (!batchState || batchState.hash !== hash || batchState.count !== batches.length || batchState.pv !== PROMPT_VERSION) {
+          batchState = { hash, pv: PROMPT_VERSION, count: batches.length, results: {} };
         }
         batchState.results[String(idx)] = {
           files:         batch.map(f => f.name),
@@ -969,7 +988,7 @@ exports.handler = async (event) => {
         const hash     = planHash(allFiles);
 
         const batchState = run.ai_batches;
-        if (!batchState || batchState.hash !== hash) {
+        if (!batchState || batchState.hash !== hash || batchState.pv !== PROMPT_VERSION) {
           return err(409, 'Dokumentlisten er endret siden analysen startet — trykk «Generer» på nytt');
         }
         for (let i = 0; i < batches.length; i++) {
@@ -977,6 +996,12 @@ exports.handler = async (event) => {
             return err(409, `Runde ${i + 1} av ${batches.length} mangler — trykk «Generer» på nytt`);
           }
         }
+
+        // Marker at sammenstillingen kjører — gjør at frontend-polling etter
+        // en ev. gateway-timeout kan skille «jobber fortsatt» (processing) fra
+        // «ferdig» (draft med ai_output_parsed satt).
+        const { error: procErr } = await supabase.from('service_history_runs').update({ status: 'processing' }).eq('id', run_id);
+        if (procErr) console.warn('Kunne ikke sette status=processing:', procErr.message);
 
         // Slå sammen hendelser og noter i batch-rekkefølge
         const events = [];

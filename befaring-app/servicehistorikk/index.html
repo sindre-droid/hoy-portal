@@ -77,6 +77,7 @@
   /* ── Status badges ── */
   .badge { padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px }
   .badge.draft { background:var(--yellow-bg); color:var(--yellow) }
+  .badge.processing { background:var(--blue-bg); color:var(--blue) }
   .badge.written { background:var(--green-bg); color:var(--green) }
   .badge.failed { background:var(--red-bg); color:var(--red) }
   .badge.archived { background:var(--gray); color:var(--gray-dark) }
@@ -507,9 +508,10 @@ async function onDealChange() {
 }
 
 function labelStatus(s) {
-  return s === 'written' ? 'Skrevet' :
-         s === 'failed'  ? 'Feilet'  :
-         s === 'draft'   ? 'Utkast'  : s;
+  return s === 'written'    ? 'Skrevet' :
+         s === 'failed'     ? 'Feilet'  :
+         s === 'processing' ? 'Kjører'  :
+         s === 'draft'      ? 'Utkast'  : s;
 }
 
 async function createRun() {
@@ -878,18 +880,46 @@ async function reloadCurrentRun() {
 // ════════════════════════════════════════════════════════════════════════════
 // GENERATE
 // ════════════════════════════════════════════════════════════════════════════
-// Kall generate_batch for én runde, med ett automatisk nytt forsøk ved
-// timeout/nettverksfeil (idempotent — serveren overskriver bare runden).
-async function runBatchWithRetry(runId, batchIndex) {
-  try {
-    return await api({ action: 'generate_batch' }, 'POST', { run_id: runId, batch_index: batchIndex });
-  } catch (e) {
-    if (e.message?.includes('504') || e.message?.includes('Failed to fetch') || e.message?.includes('Load failed')) {
-      await new Promise(r => setTimeout(r, 3000));
-      return await api({ action: 'generate_batch' }, 'POST', { run_id: runId, batch_index: batchIndex });
-    }
-    throw e;
+function isTimeoutError(e) {
+  return e.message?.includes('504') || e.message?.includes('502') ||
+         e.message?.includes('Failed to fetch') || e.message?.includes('Load failed');
+}
+
+// Vent på at resultatet for én runde dukker opp i databasen. En runde kan ta
+// 30s+ mens Netlify-gatewayen kutter svaret ved 26s — funksjonen kjører
+// videre i bakgrunnen og skriver resultatet til Supabase når den er ferdig,
+// så vi poller i stedet for å fyre av kallet på nytt (som bare ville startet
+// enda en 30s-kjøring).
+async function waitForBatchResult(runId, batchIndex, hash, maxWait = 90000, interval = 3000) {
+  const start = Date.now();
+  while (Date.now() - start < maxWait) {
+    await new Promise(r => setTimeout(r, interval));
+    try {
+      const run = await api({ run: runId });
+      if (run.status === 'failed') return { failed: true, error: run.error_message };
+      const ab = run.ai_batches;
+      if (ab && ab.hash === hash && ab.results && ab.results[String(batchIndex)]) return { ok: true };
+    } catch (_) { /* ignorér nettverksfeil under polling */ }
   }
+  return { timeout: true };
+}
+
+// Kjør én runde robust: kall → ved gateway-timeout, poll til resultatet er
+// lagret → ved fortsatt ingenting, ett nytt forsøk med ny polling.
+async function runBatchResilient(runId, batchIndex, hash) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return await api({ action: 'generate_batch' }, 'POST', { run_id: runId, batch_index: batchIndex });
+    } catch (e) {
+      if (!isTimeoutError(e)) throw e;
+      const res = await waitForBatchResult(runId, batchIndex, hash);
+      if (res.ok) return { batch_index: batchIndex, polled: true };
+      if (res.failed) throw new Error(res.error || 'AI-analysen feilet');
+      // timeout — prøv én gang til (serveren gjenbruker ferdige runder, så
+      // et nytt kall er billig hvis resultatet tross alt rakk å bli lagret)
+    }
+  }
+  throw new Error(`Runde ${batchIndex + 1} ble ikke ferdig i tide — trykk «Generer» på nytt (ferdige runder gjenbrukes)`);
 }
 
 async function runGenerate() {
@@ -916,7 +946,7 @@ async function runGenerate() {
       for (let i = 0; i < plan.batches; i++) {
         btn.innerHTML = `<span class="spinner"></span>Runde ${i + 1} av ${plan.batches}…`;
         meta.innerHTML = `Analyserer dokumenter — runde <strong>${i + 1} av ${plan.batches}</strong> (${plan.total_files} dokumenter totalt). Dette tar noen minutter.`;
-        await runBatchWithRetry(currentRun.id, i);
+        await runBatchResilient(currentRun.id, i, plan.hash);
       }
       btn.innerHTML = '<span class="spinner"></span>Sammenstiller…';
       meta.innerHTML = 'Alle dokumenter analysert — sammenstiller servicehistorikken…';
@@ -927,8 +957,9 @@ async function runGenerate() {
       toast('Servicehistorikk generert. Gjennomgå og rediger før du skriver til HubSpot.');
     } catch (e) {
       // Sammenstillingen kan i verste fall time ut (504) — den setter status
-      // 'draft' når den lykkes, så poll på samme måte som direkte-flyten.
-      if (e.message?.includes('504') || e.message?.includes('Failed to fetch') || e.message?.includes('Load failed')) {
+      // 'processing' underveis og 'draft' når den lykkes, så poll på samme
+      // måte som direkte-flyten.
+      if (isTimeoutError(e)) {
         meta.innerHTML = '<span class="spinner" style="display:inline-block;width:14px;height:14px;vertical-align:middle;margin-right:6px"></span>AI jobber fortsatt — venter på resultat…';
         const resolved = await pollForResult(currentRun.id);
         if (resolved) {
