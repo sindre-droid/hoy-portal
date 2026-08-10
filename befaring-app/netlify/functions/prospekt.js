@@ -1297,7 +1297,9 @@ exports.handler = async (event) => {
         const siteUrl = process.env.URL || 'https://silver-puffpuff-8a67de.netlify.app';
         const publicUrl = `${siteUrl}/prospekt/public.html?id=${id}`;
 
-        // Sett prospectus_pdf på boat-objektet i HubSpot (best-effort)
+        // Sett prospekt_url (+ legacy prospectus_pdf) på boat-objektet i HubSpot (best-effort).
+        // prospekt_url er URL-property og kilden for nettside/workflow-epost fremover;
+        // prospectus_pdf (file-property) holdes i sync i en overgangsperiode.
         let hubspotResult = null;
         try {
           const boatId = await getBoatIdForDeal(prospekt.deal_id);
@@ -1305,10 +1307,10 @@ exports.handler = async (event) => {
             const patchRes = await hs(
               `/crm/v3/objects/${BOAT_OBJ_TYPE}/${boatId}`,
               'PATCH',
-              { properties: { prospectus_pdf: publicUrl } }
+              { properties: { prospectus_pdf: publicUrl, prospekt_url: publicUrl } }
             );
             if (patchRes.ok) {
-              console.log(`[prospekt] Set prospectus_pdf on boat ${boatId}: ${publicUrl}`);
+              console.log(`[prospekt] Set prospekt_url + prospectus_pdf on boat ${boatId}: ${publicUrl}`);
             } else {
               console.warn(`[prospekt] Failed to set property on boat: ${patchRes.status}`, patchRes.data);
             }
