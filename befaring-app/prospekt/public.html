@@ -1250,7 +1250,7 @@
   .render-toolbar button:hover { transform: translateY(-2px); }
 
   .btn-pdf {
-    background: #0a2140;
+    background: #0B3B30;
     color: white;
   }
 
@@ -1362,7 +1362,7 @@
 <!-- Loading state -->
 <div class="render-loading" id="loadingState">
   <div class="spinner"></div>
-  <p>Genererer prospekt&hellip;</p>
+  <p>Henter prospektet&hellip;</p>
 </div>
 
 <!-- Error state -->
@@ -1375,7 +1375,10 @@
 <!-- Prospekt pages rendered here -->
 <div class="page-wrapper" id="pageWrapper" style="display:none"></div>
 
-<!-- Ingen toolbar for offentlig visning -->
+<!-- Toolbar: kun Last ned PDF (skjules automatisk i print) -->
+<div class="render-toolbar" id="publicToolbar" style="display:none">
+  <button class="btn-pdf" onclick="exportPdf()">Last ned PDF</button>
+</div>
 
 <script>
 // ════════════════════════════════════════════════════════════════════════════════
@@ -2268,8 +2271,10 @@ async function init() {
     wrapper.innerHTML = renderProspekt(data);
     wrapper.style.display = '';
 
-    // Hide loading
+    // Hide loading + vis nedlastingsknappen
     document.getElementById('loadingState').style.display = 'none';
+    const publicToolbar = document.getElementById('publicToolbar');
+    if (publicToolbar) publicToolbar.style.display = '';
 
     // Vent til alle bilder har lastet ferdig før PDF-knappen aktiveres,
     // og før evt. auto-print trigges. Tidligere ble print() kalt etter 600ms
