@@ -381,6 +381,74 @@ function planHash(files) {
   return h.toString(36);
 }
 
+// ── Deterministisk sammenstilling fra ekstraherte hendelser ─────────────────
+// service_history og known_notes bygges i kode (ikke av AI) — AI-en gjør kun
+// utvalg/oppsummering med kort svar, slik at generate_final holder seg godt
+// under Netlify-gatewayens 26 s.
+
+// Sorterbar nøkkel fra "DD.MM.YYYY", "MM.YYYY" eller "YYYY". Ukjent → 0 (sist).
+function eventDateKey(d) {
+  const m = String(d || '').match(/(?:(\d{1,2})\.)?(?:(\d{1,2})\.)?(\d{4})/);
+  if (!m) return 0;
+  const [, a, b, y] = m;
+  let month = 0, day = 0;
+  if (a && b)      { day = +a; month = +b; }   // DD.MM.YYYY
+  else if (a)      { month = +a; }             // MM.YYYY
+  return (+y) * 10000 + month * 100 + day;
+}
+
+// Én hendelse → én linje etter formatreglene i prompten:
+// "MM.YYYY — Verksted: Hva som ble gjort (driftstimer/beløp i parentes)"
+function formatEventLine(e) {
+  const extras = [];
+  if (e.hours)  extras.push(`driftstimer ${e.hours}`);
+  if (e.amount) extras.push(e.amount);
+  const suffix = extras.length ? ` (${extras.join(', ')})` : '';
+  const ws = e.workshop || 'Ukjent verksted';
+  const date = e.date || 'Ukjent dato';
+  return `${date} — ${ws}: ${e.work}${suffix}`;
+}
+
+// Grov dedup-nøkkel — fanger eksakte gjengangere før AI-en vurderer
+// semantiske duplikater (anbud + endelig faktura o.l.).
+function eventDedupKey(e) {
+  return [
+    (e.date || '').trim(),
+    (e.workshop || '').toLowerCase().trim(),
+    (e.work || '').toLowerCase().replace(/\s+/g, ' ').slice(0, 60),
+  ].join('|');
+}
+
+// Parse og valider FINAL_PROMPT-output (utvalg/oppsummering).
+function parseSelectOutput(rawText) {
+  const cleaned = rawText
+    .trim()
+    .replace(/^```json?\s*/i, '')
+    .replace(/\s*```$/, '')
+    .trim();
+  const sanitized = sanitizeJsonControlChars(cleaned);
+
+  let parsed;
+  try { parsed = JSON.parse(sanitized); }
+  catch (e) {
+    try { parsed = JSON.parse(cleaned); }
+    catch (_) { throw new Error(`Kunne ikke parse JSON fra sammenstilling: ${e.message}`); }
+  }
+
+  const required = ['condition_summary', 'duplicate_indices', 'upgrade_indices', 'highlights_long', 'highlights_listing'];
+  for (const k of required) {
+    if (!(k in parsed)) throw new Error(`AI-output mangler nøkkel: ${k}`);
+  }
+  const toInts = a => (Array.isArray(a) ? a : []).map(Number).filter(Number.isInteger);
+  return {
+    condition_summary: String(parsed.condition_summary || ''),
+    duplicate_indices: toInts(parsed.duplicate_indices),
+    upgrade_indices:   toInts(parsed.upgrade_indices),
+    highlights_long:   Array.isArray(parsed.highlights_long)    ? parsed.highlights_long.map(s => String(s).trim()).filter(Boolean)    : [],
+    highlights_listing: Array.isArray(parsed.highlights_listing) ? parsed.highlights_listing.map(s => String(s).trim()).filter(Boolean).slice(0, 6) : [],
+  };
+}
+
 // Felles validering for generate/generate_plan/generate_batch: per-fil-grense
 // og samlet sanity-grense. Returnerer feilmelding eller null.
 function validateFileSizes(files) {
@@ -1003,22 +1071,40 @@ exports.handler = async (event) => {
         const { error: procErr } = await supabase.from('service_history_runs').update({ status: 'processing' }).eq('id', run_id);
         if (procErr) console.warn('Kunne ikke sette status=processing:', procErr.message);
 
-        // Slå sammen hendelser og noter i batch-rekkefølge
+        // Slå sammen hendelser og noter i batch-rekkefølge, med grov dedup
+        // (eksakte gjengangere). AI-en fanger semantiske duplikater etterpå.
         const events = [];
         const notes  = [];
         let batchInputTokens = 0, batchOutputTokens = 0;
+        const seenEvents = new Set();
         for (let i = 0; i < batches.length; i++) {
           const r = batchState.results[String(i)];
-          events.push(...(r.events || []));
+          for (const e of (r.events || [])) {
+            const key = eventDedupKey(e);
+            if (seenEvents.has(key)) continue;
+            seenEvents.add(key);
+            events.push(e);
+          }
           notes.push(...(r.notes || []));
           batchInputTokens  += r.input_tokens  || 0;
           batchOutputTokens += r.output_tokens || 0;
         }
+        // Nyeste først — dette er rekkefølgen både AI-en ser og loggen bygges i
+        events.sort((a, b) => eventDateKey(b.date) - eventDateKey(a.date));
+
+        // Kompakt, nummerert liste til AI-en (uten doc-feltet — sparer tokens)
+        const numbered = events.map((e, i) => ({
+          i, date: e.date, workshop: e.workshop, work: e.work,
+          ...(e.hours  ? { hours:  e.hours }  : {}),
+          ...(e.amount ? { amount: e.amount } : {}),
+          ...(e.kind   ? { kind:   e.kind }   : {}),
+        }));
+        const uniqueNotes = [...new Set(notes.map(n => n.text))];
 
         const boatCtx = await fetchBoatContext(run.deal_id, run.boat_id);
         const userContent = [
           { type: 'text', text: buildBoatInfoText(boatCtx.props) },
-          { type: 'text', text: `\nEKSTRAHERTE SERVICEHENDELSER (${allFiles.length} dokumenter analysert i ${batches.length} runder):\n${JSON.stringify({ events, notes })}\n\nSammenstill de seks feltene i henhold til instruksjonene og returnér strukturert JSON.` },
+          { type: 'text', text: `\nEKSTRAHERTE SERVICEHENDELSER (${allFiles.length} dokumenter, nummerert med "i", nyeste først):\n${JSON.stringify(numbered)}\n\nANMERKNINGSFUNN:\n${JSON.stringify(uniqueNotes)}\n\nGjør de fem oppgavene og returnér kompakt JSON i henhold til instruksjonene.` },
         ];
 
         let aiResult;
@@ -1035,8 +1121,8 @@ exports.handler = async (event) => {
           return err(502, `AI-tjenesten feilet i sammenstillingen: ${e?.message?.substring(0, 200)}`);
         }
 
-        let parsed;
-        try { parsed = parseAndValidateAIOutput(aiResult.text); }
+        let selection;
+        try { selection = parseSelectOutput(aiResult.text); }
         catch (e) {
           console.error('Final parse failed:', e?.message, 'raw:', aiResult.text.substring(0, 500));
           await supabase.from('service_history_runs').update({
@@ -1048,6 +1134,20 @@ exports.handler = async (event) => {
           }).eq('id', run_id);
           return err(502, 'AI returnerte ikke gyldig JSON');
         }
+
+        // Bygg de seks feltene deterministisk fra hendelsene + AI-utvalget
+        const dupSet = new Set(selection.duplicate_indices);
+        const kept   = events.filter((_, i) => !dupSet.has(i));
+        const upgradeSet = new Set(selection.upgrade_indices.filter(i => !dupSet.has(i)));
+
+        const parsed = {
+          condition_summary: selection.condition_summary,
+          service_history:   kept.map(formatEventLine).join('\n'),
+          recent_upgrades:   events.filter((_, i) => upgradeSet.has(i)).map(formatEventLine).join('\n'),
+          known_notes:       uniqueNotes.join('\n'),
+          highlights_long:   selection.highlights_long,
+          highlights_listing: selection.highlights_listing,
+        };
 
         // Token-tall = ekstraksjonsrundene + sammenstillingen samlet
         const { data, error } = await supabase
