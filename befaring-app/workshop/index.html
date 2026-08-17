@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arbeidskartlegging · House of Yachts</title>
+<style>
+  :root {
+    --navy: #0E2A4A; --navy2: #1B3A66; --gold: #C9A961; --cream: #F5F2EB;
+    --ink: #15233A; --ink2: #4A5A75; --green: #5B8A6F; --red: #B85042;
+    --amber: #D9A441; --line: #D4CBB8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Calibri, sans-serif; background: var(--cream); color: var(--ink); font-size: 17px; }
+  header {
+    background: var(--navy); color: #fff; padding: 16px 24px;
+    border-bottom: 4px solid var(--gold);
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  header h1 { font-family: Georgia, serif; font-style: italic; font-size: 22px; font-weight: normal; }
+  header .sub { color: var(--gold); font-size: 12px; letter-spacing: 2px; text-transform: uppercase; }
+  .savednote { color: #CADCFC; font-size: 13px; }
+  main { max-width: 1000px; margin: 0 auto; padding: 24px 20px 80px; }
+
+  /* Person picker */
+  #picker { text-align: center; padding: 60px 20px; }
+  #picker h2 { font-family: Georgia, serif; font-style: italic; font-size: 30px; margin-bottom: 10px; }
+  #picker p { color: var(--ink2); margin-bottom: 30px; }
+  .pbtn {
+    display: inline-block; background: #fff; border: 2px solid var(--navy); border-radius: 10px;
+    padding: 30px 60px; margin: 0 12px; font-size: 24px; font-weight: 700; color: var(--navy);
+    cursor: pointer; font-family: Georgia, serif; font-style: italic;
+  }
+  .pbtn:hover { background: var(--navy); color: #fff; }
+
+  h2.sect { font-family: Georgia, serif; font-style: italic; font-size: 26px; margin: 34px 0 6px; }
+  .lead { color: var(--ink2); margin-bottom: 18px; font-size: 15px; }
+  .infobar {
+    background: var(--navy); color: #fff; border-left: 6px solid var(--gold);
+    padding: 13px 18px; margin-bottom: 20px; font-size: 15px; border-radius: 4px;
+  }
+
+  /* Add form */
+  .addform {
+    display: grid; grid-template-columns: 1fr 90px auto; gap: 10px;
+    background: #fff; border: 1px solid var(--line); padding: 14px; border-radius: 8px;
+    margin-bottom: 18px; align-items: end;
+  }
+  .addform label { font-size: 11px; color: var(--ink2); font-weight: 700; letter-spacing: 1px; display: block; margin-bottom: 4px; }
+  .addform input, .addform select { width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 5px; font-size: 16px; background: var(--cream); }
+  button.primary { background: var(--gold); color: var(--navy); border: none; font-weight: 700; padding: 12px 22px; border-radius: 6px; cursor: pointer; font-size: 16px; }
+  button.primary:hover { filter: brightness(1.08); }
+
+  /* Task cards */
+  .task {
+    background: #fff; border: 1px solid var(--line); border-radius: 8px;
+    padding: 14px 16px; margin-bottom: 12px; border-left: 6px solid var(--ink2);
+  }
+  .task.energi-plus { border-left-color: var(--green); }
+  .task.energi-null { border-left-color: var(--amber); }
+  .task.energi-minus { border-left-color: var(--red); }
+  .task .trow1 { display: flex; align-items: baseline; gap: 10px; }
+  .task .tname { font-weight: 700; font-size: 17px; flex: 1; }
+  .task .del { border: none; background: none; color: var(--ink2); cursor: pointer; font-size: 16px; }
+  .task .del:hover { color: var(--red); }
+  .task .fields {
+    display: grid; grid-template-columns: 95px 130px 150px 170px 1fr; gap: 8px; margin-top: 10px;
+  }
+  .task .fields label { font-size: 10px; color: var(--ink2); font-weight: 700; letter-spacing: 1px; display: block; margin-bottom: 3px; }
+  .task .fields select, .task .fields input { width: 100%; padding: 7px; border: 1px solid var(--line); border-radius: 4px; font-size: 14px; background: var(--cream); }
+  .task .comment { margin-top: 8px; }
+  .task .comment input { width: 100%; padding: 8px; border: 1px solid var(--line); border-radius: 4px; font-size: 14px; background: var(--cream); }
+
+  /* Reflection */
+  .q { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; margin-bottom: 14px; }
+  .q label { font-weight: 700; display: block; margin-bottom: 8px; font-size: 16px; }
+  .q .hint { font-weight: normal; color: var(--ink2); font-size: 13px; font-style: italic; display: block; margin-top: 2px; }
+  .q textarea { width: 100%; min-height: 70px; padding: 10px; border: 1px solid var(--line); border-radius: 5px; font-size: 15px; font-family: inherit; background: var(--cream); resize: vertical; }
+  .q textarea:focus { outline: 2px solid var(--gold); }
+
+  /* Submit */
+  .submitbox { background: var(--navy); color: #fff; border-radius: 8px; padding: 22px; margin-top: 30px; border: 1px solid var(--gold); }
+  .submitbox h3 { font-family: Georgia, serif; font-style: italic; font-size: 22px; margin-bottom: 6px; }
+  .submitbox p { color: #CADCFC; font-size: 14px; margin-bottom: 16px; }
+  .submitbox .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+  button.secondary { background: var(--gold); color: var(--navy); border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: 700; }
+  button.ghost { background: var(--navy2); color: #fff; border: 1px solid var(--gold); padding: 12px 20px; border-radius: 6px; cursor: pointer; font-size: 15px; }
+  .toast { position: fixed; bottom: 22px; right: 22px; background: var(--green); color: #fff; padding: 12px 20px; border-radius: 6px; font-weight: 600; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+  .toast.show { opacity: 1; }
+  #app { display: none; }
+  @media (max-width: 700px) {
+    .addform { grid-template-columns: 1fr; }
+    .task .fields { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="sub">House of Yachts · arbeidskartlegging</div>
+    <h1 id="htitle">Før workshoppen</h1>
+  </div>
+  <div class="savednote" id="savednote">lagres automatisk i denne nettleseren</div>
+</header>
+
+<main>
+
+<!-- Person picker -->
+<section id="picker">
+  <h2>Hvem fyller ut?</h2>
+  <p>Dere fyller ut hver for dere — svarene dine lagres bare i din nettleser til du sender inn.</p>
+  <div class="pbtn" onclick="pick('Henrik')">Henrik</div>
+  <div class="pbtn" onclick="pick('Marte')">Marte</div>
+</section>
+
+<!-- App -->
+<section id="app">
+
+  <div class="infobar">
+    Dette er ikke en test — det er grunnlaget for at vi skal rigge arbeidshverdagen bedre.
+    Vær ærlig, spesielt om det som tapper deg. Bruk 30–45 minutter. Alt samles og gjennomgås i fellesskap etterpå.
+  </div>
+
+  <h2 class="sect">1 · Kartlegg oppgavene dine</h2>
+  <p class="lead">Alt du gjør i en vanlig uke — stort og smått. Tøm hodet først, vurder etterpå. Ta også med det du gjør «utenom», f.eks. søndagskvelder.</p>
+
+  <div class="addform">
+    <div>
+      <label>OPPGAVE</label>
+      <input type="text" id="f-task" placeholder="F.eks. svare på FINN-henvendelser" autocomplete="off">
+    </div>
+    <div>
+      <label>TIMER/UKE</label>
+      <input type="number" id="f-hours" min="0" step="0.5" placeholder="2">
+    </div>
+    <button class="primary" onclick="addTask()">Legg til</button>
+  </div>
+
+  <div id="tasklist"></div>
+
+  <h2 class="sect">2 · Vurder hver oppgave</h2>
+  <p class="lead">For hver oppgave over: sett energi, om den må gjøres av Henrik, ditt forslag (fortsette / systematisere / stoppe), og hvem du mener bør eie den. Kommentarfeltet er valgfritt men verdifullt.</p>
+
+  <h2 class="sect">3 · Refleksjon</h2>
+  <p class="lead">Egne ord — korte svar er helt fint.</p>
+  <div id="questions"></div>
+
+  <div class="submitbox">
+    <h3>Send inn</h3>
+    <p>Når du er ferdig: trykk «Send på e-post» (åpner e-posten din med alt ferdig utfylt til Sindre) — eller kopier teksten og lim inn der det passer.</p>
+    <div class="btns">
+      <button class="secondary" onclick="sendMail()">Send på e-post til Sindre</button>
+      <button class="ghost" onclick="copyText()">Kopier som tekst</button>
+      <button class="ghost" onclick="downloadJson()">Last ned kopi (fil)</button>
+    </div>
+  </div>
+
+</section>
+</main>
+
+<div class="toast" id="toast">Kopiert!</div>
+
+<script>
+const QUESTIONS = {
+  Henrik: [
+    { k:'overvelder',  q:'Hva overvelder deg mest i arbeidshverdagen akkurat nå?', h:'Vær konkret — situasjoner, tidspunkt, typer oppgaver.' },
+    { k:'giFra',       q:'Hvilke oppgaver skulle du helst gitt fra deg?', h:'Uansett om du tror det er «lov» eller ikke.' },
+    { k:'kjerne',      q:'Hva mener du er dine 3–5 kjerneansvar — det du bør måles på?', h:'F.eks. befaringer, forhandling, nøkkelkunder.' },
+    { k:'rytme',       q:'Forslag til fast ukesrytme for deg selv', h:'Når vil du legge befaringer, visninger, admin — og når trenger du uforstyrret fokustid?' },
+    { k:'wip',         q:'Hvor mange aktive saker klarer du å håndtere samtidig uten at det tipper over?', h:'Et tall — og gjerne hvorfor.' },
+    { k:'annet',       q:'Noe annet Sindre og Marte bør vite før vi setter oss ned?', h:'' },
+  ],
+  Marte: [
+    { k:'avlaste',     q:'Hvor kan du avlaste Henrik mest — hva kan du ta mer ansvar for?', h:'Både det du gjør i dag og det du kunne tatt over.' },
+    { k:'trenger',     q:'Hva trenger du for å kunne booke flere befaringer for Henrik?', h:'Tilganger, informasjon, mandat, opplæring …' },
+    { k:'uklart',      q:'Hva er uklart i dag om hvem som eier hva?', h:'Situasjoner der du er usikker på om du skal ta det eller vente.' },
+    { k:'rytme',       q:'Forslag til fast ukesrytme og daglig stå-opp-tidspunkt', h:'Når passer et 15-minutters morgenmøte deg best?' },
+    { k:'egne',        q:'Hva av det du gjør i dag tar mest tid — og er det riktig bruk av tiden din?', h:'' },
+    { k:'annet',       q:'Noe annet Sindre og Henrik bør vite før vi setter oss ned?', h:'' },
+  ]
+};
+const ENERGI = { plus:'+ gir energi', null:'0 nøytral', minus:'− tapper' };
+const FORSLAG = { fortsette:'Fortsette', system:'Systematisere', stoppe:'Stoppe', usikker:'Usikker' };
+
+let person = null;
+let state = { tasks: [], svar: {} };
+const keyFor = p => 'hoy-kartlegging-' + p.toLowerCase();
+
+function pick(p) {
+  person = p;
+  try { const raw = localStorage.getItem(keyFor(p)); if (raw) state = JSON.parse(raw); } catch(e) {}
+  document.getElementById('picker').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('htitle').textContent = 'Før workshoppen — ' + p;
+  renderQuestions();
+  renderTasks();
+  const url = new URL(location); url.searchParams.set('p', p.toLowerCase()); history.replaceState(null, '', url);
+}
+
+function save() {
+  if (!person) return;
+  localStorage.setItem(keyFor(person), JSON.stringify(state));
+  document.getElementById('savednote').textContent = 'lagret ' + new Date().toLocaleTimeString('no-NO', {hour:'2-digit',minute:'2-digit'});
+}
+
+function addTask() {
+  const t = document.getElementById('f-task').value.trim();
+  if (!t) return;
+  state.tasks.push({
+    id: Date.now() + Math.random(), task: t,
+    hours: document.getElementById('f-hours').value || '?',
+    energy: 'null', must: 'Vet ikke', forslag: '', eier: '', kommentar: ''
+  });
+  document.getElementById('f-task').value = '';
+  document.getElementById('f-hours').value = '';
+  document.getElementById('f-task').focus();
+  save(); renderTasks();
+}
+document.getElementById('f-task').addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
+
+function delTask(id) { state.tasks = state.tasks.filter(t => t.id !== id); save(); renderTasks(); }
+function setT(id, field, val) { const t = state.tasks.find(t => t.id === id); if (t) { t[field] = val; save(); if (field==='energy') renderTasks(); } }
+
+function renderTasks() {
+  const el = document.getElementById('tasklist');
+  el.innerHTML = '';
+  if (!state.tasks.length) { el.innerHTML = '<p style="color:var(--ink2);font-style:italic;margin-bottom:8px">Ingen oppgaver ennå — legg til den første over.</p>'; return; }
+  state.tasks.forEach(t => {
+    const d = document.createElement('div');
+    d.className = 'task energi-' + t.energy;
+    d.innerHTML = `
+      <div class="trow1">
+        <span class="tname">${esc(t.task)}</span>
+        <span style="color:var(--ink2);font-size:14px">${t.hours} t/uke</span>
+        <button class="del" onclick="delTask(${t.id})" title="Slett">✕</button>
+      </div>
+      <div class="fields">
+        <div><label>ENERGI</label>
+          <select onchange="setT(${t.id},'energy',this.value)">
+            <option value="plus" ${t.energy==='plus'?'selected':''}>+ energi</option>
+            <option value="null" ${t.energy==='null'?'selected':''}>0 nøytral</option>
+            <option value="minus" ${t.energy==='minus'?'selected':''}>− tapper</option>
+          </select></div>
+        <div><label>MÅ HENRIK?</label>
+          <select onchange="setT(${t.id},'must',this.value)">
+            <option ${t.must==='Ja'?'selected':''}>Ja</option>
+            <option ${t.must==='Nei'?'selected':''}>Nei</option>
+            <option ${t.must==='Vet ikke'?'selected':''}>Vet ikke</option>
+          </select></div>
+        <div><label>MITT FORSLAG</label>
+          <select onchange="setT(${t.id},'forslag',this.value)">
+            <option value="">— velg —</option>
+            <option value="fortsette" ${t.forslag==='fortsette'?'selected':''}>Fortsette</option>
+            <option value="system" ${t.forslag==='system'?'selected':''}>Systematisere</option>
+            <option value="stoppe" ${t.forslag==='stoppe'?'selected':''}>Stoppe</option>
+            <option value="usikker" ${t.forslag==='usikker'?'selected':''}>Usikker</option>
+          </select></div>
+        <div><label>BØR EIES AV</label>
+          <select onchange="setT(${t.id},'eier',this.value)">
+            <option value="">— velg —</option>
+            <option value="Henrik" ${t.eier==='Henrik'?'selected':''}>Henrik</option>
+            <option value="Marte" ${t.eier==='Marte'?'selected':''}>Marte</option>
+            <option value="Usikker" ${t.eier==='Usikker'?'selected':''}>Usikker</option>
+          </select></div>
+        <div><label>KOMMENTAR (VALGFRITT)</label>
+          <input type="text" value="${esc(t.kommentar)}" placeholder="F.eks. kan batches fredager"
+                 onchange="setT(${t.id},'kommentar',this.value)"></div>
+      </div>`;
+    el.appendChild(d);
+  });
+}
+
+function renderQuestions() {
+  const el = document.getElementById('questions');
+  el.innerHTML = '';
+  QUESTIONS[person].forEach(q => {
+    const d = document.createElement('div');
+    d.className = 'q';
+    d.innerHTML = `<label>${q.q}${q.h ? '<span class="hint">' + q.h + '</span>' : ''}</label>
+      <textarea data-k="${q.k}">${esc(state.svar[q.k] || '')}</textarea>`;
+    d.querySelector('textarea').addEventListener('input', e => { state.svar[q.k] = e.target.value; save(); });
+    el.appendChild(d);
+  });
+}
+
+function buildText() {
+  const L = [];
+  L.push('ARBEIDSKARTLEGGING — ' + person.toUpperCase());
+  L.push(new Date().toLocaleDateString('no-NO', {day:'numeric',month:'long',year:'numeric'}));
+  L.push('');
+  L.push('== OPPGAVER ==');
+  state.tasks.forEach(t => {
+    L.push('- ' + t.task + ' (' + t.hours + ' t/uke)');
+    L.push('    energi: ' + (ENERGI[t.energy]||'?') + ' | må Henrik: ' + t.must +
+           ' | forslag: ' + (FORSLAG[t.forslag]||'—') + ' | bør eies av: ' + (t.eier||'—'));
+    if (t.kommentar) L.push('    kommentar: ' + t.kommentar);
+  });
+  if (!state.tasks.length) L.push('(ingen registrert)');
+  L.push('');
+  L.push('== REFLEKSJON ==');
+  QUESTIONS[person].forEach(q => {
+    L.push('');
+    L.push('· ' + q.q);
+    L.push((state.svar[q.k] || '(ikke besvart)').trim());
+  });
+  return L.join('\n');
+}
+
+function sendMail() {
+  const body = buildText();
+  const subject = 'Arbeidskartlegging — ' + person;
+  const url = 'mailto:sindre@h-y.no?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+  if (url.length > 1900) {
+    // For long content mailto gets truncated — copy instead and open empty mail
+    navigator.clipboard.writeText(body).then(() => {
+      showToast('Svaret er kopiert — lim inn i e-posten (Ctrl/Cmd+V)');
+      location.href = 'mailto:sindre@h-y.no?subject=' + encodeURIComponent(subject);
+    });
+  } else {
+    location.href = url;
+  }
+}
+function copyText() {
+  navigator.clipboard.writeText(buildText()).then(() => showToast('Kopiert!'));
+}
+function downloadJson() {
+  const blob = new Blob([JSON.stringify({person, ...state}, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'kartlegging-' + person.toLowerCase() + '-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+
+// Auto-pick from ?p=
+const pParam = new URLSearchParams(location.search).get('p');
+if (pParam === 'henrik') pick('Henrik');
+else if (pParam === 'marte') pick('Marte');
+</script>
+</body>
+</html>

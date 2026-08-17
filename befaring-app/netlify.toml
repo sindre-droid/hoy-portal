@@ -75,6 +75,11 @@
   to = "/oneone/"
   status = 301
 
+[[redirects]]
+  from = "/workshop"
+  to = "/workshop/"
+  status = 301
+
 # 1:1-prep gjør parallelle HubSpot-søk + pipeline-stage-fetch
 [functions."oneone"]
   timeout = 26
