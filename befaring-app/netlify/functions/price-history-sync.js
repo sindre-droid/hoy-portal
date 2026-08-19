@@ -1,34 +1,28 @@
 // price-history-sync.js — HoY prishistorikk, uavhengig av leverandører.
 //
-// Kjører automatisk hver natt (Netlify scheduled function, se config nederst).
-// Henter KOMPLETT prishistorikk for alle båter fra HubSpot (propertiesWithHistory)
-// og upserter til Supabase-tabellen price_history. Idempotent: unik nøkkel
-// (boat_id, changed_at, source) gjør at samme versjon aldri lagres to ganger —
-// første kjøring er dermed også backfill, og senere kjøringer plukker kun opp nytt.
+// Kjører hver natt (schedule i netlify.toml). INKREMENTELL: henter kun båter
+// endret siste 48 timer (HubSpot search på hs_lastmodifieddate) og upserter
+// deres komplette prishistorikk (propertiesWithHistory) til Supabase-tabellen
+// price_history. Idempotent via unik nøkkel (boat_id, changed_at, source) —
+// overlapp mellom netter er ufarlig. Full backfill (1 661 versjoner) ble kjørt
+// 19. aug 2026; denne plukker kun opp nytt.
 //
-// FINN-prisendringer fanges også: FINN-synken skriver pris til HubSpot,
-// HubSpot-historikken får en ny versjon (sourceType INTEGRATION), og denne
-// jobben logger den. Schedule settes i netlify.toml ([functions."price-history-sync"]).
+// FINN-prisendringer fanges automatisk: finn-sync.js (kjøres 15 min før)
+// skriver pris til HubSpot → båten blir «endret siste 48t» → historikken
+// logges her med sourceType INTEGRATION.
 
 const BOATS = '2-145214665';
 const BATCH = 50; // maks for batch/read med propertiesWithHistory
+const LOOKBACK_MS = 48 * 60 * 60 * 1000;
 
-async function hsPost(path, body) {
+async function hs(path, opts = {}) {
   const res = await fetch(`https://api.hubapi.com${path}`, {
-    method: 'POST',
+    ...opts,
     headers: {
       Authorization: `Bearer ${process.env.HUBSPOT_TOKEN}`,
       'Content-Type': 'application/json',
+      ...(opts.headers || {}),
     },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`HubSpot ${res.status}: ${(await res.text()).slice(0, 300)}`);
-  return res.json();
-}
-
-async function hsGet(path) {
-  const res = await fetch(`https://api.hubapi.com${path}`, {
-    headers: { Authorization: `Bearer ${process.env.HUBSPOT_TOKEN}` },
   });
   if (!res.ok) throw new Error(`HubSpot ${res.status}: ${(await res.text()).slice(0, 300)}`);
   return res.json();
@@ -52,30 +46,44 @@ async function sb(path, opts = {}) {
 exports.handler = async () => {
   const started = Date.now();
   try {
-    // 1) Alle boat-id-er (paginert liste)
+    // 1) Båter endret siste 48 timer
+    const since = new Date(Date.now() - LOOKBACK_MS).getTime();
     const ids = [];
     let after;
     do {
-      const page = await hsGet(
-        `/crm/v3/objects/${BOATS}?limit=100&properties=boat_name${after ? `&after=${after}` : ''}`
-      );
-      for (const r of page.results) ids.push(r.id);
-      after = page.paging && page.paging.next && page.paging.next.after;
+      const d = await hs(`/crm/v3/objects/${BOATS}/search`, {
+        method: 'POST',
+        body: JSON.stringify({
+          filterGroups: [{ filters: [{ propertyName: 'hs_lastmodifieddate', operator: 'GTE', value: String(since) }] }],
+          properties: ['boat_name'],
+          limit: 200,
+          after,
+        }),
+      });
+      for (const r of d.results) ids.push(r.id);
+      after = d.paging && d.paging.next && d.paging.next.after;
     } while (after);
+
+    if (!ids.length) {
+      console.log('price-history-sync: ingen båter endret siste 48t');
+      return { statusCode: 200, body: JSON.stringify({ ok: true, boats: 0, versions: 0 }) };
+    }
 
     // 2) Prishistorikk i bolker på 50
     const rows = [];
     for (let i = 0; i < ids.length; i += BATCH) {
-      const d = await hsPost(`/crm/v3/objects/${BOATS}/batch/read`, {
-        propertiesWithHistory: ['pris'],
-        properties: ['boat_name'],
-        inputs: ids.slice(i, i + BATCH).map((id) => ({ id })),
+      const d = await hs(`/crm/v3/objects/${BOATS}/batch/read`, {
+        method: 'POST',
+        body: JSON.stringify({
+          propertiesWithHistory: ['pris'],
+          properties: ['boat_name'],
+          inputs: ids.slice(i, i + BATCH).map((id) => ({ id })),
+        }),
       });
       for (const r of d.results) {
         const hist = (r.propertiesWithHistory && r.propertiesWithHistory.pris) || [];
         const name = (r.properties && r.properties.boat_name) || null;
-        // historikken kommer nyeste først — snu så prev_price blir riktig
-        const asc = hist.slice().reverse();
+        const asc = hist.slice().reverse(); // eldste først → prev_price blir riktig
         for (let j = 0; j < asc.length; j++) {
           const v = asc[j];
           const price = v.value === '' || v.value == null ? null : Number(v.value);
@@ -93,24 +101,18 @@ exports.handler = async () => {
       }
     }
 
-    // 3) Upsert i bolker — duplikater ignoreres via unik nøkkel
-    let inserted = 0;
+    // 3) Upsert — duplikater ignoreres via unik nøkkel
     for (let i = 0; i < rows.length; i += 500) {
-      const chunk = rows.slice(i, i + 500);
       await sb('/price_history?on_conflict=boat_id,changed_at,source', {
         method: 'POST',
         headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' },
-        body: JSON.stringify(chunk),
+        body: JSON.stringify(rows.slice(i, i + 500)),
       });
-      inserted += chunk.length;
     }
 
     const ms = Date.now() - started;
-    console.log(`price-history-sync: ${ids.length} båter, ${rows.length} versjoner upsertet på ${ms} ms`);
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ ok: true, boats: ids.length, versions: rows.length, ms }),
-    };
+    console.log(`price-history-sync: ${ids.length} endrede båter, ${rows.length} versjoner upsertet på ${ms} ms`);
+    return { statusCode: 200, body: JSON.stringify({ ok: true, boats: ids.length, versions: rows.length, ms }) };
   } catch (err) {
     console.error('price-history-sync error:', err);
     return { statusCode: 500, body: JSON.stringify({ error: String(err.message || err) }) };

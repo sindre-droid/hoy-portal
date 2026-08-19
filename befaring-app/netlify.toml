@@ -89,3 +89,8 @@
 [functions."price-history-sync"]
   schedule = "15 3 * * *"
   timeout = 26
+
+# FINN-synk: nattlig pris-synk FINN→HubSpot via FINN partner-API (kjøres før price-history-sync)
+[functions."finn-sync"]
+  schedule = "0 3 * * *"
+  timeout = 26
