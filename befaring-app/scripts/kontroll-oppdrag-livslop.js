@@ -29,7 +29,7 @@ const FASIT = {
   // Oppdatert 11. jul 2026 (nye oppgjørslister: +26041/26042/26058, Delphia-fix,
   // 26044-dato). NB: charter 26068 har oms uten provisjon — telles ikke her.
   2025: { n: 75, salgssum: 102_214_333, provisjon: 5_964_074 },
-  2026: { n: 45, salgssum: 55_689_000, provisjon: 3_123_050 }, // per 2. aug 2026
+  2026: { n: 49, salgssum: 57_144_000, provisjon: 3_293_050 }, // per 16. aug 2026 (CSV (9): +Nimbus 230R, SeaSide 23, Fjord Terne 21, Grand G850)
 };
 const KJENTE_MEGLERE = ['sindre@h-y.no', 'henrik@h-y.no', 'daniel@h-y.no', 'jeanette@h-y.no'];
 const DAY = 86_400_000;

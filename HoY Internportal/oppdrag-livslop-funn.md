@@ -71,6 +71,13 @@ Hypotesen «vi er redde for å kutte på dyre båter» stemmer altså ikke på f
 prisvurderingspunkt ved 4–6 uker for alt over 2M. Datakilde: `scripts/finn-prishistorikk.csv`,
 oppdaterbar via Dealer Hub (intern-API `/api/v1/insight/ads/{adId}/ad-history`, header `target-marketplace: FINN`).
 
+**Solgte båter og priskutt (2025–26, 98 solgte med hendelseslogg):** ~4 av 5 båter som selges,
+selges **uten et eneste priskutt** — likt på tvers av prisklassene (<1M 78 % / 1–2M 81 % / 2–5M 77 % uten kutt).
+Rabatten tas i forhandlingen i stedet: median 6–10 % under siste listepris. De som fikk kutt før salg
+fikk typisk bare ett (snitt 1,1–1,3), median total listeprisreduksjon 4–14 %. Tolkning sammen med
+timing-tallene over: riktig pris fra dag én selger båten uten kutt; kuttene skjer i hovedsak på annonser
+som blir liggende — og på 2–5M kommer de for sent til å redde momentum. (>5M: kun 2 solgte i perioden.)
+
 **Datahull som tettes fremover, ikke bakover:** befaringer logges knapt (Trakt-estimater brukes til
 ~3 mnd ren CRM-data finnes), outreach ujevnt logget, 6 aktive mangler fortsatt pris (utfyllingslisten).
 

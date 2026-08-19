@@ -84,3 +84,8 @@
 [functions."oneone"]
   timeout = 26
 
+
+# Prishistorikk: nattlig upsert av HubSpot-prishistorikk til Supabase price_history
+[functions."price-history-sync"]
+  schedule = "15 3 * * *"
+  timeout = 26

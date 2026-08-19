@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workshop — Henrik + Marte · House of Yachts</title>
+<style>
+  :root {
+    --navy: #0E2A4A;
+    --navy2: #1B3A66;
+    --gold: #C9A961;
+    --cream: #F5F2EB;
+    --ink: #15233A;
+    --ink2: #4A5A75;
+    --green: #5B8A6F;
+    --red: #B85042;
+    --amber: #D9A441;
+    --line: #D4CBB8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Calibri, sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    font-size: 17px;
+  }
+  header {
+    background: var(--navy);
+    color: #fff;
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 4px solid var(--gold);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  header h1 { font-family: Georgia, serif; font-style: italic; font-size: 26px; font-weight: normal; }
+  header .sub { color: var(--gold); font-size: 13px; letter-spacing: 2px; text-transform: uppercase; }
+  .tabs { display: flex; gap: 8px; }
+  .tab {
+    background: var(--navy2); color: #CADCFC; border: 1px solid transparent;
+    padding: 10px 22px; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: 600;
+  }
+  .tab.active { background: var(--gold); color: var(--navy); }
+  .tab:hover:not(.active) { border-color: var(--gold); }
+  main { max-width: 1500px; margin: 0 auto; padding: 28px 32px 80px; }
+  .step { display: none; }
+  .step.visible { display: block; }
+  h2 { font-family: Georgia, serif; font-style: italic; font-size: 30px; margin-bottom: 4px; }
+  .lead { color: var(--ink2); margin-bottom: 22px; font-size: 16px; }
+  .goalbar {
+    background: var(--navy); color: #fff; border-left: 6px solid var(--gold);
+    padding: 14px 20px; margin-bottom: 24px; font-size: 17px; border-radius: 4px;
+  }
+
+  /* ---------- Step 1 ---------- */
+  .addform {
+    display: grid;
+    grid-template-columns: 3fr 90px 130px 170px 190px 120px auto;
+    gap: 10px; background: #fff; border: 1px solid var(--line);
+    padding: 16px; border-radius: 8px; margin-bottom: 20px; align-items: end;
+  }
+  .addform label { font-size: 12px; color: var(--ink2); font-weight: 700; letter-spacing: 1px; display:block; margin-bottom:4px; }
+  .addform input, .addform select {
+    width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 5px; font-size: 16px;
+    background: var(--cream);
+  }
+  button.primary {
+    background: var(--gold); color: var(--navy); border: none; font-weight: 700;
+    padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 16px;
+  }
+  button.primary:hover { filter: brightness(1.08); }
+  .proc-group { margin-bottom: 18px; }
+  .proc-title {
+    font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold);
+    font-weight: 700; border-bottom: 2px solid var(--line); padding-bottom: 4px; margin-bottom: 10px;
+  }
+  .cards { display: flex; flex-wrap: wrap; gap: 10px; }
+  .card {
+    background: #fff; border: 1px solid var(--line); border-radius: 8px;
+    padding: 12px 14px; width: 275px; position: relative; font-size: 15px;
+    border-top: 5px solid var(--ink2);
+  }
+  .card.energi-plus { border-top-color: var(--green); }
+  .card.energi-null { border-top-color: var(--amber); }
+  .card.energi-minus { border-top-color: var(--red); }
+  .card .t { font-weight: 700; font-size: 16px; margin-bottom: 6px; padding-right: 22px; }
+  .card .meta { color: var(--ink2); font-size: 13px; line-height: 1.5; }
+  .card .who { position: absolute; top: 10px; right: 34px; background: var(--navy); color:#fff; border-radius: 50%; width: 26px; height: 26px; display:flex; align-items:center; justify-content:center; font-size: 13px; font-weight:700; }
+  .card .del { position: absolute; top: 10px; right: 6px; border: none; background: none; color: var(--ink2); cursor: pointer; font-size: 15px; }
+  .card .del:hover { color: var(--red); }
+
+  /* ---------- Step 2 ---------- */
+  .sortgrid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 26px; }
+  .bucket { background: #fff; border-radius: 8px; border: 2px solid var(--line); min-height: 340px; padding: 14px; }
+  .bucket h3 { font-family: Georgia, serif; font-size: 22px; text-align: center; margin-bottom: 2px; }
+  .bucket .bsub { text-align: center; color: var(--ink2); font-size: 13px; font-style: italic; margin-bottom: 12px; }
+  .bucket.stoppe { border-color: var(--red); }   .bucket.stoppe h3 { color: var(--red); }
+  .bucket.system { border-color: var(--amber); } .bucket.system h3 { color: var(--amber); }
+  .bucket.fortsette { border-color: var(--green); } .bucket.fortsette h3 { color: var(--green); }
+  .bucket.unsorted { border-color: var(--navy2); grid-column: 1 / -1; min-height: 120px; }
+  .bucket.unsorted h3 { color: var(--navy2); font-size: 18px; text-align:left; }
+  .chip {
+    background: var(--cream); border: 1px solid var(--line); border-radius: 6px;
+    padding: 9px 11px; margin-bottom: 8px; font-size: 15px; cursor: grab; user-select: none;
+  }
+  .chip:active { cursor: grabbing; }
+  .chip .cname { font-weight: 700; }
+  .chip .crow { display: flex; gap: 6px; margin-top: 7px; flex-wrap: wrap; align-items: center; }
+  .chip select, .chip input[type=text] {
+    border: 1px solid var(--line); border-radius: 4px; padding: 5px 7px; font-size: 13px; background: #fff;
+  }
+  .chip input.std { flex: 1; min-width: 130px; }
+  .chip .movebtns { display:flex; gap:4px; }
+  .chip .movebtns button {
+    border: 1px solid var(--line); background: #fff; border-radius: 4px; font-size: 12px;
+    padding: 4px 8px; cursor: pointer; font-weight: 700;
+  }
+  .chip .movebtns button:hover { background: var(--navy); color: #fff; }
+  .kjernebox { background: #fff; border: 2px solid var(--gold); border-radius: 8px; padding: 18px; }
+  .kjernebox h3 { font-family: Georgia, serif; font-size: 21px; margin-bottom: 4px; }
+  .kjernebox p { color: var(--ink2); font-size: 14px; margin-bottom: 12px; }
+  .kjernebox input {
+    width: 100%; padding: 11px; margin-bottom: 8px; border: 1px solid var(--line);
+    border-radius: 5px; font-size: 17px; background: var(--cream);
+  }
+
+  /* ---------- Step 3 ---------- */
+  .weekgrid { width: 100%; border-collapse: collapse; background: #fff; margin-bottom: 26px; }
+  .weekgrid th { background: var(--navy); color: #fff; padding: 10px; font-size: 15px; letter-spacing: 1px; }
+  .weekgrid td { border: 1px solid var(--line); padding: 0; height: 92px; vertical-align: top; }
+  .weekgrid td:first-child { background: var(--cream); font-weight: 700; padding: 10px; width: 120px; font-size: 14px; color: var(--ink2); height:auto; }
+  .weekgrid textarea {
+    width: 100%; height: 100%; min-height: 92px; border: none; resize: none; padding: 8px;
+    font-family: inherit; font-size: 14px; background: transparent;
+  }
+  .weekgrid textarea:focus { outline: 2px solid var(--gold); background: #fffdf5; }
+  .rulerow { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .rulebox { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; }
+  .rulebox h4 { font-size: 16px; margin-bottom: 8px; }
+  .rulebox .hint { color: var(--ink2); font-size: 13px; font-style: italic; margin-bottom: 10px; }
+  .rulebox input[type=text] {
+    padding: 10px; border: 1px solid var(--line); border-radius: 5px; font-size: 16px; background: var(--cream); width: 100%;
+  }
+  .avtale {
+    background: var(--navy); color: #fff; border-radius: 8px; padding: 20px 24px; border: 1px solid var(--gold);
+  }
+  .avtale h4 { color: var(--gold); letter-spacing: 3px; font-size: 13px; margin-bottom: 8px; }
+  .avtale p { font-family: Georgia, serif; font-style: italic; font-size: 19px; }
+
+  /* ---------- Oppsummering ---------- */
+  .sumactions { display: flex; gap: 12px; margin-bottom: 20px; }
+  button.secondary {
+    background: var(--navy); color: #fff; border: none; padding: 12px 22px;
+    border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: 600;
+  }
+  button.secondary:hover { background: var(--navy2); }
+  pre#summary {
+    background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 22px;
+    white-space: pre-wrap; font-family: Consolas, monospace; font-size: 14px; line-height: 1.6;
+  }
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; background: var(--green); color: #fff;
+    padding: 12px 20px; border-radius: 6px; font-weight: 600; opacity: 0; transition: opacity .3s;
+    pointer-events: none; z-index: 999;
+  }
+  .toast.show { opacity: 1; }
+  .savednote { color: var(--ink2); font-size: 13px; }
+  @media print {
+    header, .addform, .sumactions, .movebtns, .del { display: none !important; }
+    .step { display: block !important; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="sub">House of Yachts · 17. august 2026</div>
+    <h1>Workshop — Henrik + Marte</h1>
+  </div>
+  <nav class="tabs">
+    <button class="tab active" data-step="1">1 · Kartlegg</button>
+    <button class="tab" data-step="2">2 · Fordel og kutt</button>
+    <button class="tab" data-step="3">3 · Ukesrytme</button>
+    <button class="tab" data-step="4">Oppsummering</button>
+  </nav>
+  <div class="savednote" id="savednote">lagres automatisk</div>
+</header>
+
+<main>
+
+<!-- ================= STEG 1 ================= -->
+<section class="step visible" id="step1">
+  <h2>Steg 1 — Kartlegg alt arbeidet</h2>
+  <p class="lead">Alt ut av hodet og opp på skjermen. Henrik først, så Marte. Ingen diskusjon ennå — bare registrér.</p>
+  <div class="goalbar">Overveldelse er et systemproblem — ikke et menneskeproblem. Målet nå er å se hele virkeligheten.</div>
+
+  <div class="addform">
+    <div>
+      <label>OPPGAVE</label>
+      <input type="text" id="f-task" placeholder="F.eks. svare på FINN-henvendelser" autocomplete="off">
+    </div>
+    <div>
+      <label>TIMER/UKE</label>
+      <input type="number" id="f-hours" min="0" step="0.5" placeholder="2">
+    </div>
+    <div>
+      <label>ENERGI</label>
+      <select id="f-energy">
+        <option value="plus">+ gir energi</option>
+        <option value="null" selected>0 nøytral</option>
+        <option value="minus">− tapper</option>
+      </select>
+    </div>
+    <div>
+      <label>MÅ HENRIK?</label>
+      <select id="f-must">
+        <option>Ja</option>
+        <option>Nei</option>
+        <option selected>Vet ikke</option>
+      </select>
+    </div>
+    <div>
+      <label>PROSESS</label>
+      <select id="f-proc">
+        <option value="1">1 Innkomne leads</option>
+        <option value="2">2 Befaring/verdivurdering</option>
+        <option value="3">3 Markedsføring</option>
+        <option value="4">4 Visninger/kjøpere</option>
+        <option value="5">5 Forhandling/kontrakt</option>
+        <option value="6">6 Admin/etterarbeid</option>
+      </select>
+    </div>
+    <div>
+      <label>HVEM GJØR DET NÅ</label>
+      <select id="f-who">
+        <option>Henrik</option>
+        <option>Marte</option>
+      </select>
+    </div>
+    <button class="primary" onclick="addTask()">Legg til</button>
+  </div>
+
+  <div id="tasklist"></div>
+</section>
+
+<!-- ================= STEG 2 ================= -->
+<section class="step" id="step2">
+  <h2>Steg 2 — Fordel ansvar og kutt</h2>
+  <p class="lead">Dra kortene (eller bruk knappene) til riktig kolonne. For alt som beholdes: én eier, definert støtte, én setning «slik ser det bra ut».</p>
+
+  <div class="bucket unsorted" id="bucket-unsorted" ondragover="event.preventDefault()" ondrop="dropTo(event,'unsorted')">
+    <h3>Usortert (<span id="cnt-unsorted">0</span>)</h3>
+    <div class="cards-slot"></div>
+  </div>
+  <br>
+  <div class="sortgrid">
+    <div class="bucket stoppe" id="bucket-stoppe" ondragover="event.preventDefault()" ondrop="dropTo(event,'stoppe')">
+      <h3>STOPPE</h3><div class="bsub">slutte med eller utsette</div>
+      <div class="cards-slot"></div>
+    </div>
+    <div class="bucket system" id="bucket-system" ondragover="event.preventDefault()" ondrop="dropTo(event,'system')">
+      <h3>SYSTEMATISERE</h3><div class="bsub">sjekkliste, mal eller batch</div>
+      <div class="cards-slot"></div>
+    </div>
+    <div class="bucket fortsette" id="bucket-fortsette" ondragover="event.preventDefault()" ondrop="dropTo(event,'fortsette')">
+      <h3>FORTSETTE</h3><div class="bsub">viktig — får eier og standard</div>
+      <div class="cards-slot"></div>
+    </div>
+  </div>
+
+  <div class="kjernebox">
+    <h3>Henriks 3–5 kjerneansvar</h3>
+    <p>Det Henrik måles på. Alt annet er flyttet, systematisert eller kuttet.</p>
+    <input type="text" class="kjerne" data-i="0" placeholder="1.">
+    <input type="text" class="kjerne" data-i="1" placeholder="2.">
+    <input type="text" class="kjerne" data-i="2" placeholder="3.">
+    <input type="text" class="kjerne" data-i="3" placeholder="4. (valgfri)">
+    <input type="text" class="kjerne" data-i="4" placeholder="5. (valgfri)">
+  </div>
+</section>
+
+<!-- ================= STEG 3 ================= -->
+<section class="step" id="step3">
+  <h2>Steg 3 — Ny ukesrytme og spilleregler</h2>
+  <p class="lead">Blokker Henriks uke — inkludert minst 2 × 2 timer fokustid. Skriv rett i rutene.</p>
+
+  <table class="weekgrid">
+    <tr><th></th><th>MANDAG</th><th>TIRSDAG</th><th>ONSDAG</th><th>TORSDAG</th><th>FREDAG</th></tr>
+    <tr>
+      <td>Formiddag</td>
+      <td><textarea class="wk" data-k="man-fm"></textarea></td>
+      <td><textarea class="wk" data-k="tir-fm"></textarea></td>
+      <td><textarea class="wk" data-k="ons-fm"></textarea></td>
+      <td><textarea class="wk" data-k="tor-fm"></textarea></td>
+      <td><textarea class="wk" data-k="fre-fm"></textarea></td>
+    </tr>
+    <tr>
+      <td>Ettermiddag</td>
+      <td><textarea class="wk" data-k="man-em"></textarea></td>
+      <td><textarea class="wk" data-k="tir-em"></textarea></td>
+      <td><textarea class="wk" data-k="ons-em"></textarea></td>
+      <td><textarea class="wk" data-k="tor-em"></textarea></td>
+      <td><textarea class="wk" data-k="fre-em"></textarea></td>
+    </tr>
+  </table>
+
+  <div class="rulerow">
+    <div class="rulebox">
+      <h4>Daglig stå-opp-møte (15 min)</h4>
+      <div class="hint">Status · hindringer · fordeling av dagen</div>
+      <input type="text" id="r-standup" placeholder="Klokkeslett, f.eks. 08:45">
+    </div>
+    <div class="rulebox">
+      <h4>Ukentlig planlegging (45–60 min)</h4>
+      <div class="hint">Hver mandag</div>
+      <input type="text" id="r-weekly" placeholder="Klokkeslett, f.eks. mandag 09:00">
+    </div>
+  </div>
+  <div class="rulerow">
+    <div class="rulebox">
+      <h4>Én felles innboks</h4>
+      <div class="hint">Alt nytt inn ETT sted — ingen «har du to minutter?»</div>
+      <input type="text" id="r-inbox" placeholder="Hvilket verktøy? Tavle / Notion / annet">
+    </div>
+    <div class="rulebox">
+      <h4>Grense for samtidige saker</h4>
+      <div class="hint">Henrik setter taket selv — resten står synlig i kø</div>
+      <input type="text" id="r-wip" placeholder="Maks antall aktive saker, f.eks. 6">
+    </div>
+  </div>
+
+  <div class="avtale">
+    <h4>AVTALEN</h4>
+    <p>Vi tester dette i 30 dager uten å endre på det. Evaluering mandag 14. september.</p>
+  </div>
+</section>
+
+<!-- ================= OPPSUMMERING ================= -->
+<section class="step" id="step4">
+  <h2>Oppsummering</h2>
+  <p class="lead">Alt dere har fylt inn, samlet. Kopier til referat eller skriv ut.</p>
+  <div class="sumactions">
+    <button class="secondary" onclick="renderSummary()">Oppdater</button>
+    <button class="secondary" onclick="copySummary()">Kopier som tekst</button>
+    <button class="secondary" onclick="window.print()">Skriv ut</button>
+    <button class="secondary" onclick="exportJson()">Last ned sikkerhetskopi</button>
+    <button class="secondary" style="background:var(--red)" onclick="resetAll()">Nullstill alt</button>
+  </div>
+  <pre id="summary">Trykk «Oppdater» for å generere oppsummeringen.</pre>
+</section>
+
+</main>
+
+<div class="toast" id="toast">Kopiert!</div>
+
+<script>
+const PROCS = {1:'Innkomne leads',2:'Befaring/verdivurdering',3:'Markedsføring',4:'Visninger/kjøpere',5:'Forhandling/kontrakt',6:'Admin/etterarbeid'};
+const ENERGI = {plus:'+', null:'0', minus:'−'};
+const KEY = 'hoy-workshop-hm-2026';
+
+let state = { tasks: [], kjerne:['','','','',''], week:{}, rules:{standup:'',weekly:'',inbox:'',wip:''} };
+
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) state = Object.assign(state, JSON.parse(raw));
+  } catch(e) {}
+}
+function save() {
+  localStorage.setItem(KEY, JSON.stringify(state));
+  const n = document.getElementById('savednote');
+  n.textContent = 'lagret ' + new Date().toLocaleTimeString('no-NO', {hour:'2-digit',minute:'2-digit'});
+}
+
+/* ---------- Tabs ---------- */
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('visible'));
+  document.getElementById('step' + t.dataset.step).classList.add('visible');
+  if (t.dataset.step === '2') renderBuckets();
+  if (t.dataset.step === '4') renderSummary();
+}));
+
+/* ---------- Steg 1 ---------- */
+function addTask() {
+  const t = document.getElementById('f-task').value.trim();
+  if (!t) return;
+  state.tasks.push({
+    id: Date.now() + Math.random(),
+    task: t,
+    hours: document.getElementById('f-hours').value || '?',
+    energy: document.getElementById('f-energy').value,
+    must: document.getElementById('f-must').value,
+    proc: document.getElementById('f-proc').value,
+    who: document.getElementById('f-who').value,
+    bucket: 'unsorted',
+    eier: '', stotte: '', std: ''
+  });
+  document.getElementById('f-task').value = '';
+  document.getElementById('f-hours').value = '';
+  document.getElementById('f-task').focus();
+  save(); renderTasks();
+}
+document.getElementById('f-task').addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
+
+function delTask(id) {
+  state.tasks = state.tasks.filter(t => t.id !== id);
+  save(); renderTasks(); renderBuckets();
+}
+
+function renderTasks() {
+  const el = document.getElementById('tasklist');
+  el.innerHTML = '';
+  for (const p of Object.keys(PROCS)) {
+    const tasks = state.tasks.filter(t => t.proc === p);
+    if (!tasks.length) continue;
+    const g = document.createElement('div');
+    g.className = 'proc-group';
+    const sumH = tasks.reduce((a,t)=> a + (parseFloat(t.hours)||0), 0);
+    g.innerHTML = `<div class="proc-title">${p} · ${PROCS[p]} — ${tasks.length} oppgaver, ~${sumH} t/uke</div>`;
+    const c = document.createElement('div'); c.className = 'cards';
+    tasks.forEach(t => {
+      const d = document.createElement('div');
+      d.className = 'card energi-' + t.energy;
+      d.innerHTML = `
+        <div class="who" title="Gjøres i dag av ${t.who}">${t.who[0]}</div>
+        <button class="del" onclick="delTask(${t.id})" title="Slett">✕</button>
+        <div class="t">${esc(t.task)}</div>
+        <div class="meta">${t.hours} t/uke · energi ${ENERGI[t.energy]} · Må Henrik? ${t.must}</div>`;
+      c.appendChild(d);
+    });
+    g.appendChild(c);
+    el.appendChild(g);
+  }
+  if (!state.tasks.length) el.innerHTML = '<p style="color:var(--ink2);font-style:italic">Ingen oppgaver ennå — legg til den første over.</p>';
+}
+
+/* ---------- Steg 2 ---------- */
+let dragId = null;
+function renderBuckets() {
+  for (const b of ['unsorted','stoppe','system','fortsette']) {
+    const slot = document.querySelector('#bucket-' + b + ' .cards-slot');
+    slot.innerHTML = '';
+    state.tasks.filter(t => t.bucket === b).forEach(t => {
+      const d = document.createElement('div');
+      d.className = 'chip';
+      d.draggable = true;
+      d.addEventListener('dragstart', () => dragId = t.id);
+      let extra = '';
+      if (b === 'fortsette') {
+        extra = `<div class="crow">
+          <select onchange="setF(${t.id},'eier',this.value)">
+            <option value="">Eier?</option>
+            <option ${t.eier==='H'?'selected':''} value="H">Eier: H</option>
+            <option ${t.eier==='M'?'selected':''} value="M">Eier: M</option>
+          </select>
+          <select onchange="setF(${t.id},'stotte',this.value)">
+            <option value="">Støtte?</option>
+            <option ${t.stotte==='H'?'selected':''} value="H">Støtte: H</option>
+            <option ${t.stotte==='M'?'selected':''} value="M">Støtte: M</option>
+            <option ${t.stotte==='—'?'selected':''} value="—">Ingen</option>
+          </select>
+          <input type="text" class="std" placeholder="Slik ser det bra ut…" value="${esc(t.std)}"
+                 onchange="setF(${t.id},'std',this.value)">
+        </div>`;
+      } else if (b === 'system') {
+        extra = `<div class="crow">
+          <input type="text" class="std" placeholder="Hvordan? Sjekkliste / mal / batch…" value="${esc(t.std)}"
+                 onchange="setF(${t.id},'std',this.value)">
+        </div>`;
+      }
+      const btns = ['stoppe','system','fortsette'].filter(x => x !== b)
+        .map(x => `<button onclick="moveTo(${t.id},'${x}')">${x==='stoppe'?'Stopp':x==='system'?'System':'Fortsett'}</button>`).join('');
+      d.innerHTML = `<span class="cname">${esc(t.task)}</span>
+        <span style="color:var(--ink2);font-size:13px"> · ${t.hours} t/uke · ${t.who}</span>
+        <div class="crow"><div class="movebtns">${btns}</div></div>${extra}`;
+      slot.appendChild(d);
+    });
+  }
+  document.getElementById('cnt-unsorted').textContent = state.tasks.filter(t => t.bucket==='unsorted').length;
+}
+function moveTo(id, bucket) {
+  const t = state.tasks.find(t => t.id === id);
+  if (t) { t.bucket = bucket; save(); renderBuckets(); }
+}
+function dropTo(ev, bucket) {
+  ev.preventDefault();
+  if (dragId !== null) moveTo(dragId, bucket);
+  dragId = null;
+}
+function setF(id, field, val) {
+  const t = state.tasks.find(t => t.id === id);
+  if (t) { t[field] = val; save(); }
+}
+document.querySelectorAll('.kjerne').forEach(inp => {
+  inp.addEventListener('input', () => { state.kjerne[+inp.dataset.i] = inp.value; save(); });
+});
+
+/* ---------- Steg 3 ---------- */
+document.querySelectorAll('.wk').forEach(ta => {
+  ta.addEventListener('input', () => { state.week[ta.dataset.k] = ta.value; save(); });
+});
+for (const [id, key] of [['r-standup','standup'],['r-weekly','weekly'],['r-inbox','inbox'],['r-wip','wip']]) {
+  document.getElementById(id).addEventListener('input', e => { state.rules[key] = e.target.value; save(); });
+}
+
+/* ---------- Oppsummering ---------- */
+function renderSummary() {
+  const L = [];
+  L.push('# Workshop Henrik + Marte — resultat', new Date().toLocaleDateString('no-NO', {day:'numeric',month:'long',year:'numeric'}), '');
+
+  L.push('## Kartlegging');
+  for (const p of Object.keys(PROCS)) {
+    const ts = state.tasks.filter(t => t.proc === p);
+    if (!ts.length) continue;
+    L.push(`\n### ${PROCS[p]}`);
+    ts.forEach(t => L.push(`- ${t.task} (${t.hours} t/uke, energi ${ENERGI[t.energy]}, må Henrik: ${t.must}, gjøres i dag av ${t.who})`));
+  }
+
+  const b = n => state.tasks.filter(t => t.bucket === n);
+  L.push('\n## STOPPE');
+  b('stoppe').forEach(t => L.push(`- ${t.task}`));
+  if (!b('stoppe').length) L.push('- (ingen)');
+  L.push('\n## SYSTEMATISERE');
+  b('system').forEach(t => L.push(`- ${t.task}${t.std ? ' — ' + t.std : ''}`));
+  if (!b('system').length) L.push('- (ingen)');
+  L.push('\n## FORTSETTE');
+  b('fortsette').forEach(t => L.push(`- ${t.task} — eier: ${t.eier||'?'}${t.stotte?', støtte: '+t.stotte:''}${t.std ? ' — «' + t.std + '»' : ''}`));
+  if (!b('fortsette').length) L.push('- (ingen)');
+  const us = b('unsorted');
+  if (us.length) { L.push('\n## IKKE FERDIG SORTERT'); us.forEach(t => L.push(`- ${t.task}`)); }
+
+  L.push('\n## Henriks kjerneansvar');
+  state.kjerne.filter(k => k.trim()).forEach((k,i) => L.push(`${i+1}. ${k}`));
+
+  L.push('\n## Henriks ukeplan');
+  const dager = {man:'Mandag',tir:'Tirsdag',ons:'Onsdag',tor:'Torsdag',fre:'Fredag'};
+  for (const d of Object.keys(dager)) {
+    const fm = state.week[d+'-fm'] || '—';
+    const em = state.week[d+'-em'] || '—';
+    L.push(`- ${dager[d]}: formiddag: ${fm} · ettermiddag: ${em}`);
+  }
+
+  L.push('\n## Spilleregler');
+  L.push(`- Daglig stå-opp (15 min): ${state.rules.standup || '—'}`);
+  L.push(`- Ukentlig planlegging: ${state.rules.weekly || '—'}`);
+  L.push(`- Felles innboks: ${state.rules.inbox || '—'}`);
+  L.push(`- Maks samtidige saker for Henrik: ${state.rules.wip || '—'}`);
+  L.push('\n## Avtalen');
+  L.push('Vi tester systemet i 30 dager uten å endre på det. Evaluering mandag 14. september 2026.');
+
+  document.getElementById('summary').textContent = L.join('\n');
+}
+function copySummary() {
+  renderSummary();
+  navigator.clipboard.writeText(document.getElementById('summary').textContent).then(() => {
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 1600);
+  });
+}
+function exportJson() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'workshop-henrik-marte-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+}
+function resetAll() {
+  if (!confirm('Slette alt innhold i workshoppen? Dette kan ikke angres.')) return;
+  localStorage.removeItem(KEY);
+  location.reload();
+}
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+
+/* ---------- Init ---------- */
+load();
+renderTasks();
+renderBuckets();
+document.querySelectorAll('.kjerne').forEach(inp => inp.value = state.kjerne[+inp.dataset.i] || '');
+document.querySelectorAll('.wk').forEach(ta => ta.value = state.week[ta.dataset.k] || '');
+document.getElementById('r-standup').value = state.rules.standup || '';
+document.getElementById('r-weekly').value = state.rules.weekly || '';
+document.getElementById('r-inbox').value = state.rules.inbox || '';
+document.getElementById('r-wip').value = state.rules.wip || '';
+</script>
+</body>
+</html>
