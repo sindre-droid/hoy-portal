@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Prishistorikk — HoY Portal</title>
+  <style>
+    :root{--navy:#0a2140;--gold:#c9a84c;--white:#ffffff;--surface:#f5f7fa;--gray:#dde3ec;--gray-dark:#6b7a8d;--text:#12233a;--green:#166534;--green-bg:#dcfce7;--red:#991b1b;--red-bg:#fee2e2;--radius:12px}
+    *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--surface);color:var(--text);margin:0;min-height:100vh;-webkit-font-smoothing:antialiased}
+
+    .loading-screen,.login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy)}
+    .loading-text{color:rgba(255,255,255,0.5);font-size:15px}
+    .login-box{background:white;border-radius:20px;padding:40px 36px;max-width:400px;width:calc(100% - 32px);text-align:center;box-shadow:0 8px 40px rgba(0,0,0,0.3)}
+    .login-logo{font-size:22px;font-weight:800;color:var(--navy);margin-bottom:4px}
+    .login-sub{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:28px}
+    .login-form{display:flex;flex-direction:column;gap:12px;text-align:left;margin-bottom:8px}
+    .login-form label{font-size:13px;font-weight:600;color:var(--navy);display:block;margin-bottom:4px}
+    .login-form input{width:100%;padding:13px 15px;border:2px solid var(--gray);border-radius:10px;font-size:16px;font-family:inherit}
+    .login-form input:focus{outline:none;border-color:var(--navy)}
+    .btn-login{width:100%;padding:15px;background:var(--navy);color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer}
+    .btn-login:disabled{opacity:0.55;cursor:not-allowed}
+    .login-error{color:var(--red);font-size:13px;font-weight:600;margin-top:10px;display:none}
+
+    .header{background:var(--navy);color:white;padding:14px 20px;position:sticky;top:0;z-index:200}
+    .header-inner{max-width:960px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}
+    .brand{display:flex;flex-direction:column}
+    .brand a{color:rgba(255,255,255,0.55);font-size:11px;text-decoration:none;margin-bottom:2px}
+    .brand-name{font-size:15px;font-weight:800;letter-spacing:0.8px}
+    .btn-logout{background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.18);border-radius:20px;color:rgba(255,255,255,0.85);padding:6px 14px;font-size:12px;font-family:inherit;cursor:pointer}
+
+    .wrap{max-width:960px;margin:0 auto;padding:26px 16px 80px}
+    h1{font-size:22px;color:var(--navy);margin:0 0 4px}
+    .sub{font-size:13px;color:var(--gray-dark);margin:0 0 20px}
+
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+    .toolbar input[type=search]{flex:1;min-width:200px;padding:11px 14px;border:2px solid var(--gray);border-radius:10px;font-size:15px;font-family:inherit;background:white}
+    .toolbar input:focus{outline:none;border-color:var(--navy)}
+    .seg{display:flex;background:white;border:2px solid var(--gray);border-radius:10px;overflow:hidden}
+    .seg button{border:none;background:none;padding:10px 14px;font-size:13px;font-weight:600;color:var(--gray-dark);cursor:pointer;font-family:inherit}
+    .seg button.on{background:var(--navy);color:white}
+
+    .card{background:white;border:2px solid var(--gray);border-radius:14px;overflow:hidden;margin-bottom:22px}
+    .row{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--gray);cursor:pointer;transition:background 0.15s}
+    .row:last-child{border-bottom:none}
+    .row:hover{background:var(--surface)}
+    .row .dt{font-size:12px;color:var(--gray-dark);width:78px;flex-shrink:0}
+    .row .navn{font-weight:700;font-size:14px;color:var(--navy);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .row .pris{font-size:14px;text-align:right;white-space:nowrap}
+    .row .pris .old{color:var(--gray-dark);text-decoration:line-through;font-size:12px;margin-right:6px}
+    .diff{font-size:12px;font-weight:700;border-radius:20px;padding:3px 9px;white-space:nowrap}
+    .diff.ned{background:var(--green-bg);color:var(--green)}
+    .diff.opp{background:var(--red-bg);color:var(--red)}
+    .kilde{font-size:10px;font-weight:700;letter-spacing:0.5px;border-radius:4px;padding:2px 6px;text-transform:uppercase;flex-shrink:0}
+    .kilde.finn{background:#e0edff;color:#1d4ed8}
+    .kilde.manuell{background:#fef3c7;color:#92400e}
+    .kilde.synk{background:#ede9fe;color:#5b21b6}
+    .empty{padding:28px 16px;text-align:center;color:var(--gray-dark);font-size:14px}
+
+    /* Historikk-panel (modal) */
+    .overlay{position:fixed;inset:0;background:rgba(10,33,64,0.55);display:none;align-items:flex-end;justify-content:center;z-index:300}
+    .overlay.open{display:flex}
+    .panel{background:white;border-radius:20px 20px 0 0;width:100%;max-width:640px;max-height:82vh;overflow-y:auto;padding:24px 20px 40px}
+    .panel h2{font-size:18px;color:var(--navy);margin:0 0 2px}
+    .panel .pid{font-size:11px;color:var(--gray-dark);margin-bottom:16px}
+    .tl{border-left:2px solid var(--gray);margin-left:6px;padding-left:18px}
+    .tl-item{position:relative;padding-bottom:16px}
+    .tl-item::before{content:'';position:absolute;left:-24px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--navy)}
+    .tl-item .tl-dato{font-size:12px;color:var(--gray-dark)}
+    .tl-item .tl-pris{font-size:16px;font-weight:700;color:var(--navy)}
+    .panel .lukk{margin-top:8px;width:100%;padding:13px;background:var(--surface);border:2px solid var(--gray);border-radius:10px;font-size:14px;font-weight:600;color:var(--navy);cursor:pointer;font-family:inherit}
+
+    /* Avvik */
+    .avvik-row{display:flex;gap:12px;padding:13px 16px;border-bottom:1px solid var(--gray);align-items:flex-start}
+    .avvik-row:last-child{border-bottom:none}
+    .avvik-type{font-size:10px;font-weight:700;letter-spacing:0.5px;border-radius:4px;padding:3px 7px;text-transform:uppercase;background:var(--red-bg);color:var(--red);flex-shrink:0;margin-top:2px}
+    .avvik-type.info{background:#e0edff;color:#1d4ed8}
+    .avvik-body{flex:1;min-width:0}
+    .avvik-navn{font-weight:700;font-size:14px;color:var(--navy)}
+    .avvik-detail{font-size:13px;color:var(--gray-dark);line-height:1.5}
+    .avvik-tid{font-size:11px;color:var(--gray-dark);margin-top:3px}
+    .section-label{font-size:12px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--gray-dark);margin:0 0 10px}
+  </style>
+</head>
+<body>
+
+<div id="loadingScreen" class="loading-screen"><div class="loading-text">Starter…</div></div>
+
+<div id="loginScreen" class="login-screen" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">House of Yachts</div>
+    <div class="login-sub">Prishistorikk</div>
+    <div class="login-form">
+      <div><label>E-post</label><input id="loginEmail" type="email" autocomplete="username" placeholder="deg@h-y.no"></div>
+      <div><label>Passord</label><input id="loginPassword" type="password" autocomplete="current-password"></div>
+    </div>
+    <button class="btn-login" id="loginBtn" onclick="doLogin()">🔐 Logg inn</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<div id="appScreen" style="display:none">
+  <div class="header"><div class="header-inner">
+    <div class="brand"><a href="/">← Portal</a><span class="brand-name">Prishistorikk</span></div>
+    <button class="btn-logout" onclick="doLogout()">Logg ut</button>
+  </div></div>
+
+  <div class="wrap">
+    <h1>Prisendringer</h1>
+    <p class="sub">Alle prisendringer på båtene — fra HubSpot, FINN-synken og meglerne. Klikk en rad for full historikk.</p>
+
+    <div class="toolbar">
+      <input type="search" id="sok" placeholder="Søk båt …" oninput="render()">
+      <div class="seg" id="periode">
+        <button data-d="30" onclick="setPeriode(30)">30 d</button>
+        <button data-d="90" class="on" onclick="setPeriode(90)">90 d</button>
+        <button data-d="365" onclick="setPeriode(365)">1 år</button>
+      </div>
+    </div>
+
+    <div class="card" id="liste"><div class="empty">Laster …</div></div>
+
+    <p class="section-label">FINN-synk: avvik som trenger oppfølging</p>
+    <div class="card" id="avvik"><div class="empty">Laster …</div></div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" onclick="if(event.target===this)lukkPanel()">
+  <div class="panel">
+    <h2 id="panelNavn"></h2>
+    <div class="pid" id="panelId"></div>
+    <div class="tl" id="panelTl"></div>
+    <button class="lukk" onclick="lukkPanel()">Lukk</button>
+  </div>
+</div>
+
+<script>
+const IDENTITY = location.origin + '/.netlify/identity';
+const API = '/.netlify/functions/prishistorikk';
+const $ = (id) => document.getElementById(id);
+let accessToken = null, endringer = [], dager = 90;
+
+function showScreen(id){['loadingScreen','loginScreen','appScreen'].forEach(s=>$(s).style.display='none');$(id).style.display=(id==='appScreen')?'block':'flex';}
+
+window.addEventListener('DOMContentLoaded', async () => {
+  const tok = localStorage.getItem('hoy_access_token');
+  if (tok) {
+    try {
+      const r = await fetch(`${IDENTITY}/user`, { headers: { Authorization: `Bearer ${tok}` } });
+      if (!r.ok) throw 0;
+      accessToken = tok; onLogin(); return;
+    } catch { localStorage.removeItem('hoy_access_token'); }
+  }
+  showScreen('loginScreen');
+});
+
+async function doLogin(){
+  const err=$('loginError');err.style.display='none';
+  const btn=$('loginBtn');btn.disabled=true;btn.textContent='Logger inn…';
+  try{
+    const r=await fetch(`${IDENTITY}/token`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:`grant_type=password&username=${encodeURIComponent($('loginEmail').value.trim())}&password=${encodeURIComponent($('loginPassword').value)}`});
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error_description||'Feil passord eller e-post');}
+    accessToken=(await r.json()).access_token;
+    localStorage.setItem('hoy_access_token',accessToken);
+    onLogin();
+  }catch(e){err.textContent=e.message;err.style.display='block';btn.disabled=false;btn.textContent='🔐 Logg inn';}
+}
+function doLogout(){localStorage.removeItem('hoy_access_token');location.reload();}
+
+async function api(params){
+  const r=await fetch(`${API}?${new URLSearchParams(params)}`,{headers:{Authorization:`Bearer ${accessToken}`}});
+  const d=await r.json().catch(()=>({error:'Ugyldig svar'}));
+  if(!r.ok)throw new Error(d.error||`HTTP ${r.status}`);
+  return d;
+}
+
+async function onLogin(){
+  showScreen('appScreen');
+  loadEndringer(); loadAvvik();
+}
+
+function setPeriode(d){dager=d;document.querySelectorAll('#periode button').forEach(b=>b.classList.toggle('on',+b.dataset.d===d));loadEndringer();}
+
+async function loadEndringer(){
+  $('liste').innerHTML='<div class="empty">Laster …</div>';
+  try{endringer=await api({action:'endringer',dager});render();}
+  catch(e){$('liste').innerHTML=`<div class="empty">${e.message}</div>`;}
+}
+
+function kilde(r){
+  if(r.source==='finn')return['finn','FINN'];
+  const d=r.source_detail||'';
+  if(d.startsWith('CRM_UI'))return['manuell','Manuell'];
+  if(d.startsWith('INTEGRATION'))return['synk','Synk'];
+  if(d.startsWith('AUTOMATION_PLATFORM'))return['synk','Workflow'];
+  return['synk',r.source||'—'];
+}
+const nok=(n)=>n==null?'—':Number(n).toLocaleString('nb-NO');
+const dato=(s)=>new Date(s).toLocaleDateString('nb-NO',{day:'numeric',month:'short'});
+
+function render(){
+  const q=($('sok').value||'').toLowerCase();
+  const rows=endringer.filter(r=>!q||(r.boat_name||'').toLowerCase().includes(q));
+  if(!rows.length){$('liste').innerHTML='<div class="empty">Ingen prisendringer i perioden.</div>';return;}
+  $('liste').innerHTML=rows.map(r=>{
+    const diff=Number(r.price)-Number(r.prev_price);
+    const pct=r.prev_price?(diff/Number(r.prev_price)*100):0;
+    const [kc,kl]=kilde(r);
+    return `<div class="row" onclick="apnePanel('${r.boat_id}','${(r.boat_name||'').replace(/'/g,"\\'")}')">
+      <span class="dt">${dato(r.changed_at)}</span>
+      <span class="navn">${r.boat_name||r.boat_id}</span>
+      <span class="kilde ${kc}">${kl}</span>
+      <span class="pris"><span class="old">${nok(r.prev_price)}</span>${nok(r.price)}</span>
+      <span class="diff ${diff<0?'ned':'opp'}">${diff<0?'':'+'}${pct.toFixed(1).replace('.',',')} %</span>
+    </div>`;
+  }).join('');
+}
+
+async function apnePanel(boatId,navn){
+  $('panelNavn').textContent=navn;
+  $('panelId').textContent=`Boat-ID ${boatId}`;
+  $('panelTl').innerHTML='<div class="empty">Laster …</div>';
+  $('overlay').classList.add('open');
+  try{
+    const rows=await api({action:'boat',boat_id:boatId});
+    const reelle=rows.filter(r=>r.price!=null);
+    $('panelTl').innerHTML=reelle.map(r=>{
+      const [kc,kl]=kilde(r);
+      return `<div class="tl-item">
+        <div class="tl-dato">${new Date(r.changed_at).toLocaleDateString('nb-NO',{day:'numeric',month:'short',year:'numeric'})} · <span class="kilde ${kc}">${kl}</span></div>
+        <div class="tl-pris">${nok(r.price)} kr</div>
+      </div>`;
+    }).join('')||'<div class="empty">Ingen historikk.</div>';
+  }catch(e){$('panelTl').innerHTML=`<div class="empty">${e.message}</div>`;}
+}
+function lukkPanel(){$('overlay').classList.remove('open');}
+
+const AVVIK_LABEL={oppdater_finn:'Oppdater FINN',annonse_solgt:'Annonse solgt',annonse_borte:'Annonse borte',annonse_uten_boat:'Mangler kobling',pris_avvik_seed:'Prisavvik'};
+async function loadAvvik(){
+  try{
+    const rows=await api({action:'avvik'});
+    if(!rows.length){$('avvik').innerHTML='<div class="empty">Ingen avvik 🎉</div>';return;}
+    $('avvik').innerHTML=rows.map(r=>`<div class="avvik-row">
+      <span class="avvik-type ${r.type==='annonse_uten_boat'?'info':''}">${AVVIK_LABEL[r.type]||r.type}</span>
+      <div class="avvik-body">
+        <div class="avvik-navn">${r.boat_name||('Finnkode '+r.finn_kode)}</div>
+        <div class="avvik-detail">${r.detail||''}</div>
+        <div class="avvik-tid">Sist sett: ${new Date(r.last_seen).toLocaleString('nb-NO')}</div>
+      </div>
+    </div>`).join('');
+  }catch(e){$('avvik').innerHTML=`<div class="empty">${e.message}</div>`;}
+}
+</script>
+</body>
+</html>

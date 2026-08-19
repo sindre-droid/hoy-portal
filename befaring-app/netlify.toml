@@ -94,3 +94,8 @@
 [functions."finn-sync"]
   schedule = "0 3 * * *"
   timeout = 26
+
+[[redirects]]
+  from = "/prishistorikk"
+  to = "/prishistorikk/"
+  status = 301
