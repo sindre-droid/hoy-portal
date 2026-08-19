@@ -51,6 +51,11 @@ async function getFilesInFolder(folderId) {
     if (!after) break;
   }
 
+  // Deterministisk rekkefølge: numerisk-bevisst navnesortering.
+  // Backfill/opplaster prefikser filnavn med 001-, 002-, … slik at kuratert
+  // rekkefølge (forsidebilde først) faktisk vises i den rekkefølgen på siden.
+  items.sort((a, b) => String(a.name).localeCompare(String(b.name), 'nb', { numeric: true }));
+
   return items;
 }
 
