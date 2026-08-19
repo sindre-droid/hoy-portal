@@ -742,6 +742,112 @@ function escapeRegex(s) {
 
 // ── Handler ──────────────────────────────────────────────────────────────────
 
+
+// ── Prospekt → boat-kort-speiling (Sindre 19. aug 2026) ─────────────────────
+// Prospektet utarbeides ofte FØRST — det som fylles ut der skal speiles til
+// boat-kortet (sist oppdatert vinner). Motsatt vei dekkes av buildSpecs ved
+// opprettelse/refresh-specs + nattlig prissynk. Best-effort: feiler speilingen,
+// feiler ALDRI selve lagringen.
+const FUEL_TIL_BOAT = { 'Bensin': 'Bensin', 'Diesel': 'Disel', 'Elektrisitet': 'Elektrisitet', 'Annet': 'Annet' };
+const MAT_TIL_BOAT  = { 'Glassfiber': '1', 'Aluminium': '2', 'Plast': '3', 'Tre': '4', 'Annet': '5' };
+const MOTORTYPE_TIL_BOAT = { 'Innenbords': '1', 'Utenbords': '2', 'Drev': '3',
+  'Strak aksling': 'Strak aksling', 'IPS (volvo)': 'IPS (volvo)', 'Zeus pod (cummins/mercruiser)': 'Zeus pod (cummins/mercruiser)' };
+
+function prospektTilBoatProps(row) {
+  const props = {};
+  const set = (k, v) => { if (v !== undefined && v !== null && String(v).trim() !== '') props[k] = String(v).trim(); };
+  const specs = Array.isArray(row.specs) ? row.specs : [];
+  const spec = (label) => {
+    const hit = specs.find((x) => x && !x.divider && String(x.label).toLowerCase() === label.toLowerCase());
+    return hit ? String(hit.value).trim() : '';
+  };
+
+  set('batmerke', spec('Merke'));
+  set('bat_modell', spec('Modell'));
+  const aar = spec('Årsmodell') || (row.model_year ? String(row.model_year) : '');
+  if (/^\d{4}$/.test(aar)) set('arsmodell', aar);
+
+  const lengde = spec('Lengde');
+  let m = lengde.match(/^([\d.,]+)\s*fot/i);
+  if (m) set('lengde_i_fot', m[1].replace(',', '.'));
+  m = lengde.match(/^([\d.,]+)\s*cm/i);
+  if (m) set('lengde_i_cm', m[1].replace(',', '.'));
+  m = spec('Bredde').match(/^([\d.,]+)\s*cm/i);
+  if (m) set('bredde', m[1].replace(',', '.'));
+
+  // Motor/Effekt er sammensatte linjer (antall × fabrikant + hk) — speiles ikke
+  // tilbake for å unngå dobbeltkomponering ved neste buildSpecs.
+  const mt = spec('Motortype');
+  if (MOTORTYPE_TIL_BOAT[mt]) set('type_motor', MOTORTYPE_TIL_BOAT[mt]);
+
+  m = spec('Maks fart').match(/([\d.,]+)/);
+  if (m) set('maks_fart', m[1]);
+
+  const fuel = spec('Drivstoff');
+  if (FUEL_TIL_BOAT[fuel]) set('drivstoff_type', FUEL_TIL_BOAT[fuel]);
+  const mat = spec('Materiale');
+  if (MAT_TIL_BOAT[mat]) set('materialer', MAT_TIL_BOAT[mat]);
+
+  set('farge', spec('Farge'));
+  m = spec('Timer').replace(/^ca\.?\s*/i, '').match(/(\d[\d\s.,]*\d|\d)/);
+  if (m) set('driftstimer_motor', m[1].trim());
+  set('ce_konstruksjonskategori', spec('CE-kategori'));
+  const mva = spec('MVA');
+  if (mva === 'Vat paid' || mva === 'Vat not paid') set('mva_status', mva);
+  set('location', spec('Beliggenhet'));
+
+  const caps = Array.isArray(row.capacities) ? row.capacities : [];
+  const cap = (label) => {
+    const hit = caps.find((x) => x && String(x.label).toLowerCase() === label.toLowerCase());
+    return hit ? String(hit.value).trim() : '';
+  };
+  if (/^\d+$/.test(cap('Kahytter'))) set('antall_kahytter', cap('Kahytter'));
+  if (/^\d+$/.test(cap('Soveplasser'))) set('antall_soveplasser', cap('Soveplasser'));
+  if (/^\d+$/.test(cap('Bad/WC'))) set('antall_bad', cap('Bad/WC'));
+
+  // Pris: prospektets asking_price → boat.pris (nattsynken holder motsatt vei)
+  const prisNum = String(row.asking_price || '').replace(/[^0-9]/g, '');
+  if (prisNum) set('pris', prisNum);
+
+  // Utstyrsliste: flat tekst fra kategoriene
+  if (Array.isArray(row.equipment_categories) && row.equipment_categories.length) {
+    const linjer = [];
+    for (const c of row.equipment_categories) {
+      const items = (c.items || []).map((i) => (typeof i === 'string' ? i : i.text)).filter(Boolean);
+      if (!items.length) continue;
+      linjer.push(`${c.name || ''}`.trim());
+      for (const it of items) linjer.push(`- ${it}`);
+    }
+    if (linjer.length) props.utstyrsliste = linjer.join('\n');
+  }
+  return props;
+}
+
+async function speilProspektTilBoat(row) {
+  try {
+    if (!row || !row.deal_id) return;
+    const boatId = await getBoatIdForDeal(row.deal_id);
+    if (!boatId) return;
+    let props = prospektTilBoatProps(row);
+    if (!Object.keys(props).length) return;
+    // PATCH med dropp-og-prøv-igjen ved enum-avvisning (f.eks. ukjent batmerke)
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const res = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}/${boatId}`, 'PATCH', { properties: props });
+      if (res.ok) {
+        console.log(`[prospekt] speilet ${Object.keys(props).length} felter til boat ${boatId}`);
+        return;
+      }
+      const msg = JSON.stringify(res.data || '');
+      const bad = Object.keys(props).filter((k) => msg.includes(k));
+      if (!bad.length) { console.warn('[prospekt] speiling avvist:', msg.slice(0, 200)); return; }
+      for (const k of bad) delete props[k];
+      if (!Object.keys(props).length) return;
+    }
+  } catch (e) {
+    console.warn('[prospekt] speiling til boat feilet (lagring upåvirket):', e.message);
+  }
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS')
     return { statusCode: 204, headers: CORS, body: '' };
@@ -1065,6 +1171,12 @@ exports.handler = async (event) => {
           throw error;
         }
 
+        // Speil til boat-kortet når spec-relevante felter er endret
+        const speilRelevant = ['specs', 'capacities', 'equipment_categories', 'model_year', 'asking_price'];
+        if (speilRelevant.some((k) => k in updates)) {
+          await speilProspektTilBoat(data);
+        }
+
         return ok(data);
       }
 
@@ -1288,10 +1400,13 @@ exports.handler = async (event) => {
         // Hent prospekt for deal_id
         const { data: prospekt, error: pErr } = await supabase
           .from('prospekter')
-          .select('deal_id')
+          .select('*')
           .eq('id', id)
           .single();
         if (pErr) throw pErr;
+
+        // Publisering = kvalitetssikret innhold → speil alt til boat-kortet
+        await speilProspektTilBoat(prospekt);
 
         // Bygg offentlig URL
         const siteUrl = process.env.URL || 'https://silver-puffpuff-8a67de.netlify.app';

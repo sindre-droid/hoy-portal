@@ -110,9 +110,58 @@ exports.handler = async () => {
       });
     }
 
+    // 4) Prospekt-prissynk (Sindre 19. aug: prospektet skal ALLTID følge boat-prisen).
+    //    For båter med reell prisendring siste 48t: finn åpen B-deal via deals.boat_id,
+    //    og oppdater asking_price i Supabase-prospektet (draft OG published — publiserte
+    //    prospekter rendres live fra DB, så kunder ser alltid gjeldende pris).
+    const PIPELINE_B = '3211644128';
+    const num = (s) => { const t = String(s ?? '').replace(/[^0-9]/g, ''); return t ? Number(t) : null; };
+    const fmt = (n) => Number(n).toLocaleString('nb-NO').replace(/[\u00a0\u202f]/g, ' ');
+    let prospektOppdatert = 0;
+
+    // siste pris per båt + om den endret seg i vinduet
+    const latest = {};
+    for (const r of rows) {
+      const cur = latest[r.boat_id];
+      if (!cur || new Date(r.changed_at) > new Date(cur.changed_at)) latest[r.boat_id] = r;
+    }
+    for (const [boatId, v] of Object.entries(latest)) {
+      if (v.price == null) continue;
+      if (new Date(v.changed_at).getTime() < since) continue; // ingen fersk endring
+      try {
+        const ds = await hs('/crm/v3/objects/deals/search', {
+          method: 'POST',
+          body: JSON.stringify({
+            filterGroups: [{ filters: [
+              { propertyName: 'boat_id', operator: 'EQ', value: boatId },
+              { propertyName: 'pipeline', operator: 'EQ', value: PIPELINE_B },
+              { propertyName: 'hs_is_closed', operator: 'EQ', value: 'false' },
+            ]}],
+            properties: ['dealname'],
+            limit: 5,
+          }),
+        });
+        for (const deal of (ds.results || [])) {
+          const pros = await sb(`/prospekter?deal_id=eq.${deal.id}&select=id,asking_price`);
+          for (const p of (pros || [])) {
+            if (num(p.asking_price) === Number(v.price)) continue;
+            await sb(`/prospekter?id=eq.${p.id}`, {
+              method: 'PATCH',
+              headers: { Prefer: 'return=minimal' },
+              body: JSON.stringify({ asking_price: fmt(v.price) }),
+            });
+            prospektOppdatert++;
+            console.log(`prospekt-pris: ${v.boat_name || boatId} → ${fmt(v.price)} (deal ${deal.id})`);
+          }
+        }
+      } catch (e) {
+        console.error('prospekt-prissynk feilet for båt', boatId, String(e.message || e));
+      }
+    }
+
     const ms = Date.now() - started;
-    console.log(`price-history-sync: ${ids.length} endrede båter, ${rows.length} versjoner upsertet på ${ms} ms`);
-    return { statusCode: 200, body: JSON.stringify({ ok: true, boats: ids.length, versions: rows.length, ms }) };
+    console.log(`price-history-sync: ${ids.length} endrede båter, ${rows.length} versjoner, ${prospektOppdatert} prospekter prisoppdatert på ${ms} ms`);
+    return { statusCode: 200, body: JSON.stringify({ ok: true, boats: ids.length, versions: rows.length, prospekter: prospektOppdatert, ms }) };
   } catch (err) {
     console.error('price-history-sync error:', err);
     return { statusCode: 500, body: JSON.stringify({ error: String(err.message || err) }) };
