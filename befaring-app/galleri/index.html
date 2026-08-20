@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Galleri — HoY Portal</title>
+  <style>
+    :root{--navy:#0a2140;--gold:#c9a84c;--surface:#f5f7fa;--gray:#dde3ec;--gray-dark:#6b7a8d;--text:#12233a;--green:#166534;--green-bg:#dcfce7;--red:#991b1b;--red-bg:#fee2e2}
+    *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--surface);color:var(--text);margin:0;min-height:100vh;-webkit-font-smoothing:antialiased}
+    .loading-screen,.login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy)}
+    .loading-text{color:rgba(255,255,255,0.5);font-size:15px}
+    .login-box{background:white;border-radius:20px;padding:40px 36px;max-width:400px;width:calc(100% - 32px);text-align:center;box-shadow:0 8px 40px rgba(0,0,0,0.3)}
+    .login-logo{font-size:22px;font-weight:800;color:var(--navy);margin-bottom:4px}
+    .login-sub{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:28px}
+    .login-form{display:flex;flex-direction:column;gap:12px;text-align:left;margin-bottom:8px}
+    .login-form label{font-size:13px;font-weight:600;color:var(--navy);display:block;margin-bottom:4px}
+    .login-form input{width:100%;padding:13px 15px;border:2px solid var(--gray);border-radius:10px;font-size:16px;font-family:inherit}
+    .btn-login{width:100%;padding:15px;background:var(--navy);color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer}
+    .btn-login:disabled{opacity:0.55}
+    .login-error{color:var(--red);font-size:13px;font-weight:600;margin-top:10px;display:none}
+
+    .header{background:var(--navy);color:white;padding:14px 20px;position:sticky;top:0;z-index:200}
+    .header-inner{max-width:1160px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}
+    .brand a{color:rgba(255,255,255,0.55);font-size:11px;text-decoration:none;display:block;margin-bottom:2px}
+    .brand-name{font-size:15px;font-weight:800;letter-spacing:0.8px}
+    .btn-logout{background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.18);border-radius:20px;color:rgba(255,255,255,0.85);padding:6px 14px;font-size:12px;font-family:inherit;cursor:pointer}
+
+    .wrap{max-width:1160px;margin:0 auto;padding:24px 16px 100px}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+    .toolbar select{flex:1;min-width:260px;padding:12px 14px;border:2px solid var(--gray);border-radius:10px;font-size:15px;font-family:inherit;background:white}
+    .hint{font-size:12.5px;color:var(--gray-dark);margin:4px 0 18px;line-height:1.5}
+    .status-pill{font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;background:var(--green-bg);color:var(--green);display:none}
+    .status-pill.err{background:var(--red-bg);color:var(--red)}
+
+    .kat{background:white;border:2px solid var(--gray);border-radius:14px;margin-bottom:18px;overflow:hidden}
+    .kat-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--gray)}
+    .kat-title{font-size:14px;font-weight:800;color:var(--navy);letter-spacing:0.6px;text-transform:uppercase}
+    .kat-count{font-size:12px;color:var(--gray-dark);margin-left:8px;font-weight:500}
+    .kat-actions{display:flex;gap:8px}
+    .btn{border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+    .btn-add{background:var(--navy);color:white}
+    .btn-save{background:var(--gold);color:var(--navy);display:none}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px;padding:14px;min-height:70px}
+    .tile{position:relative;border-radius:10px;overflow:hidden;background:var(--surface);aspect-ratio:4/3;cursor:grab;border:2px solid transparent}
+    .tile img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+    .tile.dragging{opacity:0.4;border-color:var(--gold)}
+    .tile .nr{position:absolute;top:6px;left:6px;background:rgba(10,33,64,0.75);color:white;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px}
+    .tile .del{position:absolute;top:4px;right:4px;background:rgba(153,27,27,0.85);color:white;border:none;border-radius:8px;width:24px;height:24px;font-size:13px;line-height:1;cursor:pointer;display:none}
+    .tile:hover .del{display:block}
+    .tile .stå{position:absolute;bottom:6px;left:6px;background:rgba(201,168,76,0.9);color:var(--navy);font-size:9px;font-weight:800;padding:2px 6px;border-radius:8px}
+    .grid.dragover{background:#eef3fb;outline:2px dashed var(--gold);outline-offset:-8px}
+    .empty{grid-column:1/-1;text-align:center;color:var(--gray-dark);font-size:13px;padding:18px 0}
+    .uploading{grid-column:1/-1;text-align:center;color:var(--navy);font-size:13px;padding:10px 0;font-weight:600}
+  </style>
+</head>
+<body>
+
+<div id="loadingScreen" class="loading-screen"><div class="loading-text">Starter…</div></div>
+
+<div id="loginScreen" class="login-screen" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">House of Yachts</div>
+    <div class="login-sub">Galleri</div>
+    <div class="login-form">
+      <div><label>E-post</label><input id="loginEmail" type="email" autocomplete="username" placeholder="deg@h-y.no"></div>
+      <div><label>Passord</label><input id="loginPassword" type="password" autocomplete="current-password"></div>
+    </div>
+    <button class="btn-login" id="loginBtn" onclick="doLogin()">🔐 Logg inn</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<div id="appScreen" style="display:none">
+  <div class="header"><div class="header-inner">
+    <div class="brand"><a href="/">← Portal</a><span class="brand-name">Galleri</span></div>
+    <button class="btn-logout" onclick="doLogout()">Logg ut</button>
+  </div></div>
+
+  <div class="wrap">
+    <div class="toolbar">
+      <select id="boatSel" onchange="loadGallery()"><option>Laster båter …</option></select>
+      <span class="status-pill" id="statusPill"></span>
+    </div>
+    <p class="hint">Dra bildene for å endre rekkefølge (første bilde i Eksteriør = hovedbilde på nettsiden) — trykk «Lagre rekkefølge» etterpå. Dra et bilde til en annen kategori for å flytte det. Endringer vises på nettsiden innen ~5 minutter.</p>
+    <div id="kats"></div>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept="image/jpeg,image/png" multiple style="display:none">
+
+<script>
+const IDENTITY = location.origin + '/.netlify/identity';
+const API = '/.netlify/functions/galleri';
+// NB: byttes til www-domenet ved DNS-cutover
+const SITE = 'https://26753504.hs-sites-eu1.com';
+const KATNAVN = { Exterior: 'Eksteriør', Interior: 'Interiør', Details: 'Detaljer' };
+const $ = (id) => document.getElementById(id);
+let accessToken = null, currentGroups = [], uploadTarget = null;
+
+function showScreen(id){['loadingScreen','loginScreen','appScreen'].forEach(s=>$(s).style.display='none');$(id).style.display=(id==='appScreen')?'block':'flex';}
+function status(msg, isErr){const p=$('statusPill');p.textContent=msg;p.className='status-pill'+(isErr?' err':'');p.style.display=msg?'inline-block':'none';if(msg&&!isErr)setTimeout(()=>{p.style.display='none';},4000);}
+
+window.addEventListener('DOMContentLoaded', async () => {
+  const tok = localStorage.getItem('hoy_access_token');
+  if (tok) {
+    try {
+      const r = await fetch(`${IDENTITY}/user`, { headers: { Authorization: `Bearer ${tok}` } });
+      if (!r.ok) throw 0;
+      accessToken = tok; onLogin(); return;
+    } catch { localStorage.removeItem('hoy_access_token'); }
+  }
+  showScreen('loginScreen');
+});
+
+async function doLogin(){
+  const errEl=$('loginError');errEl.style.display='none';
+  const btn=$('loginBtn');btn.disabled=true;btn.textContent='Logger inn…';
+  try{
+    const r=await fetch(`${IDENTITY}/token`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:`grant_type=password&username=${encodeURIComponent($('loginEmail').value.trim())}&password=${encodeURIComponent($('loginPassword').value)}`});
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error_description||'Feil passord eller e-post');}
+    accessToken=(await r.json()).access_token;
+    localStorage.setItem('hoy_access_token',accessToken);
+    onLogin();
+  }catch(e){errEl.textContent=e.message;errEl.style.display='block';btn.disabled=false;btn.textContent='🔐 Logg inn';}
+}
+function doLogout(){localStorage.removeItem('hoy_access_token');location.reload();}
+
+async function api(paramsOrBody, isPost){
+  const opts={headers:{Authorization:`Bearer ${accessToken}`}};
+  let url=API;
+  if(isPost){opts.method='POST';opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(paramsOrBody);}
+  else url+=`?${new URLSearchParams(paramsOrBody)}`;
+  const r=await fetch(url,opts);
+  const d=await r.json().catch(()=>({error:'Ugyldig svar'}));
+  if(!r.ok)throw new Error(d.error||`HTTP ${r.status}`);
+  return d;
+}
+
+async function onLogin(){
+  showScreen('appScreen');
+  try{
+    const boats=await api({action:'boats'});
+    $('boatSel').innerHTML=boats.map(b=>`<option value="${b.folder}" data-live="${b.live}">${b.forSale?'':'(solgt) '}${b.name}${b.live?' • live':''}</option>`).join('');
+    if(boats.length)loadGallery();
+  }catch(e){status(e.message,true);}
+}
+
+function thumb(url){
+  try{
+    const u=new URL(url);
+    let i=u.pathname.indexOf('/hubfs/');
+    if(i===-1)return url;
+    let rest=u.pathname.slice(i+7);
+    const parts=rest.split('/');
+    if(parts.length>1&&/^\d+$/.test(parts[0])){parts.shift();rest=parts.join('/');}
+    const fil=decodeURIComponent(parts[parts.length-1]||'b.jpg');
+    return `${SITE}/hs-fs/hubfs/${rest}?width=280&name=${encodeURIComponent(fil)}`;
+  }catch(e){return url;}
+}
+
+async function loadGallery(){
+  $('kats').innerHTML='<p class="hint">Laster galleri …</p>';
+  try{
+    currentGroups=await api({action:'files',folder:$('boatSel').value});
+    render();
+  }catch(e){$('kats').innerHTML='';status(e.message,true);}
+}
+
+function render(){
+  $('kats').innerHTML=currentGroups.map(g=>`
+    <div class="kat" data-folder="${g.folderId}">
+      <div class="kat-head">
+        <div><span class="kat-title">${KATNAVN[g.folder]||g.folder}</span><span class="kat-count">${g.items.length} bilder</span></div>
+        <div class="kat-actions">
+          <button class="btn btn-save" onclick="saveOrder('${g.folderId}',this)">Lagre rekkefølge</button>
+          <button class="btn btn-add" onclick="pickFiles('${g.folderId}')">+ Legg til</button>
+        </div>
+      </div>
+      <div class="grid" data-folder="${g.folderId}" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropOn(event)">
+        ${g.items.map((f,i)=>`
+          <div class="tile" draggable="true" data-id="${f.id}" ondragstart="dragStart(event)" ondragend="dragEnd(event)">
+            <img src="${thumb(f.url)}" alt="" loading="lazy">
+            <span class="nr">${i+1}</span>
+            ${f.height>f.width?'<span class="stå">STÅENDE</span>':''}
+            <button class="del" title="Slett bildet" onclick="delFile(event,'${f.id}','${g.folderId}')">×</button>
+          </div>`).join('')||'<div class="empty">Ingen bilder — bruk «+ Legg til»</div>'}
+      </div>
+    </div>`).join('');
+}
+
+// ── Dra og slipp ──
+let dragEl=null, dragFrom=null;
+function dragStart(e){dragEl=e.currentTarget;dragFrom=dragEl.closest('.grid').dataset.folder;dragEl.classList.add('dragging');e.dataTransfer.effectAllowed='move';}
+function dragEnd(){if(dragEl)dragEl.classList.remove('dragging');document.querySelectorAll('.grid').forEach(g=>g.classList.remove('dragover'));}
+function dragOver(e){
+  e.preventDefault();
+  const grid=e.currentTarget;
+  grid.classList.add('dragover');
+  if(!dragEl)return;
+  if(grid.dataset.folder===dragFrom){
+    const after=[...grid.querySelectorAll('.tile:not(.dragging)')].find(t=>{
+      const r=t.getBoundingClientRect();
+      return e.clientY<r.top+r.height/2||(e.clientY<r.bottom&&e.clientX<r.left+r.width/2);
+    });
+    if(after)grid.insertBefore(dragEl,after);else grid.appendChild(dragEl);
+    markDirty(grid.dataset.folder);
+    renumber(grid);
+  }
+}
+function dragLeave(e){e.currentTarget.classList.remove('dragover');}
+async function dropOn(e){
+  e.preventDefault();
+  const grid=e.currentTarget;grid.classList.remove('dragover');
+  if(!dragEl)return;
+  const target=grid.dataset.folder;
+  if(target!==dragFrom){
+    const fid=dragEl.dataset.id;
+    grid.appendChild(dragEl);renumber(grid);
+    try{
+      await api({action:'move',fileId:fid,targetFolderId:target},true);
+      status('Flyttet ✓');markDirty(target);markDirty(dragFrom);
+    }catch(err2){status(err2.message,true);loadGallery();}
+  }
+}
+function renumber(grid){[...grid.querySelectorAll('.tile .nr')].forEach((n,i)=>n.textContent=i+1);}
+function markDirty(folderId){
+  const kat=document.querySelector(`.kat[data-folder="${folderId}"]`);
+  if(kat)kat.querySelector('.btn-save').style.display='inline-block';
+}
+
+async function saveOrder(folderId,btn){
+  btn.disabled=true;btn.textContent='Lagrer…';
+  const order=[...document.querySelector(`.grid[data-folder="${folderId}"]`).querySelectorAll('.tile')].map(t=>t.dataset.id);
+  try{
+    await api({action:'reorder',folderId,order},true);
+    status('Rekkefølge lagret ✓');btn.style.display='none';
+  }catch(e){status(e.message,true);}
+  btn.disabled=false;btn.textContent='Lagre rekkefølge';
+}
+
+async function delFile(e,fileId,folderId){
+  e.stopPropagation();
+  if(!confirm('Slette bildet fra galleriet?'))return;
+  try{
+    await api({action:'delete',fileId},true);
+    e.target.closest('.tile').remove();
+    renumber(document.querySelector(`.grid[data-folder="${folderId}"]`));
+    status('Slettet ✓');
+  }catch(err2){status(err2.message,true);}
+}
+
+// ── Opplasting (komprimeres i nettleseren: maks 2000px, JPEG 82 %) ──
+function pickFiles(folderId){uploadTarget=folderId;$('fileInput').value='';$('fileInput').click();}
+$('fileInput').addEventListener('change',async(e)=>{
+  const files=[...e.target.files];
+  if(!files.length||!uploadTarget)return;
+  const grid=document.querySelector(`.grid[data-folder="${uploadTarget}"]`);
+  const note=document.createElement('div');note.className='uploading';grid.prepend(note);
+  let done=0;
+  for(const f of files){
+    note.textContent=`Laster opp ${done+1}/${files.length} …`;
+    try{
+      const dataUrl=await compress(f);
+      await api({action:'upload',folderId:uploadTarget,filename:f.name,dataUrl},true);
+      done++;
+    }catch(err2){status(`${f.name}: ${err2.message}`,true);}
+  }
+  note.remove();
+  status(`${done}/${files.length} bilder lastet opp ✓`);
+  loadGallery();
+});
+
+function compress(file){
+  return new Promise((resolve,reject)=>{
+    if(file.size<500*1024&&file.type==='image/jpeg'){
+      const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file);return;
+    }
+    const img=new Image();
+    img.onload=()=>{
+      const maxDim=2000;
+      let{width:w,height:h}=img;
+      if(Math.max(w,h)>maxDim){const s=maxDim/Math.max(w,h);w=Math.round(w*s);h=Math.round(h*s);}
+      const c=document.createElement('canvas');c.width=w;c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      resolve(c.toDataURL('image/jpeg',0.82));
+    };
+    img.onerror=()=>reject(new Error('Kunne ikke lese bildet'));
+    img.src=URL.createObjectURL(file);
+  });
+}
+</script>
+</body>
+</html>

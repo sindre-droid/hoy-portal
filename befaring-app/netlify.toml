@@ -99,3 +99,8 @@
   from = "/prishistorikk"
   to = "/prishistorikk/"
   status = 301
+
+[[redirects]]
+  from = "/galleri"
+  to = "/galleri/"
+  status = 301
