@@ -302,7 +302,8 @@ exports.handler = async (event) => {
   let body = {};
   try { body = event.body ? JSON.parse(event.body) : {}; } catch { /* empty body OK */ }
 
-  let aDealId = String(q.aDealId || body.aDealId || '').trim();
+  // HubSpot-workflow-webhook sender enrolled object som {objectId: ...} — tolkes som A-deal
+  let aDealId = String(q.aDealId || body.aDealId || body.objectId || body.vid || '').trim();
   let bDealId = String(q.bDealId || body.bDealId || '').trim();
   const dryRun = q.dryRun === '1' || body.dryRun === true;
   const skipEng = q.skipEngagements === '1' || body.skipEngagements === true;
@@ -317,7 +318,10 @@ exports.handler = async (event) => {
 
   // Finn motpart om kun én side er gitt
   if (aDealId && !bDealId) {
-    bDealId = await findCounterpart(aDealId, PIPELINE_A);
+    for (let i = 0; i < 3 && !bDealId; i++) {
+      bDealId = await findCounterpart(aDealId, PIPELINE_A);
+      if (!bDealId) await new Promise((r) => setTimeout(r, 5000));
+    }
     if (!bDealId) {
       return {
         statusCode: 404,

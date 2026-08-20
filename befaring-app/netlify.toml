@@ -104,3 +104,8 @@
   from = "/galleri"
   to = "/galleri/"
   status = 301
+
+# Handoff-sweep: timesvis speiling A→B for ferske B-deals (erstatter lisenslåst webhook-steg)
+[functions."handoff-sweep"]
+  schedule = "20 * * * *"
+  timeout = 26
