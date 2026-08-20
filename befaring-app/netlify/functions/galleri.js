@@ -157,6 +157,13 @@ exports.handler = async (event) => {
       return (r.ok || r.status === 204) ? ok({ ok: true }) : err(502, `HubSpot ${r.status}`);
     }
 
+    if (action === 'thumb') {
+      const { boatId, url } = body;
+      if (!/^\d+$/.test(String(boatId)) || !/^https:\/\//.test(String(url))) return err(400, 'boatId + url kreves');
+      const r = await hsJson(`/crm/v3/objects/${BOATS}/${boatId}`, { properties: { gallery_images: String(url) } }, 'PATCH');
+      return r.ok ? ok({ ok: true }) : err(502, `HubSpot ${r.status}`);
+    }
+
     if (action === 'upload') {
       const { folderId, filename, dataUrl } = body;
       if (!/^\d+$/.test(String(folderId)) || !filename || !dataUrl) return err(400, 'folderId + filename + dataUrl kreves');
