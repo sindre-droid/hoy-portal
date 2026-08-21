@@ -848,6 +848,99 @@ async function speilProspektTilBoat(row) {
   }
 }
 
+// ── Nettside-publisering ─────────────────────────────────────────────────────
+// Når et prospekt publiseres skal båten gå live på nettsiden uten manuelle steg
+// (Sindre 21. aug 2026). Setter KUN felter som mangler — idempotent, overskriver
+// aldri noe som allerede er satt:
+//   slug              = boat_name (visningsnavn på nettsiden)
+//   page_path2        = slugifisert boat_name (URL), -2/-3-suffiks ved kollisjon
+//   status            = 'for-sale'
+//   activated         = 'yes'
+//   gallery_folder_id = ny mappe «{oppdrag} - {navn}» under /boat_galleries/ med
+//                       Exterior/Interior/Details — båten dukker da rett opp i
+//                       galleri-modulen, klar for opplasting
+// gallery_images (forsidebilde) settes bevisst IKKE her — velges med ★ i
+// galleri-modulen. Best-effort: feil her stopper aldri selve publiseringen.
+
+const GALLERY_ROOT_FOLDER = '264782168284'; // /boat_galleries/
+
+function slugifyPath(name) {
+  return String(name || '')
+    .toLowerCase()
+    .replace(/æ/g, 'ae').replace(/ø/g, 'o').replace(/å/g, 'a')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+async function publiserBoatTilNettside(boatId, row) {
+  try {
+    const cur = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}/${boatId}?properties=boat_name,status,activated,page_path2,slug,gallery_folder_id`);
+    if (!cur.ok) return { ok: false, feil: `boat-lesing ${cur.status}` };
+    const p = cur.data.properties || {};
+    const navn = (p.boat_name || row.boat_name || '').trim();
+    const props = {};
+
+    if (!p.slug && navn) props.slug = navn;
+
+    if (!p.page_path2 && navn) {
+      const base = slugifyPath(navn);
+      if (base) {
+        let kandidat = base;
+        for (let i = 2; i <= 9; i++) {
+          const t = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}/search`, 'POST', {
+            filterGroups: [{ filters: [{ propertyName: 'page_path2', operator: 'EQ', value: kandidat }] }],
+            properties: ['boat_name'],
+            limit: 1,
+          });
+          const treff = t.data?.results || [];
+          if (!treff.length || String(treff[0].id) === String(boatId)) break;
+          kandidat = `${base}-${i}`;
+        }
+        props.page_path2 = kandidat;
+      }
+    }
+
+    if (!p.status) props.status = 'for-sale';
+    if (p.activated !== 'yes') props.activated = 'yes';
+
+    // Galleri-mappe hvis den mangler (eller feilpeker på roten)
+    if (!p.gallery_folder_id || p.gallery_folder_id === GALLERY_ROOT_FOLDER) {
+      const opp = String(row.deal_name || '').match(/^(\d{5})/)?.[1];
+      const mappeNavn = `${opp ? opp + ' - ' : ''}${navn}`.replace(/[#?&;*^!$|%/\\]/g, '').replace(/\s+/g, ' ').trim();
+      if (mappeNavn) {
+        let folderId = null;
+        const c = await hs('/files/v3/folders', 'POST', { name: mappeNavn, parentFolderId: GALLERY_ROOT_FOLDER });
+        if (c.ok && c.data?.id) {
+          folderId = c.data.id;
+        } else {
+          // Finnes den fra før? Gjenbruk i stedet for å feile.
+          const s = await hs(`/files/v3/folders/search?parentFolderIds=${GALLERY_ROOT_FOLDER}&limit=100`);
+          const hit = (s.data?.results || []).find((f) => f.name === mappeNavn);
+          if (hit) folderId = hit.id;
+        }
+        if (folderId) {
+          for (const sub of ['Exterior', 'Interior', 'Details']) {
+            await hs('/files/v3/folders', 'POST', { name: sub, parentFolderId: String(folderId) });
+          }
+          props.gallery_folder_id = String(folderId);
+        }
+      }
+    }
+
+    if (!Object.keys(props).length) return { ok: true, endret: [] };
+    const res = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}/${boatId}`, 'PATCH', { properties: props });
+    if (res.ok) {
+      console.log(`[prospekt] nettside-publisering boat ${boatId}: satte ${Object.keys(props).join(', ')}`);
+      return { ok: true, endret: Object.keys(props) };
+    }
+    console.warn(`[prospekt] nettside-publisering avvist (${res.status}):`, JSON.stringify(res.data || '').slice(0, 200));
+    return { ok: false, feil: `PATCH ${res.status}` };
+  } catch (e) {
+    console.warn('[prospekt] nettside-publisering feilet (publisering upåvirket):', e.message);
+    return { ok: false, feil: e.message };
+  }
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS')
     return { statusCode: 204, headers: CORS, body: '' };
@@ -1429,7 +1522,9 @@ exports.handler = async (event) => {
             } else {
               console.warn(`[prospekt] Failed to set property on boat: ${patchRes.status}`, patchRes.data);
             }
-            hubspotResult = { publicUrl, boatId, propertySet: patchRes.ok };
+            // Nettside: sørg for at båten er live (slug, path, status, activated, galleri-mappe)
+            const nettside = await publiserBoatTilNettside(boatId, prospekt);
+            hubspotResult = { publicUrl, boatId, propertySet: patchRes.ok, nettside };
           } else {
             console.warn('[prospekt] No boat object found for deal', prospekt.deal_id);
             hubspotResult = { publicUrl, boatId: null, propertySet: false };
