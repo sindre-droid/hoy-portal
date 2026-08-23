@@ -1308,6 +1308,158 @@
     color: var(--hoy-mid-gray);
   }
 
+/* ══════════════════════════════════════════
+   MOBIL — prospektet leses som løpende sider, ikke A4-miniatyrer
+   (sidene slipper A4-proporsjonen og får naturlig høyde + lesbare fonter)
+   ══════════════════════════════════════════ */
+@media screen and (max-width: 700px) {
+
+  .page-wrapper { margin: 12px auto; gap: 18px; padding: 0 10px; }
+  .page-label { font-size: 9px; }
+
+  .page {
+    aspect-ratio: auto;
+    height: auto;
+    overflow: visible;
+    border-radius: 4px;
+  }
+
+  /* seksjoner som er bygget med height:100% må få naturlig høyde */
+  .cover, .overview, .gallery, .equipment, .service-page,
+  .declaration, .freetext, .contact, .cover-cobrand, .contact-cobrand {
+    height: auto;
+  }
+
+  /* ── Delte elementer ── */
+  .page-footer { font-size: 10px; padding: 12px 6%; }
+  .page-footer-light { font-size: 10px; }
+  .section-title { font-size: 24px; }
+  .section-subtitle { font-size: 11px; }
+  .category-label, .category-label-inline { font-size: 10px; letter-spacing: 2px; }
+
+  /* ── Forside ── */
+  .cover { display: flex; flex-direction: column; }
+  .cover-image-area { height: 68vw; max-height: 340px; flex: none; }
+  .cover-logo { gap: 10px; }
+  .cover-logo img { height: 84px; }
+  .cover-logo-accent { width: 90px; }
+  .cover-bottom { padding: 22px 8% 18px; }
+  .cover-year { font-size: 10px; letter-spacing: 3px; }
+  .cover-title { font-size: 28px; }
+  .cover-price { font-size: 14px; margin-bottom: 14px; }
+  .cover-footer { font-size: 10px; padding: 12px 8%; }
+
+  /* ── Oversikt ── */
+  .overview-hero { height: 200px; flex: none; }
+  .overview-content { display: block; padding: 22px 7% 8px; }
+  .specs-column {
+    padding-right: 0; border-right: none;
+    padding-bottom: 18px; margin-bottom: 18px;
+    border-bottom: 1px solid var(--hoy-warm-gray);
+  }
+  .specs-boat-name { font-size: 24px; }
+  .specs-price { font-size: 15px; }
+  .spec-row { font-size: 13px; padding: 5px 0; }
+  .description-column { padding-left: 0; }
+  .desc-intro { font-size: 17px; }
+  .desc-body { font-size: 14.5px; line-height: 1.7; }
+  .desc-visning { font-size: 13px; }
+
+  /* ── Bildegalleri — alle oppsett blir én kolonne ── */
+  .gallery { padding: 22px 5% 14px; }
+  .gallery-header h2 { font-size: 24px; }
+  .gallery-header .gallery-subtitle { font-size: 10px; }
+  [class^="gallery-grid-"] {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: none !important;
+    grid-auto-rows: auto !important;
+    flex: none;
+    gap: 10px;
+  }
+  [class^="gallery-grid-"] > .gi {
+    grid-column: auto !important;
+    grid-row: auto !important;
+    aspect-ratio: 3 / 2;
+  }
+  .gi-caption { font-size: 11px; }
+  .gallery-page-indicator { font-size: 10px; padding: 10px 0 4px; }
+
+  /* ── Utstyrsliste ── */
+  .equipment { padding: 22px 7% 14px; }
+  .equipment-header h2 { font-size: 24px; }
+  .equipment-body { display: block; }
+  .equip-category { margin-bottom: 18px; }
+  .equip-item { font-size: 13.5px; }
+  .equip-sub-item { font-size: 12px; }
+  .equip-note { font-size: 12px; }
+
+  /* ── Servicehistorikk ── */
+  .service-page { padding: 22px 7% 10px; }
+  .service-header h2 { font-size: 24px; }
+  .service-block-title { font-size: 12px; }
+  .service-block-text { font-size: 13px; }
+  .service-entry-date, .service-entry-vendor { font-size: 12px; }
+  .service-entry-desc { font-size: 13px; }
+  .service-entry-cost { font-size: 11.5px; }
+
+  /* ── Egenerklæring ── */
+  .declaration-header-band { padding: 22px 7% 20px; }
+  .declaration-header-band .declaration-eyebrow { font-size: 10px; }
+  .declaration-header-band .declaration-title { font-size: 24px; }
+  .declaration-header-band .declaration-lede { font-size: 13px; }
+  .decl-meta-grid { grid-template-columns: 1fr; }
+  .decl-meta-title { font-size: 11px; }
+  .decl-meta-row { font-size: 13px; }
+  .decl-row { font-size: 13px; gap: 10px; }
+  .decl-comment { font-size: 12px; }
+  .declaration-notice { font-size: 11.5px; margin: 16px 7% 0; }
+
+  /* ── Fritekst ── */
+  .freetext { padding: 22px 7% 14px; }
+  .freetext-body { font-size: 14.5px; line-height: 1.7; }
+  .freetext-body h3 { font-size: 19px; }
+
+  /* ── Kontakt ── */
+  .contact-image-area { height: 220px; flex: none; }
+  .contact-image-text h2 { font-size: 26px; }
+  .contact-image-text p { font-size: 13px; }
+  .contact-body { padding: 22px 7%; }
+  .contact-card { gap: 16px; margin-bottom: 20px; }
+  .contact-info h3 { font-size: 20px; }
+  .contact-role { font-size: 10px; }
+  .contact-detail { font-size: 14px; }
+  .contact-cta p { font-size: 12px; }
+  .contact-cta .cta-text { font-size: 17px; }
+
+  .contact-about { font-size: 12.5px; line-height: 1.6; }
+
+  /* ── Co-brand forside ── */
+  .cover-cobrand { min-height: 130vw; max-height: 620px; }
+  .cover-cobrand .cover-top { top: 18px; left: 18px; right: 18px; }
+  .cover-cobrand .vertical-tag { display: none; }
+  .cover-cobrand .cover-main {
+    left: 18px; right: 18px; bottom: 18px;
+    flex-direction: column; align-items: flex-start; gap: 16px;
+  }
+  .cover-cobrand .cover-name { font-size: 34px; max-width: 100%; }
+  .cover-cobrand .cover-meta { min-width: 0; width: 100%; text-align: left; }
+  .cover-cobrand .cover-meta .l { font-size: 10px; }
+  .cover-cobrand .cover-meta .v { font-size: 12px; }
+
+  /* ── Co-brand kontakt ── */
+  .contact-cobrand { min-height: 120vw; max-height: 620px; }
+  .contact-cobrand .contact-top { padding: 16px 18px 12px; }
+  .contact-cobrand .contact-stage { padding: 20px 18px; }
+  .contact-cobrand .contact-stage h2 { font-size: 30px; max-width: 100%; margin-bottom: 18px; }
+  .contact-cobrand .contact-broker { grid-template-columns: 1fr; gap: 14px; }
+  .contact-cobrand .contact-foot { padding: 12px 18px; font-size: 9px; }
+
+  /* ── Verktøylinje ── */
+  .render-toolbar { bottom: 14px; right: 14px; left: 14px; justify-content: stretch; }
+  .render-toolbar button { flex: 1; padding: 13px 10px; font-size: 14px; }
+}
+
   /* ══════════════════════════════════════════
      PRINT RESET — placed last so it wins cascade over base rules
      ══════════════════════════════════════════ */
