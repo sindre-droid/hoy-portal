@@ -65,11 +65,15 @@ async function findOrCreateContact(email) {
   });
   const existing = search.data?.results?.[0];
   if (existing) {
+    // VIKTIG: search-indeksen kan henge etter — les properties DIREKTE (alltid ferskt),
+    // ellers kan vi feilaktig tro at kontakten mangler eier og overstyre eierskap.
+    const fresh = await hs(`/crm/v3/objects/contacts/${existing.id}?properties=interesse_bater,hubspot_owner_id`);
+    const p = fresh.ok ? (fresh.data?.properties || {}) : (existing.properties || {});
     return {
       id: existing.id,
       created: false,
-      interesseLog: existing.properties?.interesse_bater || '',
-      ownerId: existing.properties?.hubspot_owner_id || '',
+      interesseLog: p.interesse_bater || '',
+      ownerId: p.hubspot_owner_id || '',
     };
   }
 
