@@ -23,6 +23,7 @@
 
 const PIPELINE_B = process.env.PIPELINE_B || '3211644128';
 const BOAT_OBJ_TYPE = '2-145214665';
+const FALLBACK_OWNER_ID = '633479117'; // Sindre — ansvarlig når båten ikke har oppdrag/megler
 const INTERESSENT_TYPE_ID = 9; // contact→deal USER_DEFINED label «Interessent»
 const NOTE_TO_CONTACT_TYPE_ID = 202; // note→contact HUBSPOT_DEFINED
 
@@ -59,22 +60,27 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 async function findOrCreateContact(email) {
   const search = await hs('/crm/v3/objects/contacts/search', 'POST', {
     filterGroups: [{ filters: [{ propertyName: 'email', operator: 'EQ', value: email }] }],
-    properties: ['email', 'interesse_bater'],
+    properties: ['email', 'interesse_bater', 'hubspot_owner_id'],
     limit: 1,
   });
   const existing = search.data?.results?.[0];
   if (existing) {
-    return { id: existing.id, created: false, interesseLog: existing.properties?.interesse_bater || '' };
+    return {
+      id: existing.id,
+      created: false,
+      interesseLog: existing.properties?.interesse_bater || '',
+      ownerId: existing.properties?.hubspot_owner_id || '',
+    };
   }
 
   const create = await hs('/crm/v3/objects/contacts', 'POST', { properties: { email } });
-  if (create.ok) return { id: create.data.id, created: true, interesseLog: '' };
+  if (create.ok) return { id: create.data.id, created: true, interesseLog: '', ownerId: '' };
 
   // 409 = allerede opprettet i mellomtiden (race med skjema-innsendingen) —
   // meldingen inneholder "Existing ID: <id>"
   const msg = create.data?.message || '';
   const m = msg.match(/Existing ID:\s*(\d+)/i);
-  if (m) return { id: m[1], created: false, interesseLog: '' };
+  if (m) return { id: m[1], created: false, interesseLog: '', ownerId: '' };
 
   throw new Error(`Contact create failed (${create.status}): ${msg}`);
 }
@@ -179,6 +185,15 @@ exports.handler = async (event) => {
     // 4. Deal via boat-assosiasjon
     const deal = await findListingDeal(boatId);
     if (!deal) {
+      // Uten deal finnes ingen megler → workflowens «til kontakteier»-varsel ville
+      // gått i tomme luften. Fallback: sett Sindre som eier HVIS kontakten ikke
+      // allerede har en (vi stjeler aldri en annen meglers kontakt).
+      if (!contact.ownerId) {
+        const own = await hs(`/crm/v3/objects/contacts/${contact.id}`, 'PATCH', {
+          properties: { hubspot_owner_id: FALLBACK_OWNER_ID },
+        });
+        if (!own.ok) console.warn('[prospekt-lead] fallback-eier feilet', own.status);
+      }
       console.warn(`[prospekt-lead] AVVIK: listing uten deal-kobling — boat ${boatId} (${boatName}), intent=${intent}, page=${page}, flyt=${flyt}. Kontakt ${contact.id} (${email}) er lagret m/ interesse-logg, men ikke koblet til deal.`);
       return ok({ ok: true, contactId: contact.id, dealLinked: false, flyt, warning: 'boat has no deal association' });
     }
