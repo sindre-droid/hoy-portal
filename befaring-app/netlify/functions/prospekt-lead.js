@@ -1,26 +1,30 @@
 // ── prospekt-lead.js ────────────────────────────────────────────────────────
 // Kalles fra nettsiden (boat-siden) etter at en kunde har sendt inn skjema
-// (prospekt-nedlasting / be om visning). Kobler kontakten som «Interessent»
-// på riktig B-deal via boat→deal-assosiasjonen.
+// (prospekt-nedlasting / be om visning). Gjør tre ting:
+//
+//   1. Lagrer interessen VARIG på kontakten (uansett om båten har deal):
+//      - `interesse_bater`   : akkumulert linjelogg «dato | intent | båt (id)»
+//      - Note på kontakten   : samme innhold, synlig i tidslinjen
+//   2. Stempler `prospekt_epost_flyt` på kontakten — styrer hvilken epost
+//      workflowen «Route Listing Form to broker» sender:
+//        klart          → aktiv båt med prospekt_url  → «Prospektet er klart»
+//        under_arbeid   → aktiv/kommer-for-salg uten prospekt → «på vei»-epost
+//        utilgjengelig  → solgt/inaktiv (Wix-arv o.l.) → «ikke tilgjengelig»-epost
+//      (off-market behandles som aktiv — samme flyt som vanlige listinger)
+//   3. Kobler kontakten som «Interessent» på riktig B-deal via boat→deal-
+//      assosiasjonen (som før). Mangler deal → interessen er likevel lagret.
 //
 // POST { boatId, email, intent?, page? }
 //   boatId : HubSpot boat-record-ID (fra siden — dynamic_page_crm_object)
 //   email  : kundens epost fra skjemaet
-//   intent : 'prospekt' | 'visning' | ... (kun logging)
+//   intent : 'prospekt' | 'visning' | ... (logges i interesse-loggen)
 //   page   : sidesti (kun logging)
-//
-// Flyt:
-//   1. Verifiser at boat finnes og er aktivert (hindrer junk-kall)
-//   2. Finn/opprett contact på epost (HubSpot dedupes på epost, så en contact
-//      opprettet her merges automatisk med skjema-innsendingen)
-//   3. Finn B-deal via boat→deal-assosiasjon (pipeline = PIPELINE_B, nyeste hvis flere)
-//   4. Assosier contact→deal med label «Interessent» (typeId 9)
-//   5. Mangler deal-kobling → logg tydelig avvik, men behold kontakten
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PIPELINE_B = process.env.PIPELINE_B || '3211644128';
 const BOAT_OBJ_TYPE = '2-145214665';
 const INTERESSENT_TYPE_ID = 9; // contact→deal USER_DEFINED label «Interessent»
+const NOTE_TO_CONTACT_TYPE_ID = 202; // note→contact HUBSPOT_DEFINED
 
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
@@ -55,22 +59,77 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 async function findOrCreateContact(email) {
   const search = await hs('/crm/v3/objects/contacts/search', 'POST', {
     filterGroups: [{ filters: [{ propertyName: 'email', operator: 'EQ', value: email }] }],
-    properties: ['email'],
+    properties: ['email', 'interesse_bater'],
     limit: 1,
   });
   const existing = search.data?.results?.[0];
-  if (existing) return { id: existing.id, created: false };
+  if (existing) {
+    return { id: existing.id, created: false, interesseLog: existing.properties?.interesse_bater || '' };
+  }
 
   const create = await hs('/crm/v3/objects/contacts', 'POST', { properties: { email } });
-  if (create.ok) return { id: create.data.id, created: true };
+  if (create.ok) return { id: create.data.id, created: true, interesseLog: '' };
 
   // 409 = allerede opprettet i mellomtiden (race med skjema-innsendingen) —
   // meldingen inneholder "Existing ID: <id>"
   const msg = create.data?.message || '';
   const m = msg.match(/Existing ID:\s*(\d+)/i);
-  if (m) return { id: m[1], created: false };
+  if (m) return { id: m[1], created: false, interesseLog: '' };
 
   throw new Error(`Contact create failed (${create.status}): ${msg}`);
+}
+
+// Klassifiser hvilken epost-flyt kunden skal inn i, basert på båtens tilstand.
+function classifyFlyt(boatProps) {
+  const status = boatProps?.status || '';
+  const active = status === 'for-sale' || status === 'new-arrival';
+  if (!active) return 'utilgjengelig';
+  return boatProps?.prospekt_url ? 'klart' : 'under_arbeid';
+}
+
+// Lagre interessen varig: akkumulerende kontakt-property + Note i tidslinjen.
+// Feiler aldri hardt — lead-lagring skal ikke knekke kundeflyten.
+async function persistInterest(contact, boatId, boatName, intent, page, flyt) {
+  const today = new Date().toISOString().slice(0, 10);
+  const line = `${today} | ${intent} | ${boatName} (${boatId})`;
+
+  // 1) interesse_bater: append hvis ikke identisk linje finnes fra før
+  try {
+    const existing = contact.interesseLog || '';
+    if (!existing.includes(line)) {
+      const updated = existing ? `${existing}\n${line}` : line;
+      const upd = await hs(`/crm/v3/objects/contacts/${contact.id}`, 'PATCH', {
+        properties: { interesse_bater: updated.slice(0, 60000), prospekt_epost_flyt: flyt },
+      });
+      if (!upd.ok) console.warn('[prospekt-lead] interesse_bater-oppdatering feilet', upd.status, JSON.stringify(upd.data).slice(0, 200));
+    } else {
+      // linjen finnes — men flyt-stempelet skal alltid settes ferskt
+      const upd = await hs(`/crm/v3/objects/contacts/${contact.id}`, 'PATCH', {
+        properties: { prospekt_epost_flyt: flyt },
+      });
+      if (!upd.ok) console.warn('[prospekt-lead] flyt-stempel feilet', upd.status);
+    }
+  } catch (e) {
+    console.warn('[prospekt-lead] interesse-property feilet:', e.message);
+  }
+
+  // 2) Note på kontakten
+  try {
+    const intentLabel = intent === 'prospekt' ? 'Ba om prospekt' : intent === 'visning' ? 'Ba om visning' : `Skjema (${intent})`;
+    const note = await hs('/crm/v3/objects/notes', 'POST', {
+      properties: {
+        hs_timestamp: new Date().toISOString(),
+        hs_note_body: `${intentLabel}: ${boatName} (boat ${boatId})${page ? ` — via ${page}` : ''}. Flyt: ${flyt}.`,
+      },
+      associations: [{
+        to: { id: contact.id },
+        types: [{ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: NOTE_TO_CONTACT_TYPE_ID }],
+      }],
+    });
+    if (!note.ok) console.warn('[prospekt-lead] note feilet', note.status, JSON.stringify(note.data).slice(0, 200));
+  } catch (e) {
+    console.warn('[prospekt-lead] note feilet:', e.message);
+  }
 }
 
 async function findListingDeal(boatId) {
@@ -108,22 +167,27 @@ exports.handler = async (event) => {
   if (!EMAIL_RE.test(email)) return err(400, 'valid email required');
 
   try {
-    // 1. Verifiser boat
-    const boat = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}/${boatId}?properties=boat_name,activated,status`);
+    // 1. Verifiser boat + hent tilstand for flyt-klassifisering
+    const boat = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}/${boatId}?properties=boat_name,activated,status,market_type,prospekt_url`);
     if (!boat.ok) return err(404, 'boat not found');
-    const boatName = boat.data?.properties?.boat_name || boatId;
+    const boatProps = boat.data?.properties || {};
+    const boatName = boatProps.boat_name || boatId;
+    const flyt = classifyFlyt(boatProps);
 
     // 2. Contact
     const contact = await findOrCreateContact(email);
 
-    // 3. Deal via boat-assosiasjon
+    // 3. Lagre interessen varig + stemple epost-flyt (uavhengig av deal!)
+    await persistInterest(contact, boatId, boatName, intent, page, flyt);
+
+    // 4. Deal via boat-assosiasjon
     const deal = await findListingDeal(boatId);
     if (!deal) {
-      console.warn(`[prospekt-lead] AVVIK: listing uten deal-kobling — boat ${boatId} (${boatName}), intent=${intent}, page=${page}. Kontakt ${contact.id} (${email}) er lagret, men ikke koblet til deal. Koble boat til B-deal i HubSpot!`);
-      return ok({ ok: true, contactId: contact.id, dealLinked: false, warning: 'boat has no deal association' });
+      console.warn(`[prospekt-lead] AVVIK: listing uten deal-kobling — boat ${boatId} (${boatName}), intent=${intent}, page=${page}, flyt=${flyt}. Kontakt ${contact.id} (${email}) er lagret m/ interesse-logg, men ikke koblet til deal.`);
+      return ok({ ok: true, contactId: contact.id, dealLinked: false, flyt, warning: 'boat has no deal association' });
     }
 
-    // 4. Assosier contact→deal med «Interessent»
+    // 5. Assosier contact→deal med «Interessent»
     const assocRes = await hs(
       `/crm/v4/objects/contacts/${contact.id}/associations/deals/${deal.id}`,
       'PUT',
@@ -131,15 +195,15 @@ exports.handler = async (event) => {
     );
     if (!assocRes.ok) {
       console.warn(`[prospekt-lead] Assosiasjon feilet (${assocRes.status})`, assocRes.data);
-      return ok({ ok: true, contactId: contact.id, dealId: deal.id, dealLinked: false, warning: 'association failed' });
+      return ok({ ok: true, contactId: contact.id, dealId: deal.id, dealLinked: false, flyt, warning: 'association failed' });
     }
 
     if (!deal.isPipelineB) {
       console.warn(`[prospekt-lead] MERK: boat ${boatId} (${boatName}) har ingen Pipeline B-deal — brukte ${deal.id} (${deal.name}).`);
     }
-    console.log(`[prospekt-lead] Contact ${contact.id} (${email})${contact.created ? ' [ny]' : ''} → Interessent på deal ${deal.id} (${deal.name}) | boat ${boatId} (${boatName}) | intent=${intent}`);
+    console.log(`[prospekt-lead] Contact ${contact.id} (${email})${contact.created ? ' [ny]' : ''} → Interessent på deal ${deal.id} (${deal.name}) | boat ${boatId} (${boatName}) | intent=${intent} | flyt=${flyt}`);
 
-    return ok({ ok: true, contactId: contact.id, dealId: deal.id, dealLinked: true });
+    return ok({ ok: true, contactId: contact.id, dealId: deal.id, dealLinked: true, flyt });
   } catch (e) {
     console.error('[prospekt-lead] Feil:', e.message);
     return err(500, e.message);
