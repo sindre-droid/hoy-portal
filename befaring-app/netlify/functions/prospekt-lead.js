@@ -96,19 +96,15 @@ async function persistInterest(contact, boatId, boatName, intent, page, flyt) {
   // 1) interesse_bater: append hvis ikke identisk linje finnes fra før
   try {
     const existing = contact.interesseLog || '';
+    // interesse_bat_siste: brukes som {{contact.interesse_bat_siste}} i epostene —
+    // settes ALLTID ferskt sammen med flyt-stempelet, i samme PATCH.
+    const props = { prospekt_epost_flyt: flyt, interesse_bat_siste: String(boatName).slice(0, 200) };
     if (!existing.includes(line)) {
       const updated = existing ? `${existing}\n${line}` : line;
-      const upd = await hs(`/crm/v3/objects/contacts/${contact.id}`, 'PATCH', {
-        properties: { interesse_bater: updated.slice(0, 60000), prospekt_epost_flyt: flyt },
-      });
-      if (!upd.ok) console.warn('[prospekt-lead] interesse_bater-oppdatering feilet', upd.status, JSON.stringify(upd.data).slice(0, 200));
-    } else {
-      // linjen finnes — men flyt-stempelet skal alltid settes ferskt
-      const upd = await hs(`/crm/v3/objects/contacts/${contact.id}`, 'PATCH', {
-        properties: { prospekt_epost_flyt: flyt },
-      });
-      if (!upd.ok) console.warn('[prospekt-lead] flyt-stempel feilet', upd.status);
+      props.interesse_bater = updated.slice(0, 60000);
     }
+    const upd = await hs(`/crm/v3/objects/contacts/${contact.id}`, 'PATCH', { properties: props });
+    if (!upd.ok) console.warn('[prospekt-lead] kontakt-oppdatering feilet', upd.status, JSON.stringify(upd.data).slice(0, 200));
   } catch (e) {
     console.warn('[prospekt-lead] interesse-property feilet:', e.message);
   }
