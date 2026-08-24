@@ -141,7 +141,7 @@ async function findListingDeal(boatId) {
 
   const batch = await hs('/crm/v3/objects/deals/batch/read', 'POST', {
     inputs: dealIds.map(id => ({ id: String(id) })),
-    properties: ['dealname', 'pipeline', 'createdate'],
+    properties: ['dealname', 'pipeline', 'createdate', 'hubspot_owner_id'],
   });
   const deals = batch.data?.results || [];
 
@@ -149,7 +149,9 @@ async function findListingDeal(boatId) {
   const pool = bDeals.length ? bDeals : deals; // fallback: hvilken som helst deal fremfor ingen
   pool.sort((a, b) => new Date(b.properties?.createdate || 0) - new Date(a.properties?.createdate || 0));
   const chosen = pool[0];
-  return chosen ? { id: chosen.id, name: chosen.properties?.dealname, isPipelineB: bDeals.length > 0 } : null;
+  return chosen
+    ? { id: chosen.id, name: chosen.properties?.dealname, ownerId: chosen.properties?.hubspot_owner_id || '', isPipelineB: bDeals.length > 0 }
+    : null;
 }
 
 exports.handler = async (event) => {
@@ -198,7 +200,17 @@ exports.handler = async (event) => {
       return ok({ ok: true, contactId: contact.id, dealLinked: false, flyt, warning: 'boat has no deal association' });
     }
 
-    // 5. Assosier contact→deal med «Interessent»
+    // 5. Megler-ruting: kontakteier = den innsendte båtens deal-eier.
+    //    (Workflowens gamle «Edit record»-steg gjettet ut fra kontaktens sist
+    //    oppdaterte deal og traff feil megler for båter uten oppdrag — fjernet.)
+    if (deal.ownerId && deal.ownerId !== contact.ownerId) {
+      const own = await hs(`/crm/v3/objects/contacts/${contact.id}`, 'PATCH', {
+        properties: { hubspot_owner_id: deal.ownerId },
+      });
+      if (!own.ok) console.warn('[prospekt-lead] megler-ruting feilet', own.status);
+    }
+
+    // 6. Assosier contact→deal med «Interessent»
     const assocRes = await hs(
       `/crm/v4/objects/contacts/${contact.id}/associations/deals/${deal.id}`,
       'PUT',
