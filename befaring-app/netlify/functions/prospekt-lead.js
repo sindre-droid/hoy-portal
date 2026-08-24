@@ -187,26 +187,29 @@ exports.handler = async (event) => {
     // 4. Deal via boat-assosiasjon
     const deal = await findListingDeal(boatId);
     if (!deal) {
-      // Uten deal finnes ingen megler → workflowens «til kontakteier»-varsel ville
-      // gått i tomme luften. Fallback: sett Sindre som eier HVIS kontakten ikke
-      // allerede har en (vi stjeler aldri en annen meglers kontakt).
-      if (!contact.ownerId) {
-        const own = await hs(`/crm/v3/objects/contacts/${contact.id}`, 'PATCH', {
-          properties: { hubspot_owner_id: FALLBACK_OWNER_ID },
-        });
-        if (!own.ok) console.warn('[prospekt-lead] fallback-eier feilet', own.status);
-      }
+      // Uten deal finnes ingen megler. Interesse-megler (avsender/varsel-rolle)
+      // settes til Sindre; kontakteier settes kun hvis kontakten mangler eier
+      // (vi stjeler aldri en annen meglers kontakt).
+      const props = { interesse_megler: FALLBACK_OWNER_ID };
+      if (!contact.ownerId) props.hubspot_owner_id = FALLBACK_OWNER_ID;
+      const own = await hs(`/crm/v3/objects/contacts/${contact.id}`, 'PATCH', { properties: props });
+      if (!own.ok) console.warn('[prospekt-lead] interesse-megler/fallback-eier feilet', own.status);
       console.warn(`[prospekt-lead] AVVIK: listing uten deal-kobling — boat ${boatId} (${boatName}), intent=${intent}, page=${page}, flyt=${flyt}. Kontakt ${contact.id} (${email}) er lagret m/ interesse-logg, men ikke koblet til deal.`);
       return ok({ ok: true, contactId: contact.id, dealLinked: false, flyt, warning: 'boat has no deal association' });
     }
 
-    // 5. Megler-ruting: kontakteier = den innsendte båtens deal-eier.
-    //    (Workflowens gamle «Edit record»-steg gjettet ut fra kontaktens sist
-    //    oppdaterte deal og traff feil megler for båter uten oppdrag — fjernet.)
-    if (deal.ownerId && deal.ownerId !== contact.ownerId) {
-      const own = await hs(`/crm/v3/objects/contacts/${contact.id}`, 'PATCH', {
-        properties: { hubspot_owner_id: deal.ownerId },
-      });
+    // 5. Megler-ruting (Sindres regler 24. aug):
+    //    - `interesse_megler` = ALLTID den innsendte båtens deal-eier. Brukes som
+    //      avsender av kunde-eposter og mottaker av intern-varsler — megleren som
+    //      faktisk kan båten svarer kunden.
+    //    - Kontakteier (relasjonsmegler): flyttes ALDRI. Kun kontakter uten eier
+    //      tildeles båtens megler som eier.
+    {
+      const routing = {};
+      if (deal.ownerId) routing.interesse_megler = deal.ownerId;
+      else routing.interesse_megler = FALLBACK_OWNER_ID;
+      if (!contact.ownerId) routing.hubspot_owner_id = deal.ownerId || FALLBACK_OWNER_ID;
+      const own = await hs(`/crm/v3/objects/contacts/${contact.id}`, 'PATCH', { properties: routing });
       if (!own.ok) console.warn('[prospekt-lead] megler-ruting feilet', own.status);
     }
 
