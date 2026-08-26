@@ -109,3 +109,13 @@
 [functions."handoff-sweep"]
   schedule = "20 * * * *"
   timeout = 26
+
+# Sold-sync: timesvis — Closed Won i Listing/Sale → båt settes til Solgt (fjernes fra /buy)
+[functions."sold-sync"]
+  schedule = "40 * * * *"
+  timeout = 26
+
+# Pris-mirror: timesvis — boat.pris speiles til B-dealens «Gjeldende prisantydning» (amount følger markedet)
+[functions."pris-mirror"]
+  schedule = "50 * * * *"
+  timeout = 26
