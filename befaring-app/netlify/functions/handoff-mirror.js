@@ -206,18 +206,32 @@ async function mirrorEngagements(aId, bId, dryRun, summary) {
 const MIRROR_NOTE_MARKER = '<!--HOY_HANDOFF_MIRROR_NOTE-->';
 
 async function ensureCrossRefNote(aId, bId, aDealName, dryRun, summary) {
-  // Sjekk om vi allerede har en mirror-note på B
+  // Sjekk om vi allerede har en mirror-note på B.
+  // NB (aug 2026): HubSpot vasker bort HTML-kommentarer fra hs_note_body ved lagring,
+  // så det usynlige MIRROR_NOTE_MARKER overlever IKKE — dedup må sjekke synlig tekst.
+  // Denne buggen ga én duplikat-note i timen per fersk B-deal (154 duplikater ryddet 27. aug).
+  const VISIBLE_MARKER = 'Handoff fra Oppdrag Inn';
   const existing = await hs(`/crm/v4/objects/deals/${bId}/associations/notes?limit=100`);
+  if (!existing.ok) {
+    // Fail-safe: får vi ikke listet notatene, antar vi at noten finnes — å hoppe over
+    // én gang er ufarlig (neste kjøring prøver igjen), å duplisere hver time er ikke det.
+    summary.cross_ref_note = { skipped: 'assoc-listing feilet', status: existing.status };
+    return;
+  }
   const noteIds = (existing.data?.results || []).map(r => String(r.toObjectId));
   if (noteIds.length) {
-    // Hent body på opptil 10 notater og se etter marker
     const batchRes = await hs('/crm/v3/objects/notes/batch/read', 'POST', {
       properties: ['hs_note_body'],
-      inputs: noteIds.slice(0, 50).map(id => ({ id })),
+      inputs: noteIds.slice(0, 100).map(id => ({ id })),
     });
-    const found = (batchRes.data?.results || []).find(n =>
-      (n.properties?.hs_note_body || '').includes(MIRROR_NOTE_MARKER)
-    );
+    if (!batchRes.ok) {
+      summary.cross_ref_note = { skipped: 'notes-batch-read feilet', status: batchRes.status };
+      return;
+    }
+    const found = (batchRes.data?.results || []).find(n => {
+      const body = n.properties?.hs_note_body || '';
+      return body.includes(VISIBLE_MARKER) || body.includes(MIRROR_NOTE_MARKER);
+    });
     if (found) {
       summary.cross_ref_note = 'already_exists';
       return;
