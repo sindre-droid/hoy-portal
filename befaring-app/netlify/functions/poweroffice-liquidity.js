@@ -75,7 +75,7 @@ async function syncTrialBalance(sb, fromDate = '2015-01-01') {
   const dt = 'trial_balance';
   try {
     const toDate = new Date().toISOString().slice(0, 10);
-    const path = `/TrialBalance?fromDate=${fromDate}&toDate=${toDate}`;
+    const path = `/TrialBalance?date=${toDate}&hideAccountsWithZeroBalance=true`;
     const r = await poFetchAll(path, { pageSize: 1000, maxPages: 20 });
     if (!r.ok) {
       await setSyncError(sb, dt, `fetch feilet: ${r.status} ${JSON.stringify(r.error).slice(0, 200)}`);
