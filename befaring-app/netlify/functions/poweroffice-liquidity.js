@@ -176,6 +176,42 @@ async function refreshLiquidity(sb) {
   return out;
 }
 
+
+// ── Diagnose: prøv kandidat-endepunkter for bank/kontoutskrift-saldo ──────────
+async function probeBank() {
+  const candidates = [
+    '/ClientBankAccounts',
+    '/GeneralLedgerAccounts',
+    '/GeneralLedgerAccounts?date=' + new Date().toISOString().slice(0,10),
+    '/BankReconciliation',
+    '/BankReconciliations',
+    '/BankStatements',
+    '/BankStatement',
+    '/ImportedBankTransactions',
+    '/Journals',
+    '/BankAccountBalances',
+    '/AccountBalances',
+    '/Bank',
+    '/BankAccounts',
+  ];
+  const out = [];
+  for (const path of candidates) {
+    try {
+      const r = await po(path);
+      let count = null, sampleKeys = null, sample = null;
+      if (Array.isArray(r.data)) {
+        count = r.data.length;
+        if (r.data[0]) { sampleKeys = Object.keys(r.data[0]); sample = r.data[0]; }
+      } else if (r.data && typeof r.data === 'object') {
+        sampleKeys = Object.keys(r.data); sample = r.data;
+      }
+      out.push({ path, status: r.status, ok: r.ok, count, sampleKeys,
+                 sample: r.ok ? sample : (r.data || null) });
+    } catch (e) { out.push({ path, error: e.message }); }
+  }
+  return out;
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
   const auth = verifyAdmin(event);
@@ -207,6 +243,10 @@ exports.handler = async (event) => {
   if (action === 'refresh_liquidity') {
     const out = await refreshLiquidity(sb);
     return respond(out.trial_balance.ok && out.snapshot.ok, { action, results: out });
+  }
+  if (action === 'probe_bank') {
+    const out = await probeBank();
+    return respond(true, { action, results: out });
   }
   return respond(false, { error: `Ukjent action: ${action}` });
 };
