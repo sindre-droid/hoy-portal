@@ -473,3 +473,16 @@ exports.handler = async (event) => {
 
   return respond(false, { error: `Ukjent action: ${action}` });
 };
+
+
+// ── exports for likviditets-/nattlig-moduler (poweroffice-liquidity.js, poweroffice-nightly.js) ──
+module.exports.supabase = supabase;
+module.exports.po = po;
+module.exports.poFetchAll = poFetchAll;
+module.exports.getSyncState = getSyncState;
+module.exports.setSyncState = setSyncState;
+module.exports.setSyncError = setSyncError;
+module.exports.syncProjects = syncProjects;
+module.exports.syncOutgoingInvoices = syncOutgoingInvoices;
+module.exports.syncOpenItems = syncOpenItems;
+module.exports.syncAccountTransactions = syncAccountTransactions;

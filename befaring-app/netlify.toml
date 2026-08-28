@@ -119,3 +119,6 @@
 [functions."pris-mirror"]
   schedule = "50 * * * *"
   timeout = 26
+
+[functions."poweroffice-nightly"]
+  schedule = "30 3 * * *"
