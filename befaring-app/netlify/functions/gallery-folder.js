@@ -67,7 +67,11 @@ exports.handler = async (event) => {
     headers: {
       ...CORS,
       'Content-Type':  'application/json',
-      'Cache-Control': 'public, max-age=300', // 5 min edge/browser-cache — avlaster HubSpot-API
+      // Tomme svar (feil/rate-limit) skal ALDRI caches — ellers ser besokende
+      // galleriløse sider i 5 min (observert 27. aug 2026). Kun ekte innhold caches.
+      'Cache-Control': (Array.isArray(payload) && payload.length > 0)
+        ? 'public, max-age=300'
+        : 'no-store',
     },
     body: JSON.stringify(payload),
   });
