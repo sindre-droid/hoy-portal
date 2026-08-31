@@ -115,6 +115,12 @@
   schedule = "40 * * * *"
   timeout = 26
 
+# Galleri-synk: bildeopplasteren (Supabase) -> HubSpot Files (nettsidens galleri).
+# Tetter gapet som ga "bilder ikke tilgjengelig" pa nye annonser (aug 2026).
+[functions."gallery-sync"]
+  schedule = "*/10 * * * *"
+  timeout = 26
+
 # Pris-mirror: timesvis — boat.pris speiles til B-dealens «Gjeldende prisantydning» (amount følger markedet)
 [functions."pris-mirror"]
   schedule = "50 * * * *"
