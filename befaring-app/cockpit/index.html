@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cockpit — House of Yachts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* ── HoY kommandosentral · designspråk delt med Ansettelsesgate/Likviditetsmonitor ── */
+:root{
+  --bg:#eef1ee; --surface:#ffffff; --surface2:#f6f8f6; --border:#dbe1dc; --border2:#c8d1ca;
+  --text:#171d19; --muted:#5d6a63; --faint:#8a958e;
+  --brand:#1F3D2E; --brand2:#2f5d47; --brand-ink:#eaf1ec; --brand-soft:#e4ede7;
+  --red:#c0392b; --red-bg:#fbecea; --amber:#b9820c; --amber-bg:#fbf3e0; --green:#2f8f4e; --green-bg:#e7f4ec;
+  --blue:#2c5f8a; --blue-bg:#e6eef5;
+  --shadow:0 1px 2px rgba(20,40,30,.06),0 8px 24px rgba(20,40,30,.06);
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --sans:"IBM Plex Sans",-apple-system,Segoe UI,Roboto,sans-serif;
+  color-scheme:light;
+}
+:root[data-theme="dark"]{
+  --bg:#0e120f; --surface:#161b17; --surface2:#1b211c; --border:#2a322c; --border2:#3a443c;
+  --text:#e7ede9; --muted:#97a49c; --faint:#6f7c74;
+  --brand:#7fb79a; --brand2:#a9d4bf; --brand-ink:#0e120f; --brand-soft:#1c2a21;
+  --red:#e0685c; --red-bg:#2a1a18; --amber:#e0a83a; --amber-bg:#2a2214; --green:#5fbf7e; --green-bg:#16271b;
+  --blue:#7fb0d8; --blue-bg:#16212b;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);
+  color-scheme:dark;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e120f; --surface:#161b17; --surface2:#1b211c; --border:#2a322c; --border2:#3a443c;
+    --text:#e7ede9; --muted:#97a49c; --faint:#6f7c74;
+    --brand:#7fb79a; --brand2:#a9d4bf; --brand-ink:#0e120f; --brand-soft:#1c2a21;
+    --red:#e0685c; --red-bg:#2a1a18; --amber:#e0a83a; --amber-bg:#2a2214; --green:#5fbf7e; --green-bg:#16271b;
+    --blue:#7fb0d8; --blue-bg:#16212b;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.5;font-size:14.5px;-webkit-font-smoothing:antialiased;min-height:100vh}
+.tnum,.num,.v,.metric .v,td.num,.chip,.mono{font-variant-numeric:tabular-nums}
+h1,h2,h3{margin:0;text-wrap:balance}
+a{color:var(--brand2)}
+button{font-family:inherit}
+
+/* ── skjermer ── */
+.screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg)}
+.screen .box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:32px 36px;text-align:center;max-width:420px;box-shadow:var(--shadow)}
+.screen .box h2{font-size:18px;margin-bottom:8px}
+.screen .box p{color:var(--muted);margin:0 0 16px}
+.screen .mono{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+/* ── masthead ── */
+.wrap{max-width:1160px;margin:0 auto;padding:22px 20px 70px}
+.mast{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:14px}
+.brand-tag{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--brand2);font-weight:600}
+.mast h1{font-size:26px;font-weight:600;letter-spacing:-.01em;margin-top:4px}
+.mast .sub{margin:2px 0 0;color:var(--muted);font-size:13px;font-family:var(--mono)}
+.mast-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:7px 12px;border-radius:8px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:.15s}
+.btn:hover{border-color:var(--border2);color:var(--text)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.btn.primary:hover{opacity:.92;color:var(--brand-ink)}
+.btn.warn{background:var(--amber-bg);border-color:transparent;color:var(--amber);font-weight:600}
+.btn[disabled]{opacity:.5;cursor:default}
+
+/* ── statuslinje (kilder + bank) ── */
+.statusbar{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+.sources{display:flex;gap:6px;flex-wrap:wrap}
+.src{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;padding:4px 9px;border-radius:999px;background:var(--surface);border:1px solid var(--border);color:var(--muted)}
+.src .dot{width:7px;height:7px;border-radius:50%;background:var(--green)}
+.src.bad{background:var(--red-bg);border-color:transparent;color:var(--red)}
+.src.bad .dot{background:var(--red)}
+.src.warn{background:var(--amber-bg);border-color:transparent;color:var(--amber)}
+.src.warn .dot{background:var(--amber)}
+.bank{display:inline-flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11.5px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:7px 11px;color:var(--muted)}
+.bank .pill{padding:2px 8px;border-radius:999px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:10.5px}
+.bank .pill.live{background:var(--green-bg);color:var(--green)}
+.bank .pill.fallback{background:var(--amber-bg);color:var(--amber)}
+.bank .pill.expired{background:var(--red-bg);color:var(--red)}
+.bank .sep{color:var(--border2)}
+.bank b{color:var(--text);font-weight:600}
+
+/* ── degraderingsvarsel ── */
+.degrade{background:var(--amber-bg);border:1px solid transparent;border-left:3px solid var(--amber);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--text)}
+.degrade b{color:var(--amber);font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+.degrade ul{margin:4px 0 0;padding-left:18px;color:var(--muted)}
+
+/* ── faner ── */
+.tabs{display:flex;gap:2px;background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:3px;margin-bottom:20px;overflow-x:auto}
+.tabs button{flex:1;border:0;background:transparent;color:var(--muted);font-size:13px;font-weight:500;padding:9px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:.15s;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.tabs button:hover{color:var(--text)}
+.tabs button[aria-selected="true"]{background:var(--brand);color:var(--brand-ink);font-weight:600}
+.tabs button .k{font-family:var(--mono);font-size:10px;opacity:.65}
+.tabs .lampdot{width:8px;height:8px;border-radius:50%;background:var(--faint)}
+.tabs .lampdot.g{background:var(--green)}.tabs .lampdot.a{background:var(--amber)}.tabs .lampdot.r{background:var(--red)}
+.pane{display:none}.pane.on{display:block}
+
+/* ── kort / grid ── */
+.grid{display:grid;gap:14px}
+.g4{grid-template-columns:repeat(4,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:repeat(2,1fr)}
+.g21{grid-template-columns:2fr 1fr}.g12{grid-template-columns:1fr 2fr}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);min-width:0}
+.card h2{font-size:14.5px;font-weight:600;letter-spacing:-.01em;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.card .sub{color:var(--muted);font-size:12.5px;margin-top:3px}
+.card.brand{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.card.brand .k,.card.brand .sub{color:var(--brand-ink);opacity:.78}
+.card.brand .foot-note{color:var(--brand-ink);opacity:.62}
+.k{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.v{font-size:26px;font-weight:600;margin-top:4px;line-height:1.1;letter-spacing:-.01em}
+.v.sm{font-size:20px}.v.xl{font-size:40px}
+.v.neg{color:var(--red)}.v.pos{color:var(--green)}
+.unit{font-size:13px;color:var(--muted);font-weight:500;margin-left:4px;font-family:var(--mono)}
+.card.brand .unit{color:var(--brand-ink);opacity:.7}
+.foot-note{font-size:12px;color:var(--muted);margin-top:8px;font-family:var(--mono)}
+.stack{margin-top:14px}
+.bar{height:6px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-top:10px}
+.bar i{display:block;height:100%;background:var(--brand2);border-radius:4px}
+.bar i.a{background:var(--amber)}.bar i.r{background:var(--red)}.bar i.g{background:var(--green)}
+.card.brand .bar{background:rgba(255,255,255,.12);border-color:transparent}
+.card.brand .bar i{background:var(--brand-ink)}
+
+.chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11.5px;padding:3px 9px;border-radius:999px;font-weight:500;background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+.chip.red{background:var(--red-bg);color:var(--red);border-color:transparent}
+.chip.amber{background:var(--amber-bg);color:var(--amber);border-color:transparent}
+.chip.green{background:var(--green-bg);color:var(--green);border-color:transparent}
+.chip.blue{background:var(--blue-bg);color:var(--blue);border-color:transparent}
+
+/* ── tabeller ── */
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);text-align:left;padding:8px 8px;border-bottom:1px solid var(--border);font-weight:500}
+td{padding:9px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th.num,td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+td.muted{color:var(--muted)}
+tr.total td{border-top:1px solid var(--border2);font-weight:600}
+.kv{display:grid;grid-template-columns:1fr auto;gap:6px 14px;font-size:13.5px;margin-top:12px}
+.kv .l{color:var(--muted)}.kv .r{text-align:right;font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap}
+.kv .r.neg{color:var(--red)}
+.kv .sum{border-top:1px solid var(--border);padding-top:6px;font-weight:600}
+.kv .sum.l{color:var(--text)}
+
+/* ── milepælsrad (North Star) ── */
+.rail{position:relative;margin:26px 6px 6px;height:64px}
+.rail .line{position:absolute;left:0;right:0;top:20px;height:2px;background:var(--border2)}
+.rail .prog{position:absolute;left:0;top:20px;height:2px;background:var(--brand2)}
+.rail .ms{position:absolute;top:12px;transform:translateX(-50%);text-align:center;width:120px}
+.rail .ms .d{width:16px;height:16px;border-radius:50%;background:var(--surface);border:2px solid var(--border2);margin:0 auto}
+.rail .ms.hit .d{background:var(--brand2);border-color:var(--brand2)}
+.rail .ms .y{font-family:var(--mono);font-size:10.5px;color:var(--faint);margin-top:6px;letter-spacing:.06em}
+.rail .ms .n{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.rail .now{position:absolute;top:2px;transform:translateX(-50%);text-align:center}
+.rail .now.edge{transform:none;text-align:left}
+.rail .now.edge .d{margin:0 0 0 -5px}
+.rail .now .d{width:10px;height:10px;border-radius:50%;background:var(--amber);margin:0 auto;box-shadow:0 0 0 3px var(--amber-bg)}
+.rail .now .n{font-family:var(--mono);font-size:10.5px;color:var(--amber);white-space:nowrap;margin-top:-30px;font-weight:600}
+.card.brand .rail .now .n{color:var(--brand-ink)}
+.card.brand .rail .now .d{box-shadow:0 0 0 3px rgba(255,255,255,.25)}
+
+/* ── gate (monitor-stil) ── */
+.gate{display:grid;grid-template-columns:auto 1fr;gap:26px;align-items:center}
+.lamps{background:var(--brand);border-radius:14px;padding:14px 13px;display:flex;flex-direction:column;gap:10px}
+.lamp{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.12);opacity:.35;transition:.3s}
+.lamp.on{opacity:1}
+.lamp.r.on{background:var(--red);box-shadow:0 0 18px 2px var(--red)}
+.lamp.a.on{background:var(--amber);box-shadow:0 0 18px 2px var(--amber)}
+.lamp.g.on{background:var(--green);box-shadow:0 0 18px 2px var(--green)}
+#gateWord{font-size:30px;font-weight:700;letter-spacing:-.01em;margin:2px 0 6px}
+#gateWord.r{color:var(--red)}#gateWord.a{color:var(--amber)}#gateWord.g{color:var(--green)}
+.gate-metrics{display:flex;gap:26px;margin-top:14px;flex-wrap:wrap}
+.metric .k{display:block}
+.metric .v{font-size:24px}
+.rules{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.rule{border-left:3px solid;padding:7px 0 7px 12px}
+.rule.r{border-color:var(--red)}.rule.a{border-color:var(--amber)}.rule.g{border-color:var(--green)}
+.rule .h{font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-weight:600}
+.rule.r .h{color:var(--red)}.rule.a .h{color:var(--amber)}.rule.g .h{color:var(--green)}
+.rule p{margin:3px 0 0;font-size:13px;color:var(--muted)}
+.rule p b{color:var(--text);font-weight:500}
+.rule.active{background:var(--surface2);border-radius:0 8px 8px 0}
+
+/* ── chart ── */
+.chartwrap{margin-top:8px;position:relative}
+.chartwrap svg{width:100%;height:auto;display:block}
+svg .grid{stroke:var(--border);stroke-width:1}
+svg .zero{stroke:var(--border2);stroke-width:1.2;stroke-dasharray:2 3}
+svg .buf{stroke:var(--amber);stroke-width:1.3;stroke-dasharray:5 4;opacity:.9}
+svg .kass{stroke:var(--red);stroke-width:1.1;stroke-dasharray:2 4;opacity:.7}
+svg .axis{fill:var(--faint);font-family:var(--mono);font-size:10px}
+svg .lbl{fill:var(--muted);font-family:var(--mono);font-size:10px;font-weight:500}
+svg .series{fill:none;stroke:var(--brand2);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+svg .area{fill:var(--brand2);opacity:.08}
+svg .pt{fill:var(--surface);stroke:var(--brand2);stroke-width:2}
+svg .pt.lo{fill:var(--red);stroke:var(--surface)}
+svg .hit{fill:transparent}
+svg .xh{stroke:var(--border2);stroke-width:1;stroke-dasharray:3 3;opacity:0}
+.tip{position:absolute;pointer-events:none;background:var(--text);color:var(--bg);font-family:var(--mono);font-size:11.5px;padding:6px 9px;border-radius:7px;white-space:nowrap;opacity:0;transform:translate(-50%,-110%);transition:opacity .1s}
+.tip b{font-weight:600}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.dash{width:16px;height:0;border-top:2px solid}
+details.tbl{margin-top:12px}
+details.tbl summary{font-family:var(--mono);font-size:11.5px;color:var(--muted);cursor:pointer}
+
+/* ── kapasitet-barer ── */
+.hbar{display:grid;grid-template-columns:70px 1fr 110px;gap:10px;align-items:center;font-size:13px;margin-top:8px}
+.hbar .t{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.hbar .track{height:10px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;position:relative}
+.hbar .track i{position:absolute;top:0;bottom:0;border-radius:5px;background:var(--brand2)}
+.hbar .track i.neg{background:var(--red)}
+.hbar .n{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
+
+.empty{font-family:var(--mono);font-size:12px;color:var(--faint);padding:14px 0}
+.foot{margin-top:26px;padding-top:14px;border-top:1px solid var(--border);color:var(--faint);font-size:12px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;font-family:var(--mono)}
+.foot b{color:var(--muted);font-weight:600}
+
+@media (max-width:900px){.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:1fr 1fr}.g21,.g12{grid-template-columns:1fr}}
+@media (max-width:600px){.g4,.g3,.g2{grid-template-columns:1fr}.gate{grid-template-columns:1fr}.lamps{flex-direction:row}.rail .ms{width:80px}.tabs button .k{display:none}}
+</style>
+</head>
+<body>
+
+<div id="loading" class="screen"><div class="box"><div class="mono">Cockpit</div><p style="margin-top:10px">Laster kommandosentral…</p></div></div>
+
+<div id="authError" class="screen" style="display:none"><div class="box">
+  <h2>Ingen tilgang</h2><p>Cockpit krever administratortilgang.</p><a class="btn" href="/">Tilbake til portalen</a>
+</div></div>
+
+<div id="app" class="wrap" style="display:none">
+
+  <div class="mast">
+    <div>
+      <div class="brand-tag">House of Yachts · Kommandosentral</div>
+      <h1>Cockpit</h1>
+      <p class="sub" id="builtAt">—</p>
+    </div>
+    <div class="mast-actions">
+      <button class="btn" id="themeBtn" type="button">☾ Mørk</button>
+      <button class="btn" id="rebuildBtn" type="button">↻ Bygg på nytt</button>
+      <a class="btn" href="/finance/cockpit/">Company cockpit</a>
+      <a class="btn" href="/">Portal</a>
+    </div>
+  </div>
+
+  <div class="statusbar">
+    <div class="sources" id="sources"></div>
+    <div class="bank" id="bank"></div>
+  </div>
+
+  <div id="degrade" class="degrade" style="display:none"></div>
+
+  <div class="tabs" role="tablist" id="tabs">
+    <button role="tab" data-tab="oversikt"><span class="k">01</span>Oversikt</button>
+    <button role="tab" data-tab="vekst"><span class="k">02</span>Vekstplan</button>
+    <button role="tab" data-tab="kpi"><span class="k">03</span>KPI-scorecard</button>
+    <button role="tab" data-tab="likviditet"><span class="k">04</span>Likviditet</button>
+    <button role="tab" data-tab="gate"><span class="k">05</span>Ansettelsesgate <span class="lampdot" id="gateDot"></span></button>
+  </div>
+
+  <section class="pane" id="pane-oversikt"></section>
+  <section class="pane" id="pane-vekst"></section>
+  <section class="pane" id="pane-kpi"></section>
+  <section class="pane" id="pane-likviditet"></section>
+  <section class="pane" id="pane-gate"></section>
+
+  <div class="foot">
+    <span>Kilde: <b>dashboard-state</b> · én JSON, bygget nattlig av poweroffice-nightly. Ingen beregning i klienten.</span>
+    <span id="footMeta"></span>
+  </div>
+</div>
+
+<script>
+'use strict';
+const ORIGIN = window.location.origin;
+const API      = `${ORIGIN}/.netlify/functions/dashboard-state`;
+const EB_API   = `${ORIGIN}/.netlify/functions/enablebanking`;
+const IDENTITY = `${ORIGIN}/.netlify/identity`;
+let token = null, S = null, builtAt = null;
+
+// ── hjelpere ──────────────────────────────────────────────────────────────
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const isNum = (n) => typeof n === 'number' && Number.isFinite(n);
+function nok(n, opts = {}) {
+  if (!isNum(n)) return '—';
+  const r = Math.round(n);
+  const s = Math.abs(r).toLocaleString('nb-NO').replace(/ /g, ' ');
+  return (r < 0 ? '−' : (opts.sign && r > 0 ? '+' : '')) + s;
+}
+function mnok(n) { if (!isNum(n)) return '—'; const v = n / 1e6; return (v < 0 ? '−' : '') + Math.abs(v).toLocaleString('nb-NO', {minimumFractionDigits: 1, maximumFractionDigits: 1}) + ' M'; }
+const pct = (n) => isNum(n) ? `${Math.round(n)} %` : '—';
+const int = (n) => isNum(n) ? n.toLocaleString('nb-NO') : '—';
+function dato(iso, withTime) {
+  if (!iso) return '—';
+  const d = new Date(iso); if (isNaN(d)) return '—';
+  const s = d.toLocaleDateString('nb-NO', {day: '2-digit', month: 'short', year: 'numeric'});
+  return withTime ? s + ' ' + d.toLocaleTimeString('nb-NO', {hour: '2-digit', minute: '2-digit'}) : s;
+}
+const daysUntil = (iso) => { if (!iso) return null; const d = new Date(iso); if (isNaN(d)) return null; return Math.ceil((d.getTime() - Date.now()) / 864e5); };
+function parseJwt(t) { try { const b = t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'); return JSON.parse(atob(b)); } catch { return null; } }
+const get = (path, dflt = null) => { try { return path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), S) ?? dflt; } catch { return dflt; } };
+const srcOk = (name) => { const s = get(`meta.sources.${name}`); return !!(s && s.ok); };
+const srcMissing = (label, name) => `<div class="empty">⚠ ${esc(label)} mangler — kilde «${esc(name)}» feilet${get(`meta.sources.${name}.error`) ? ': ' + esc(get(`meta.sources.${name}.error`)) : ''}.</div>`;
+function tile(label, value, sub, cls = '') {
+  return `<div class="card ${cls}"><div class="k">${esc(label)}</div><div class="v">${value}</div>${sub ? `<div class="sub">${sub}</div>` : ''}</div>`;
+}
+const MNS = ['jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov','des'];
+
+// ── tema ──────────────────────────────────────────────────────────────────
+function applyTheme(t) {
+  if (t) document.documentElement.setAttribute('data-theme', t); else document.documentElement.removeAttribute('data-theme');
+  const dark = t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  $('themeBtn').textContent = dark ? '☀ Lys' : '☾ Mørk';
+}
+$('themeBtn').onclick = () => {
+  const cur = document.documentElement.getAttribute('data-theme');
+  const dark = cur ? cur === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  const next = dark ? 'light' : 'dark';
+  try { localStorage.setItem('hoy_cockpit_theme', next); } catch {}
+  applyTheme(next);
+};
+try { applyTheme(localStorage.getItem('hoy_cockpit_theme') || null); } catch { applyTheme(null); }
+
+// ── auth ──────────────────────────────────────────────────────────────────
+async function init() {
+  const tok = localStorage.getItem('hoy_access_token');
+  if (!tok) { window.location.href = '/'; return; }
+  try {
+    const r = await fetch(`${IDENTITY}/user`, {headers: {Authorization: `Bearer ${tok}`}});
+    if (!r.ok) throw new Error('Session expired');
+  } catch { localStorage.removeItem('hoy_access_token'); window.location.href = '/'; return; }
+  const roles = parseJwt(tok)?.app_metadata?.roles || [];
+  if (!roles.includes('admin')) { $('loading').style.display = 'none'; $('authError').style.display = 'flex'; return; }
+  token = tok;
+  await load();
+  $('loading').style.display = 'none';
+  $('app').style.display = '';
+}
+
+async function load() {
+  const r = await fetch(`${API}?action=get`, {headers: {Authorization: `Bearer ${token}`}});
+  if (!r.ok) { fatal(`dashboard-state svarte ${r.status}`); return; }
+  const j = await r.json();
+  S = j.state; builtAt = j.built_at || get('meta.built_at');
+  if (!S) { fatal('Ingen lagret state ennå — kjør «Bygg på nytt».'); return; }
+  render();
+}
+function fatal(msg) {
+  $('loading').style.display = 'none'; $('app').style.display = '';
+  $('builtAt').textContent = msg;
+  $('degrade').style.display = ''; $('degrade').innerHTML = `<b>Ingen data</b><div>${esc(msg)}</div>`;
+}
+
+$('rebuildBtn').onclick = async () => {
+  const b = $('rebuildBtn'); b.disabled = true; b.textContent = '↻ Bygger…';
+  try {
+    const r = await fetch(`${API}?action=rebuild`, {method: 'POST', headers: {Authorization: `Bearer ${token}`}});
+    const j = await r.json();
+    if (j.state) { S = j.state; builtAt = S.meta?.built_at; render(); }
+    if (!j.ok) alert('Rebuild med feil: ' + (j.error || j.step || 'ukjent'));
+  } catch (e) { alert('Rebuild feilet: ' + e.message); }
+  b.disabled = false; b.textContent = '↻ Bygg på nytt';
+};
+
+// ── faner ─────────────────────────────────────────────────────────────────
+const TABS = ['oversikt', 'vekst', 'kpi', 'likviditet', 'gate'];
+function showTab(name) {
+  if (!TABS.includes(name)) name = 'oversikt';
+  document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name ? 'true' : 'false'));
+  TABS.forEach(t => $(`pane-${t}`).classList.toggle('on', t === name));
+  if (location.hash !== '#' + name) history.replaceState(null, '', '#' + name);
+}
+document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+window.addEventListener('hashchange', () => showTab(location.hash.slice(1)));
+
+// ── render ────────────────────────────────────────────────────────────────
+function render() {
+  const age = builtAt ? Math.round((Date.now() - new Date(builtAt).getTime()) / 36e5) : null;
+  $('builtAt').textContent = `bygget ${dato(builtAt, true)}${age != null ? ` · ${age < 1 ? 'under 1 t' : age + ' t'} siden` : ''} · år ${get('meta.year', '—')}`;
+  $('footMeta').textContent = `state ${dato(builtAt, true)}`;
+  renderSources(); renderBank(); renderDegrade();
+  renderOversikt(); renderVekst(); renderKpi(); renderLikviditet(); renderGate();
+  showTab(location.hash.slice(1) || 'oversikt');
+}
+
+const SRC_LABELS = {settlements: 'Settlements', budsjett: 'Budsjett', likviditet: 'Likviditet', bank: 'Bank', hubspot_a: 'HubSpot A', resultat: 'PowerOffice', kpi_solgt: 'KPI solgt'};
+function renderSources() {
+  const src = get('meta.sources', {}) || {};
+  $('sources').innerHTML = Object.keys(src).map(k => {
+    const s = src[k] || {};
+    const cls = s.ok ? '' : (k === 'bank' ? 'warn' : 'bad');
+    const title = s.error || s.note || (s.rows != null ? `${s.rows} rader` : '') || '';
+    return `<span class="src ${cls}" title="${esc(title)}"><span class="dot"></span>${esc(SRC_LABELS[k] || k)}</span>`;
+  }).join('');
+}
+
+function bankState() {
+  const L = get('likviditet', {}) || {};
+  const days = daysUntil(L.bank_consent_utlop);
+  const expired = days != null && days <= 0;
+  const soon = days != null && days > 0 && days <= 14;
+  return {L, days, expired, soon, live: L.bank_kilde === 'live'};
+}
+function renderBank() {
+  const {L, days, expired, soon, live} = bankState();
+  const pillCls = expired ? 'expired' : (live ? 'live' : 'fallback');
+  const pillTxt = expired ? 'samtykke utløpt' : (live ? 'live · DNB' : 'fallback · 1920');
+  let consent = '';
+  if (days == null) consent = 'ingen bankkobling';
+  else if (expired) consent = `utløp ${dato(L.bank_consent_utlop)}`;
+  else consent = `samtykke <b>${days} d</b> igjen`;
+  const needRenew = expired || soon || days == null || !live;
+  $('bank').innerHTML = `
+    <span class="pill ${pillCls}">${pillTxt}</span>
+    <span>${live ? `saldo ${dato(L.bank_saldo_dato)}` : `hovedbok + diff`}</span>
+    <span class="sep">│</span><span>${consent}</span>
+    ${needRenew ? `<button class="btn ${expired || soon ? 'warn' : ''}" id="renewBtn" type="button" title="Starter BankID-flyt (Enable Banking auth_start)">${expired ? 'Forny tilgang' : (soon ? 'Forny snart' : 'Koble bank')}</button>` : ''}`;
+  const rb = $('renewBtn');
+  if (rb) rb.onclick = renewBank;
+}
+async function renewBank() {
+  const b = $('renewBtn'); b.disabled = true; b.textContent = 'Starter…';
+  try {
+    const r = await fetch(`${EB_API}?action=auth_start`, {method: 'POST', headers: {Authorization: `Bearer ${token}`}});
+    const j = await r.json();
+    if (!r.ok || !j.url) throw new Error(j.error || 'ingen URL fra Enable Banking');
+    window.open(j.url, '_blank', 'noopener');
+    b.textContent = 'BankID åpnet ↗';
+  } catch (e) { alert('Kunne ikke starte bankkobling: ' + e.message); b.disabled = false; b.textContent = 'Forny tilgang'; }
+}
+
+function renderDegrade() {
+  const src = get('meta.sources', {}) || {};
+  const bad = Object.keys(src).filter(k => src[k] && !src[k].ok && k !== 'bank');
+  const {expired, soon, days} = bankState();
+  const items = bad.map(k => `<li><b style="text-transform:none;letter-spacing:0">${esc(SRC_LABELS[k] || k)}</b>: ${esc(src[k].error || 'feilet')}${src[k].note ? ` <span style="color:var(--faint)">(${esc(src[k].note)})</span>` : ''}</li>`);
+  if (!src.bank || !src.bank.ok) items.push(`<li>Banksaldo er <b style="text-transform:none;letter-spacing:0">fallback</b> (hovedbok 1920 + frossen avstemmingsdiff) — ${expired ? 'samtykke utløpt, forny med BankID.' : (days == null ? 'ingen aktiv bankkobling.' : 'siste live-saldo er eldre enn 4 dager eller mangler.')}</li>`);
+  else if (soon) items.push(`<li>Banksamtykket utløper om <b style="text-transform:none;letter-spacing:0">${days} dager</b> — forny tilgang før det.</li>`);
+  const el = $('degrade');
+  if (!items.length) { el.style.display = 'none'; return; }
+  el.style.display = '';
+  el.innerHTML = `<b>Degradert visning</b> — tallene under vises med det som finnes:<ul>${items.join('')}</ul>`;
+}
+
+// ── 01 Oversikt / North Star ──────────────────────────────────────────────
+function renderOversikt() {
+  const N = get('north_star', {}) || {};
+  const T = N.targets?.resultat_for_skatt || {};
+  const years = Object.keys(T).map(Number).sort();
+  const year = get('meta.year', new Date().getFullYear());
+  const res = N.resultat_ytd;
+  const next = years.find(y => y >= year) ?? years[years.length - 1];
+  const nextT = T[next];
+  const L = get('likviditet', {}) || {};
+  const G = L.gate || {};
+
+  // milepælsrad: 0 → høyeste mål; nå-markør = resultat_ytd
+  const maxT = Math.max(...years.map(y => T[y]), 1);
+  const x = (v) => Math.max(0, Math.min(100, (v / maxT) * 100));
+  const rail = years.length ? `
+    <div class="rail">
+      <div class="line"></div>
+      ${isNum(res) && res > 0 ? `<div class="prog" style="width:${x(res)}%"></div>` : ''}
+      ${years.map(y => `<div class="ms ${isNum(res) && res >= T[y] ? 'hit' : ''}" style="left:${x(T[y])}%"><div class="d"></div><div class="y">${y}</div><div class="n">${mnok(T[y])}</div></div>`).join('')}
+      ${isNum(res) ? `<div class="now ${x(Math.max(0, res)) < 12 ? 'edge' : ''}" style="left:${x(Math.max(0, res))}%"><div class="n">YTD ${year}${res < 0 ? ' (negativt)' : ''}</div><div class="d"></div></div>` : ''}
+    </div>` : '';
+
+  const resOk = srcOk('resultat');
+  const settOk = srcOk('settlements');
+  const budOk = srcOk('budsjett');
+  const p = N.revenue_ytd_pct;
+  const pCls = !isNum(p) ? '' : (p >= 100 ? 'g' : (p >= 80 ? 'a' : 'r'));
+  const brokers = Object.entries(N.per_broker || {}).sort((a, b) => b[1] - a[1]);
+  const sumB = brokers.reduce((a, [, v]) => a + v, 0);
+
+  $('pane-oversikt').innerHTML = `
+    <div class="grid g21">
+      <div class="card brand">
+        <div class="k">North Star · resultat før skatt (etter Sindre-lønn kappet på 7,1 G)</div>
+        <div class="v xl">${resOk ? nok(res) : '—'}<span class="unit">NOK YTD ${year}</span></div>
+        <div class="sub">${resOk ? `Neste milepæl: ${mnok(nextT)} i ${next}${isNum(res) && isNum(nextT) ? ` · avstand ${nok(nextT - res)}` : ''}` : 'PowerOffice-resultat mangler i denne staten'}</div>
+        ${rail}
+        <div class="foot-note">${esc(N.targets?.kilde || '')} · ${esc(get('meta.sources.resultat.note', ''))}</div>
+      </div>
+      <div class="grid" style="grid-template-columns:1fr">
+        ${tile('Reell bank', `${nok(L.reell_bank)}<span class="unit">NOK</span>`, `<span class="chip ${L.bank_kilde === 'live' ? 'green' : 'amber'}">${L.bank_kilde === 'live' ? 'live DNB' : 'fallback'}</span> ${L.bank_kilde === 'live' ? esc(dato(L.bank_saldo_dato)) : 'hovedbok 1920 + avstemmingsdiff'}`)}
+        ${tile('Ansettelsesgate', `<span class="${gateCls(G.status)}" style="font-size:22px">${esc(G.status || '—')}</span>`, isNum(G.laveste_plan) ? `laveste (plan) ${nok(G.laveste_plan)} mot buffer ${nok(G.buffer)}` : 'likviditetsmodell mangler')}
+      </div>
+    </div>
+
+    <div class="grid g4" style="margin-top:14px">
+      ${tile('Kreditert omsetning YTD', settOk ? `${nok(N.revenue_ytd_kreditert)}<span class="unit">eks. mva</span>` : '—',
+        budOk && isNum(N.revenue_ytd_mal) ? `mål hittil ${nok(N.revenue_ytd_mal)} · <b>${pct(p)}</b><div class="bar"><i class="${pCls}" style="width:${Math.min(100, p || 0)}%"></i></div>` : (settOk ? 'budsjett mangler' : 'settlements mangler'))}
+      ${tile('Helårsmål omsetning', budOk ? `${nok(N.revenue_helar_mal)}<span class="unit">eks. mva</span>` : '—', budOk && isNum(N.revenue_ytd_kreditert) && N.revenue_helar_mal ? `${pct(100 * N.revenue_ytd_kreditert / N.revenue_helar_mal)} av året levert` : esc(get('meta.sources.budsjett.note', '')))}
+      ${tile('Solgte båter YTD', settOk ? int(N.salg_ytd) : '—', `siste 30 d: <b>${int(get('kpi_scorecard.solgt.siste_30d'))}</b>`)}
+      ${tile('Snittbåt YTD', `${nok(get('spaker.premium_miks.snittbat_ytd'))}<span class="unit">NOK</span>`, `mål ${nok(get('spaker.premium_miks.mal'))} (premium-miks)`)}
+    </div>
+
+    <div class="grid g2" style="margin-top:14px">
+      <div class="card">
+        <h2>Kreditert per megler <span class="chip">${year}</span></h2>
+        <div class="sub">revenue_ex_vat fra settlements, sold_by</div>
+        ${settOk ? (brokers.length ? `<table style="margin-top:10px"><thead><tr><th>Megler</th><th class="num">Kreditert</th><th class="num">Andel</th></tr></thead><tbody>
+          ${brokers.map(([k, v]) => `<tr><td>${esc(k)}</td><td class="num">${nok(v)}</td><td class="num muted">${pct(sumB ? 100 * v / sumB : null)}</td></tr>`).join('')}
+          <tr class="total"><td>Sum</td><td class="num">${nok(sumB)}</td><td class="num">100 %</td></tr></tbody></table>` : '<div class="empty">Ingen salg registrert i år.</div>') : srcMissing('Meglerfordeling', 'settlements')}
+      </div>
+      <div class="card">
+        <h2>Milepæler 1–3–5</h2>
+        <div class="sub">resultat før skatt, plan</div>
+        <div class="kv">
+          ${years.map(y => `<span class="l">${y}</span><span class="r">${nok(T[y])}</span>`).join('')}
+          <span class="l sum">YTD ${year}</span><span class="r sum ${isNum(res) && res < 0 ? 'neg' : ''}">${resOk ? nok(res) : '—'}</span>
+        </div>
+        <div class="foot-note">Kapasitet (motor): 2 stoler ${nok(get('motor.kapasitet_resultat.2'))} · 5 stoler ${nok(get('motor.kapasitet_resultat.5'))} · 8 stoler ${nok(get('motor.kapasitet_resultat.8'))}</div>
+      </div>
+    </div>`;
+}
+function gateCls(s) { s = String(s || ''); return s.startsWith('GRØNT') ? 'pos' : (s.startsWith('GULT') ? '' : (s.startsWith('RØDT') ? 'neg' : '')); }
+
+// ── 02 Vekstplan ──────────────────────────────────────────────────────────
+function renderVekst() {
+  const M = get('motor', {}) || {};
+  const Sp = get('spaker', {}) || {};
+  const cap = M.kapasitet_resultat || {};
+  const capKeys = Object.keys(cap).sort((a, b) => Number(a) - Number(b));
+  const capMax = Math.max(...capKeys.map(k => Math.abs(cap[k])), 1);
+  const pm = Sp.premium_miks || {}, pd = Sp.provisjonsdisiplin || {}, cl = Sp.cash_lag || {};
+  const pmPct = isNum(pm.snittbat_ytd) && pm.mal ? 100 * pm.snittbat_ytd / pm.mal : null;
+
+  $('pane-vekst').innerHTML = `
+    <div class="grid g12">
+      <div class="card">
+        <h2>Økonomimotor</h2>
+        <div class="sub">${esc(M.note || '')}</div>
+        <div class="kv">
+          <span class="l">Inntekt per båt (eks. mva)</span><span class="r">${nok(M.inntekt_per_bat)}</span>
+          <span class="l">Stol-rate (megler, full ramp)</span><span class="r">${nok(M.stol_rate)}</span>
+          <span class="l">Sindre-rate</span><span class="r">${nok(M.sindre_rate)}</span>
+          <span class="l">Meglerkost</span><span class="r">${isNum(M.meglerkost_pct) ? pct(M.meglerkost_pct * 100) : '—'}</span>
+          <span class="l">Kostbase grunn / år</span><span class="r">${nok(M.kostbase_grunn)}</span>
+          <span class="l">Ramp ny stol</span><span class="r">${Array.isArray(M.ramp) ? M.ramp.map(r => Math.round(r * 100) + ' %').join(' → ') : '—'}</span>
+        </div>
+        <div class="foot-note">ramp = andel av stol-rate i mnd 0–2 / 3–5 / 6+</div>
+      </div>
+      <div class="card">
+        <h2>Kapasitet → resultat før skatt <span class="chip">plan-år</span></h2>
+        <div class="sub">hva bemanningen gir ved full ramp (motor)</div>
+        <div style="margin-top:8px">
+          ${capKeys.map(k => { const v = cap[k]; const w = 50 * Math.abs(v) / capMax; return `
+            <div class="hbar"><span class="t">${esc(k)} stoler</span>
+              <div class="track"><i class="${v < 0 ? 'neg' : ''}" style="${v < 0 ? `right:50%;width:${w}%` : `left:50%;width:${w}%`}"></i><span style="position:absolute;left:50%;top:-3px;bottom:-3px;border-left:1px solid var(--border2)"></span></div>
+              <span class="n ${v < 0 ? 'neg' : ''}" style="color:${v < 0 ? 'var(--red)' : 'inherit'}">${nok(v)}</span></div>`; }).join('')}
+        </div>
+        <div class="foot-note">Målene: ${Object.entries(get('north_star.targets.resultat_for_skatt', {}) || {}).map(([y, v]) => `${y} ${mnok(v)}`).join(' · ')}. 1,5 M i 2027 krever mer enn 2 stoler — derfor gaten.</div>
+      </div>
+    </div>
+
+    <div class="grid g3" style="margin-top:14px">
+      <div class="card">
+        <h2>Spak · Premium-miks</h2>
+        <div class="sub">snitt salgssum YTD mot mål</div>
+        <div class="v">${nok(pm.snittbat_ytd)}<span class="unit">NOK</span></div>
+        <div class="bar"><i class="${pmPct == null ? '' : (pmPct >= 100 ? 'g' : (pmPct >= 85 ? 'a' : 'r'))}" style="width:${Math.min(100, pmPct || 0)}%"></i></div>
+        <div class="foot-note">mål ${nok(pm.mal)} · ${pct(pmPct)}</div>
+      </div>
+      <div class="card">
+        <h2>Spak · Provisjonsdisiplin</h2>
+        <div class="sub">${esc(pd.note || 'effektiv grad = provisjon/salgssum')}</div>
+        <div class="v">${int(pd.salg_under_6pct)}<span class="unit">av ${int(pd.av_totalt)} under 6 %</span></div>
+        <div class="bar"><i class="${!isNum(pd.andel) ? '' : (pd.andel <= 10 ? 'g' : (pd.andel <= 25 ? 'a' : 'r'))}" style="width:${Math.min(100, pd.andel || 0)}%"></i></div>
+        <div class="foot-note">${pct(pd.andel)} av salgene — lavere er bedre</div>
+      </div>
+      <div class="card">
+        <h2>Spak · Cash-lag</h2>
+        <div class="sub">dager fra salg til penger på konto · ${esc(cl.kilde || '')}</div>
+        <div class="kv">
+          <span class="l">Median</span><span class="r">${int(cl.median_d)} d</span>
+          <span class="l">P75</span><span class="r">${int(cl.p75_d)} d</span>
+          <span class="l">P90</span><span class="r">${int(cl.p90_d)} d</span>
+        </div>
+        <div class="foot-note">P75 brukes i likviditetsplanen — ikke median.</div>
+      </div>
+    </div>`;
+}
+
+// ── 03 KPI-scorecard ──────────────────────────────────────────────────────
+const STAGE_LABELS = {'4400020701':'Første kontakt','4400020702':'Befaring planlagt','4400020703':'Befaring gjennomført','4400020704':'Verdivurdering sendt','4400020705':'Oppdragsavtale sendt','4400020706':'Vunnet','4400020707':'Tapt','4425071838':'Aktiv','4401874120':'Listing'};
+const STAGE_ORDER = ['4400020701','4400020702','4400020703','4400020704','4400020705','4400020706','4400020707'];
+function renderKpi() {
+  const K = get('kpi_scorecard', {}) || {};
+  const so = K.solgt || {}, A = K.pipeline_a;
+  const hsOk = srcOk('hubspot_a') && A;
+  const ps = A?.per_stage || {};
+  const keys = Object.keys(ps).sort((a, b) => (STAGE_ORDER.indexOf(a) + 1 || 99) - (STAGE_ORDER.indexOf(b) + 1 || 99));
+  const maxS = Math.max(...keys.map(k => ps[k]), 1);
+  const won = ps['4400020706'] || 0, val = ps['4400020704'] || 0;
+
+  $('pane-kpi').innerHTML = `
+    <div class="grid g4">
+      ${tile('Solgt YTD', int(so.ytd_antall), 'fra settlements (sold_date)')}
+      ${tile('Solgt siste 30 d', int(so.siste_30d), 'tempo nå')}
+      ${tile('Provisjon YTD', `${nok(so.provisjon_ytd)}<span class="unit">eks. mva</span>`, 'revenue_ex_vat')}
+      ${tile('Aktive i Pipeline A', hsOk ? int(A.aktive) : '—', hsOk ? `+${int(A.opprettet_30d)} siste 30 d · +${int(A.opprettet_7d)} siste 7 d` : 'HubSpot mangler')}
+    </div>
+    <div class="grid g21" style="margin-top:14px">
+      <div class="card">
+        <h2>Pipeline A · Oppdrag inn <span class="chip blue">selgeranskaffelse</span></h2>
+        <div class="sub">deals per steg (alle i pipelinen, inkl. vunnet/tapt) — proxy-KPI til stage-historikk er på plass</div>
+        ${hsOk ? `<div style="margin-top:8px">${keys.map(k => `
+          <div class="hbar" style="grid-template-columns:180px 1fr 60px"><span class="t">${esc(STAGE_LABELS[k] || k)}</span>
+            <div class="track"><i style="left:0;width:${100 * ps[k] / maxS}%"></i></div>
+            <span class="n">${int(ps[k])}</span></div>`).join('')}</div>` : srcMissing('Pipeline A-funnel', 'hubspot_a')}
+      </div>
+      <div class="card">
+        <h2>Konvertering (proxy)</h2>
+        <div class="sub">befaring → signert, mål 90 %+</div>
+        <div class="kv">
+          <span class="l">Verdivurdering sendt (befaring-proxy)</span><span class="r">${hsOk ? int(val) : '—'}</span>
+          <span class="l">Vunnet (signert oppdragsavtale)</span><span class="r">${hsOk ? int(won) : '—'}</span>
+          <span class="l sum">Vunnet / (vunnet + på verdivurdering)</span><span class="r sum">${hsOk && (won + val) ? pct(100 * won / (won + val)) : '—'}</span>
+        </div>
+        <div class="foot-note">${esc(A?.stage_ref ? `stage_ref: ${A.stage_ref.valuation} · ${A.stage_ref.agreement_signed}` : '')}</div>
+        <div class="foot-note">Øyeblikksbilde av steg — ikke ekte kohort-konvertering ennå.</div>
+      </div>
+    </div>`;
+}
+
+// ── 04 Likviditet ─────────────────────────────────────────────────────────
+function renderLikviditet() {
+  const L = get('likviditet', {}) || {};
+  const ok = srcOk('likviditet');
+  const sc = L.scenarioer || {};
+  const UB = Array.isArray(L.plan_UB) ? L.plan_UB : null;
+  const live = L.bank_kilde === 'live';
+  const scCard = (key, label, sub) => { const s = sc[key]; if (!s) return tile(label, '—', 'mangler'); const cls = s.laveste < 0 ? 'neg' : (s.laveste < (L.buffer ?? 0) ? '' : 'pos');
+    return `<div class="card ${key === 'plan' ? '' : ''}"><div class="k">${esc(label)} <span class="chip" style="margin-left:6px">${esc(sub)}</span></div>
+      <div class="v ${cls}">${nok(s.laveste)}<span class="unit">laveste · ${esc(s.label || '')}</span></div>
+      <div class="kv" style="margin-top:8px"><span class="l">UB etter 24 mnd</span><span class="r ${s.slutt < 0 ? 'neg' : ''}">${nok(s.slutt)}</span>
+      <span class="l">Mot buffer</span><span class="r ${s.laveste - (L.buffer || 0) < 0 ? 'neg' : ''}">${nok(s.laveste - (L.buffer || 0), {sign: true})}</span></div></div>`; };
+
+  $('pane-likviditet').innerHTML = ok ? `
+    <div class="grid g21">
+      <div class="card brand">
+        <div class="k">Reell bank · åpningssaldo i modellen</div>
+        <div class="v xl">${nok(L.reell_bank)}<span class="unit">NOK</span></div>
+        <div class="sub">${live ? `Live bokført saldo DNB · ${dato(L.bank_saldo_dato, true)}${isNum(L.bank_tilgjengelig) ? ` · tilgjengelig ${nok(L.bank_tilgjengelig)}` : ''}` : `Fallback: hovedbok 1920 ${nok(L.hovedbok_1920)} + avstemmingsdiff ${nok(L.avstemmingsdiff)} = ${nok(L.fallback_opening)}`}</div>
+        <div class="foot-note">${live ? `fallback ville vært ${nok(L.fallback_opening)} (1920 + diff) · avvik ${nok(L.reell_bank - L.fallback_opening, {sign: true})}` : 'snapshot ' + esc(L.snapshot_date || '—')} · kassekreditt ${nok(L.kassekreditt)} · buffer-regel ${nok(L.buffer)}</div>
+      </div>
+      <div class="card">
+        <h2>Balanseposter <span class="chip">${esc(L.snapshot_date || '—')}</span></h2>
+        <div class="sub">fra PowerOffice-snapshot</div>
+        <div class="kv">
+          <span class="l">Kundefordringer (åpne poster)</span><span class="r">${nok(L.kundefordringer)}</span>
+          <span class="l">Leverandørgjeld</span><span class="r ${isNum(L.leverandorgjeld) && L.leverandorgjeld > 0 ? 'neg' : ''}">${nok(L.leverandorgjeld)}</span>
+          <span class="l">MVA-posisjon</span><span class="r ${isNum(L.mva_posisjon) && L.mva_posisjon < 0 ? 'neg' : ''}">${nok(L.mva_posisjon)}</span>
+          <span class="l">Hovedbok 1920</span><span class="r">${nok(L.hovedbok_1920)}</span>
+          <span class="l">Avstemmingsdiff (frossen)</span><span class="r">${nok(L.avstemmingsdiff)}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid g3" style="margin-top:14px">
+      ${scCard('base', 'Base', 'rask innbetaling')}
+      ${scCard('plan', 'Plan', 'P75 · styrende')}
+      ${scCard('stress', 'Stress', 'sen innbetaling')}
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <h2>Kontantbeholdning per måned · Plan-scenario <span class="chip">24 mnd · 0 nye ans. · utbytte utsatt</span></h2>
+      <div class="sub">UB per måned fra verifisert likviditetsmodell (diff 0 mot Excel). Startpunkt = reell bank.</div>
+      ${UB ? `<div class="chartwrap" id="ubChart">${ubChart(UB, L)}<div class="tip" id="ubTip"></div></div>
+      <div class="legend"><span><i class="dash" style="border-color:var(--brand2)"></i>UB plan</span><span><i class="dash" style="border-color:var(--amber);border-top-style:dashed"></i>buffer ${nok(L.buffer)}</span><span><i class="dash" style="border-color:var(--red);border-top-style:dotted"></i>kassekreditt −${nok(L.kassekreditt)}</span><span><i class="dash" style="border-color:var(--border2);border-top-style:dashed"></i>null</span></div>
+      <details class="tbl"><summary>Vis som tabell</summary><table style="margin-top:8px"><thead><tr><th>Mnd</th><th class="num">UB</th><th class="num">Mot buffer</th></tr></thead><tbody>
+        ${UB.map((v, i) => `<tr><td class="muted">${ubLabel(i)}</td><td class="num ${v < 0 ? 'neg' : ''}" style="${v < 0 ? 'color:var(--red)' : ''}">${nok(v)}</td><td class="num muted">${nok(v - (L.buffer || 0), {sign: true})}</td></tr>`).join('')}
+      </tbody></table></details>` : '<div class="empty">plan_UB mangler i denne staten — kjør «Bygg på nytt».</div>'}
+    </div>` : srcMissing('Likviditet', 'likviditet');
+  if (UB) wireChart(UB, L);
+}
+function ubLabel(i) { const m = i % 12, y = 27 + Math.floor(i / 12); return `${MNS[m]} ${y}`; }
+function ubChart(UB, L) {
+  const W = 1000, H = 300, pl = 70, pr = 16, pt = 18, pb = 30;
+  const buf = L.buffer || 0, kass = -(L.kassekreditt || 0);
+  const vals = UB.concat([buf, kass, 0]);
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  const pad = (hi - lo) * 0.08 || 1; lo -= pad; hi += pad;
+  const y = (v) => pt + (hi - v) / (hi - lo) * (H - pt - pb);
+  const x = (i) => pl + i / (UB.length - 1) * (W - pl - pr);
+  // pene grid-trinn
+  const span = hi - lo, step = [100000, 200000, 250000, 500000, 1000000, 2000000].find(s => span / s <= 7) || 5000000;
+  const ticks = []; for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) ticks.push(v);
+  const loIdx = UB.indexOf(Math.min(...UB));
+  const path = UB.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const area = `${path} L${x(UB.length - 1).toFixed(1)},${y(Math.max(lo, 0)).toFixed(1)} L${x(0).toFixed(1)},${y(Math.max(lo, 0)).toFixed(1)} Z`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Kontantbeholdning per måned, plan-scenario">
+    ${ticks.map(v => `<line class="grid" x1="${pl}" x2="${W - pr}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text class="axis" x="${pl - 8}" y="${(y(v) + 3.5).toFixed(1)}" text-anchor="end">${v === 0 ? '0' : (v / 1000).toLocaleString('nb-NO') + ' k'}</text>`).join('')}
+    <line class="zero" x1="${pl}" x2="${W - pr}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}"/>
+    <line class="buf" x1="${pl}" x2="${W - pr}" y1="${y(buf).toFixed(1)}" y2="${y(buf).toFixed(1)}"/><text class="lbl" x="${W - pr}" y="${(y(buf) - 5).toFixed(1)}" text-anchor="end">buffer</text>
+    <line class="kass" x1="${pl}" x2="${W - pr}" y1="${y(kass).toFixed(1)}" y2="${y(kass).toFixed(1)}"/><text class="lbl" x="${W - pr}" y="${(y(kass) - 5).toFixed(1)}" text-anchor="end">kassekreditt</text>
+    <path class="area" d="${area}"/><path class="series" d="${path}"/>
+    ${UB.map((v, i) => `<text class="axis" x="${x(i).toFixed(1)}" y="${H - 8}" text-anchor="middle">${i % 3 === 0 ? ubLabel(i) : ''}</text>`).join('')}
+    <line class="xh" id="ubXh" y1="${pt}" y2="${H - pb}" x1="0" x2="0"/>
+    ${UB.map((v, i) => `<circle class="pt ${i === loIdx ? 'lo' : ''}" cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="${i === loIdx ? 5 : 3}"/>`).join('')}
+    <text class="lbl" x="${x(loIdx).toFixed(1)}" y="${(y(UB[loIdx]) + 18).toFixed(1)}" text-anchor="middle" style="fill:var(--red)">laveste ${nok(UB[loIdx])}</text>
+    ${UB.map((v, i) => `<rect class="hit" data-i="${i}" x="${(x(i) - (W - pl - pr) / (UB.length - 1) / 2).toFixed(1)}" y="${pt}" width="${((W - pl - pr) / (UB.length - 1)).toFixed(1)}" height="${H - pt - pb}"/>`).join('')}
+  </svg>`;
+}
+function wireChart(UB, L) {
+  const wrap = $('ubChart'), tip = $('ubTip'), xh = $('ubXh'); if (!wrap) return;
+  const svg = wrap.querySelector('svg');
+  wrap.querySelectorAll('rect.hit').forEach(r => {
+    r.addEventListener('mouseenter', () => {
+      const i = +r.dataset.i, c = svg.querySelectorAll('circle.pt')[i];
+      const b = wrap.getBoundingClientRect(), cb = c.getBoundingClientRect();
+      tip.innerHTML = `${ubLabel(i)} · UB <b>${nok(UB[i])}</b> · mot buffer ${nok(UB[i] - (L.buffer || 0), {sign: true})}`;
+      tip.style.left = (cb.left - b.left + cb.width / 2) + 'px'; tip.style.top = (cb.top - b.top) + 'px'; tip.style.opacity = 1;
+      xh.setAttribute('x1', c.getAttribute('cx')); xh.setAttribute('x2', c.getAttribute('cx')); xh.style.opacity = 1;
+    });
+    r.addEventListener('mouseleave', () => { tip.style.opacity = 0; xh.style.opacity = 0; });
+  });
+}
+
+// ── 05 Ansettelsesgate ────────────────────────────────────────────────────
+const GATE_FRIST = '2026-12-15';
+function renderGate() {
+  const L = get('likviditet', {}) || {};
+  const G = L.gate, sc = L.scenarioer || {};
+  const ok = srcOk('likviditet') && G;
+  const st = String(G?.status || '');
+  const lamp = st.startsWith('GRØNT') ? 'g' : (st.startsWith('GULT') ? 'a' : (st.startsWith('RØDT') ? 'r' : ''));
+  $('gateDot').className = 'lampdot ' + lamp;
+  const frist = daysUntil(GATE_FRIST + 'T23:59:59');
+  const diff = ok ? G.laveste_plan - G.buffer : null;
+  const verdict = {g: 'Grønt — laveste plan-saldo holder bufferen', a: 'Gult — positiv, men under 500k-bufferen', r: 'Rødt — planen går under null'}[lamp] || '—';
+
+  $('pane-gate').innerHTML = ok ? `
+    <div class="card">
+      <div class="gate">
+        <div class="lamps"><div class="lamp r ${lamp === 'r' ? 'on' : ''}"></div><div class="lamp a ${lamp === 'a' ? 'on' : ''}"></div><div class="lamp g ${lamp === 'g' ? 'on' : ''}"></div></div>
+        <div>
+          <div class="k">Ansettelsesgate · Q1 2027 · maks 1 ansettelse · frist ${dato(GATE_FRIST)}</div>
+          <h2 id="gateWord" class="${lamp}">${esc(G.status)}</h2>
+          <div style="font-size:14.5px;max-width:60ch">${verdict}. Beregnet på reell bank ${nok(L.reell_bank)} (${L.bank_kilde === 'live' ? 'live DNB' : 'fallback'}), plan-scenario P75, 0 nye ansettelser og utsatt utbytte.</div>
+          <div class="gate-metrics">
+            <div class="metric"><span class="k">Laveste plan-saldo</span><div class="v ${G.laveste_plan < 0 ? 'neg' : ''}">${nok(G.laveste_plan)}</div><div class="foot-note" style="margin-top:2px">${esc(sc.plan?.label || '')}</div></div>
+            <div class="metric"><span class="k">Buffer-regel</span><div class="v">${nok(G.buffer)}</div><div class="foot-note" style="margin-top:2px">300k kun styregodkjent unntak</div></div>
+            <div class="metric"><span class="k">Mangler til buffer</span><div class="v ${G.mangler > 0 ? 'neg' : 'pos'}">${G.mangler > 0 ? nok(G.mangler) : '0'}</div><div class="foot-note" style="margin-top:2px">margin ${nok(diff, {sign: true})}</div></div>
+            <div class="metric"><span class="k">Frist</span><div class="v ${frist != null && frist <= 30 ? 'neg' : ''}">${frist == null ? '—' : (frist < 0 ? 'passert' : frist + ' d')}</div><div class="foot-note" style="margin-top:2px">${dato(GATE_FRIST)}</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid g2" style="margin-top:14px">
+      <div class="card">
+        <h2>Regler for gaten</h2>
+        <div class="sub">status settes av laveste plan-saldo mot buffer — samme tall som Likviditet-fanen</div>
+        <div class="rules">
+          <div class="rule g ${lamp === 'g' ? 'active' : ''}"><div class="h">Grønt</div><p>laveste plan-saldo ≥ buffer <b>${nok(G.buffer)}</b>. Da tåler planen én ansettelse i Q1 — <b>hvis</b> P75 etter ansettelsen fortsatt holder bufferen.</p></div>
+          <div class="rule a ${lamp === 'a' ? 'active' : ''}"><div class="h">Gult</div><p>laveste plan-saldo ≥ 0 men under buffer. Ingen ansettelse før utbytte er formelt utsatt og bankdatoer avstemt.</p></div>
+          <div class="rule r ${lamp === 'r' ? 'active' : ''}"><div class="h">Rødt</div><p>laveste plan-saldo &lt; 0. Frys. Kassekreditt ${nok(L.kassekreditt)} er sikkerhetsnett, ikke plan.</p></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Tre scenarioer · laveste saldo</h2>
+        <div class="sub">samme modell, ulik innbetalingsprofil</div>
+        <table style="margin-top:10px"><thead><tr><th>Scenario</th><th class="num">Laveste</th><th>Når</th><th class="num">Mot buffer</th><th class="num">UB 24 mnd</th></tr></thead><tbody>
+          ${['base', 'plan', 'stress'].map(k => { const s = sc[k]; if (!s) return `<tr><td>${k}</td><td colspan="4" class="muted">—</td></tr>`; return `<tr ${k === 'plan' ? 'style="font-weight:600"' : ''}><td>${k === 'plan' ? 'Plan (P75)' : k[0].toUpperCase() + k.slice(1)}</td><td class="num" style="${s.laveste < 0 ? 'color:var(--red)' : ''}">${nok(s.laveste)}</td><td class="muted">${esc(s.label || '')}</td><td class="num" style="${s.laveste - G.buffer < 0 ? 'color:var(--red)' : 'color:var(--green)'}">${nok(s.laveste - G.buffer, {sign: true})}</td><td class="num">${nok(s.slutt)}</td></tr>`; }).join('')}
+        </tbody></table>
+        <div class="foot-note">Full gate med sjekkliste og sensitivitet ligger i Ansettelsesgate-artifacten; dette er monitor-visningen av de samme tallene.</div>
+      </div>
+    </div>` : srcMissing('Ansettelsesgate', 'likviditet');
+}
+
+init();
+</script>
+</body>
+</html>

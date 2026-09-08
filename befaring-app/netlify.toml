@@ -56,6 +56,11 @@
   status = 301
 
 [[redirects]]
+  from = "/cockpit"
+  to = "/cockpit/"
+  status = 301
+
+[[redirects]]
   from = "/admin"
   to = "/admin/"
   status = 301
