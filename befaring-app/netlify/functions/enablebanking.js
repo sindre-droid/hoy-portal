@@ -7,12 +7,13 @@
 //   2) callback   → POST /sessions {code} → session_id + account_uid (lagres)
 //   3) refreshBalance → GET /accounts/{uid}/balances → CLBD (bokført) lagres nattlig
 //
-// Samtykke (PSD2) varer ~90 dager; da må BankID-steget gjentas. Faller pent
-// tilbake til hovedbok 1920 + avstemmingsdiff hvis sesjon mangler/utløpt.
+// Privatnøkkelen ligger i Supabase (app_secrets), ikke som miljøvariabel — for å
+// holde Netlify-env under AWS Lambda sin 4 KB-grense. Faller pent tilbake til
+// hovedbok 1920 + avstemmingsdiff hvis sesjon mangler/utløpt.
 //
 // Actions (admin):  POST ?action=auth_start · GET ?action=status · POST ?action=refresh
-// Env: ENABLE_BANKING_APP_ID, ENABLE_BANKING_PRIVATE_KEY, ENABLE_BANKING_REDIRECT_URL,
-//      ENABLE_BANKING_ACCOUNT (BBAN å matche, default driftskonto), ENABLE_BANKING_PSU_TYPE
+// Env: ENABLE_BANKING_APP_ID, ENABLE_BANKING_REDIRECT_URL, ENABLE_BANKING_ACCOUNT,
+//      ENABLE_BANKING_PSU_TYPE   (privatnøkkel: app_secrets.enablebanking_private_key)
 // ─────────────────────────────────────────────────────────────────────────────
 const crypto = require('crypto');
 const core = require('./poweroffice-sync.js');
@@ -20,7 +21,6 @@ const { supabase } = core;
 
 const BASE = 'https://api.enablebanking.com';
 const APP_ID = process.env.ENABLE_BANKING_APP_ID || '';
-const KEY = (process.env.ENABLE_BANKING_PRIVATE_KEY || '').replace(/\\n/g, '\n');
 const REDIRECT = process.env.ENABLE_BANKING_REDIRECT_URL
   || 'https://silver-puffpuff-8a67de.netlify.app/.netlify/functions/enablebanking-callback';
 const ASPSP = { name: process.env.ENABLE_BANKING_ASPSP || 'DNB', country: process.env.ENABLE_BANKING_COUNTRY || 'NO' };
@@ -34,19 +34,30 @@ const JSON_H = { 'Content-Type':'application/json' };
 function parseJwt(t){try{const b=t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');return JSON.parse(Buffer.from(b,'base64').toString('utf8'));}catch{return null;}}
 function verifyAdmin(e){const a=(e.headers.authorization||'').replace(/^Bearer\s+/i,'');if(!a)return{ok:false,status:401,error:'Ikke autentisert'};const j=parseJwt(a);if(!j)return{ok:false,status:401,error:'Ugyldig token'};if(!((j.app_metadata?.roles)||[]).includes('admin'))return{ok:false,status:403,error:'Kun admin'};return{ok:true,email:j.email};}
 
-// ── JWT (app-token) ──────────────────────────────────────────────────────────
+// ── Privatnøkkel + JWT (app-token) ───────────────────────────────────────────
 const b64url = (b) => Buffer.from(b).toString('base64').replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
-function appJwt(){
-  if(!APP_ID||!KEY) throw new Error('ENABLE_BANKING_APP_ID / PRIVATE_KEY mangler');
+let _KEY = null;
+async function loadKey(sb){
+  if(_KEY) return _KEY;
+  const envk = process.env.ENABLE_BANKING_PRIVATE_KEY;      // fallback hvis noen setter den i env
+  if(envk){ _KEY = envk.replace(/\\n/g,'\n'); return _KEY; }
+  const { data } = await sb.from('app_secrets').select('value').eq('key','enablebanking_private_key').limit(1);
+  if(!data || !data[0] || !data[0].value) throw new Error('Privatnøkkel mangler (app_secrets.enablebanking_private_key)');
+  _KEY = String(data[0].value).replace(/\\n/g,'\n');
+  return _KEY;
+}
+function appJwt(key){
+  if(!APP_ID || !key) throw new Error('ENABLE_BANKING_APP_ID / privatnøkkel mangler');
   const now = Math.floor(Date.now()/1000);
   const header = { typ:'JWT', alg:'RS256', kid:APP_ID };
   const payload = { iss:'enablebanking.com', aud:'api.enablebanking.com', iat:now, exp:now+3600 };
   const input = b64url(JSON.stringify(header))+'.'+b64url(JSON.stringify(payload));
-  const sig = crypto.createSign('RSA-SHA256').update(input).sign(KEY);
+  const sig = crypto.createSign('RSA-SHA256').update(input).sign(key);
   return input+'.'+b64url(sig);
 }
-async function api(path, method='GET', body=null){
-  const res = await fetch(BASE+path, { method, headers:{ Authorization:`Bearer ${appJwt()}`, 'Content-Type':'application/json' }, ...(body?{body:JSON.stringify(body)}:{}) });
+async function api(sb, path, method='GET', body=null){
+  const key = await loadKey(sb);
+  const res = await fetch(BASE+path, { method, headers:{ Authorization:`Bearer ${appJwt(key)}`, 'Content-Type':'application/json' }, ...(body?{body:JSON.stringify(body)}:{}) });
   const txt = await res.text(); let json; try{json=JSON.parse(txt);}catch{json={raw:txt};}
   if(!res.ok) throw new Error(`EB ${method} ${path} ${res.status}: ${txt.slice(0,300)}`);
   return json;
@@ -56,7 +67,7 @@ async function api(path, method='GET', body=null){
 async function startAuth(sb){
   const state = crypto.randomUUID();
   const validUntil = new Date(Date.now() + CONSENT_DAYS*86400000).toISOString();
-  const r = await api('/auth','POST',{ access:{ valid_until:validUntil }, aspsp:ASPSP, redirect_url:REDIRECT, state, psu_type:PSU_TYPE });
+  const r = await api(sb,'/auth','POST',{ access:{ valid_until:validUntil }, aspsp:ASPSP, redirect_url:REDIRECT, state, psu_type:PSU_TYPE });
   await sb.from('enablebanking_session').upsert({ id:1, state, valid_until:validUntil, updated_at:new Date().toISOString() });
   return { url:r.url, authorization_id:r.authorization_id };
 }
@@ -68,7 +79,7 @@ async function completeSession(sb, code, state){
   const { data:rows } = await sb.from('enablebanking_session').select('*').eq('id',1).limit(1);
   const row = rows&&rows[0]?rows[0]:null;
   if(!row || !row.state || row.state!==state) throw new Error('Ugyldig eller utløpt state — start koblingen på nytt');
-  const r = await api('/sessions','POST',{ code });
+  const r = await api(sb,'/sessions','POST',{ code });
   const accounts = r.accounts || [];
   if(!accounts.length) throw new Error('Ingen kontoer returnert fra banken');
   const acc = pickAccount(accounts);
@@ -89,10 +100,10 @@ async function refreshBalance(sb){
     return { ok:false, error:'consent_expired', valid_until:row.valid_until };
   }
   try{
-    const r = await api(`/accounts/${row.account_uid}/balances`);
+    const r = await api(sb, `/accounts/${row.account_uid}/balances`);
     const bals = r.balances || [];
     const pick = (...types)=>{ for(const t of types){ const b=bals.find(x=>x.balance_type===t); if(b) return Number(b.balance_amount?.amount ?? b.balance_amount); } return null; };
-    const booked = pick('CLBD','PRCD','OPBD');      // bokført (closingBooked)
+    const booked = pick('CLBD','PRCD','OPBD');       // bokført (closingBooked)
     const avail  = pick('CLAV','ITAV','XPCD','FWAV'); // tilgjengelig
     await sb.from('enablebanking_session').update({
       balance_booked:booked, balance_available:avail, balances_json:bals,
