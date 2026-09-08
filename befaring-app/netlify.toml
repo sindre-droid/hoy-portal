@@ -131,5 +131,10 @@
   schedule = "50 * * * *"
   timeout = 26
 
+# Weekly Scorecard: bygges 04:00 (etter dashboard-state 03:30); ark+HubSpot+Oneflow+FINN tar ~20 s
+[functions."scorecard-state"]
+  schedule = "0 4 * * *"
+  timeout = 26
+
 [functions."poweroffice-nightly"]
   schedule = "30 3 * * *"
