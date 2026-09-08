@@ -114,12 +114,25 @@ async function buildDashboardState(sb){
     const {data:sn}=await sb.from('po_liquidity_snapshot').select('*').order('snapshot_date',{ascending:false}).limit(1);
     const s=sn&&sn[0]?sn[0]:null;
     const bank1920=s?(s.bank_drift||0):-290763;
-    const opening=Math.round(bank1920+LM.AVSTEM);
+    const fallbackOpening=Math.round(bank1920+LM.AVSTEM);
+    // Live banksaldo (Enable Banking, DNB) hvis fersk (<4 dg) og samtykke gyldig; ellers fallback 1920+diff
+    let opening=fallbackOpening,bankKilde='fallback',bankConsentUtlop=null,bankSaldoDato=null,bankTilgjengelig=null;
+    try{
+      const {data:ebr}=await sb.from('enablebanking_session').select('balance_booked,balance_available,balance_at,valid_until').eq('id',1).limit(1);
+      const ebz=ebr&&ebr[0]?ebr[0]:null;
+      if(ebz){bankConsentUtlop=ebz.valid_until||null;
+        const fresh=ebz.balance_at&&(Date.now()-new Date(ebz.balance_at).getTime())<4*864e5;
+        const consentOk=!ebz.valid_until||new Date(ebz.valid_until).getTime()>Date.now();
+        if(ebz.balance_booked!=null&&fresh&&consentOk){
+          opening=Math.round(Number(ebz.balance_booked));bankKilde='live';bankSaldoDato=ebz.balance_at;
+          bankTilgjengelig=ebz.balance_available!=null?Math.round(Number(ebz.balance_available)):null;}}
+    }catch(e){/* behold fallback */}
     // beslutte-scenario: 0 nye ansettelser, utbytte utsatt (dagens beslutning)
     const hires=[-6,-6],eng=[{belop:0,maaned:9},{belop:125000,maaned:11},{belop:50000,maaned:10}];
     const scen={};for(const k of [1,2,3]){const r=liq({scen:k,hires,engangs:eng,opening});scen[['','base','plan','stress'][k]]={laveste:r.laveste,label:r.lavesteLabel,slutt:r.slutt};}
     state.likviditet={snapshot_date:s?s.snapshot_date:null,
-      reell_bank:opening,hovedbok_1920:Math.round(bank1920),avstemmingsdiff:LM.AVSTEM,
+      reell_bank:opening,bank_kilde:bankKilde,bank_saldo_dato:bankSaldoDato,bank_tilgjengelig:bankTilgjengelig,bank_consent_utlop:bankConsentUtlop,
+      hovedbok_1920:Math.round(bank1920),avstemmingsdiff:LM.AVSTEM,fallback_opening:fallbackOpening,
       kundefordringer:s?Math.round(s.kundefordringer_openitems||s.kundefordringer||0):null,
       leverandorgjeld:s?Math.round(s.leverandorgjeld||0):null,mva_posisjon:s?Math.round(s.mva_posisjon||0):null,
       kassekreditt:LM.KASSE,buffer:LM.BUFFER,
@@ -129,6 +142,7 @@ async function buildDashboardState(sb){
         mangler:Math.max(0,LM.BUFFER-scen.plan.laveste)}};
     state.spaker.cash_lag={median_d:14,p75_d:32,p90_d:61,kilde:'deal-for-deal n=92'};
     state.meta.sources.likviditet={ok:true,snapshot:s?s.snapshot_date:'ingen'};
+    state.meta.sources.bank={ok:bankKilde==='live',kilde:bankKilde,consent_utlop:bankConsentUtlop,note:bankKilde==='live'?'live DNB-saldo (Enable Banking)':'fallback: hovedbok 1920 + frossen avstemmingsdiff'};
   }catch(e){state.meta.sources.likviditet={ok:false,error:e.message};}
 
   // ---- KPI-scorecard: solgt fra settlements + HubSpot-funnel ----
