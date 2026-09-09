@@ -5,259 +5,331 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Scorecard — House of Yachts</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
 <style>
 :root{
-  --bg:#eef1ee; --surface:#ffffff; --surface2:#f6f8f6; --border:#dbe1dc; --border2:#c8d1ca;
-  --text:#171d19; --muted:#5d6a63; --faint:#8a958e;
-  --brand:#1F3D2E; --brand2:#2f5d47; --brand-ink:#eaf1ec; --brand-soft:#e4ede7;
-  --red:#c0392b; --red-bg:#fbecea; --amber:#b9820c; --amber-bg:#fbf3e0; --green:#2f8f4e; --green-bg:#e7f4ec;
-  --blue:#2c5f8a; --blue-bg:#e6eef5;
-  --shadow:0 1px 2px rgba(20,40,30,.06),0 8px 24px rgba(20,40,30,.06);
-  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace; --sans:"IBM Plex Sans",-apple-system,Segoe UI,Roboto,sans-serif;
+  --bg:#f3f4f2; --panel:#ffffff; --panel2:#f7f8f6; --line:#e3e6e1; --line2:#cfd4cc;
+  --ink:#141a16; --ink2:#4b554f; --ink3:#7d867f;
+  --brand:#1F3D2E; --brand2:#2f5d47; --brand-ink:#ffffff; --brand-soft:#e3ece6;
+  --red:#b93a2b; --red-bg:#fbeae7; --amber:#a8730a; --amber-bg:#fbf1dc; --green:#2b8a4b; --green-bg:#e3f3e8; --blue:#2b5b86; --blue-bg:#e5edf5;
+  --shadow:0 1px 2px rgba(15,25,18,.05),0 6px 20px rgba(15,25,18,.05);
+  --font:"Inter",-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   color-scheme:light;
 }
-:root[data-theme="dark"]{--bg:#0e120f;--surface:#161b17;--surface2:#1b211c;--border:#2a322c;--border2:#3a443c;--text:#e7ede9;--muted:#97a49c;--faint:#6f7c74;--brand:#7fb79a;--brand2:#a9d4bf;--brand-ink:#0e120f;--brand-soft:#1c2a21;--red:#e0685c;--red-bg:#2a1a18;--amber:#e0a83a;--amber-bg:#2a2214;--green:#5fbf7e;--green-bg:#16271b;--blue:#7fb0d8;--blue-bg:#16212b;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);color-scheme:dark}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e120f;--surface:#161b17;--surface2:#1b211c;--border:#2a322c;--border2:#3a443c;--text:#e7ede9;--muted:#97a49c;--faint:#6f7c74;--brand:#7fb79a;--brand2:#a9d4bf;--brand-ink:#0e120f;--brand-soft:#1c2a21;--red:#e0685c;--red-bg:#2a1a18;--amber:#e0a83a;--amber-bg:#2a2214;--green:#5fbf7e;--green-bg:#16271b;--blue:#7fb0d8;--blue-bg:#16212b;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1311;--panel:#171c19;--panel2:#1c221e;--line:#2a322d;--line2:#3b453f;--ink:#eaeeeb;--ink2:#aab3ad;--ink3:#767f79;--brand:#7fb79a;--brand2:#a9d4bf;--brand-ink:#0f1311;--brand-soft:#1d2a22;--red:#e46b5d;--red-bg:#2c1b18;--amber:#e0a83a;--amber-bg:#2b2314;--green:#5fbf7e;--green-bg:#17281c;--blue:#7fb0d8;--blue-bg:#17222c;--shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);color-scheme:dark}
 *{box-sizing:border-box}html,body{margin:0}
-body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.5;font-size:14.5px;-webkit-font-smoothing:antialiased;min-height:100vh}
-.num,.v,td.num,.chip,.mono,.k{font-variant-numeric:tabular-nums}
-h1,h2,h3{margin:0;text-wrap:balance}a{color:var(--brand2)}button{font-family:inherit}
-.screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg)}
-.screen .box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:32px 36px;text-align:center;max-width:420px;box-shadow:var(--shadow)}
-.screen .mono{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.wrap{max-width:1180px;margin:0 auto;padding:22px 20px 70px}
-.mast{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:14px}
-.brand-tag{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--brand2);font-weight:600}
-.mast h1{font-size:26px;font-weight:600;letter-spacing:-.01em;margin-top:4px}
-.mast .sub{margin:2px 0 0;color:var(--muted);font-size:12.5px;font-family:var(--mono)}
-.mast-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.btn{font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:7px 12px;border-radius:8px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:.15s}
-.btn:hover{border-color:var(--border2);color:var(--text)}.btn.warn{background:var(--amber-bg);border-color:transparent;color:var(--amber);font-weight:600}.btn[disabled]{opacity:.5;cursor:default}
-.statusbar{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px}
-.sources{display:flex;gap:6px;flex-wrap:wrap}
-.src{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;padding:4px 9px;border-radius:999px;background:var(--surface);border:1px solid var(--border);color:var(--muted)}
-.src .dot{width:7px;height:7px;border-radius:50%;background:var(--green)}.src.bad{background:var(--red-bg);border-color:transparent;color:var(--red)}.src.bad .dot{background:var(--red)}
-.seg{display:inline-flex;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:3px;gap:2px}
-.seg button{border:0;background:transparent;color:var(--muted);font-size:13px;font-weight:500;padding:6px 12px;border-radius:6px;cursor:pointer}
-.seg button[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink);font-weight:600}
-.degrade{background:var(--amber-bg);border-left:3px solid var(--amber);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:13px}
-.degrade b{color:var(--amber);font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase}.degrade ul{margin:4px 0 0;padding-left:18px;color:var(--muted)}
-.grid{display:grid;gap:14px}.g3{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:1fr 1fr}.g21{grid-template-columns:2fr 1fr}.g4{grid-template-columns:repeat(4,1fr)}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);min-width:0}
-.card h2{font-size:14.5px;font-weight:600;display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
-.card .sub{color:var(--muted);font-size:12.5px;margin-top:3px}
-.card.brand{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
-.card.brand .k,.card.brand .sub,.card.brand .foot-note{color:var(--brand-ink);opacity:.75}.card.brand .unit{color:var(--brand-ink);opacity:.7}
-.k{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
-.v{font-size:26px;font-weight:600;margin-top:4px;line-height:1.1;letter-spacing:-.01em}.v.xl{font-size:38px}.v.sm{font-size:19px}
-.v.neg{color:var(--red)}.v.pos{color:var(--green)}.unit{font-size:12.5px;color:var(--muted);font-weight:500;margin-left:5px;font-family:var(--mono)}
-.foot-note{font-size:12px;color:var(--muted);margin-top:8px;font-family:var(--mono)}
-.bar{height:7px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-top:10px;display:flex}
-.bar i{display:block;height:100%;background:var(--brand2)}.bar i.exp{background:var(--brand2);opacity:.4}.bar i.a{background:var(--amber)}.bar i.r{background:var(--red)}.bar i.g{background:var(--green)}
-.card.brand .bar{background:rgba(255,255,255,.14);border-color:transparent}.card.brand .bar i{background:var(--brand-ink)}
-.chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11.5px;padding:3px 9px;border-radius:999px;font-weight:500;background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;min-height:100vh;font-feature-settings:"tnum" 1,"cv11" 1}
+h1,h2,h3{margin:0}a{color:var(--brand2)}button{font-family:inherit}
+.screen{min-height:100vh;display:flex;align-items:center;justify-content:center}
+.screen .box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:32px 36px;text-align:center;max-width:420px;box-shadow:var(--shadow)}
+
+/* layout */
+.shell{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.side{background:var(--panel);border-right:1px solid var(--line);padding:22px 18px;position:sticky;top:0;height:100vh;overflow:auto;display:flex;flex-direction:column;gap:18px}
+.main{padding:22px 26px 70px;min-width:0}
+.logo{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--brand2)}
+.logo b{display:block;font-size:17px;font-weight:800;letter-spacing:-.01em;color:var(--ink);text-transform:none;margin-top:2px}
+.nav{display:flex;flex-direction:column;gap:4px}
+.nav button{text-align:left;border:0;background:transparent;color:var(--ink2);font-size:14px;font-weight:600;padding:9px 12px;border-radius:9px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.nav button:hover{background:var(--panel2);color:var(--ink)}
+.nav button[aria-selected="true"]{background:var(--brand);color:var(--brand-ink)}
+.nav button small{font-weight:500;font-size:11px;opacity:.7}
+.goal{background:var(--brand-soft);border-radius:12px;padding:14px}
+.goal .k{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--brand2)}
+.goal .g{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:8px;font-size:13px;color:var(--ink2)}
+.goal .g b{font-size:15px;font-weight:800;color:var(--ink)}
+.goal .g.sub{margin-top:4px;font-size:12px}
+.seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+.seg button{flex:1;border:0;background:transparent;color:var(--ink2);font-size:12.5px;font-weight:600;padding:7px 6px;border-radius:7px;cursor:pointer;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink)}
+.sidefoot{margin-top:auto;font-size:11.5px;color:var(--ink3);display:flex;flex-direction:column;gap:8px}
+.src{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:2px 7px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);color:var(--ink2);margin:2px 2px 0 0}
+.src .dot{width:6px;height:6px;border-radius:50%;background:var(--green)}.src.bad{background:var(--red-bg);color:var(--red);border-color:transparent}.src.bad .dot{background:var(--red)}
+.btn{font-size:12.5px;font-weight:600;background:var(--panel);border:1px solid var(--line);color:var(--ink2);padding:7px 11px;border-radius:9px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--line2);color:var(--ink)}.btn.warn{background:var(--amber-bg);border-color:transparent;color:var(--amber)}.btn[disabled]{opacity:.5;cursor:default}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.topbar h1{font-size:22px;font-weight:800;letter-spacing:-.02em}
+.topbar .meta{font-size:12.5px;color:var(--ink3);margin-top:2px}
+.pane{display:none}.pane.on{display:block}
+
+/* cards */
+.grid{display:grid;gap:14px}.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}.g21{grid-template-columns:2fr 1fr}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);min-width:0}
+.card h2{font-size:15px;font-weight:700;letter-spacing:-.01em;display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.card .sub{color:var(--ink2);font-size:12.5px;margin-top:3px}
+.k{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3)}
+.v{font-size:28px;font-weight:800;letter-spacing:-.02em;margin-top:3px;line-height:1.1}.v.xl{font-size:40px}.v.md{font-size:22px}.v.sm{font-size:17px}
+.v.neg{color:var(--red)}.v.pos{color:var(--green)}.unit{font-size:13px;color:var(--ink2);font-weight:500;margin-left:6px}
+.note{font-size:12px;color:var(--ink3);margin-top:8px}
+.bar{height:8px;background:var(--panel2);border:1px solid var(--line);border-radius:5px;overflow:hidden;margin-top:10px;display:flex}
+.bar i{display:block;height:100%;background:var(--brand2)}.bar i.exp{opacity:.35}.bar i.g{background:var(--green)}.bar i.r{background:var(--red)}.bar i.a{background:var(--amber)}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--panel2);color:var(--ink2);border:1px solid var(--line)}
 .chip.red{background:var(--red-bg);color:var(--red);border-color:transparent}.chip.amber{background:var(--amber-bg);color:var(--amber);border-color:transparent}.chip.green{background:var(--green-bg);color:var(--green);border-color:transparent}.chip.blue{background:var(--blue-bg);color:var(--blue);border-color:transparent}
-table{width:100%;border-collapse:collapse;font-size:13.5px}
-th{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);text-align:left;padding:8px 8px;border-bottom:1px solid var(--border);font-weight:500}
-td{padding:8px 8px;border-bottom:1px solid var(--border);vertical-align:middle}tr:last-child td{border-bottom:0}
-th.num,td.num{text-align:right;white-space:nowrap}td.muted{color:var(--muted)}tr.total td{border-top:1px solid var(--border2);font-weight:600;background:var(--surface2)}
-tr.now td{background:var(--brand-soft)}
-.cell{display:inline-flex;flex-direction:column;align-items:flex-end;line-height:1.15}.cell .f{font-weight:600}.cell .p{font-family:var(--mono);font-size:10.5px;color:var(--faint)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3);text-align:left;padding:8px 8px;border-bottom:1px solid var(--line)}
+td{padding:8px 8px;border-bottom:1px solid var(--line);vertical-align:middle}tr:last-child td{border-bottom:0}
+th.num,td.num{text-align:right;white-space:nowrap}td.muted{color:var(--ink2)}tr.total td{border-top:2px solid var(--line2);font-weight:700;background:var(--panel2)}tr.now td{background:var(--brand-soft)}
+.cell{display:inline-flex;flex-direction:column;align-items:flex-end;line-height:1.15}.cell .f{font-weight:700}.cell .p{font-size:10.5px;color:var(--ink3)}
 .cell.r .f{color:var(--red)}.cell.a .f{color:var(--amber)}.cell.g .f{color:var(--green)}
-.kv{display:grid;grid-template-columns:1fr auto;gap:5px 14px;font-size:13.5px;margin-top:10px}.kv .l{color:var(--muted)}.kv .r{text-align:right;font-weight:500;white-space:nowrap}.kv .r.neg{color:var(--red)}.kv .r.pos{color:var(--green)}
-/* trakt */
+.kv{display:grid;grid-template-columns:1fr auto;gap:5px 14px;font-size:13px;margin-top:10px}.kv .l{color:var(--ink2)}.kv .r{text-align:right;font-weight:600;white-space:nowrap}.kv .r.neg{color:var(--red)}.kv .r.pos{color:var(--green)}
+
+/* "her er vi" */
+.statement{display:grid;grid-template-columns:repeat(3,1fr);gap:0;background:var(--brand);color:var(--brand-ink);border-radius:16px;overflow:hidden}
+.statement > div{padding:20px 22px;border-right:1px solid rgba(255,255,255,.14)}.statement > div:last-child{border-right:0}
+.statement .k{color:var(--brand-ink);opacity:.7}.statement .v{color:var(--brand-ink)}.statement .t{font-size:13px;opacity:.85;margin-top:6px;line-height:1.4}
+.statement .bar{background:rgba(255,255,255,.16);border-color:transparent}.statement .bar i{background:var(--brand-ink)}
+.statement .must{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}.statement .must span{background:rgba(255,255,255,.14);border-radius:999px;padding:2px 8px;font-size:11.5px;font-weight:600}
+:root[data-theme="dark"] .statement{color:var(--brand-ink)}
+
+/* funnel */
 .chain{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:12px}
-.step{background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:11px 12px;position:relative;min-width:0}
-.step.push{border-color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
-.step.push::before{content:"PUSH HER";position:absolute;top:-9px;left:10px;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;background:var(--red);color:#fff;padding:1px 7px;border-radius:999px;font-weight:600}
-.step .k{display:block}.step .v{font-size:22px}.step .m{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:2px}
-.step .d{font-family:var(--mono);font-size:11.5px;font-weight:600;margin-top:4px}.step .d.r{color:var(--red)}.step .d.a{color:var(--amber)}.step .d.g{color:var(--green)}.step .d.n{color:var(--faint);font-weight:400}
+.step{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 13px;position:relative;min-width:0}
+.step.push{border-color:var(--red);box-shadow:inset 0 0 0 1.5px var(--red)}
+.step.push::before{content:"PUSH HER";position:absolute;top:-9px;left:10px;font-size:9.5px;font-weight:800;letter-spacing:.1em;background:var(--red);color:#fff;padding:1px 7px;border-radius:999px}
+.step .k{display:block}.step .v{font-size:24px}.step .m{font-size:11.5px;color:var(--ink2);margin-top:3px}
+.step .d{font-size:12px;font-weight:700;margin-top:5px}.step .d.r{color:var(--red)}.step .d.a{color:var(--amber)}.step .d.g{color:var(--green)}.step .d.n{color:var(--ink3);font-weight:500}
 .list{list-style:none;padding:0;margin:10px 0 0;display:flex;flex-direction:column;gap:6px}
-.list li{display:flex;justify-content:space-between;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:8px 11px;font-size:13px}
-.list li .n{font-family:var(--mono);font-size:11.5px;color:var(--muted);white-space:nowrap}.list li .n b{color:var(--red)}
-.empty{font-family:var(--mono);font-size:12px;color:var(--faint);padding:10px 0}
-.line{display:flex;gap:18px;flex-wrap:wrap;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-top:14px;font-size:13.5px}
-.line .k{display:block}.line .v{font-size:17px;margin-top:1px}.line .st{font-family:var(--mono);font-weight:600;font-size:13px}.line .st.r{color:var(--red)}.line .st.g{color:var(--green)}
-details summary{font-family:var(--mono);font-size:11.5px;color:var(--muted);cursor:pointer;margin-top:10px}
-.foot{margin-top:26px;padding-top:14px;border-top:1px solid var(--border);color:var(--faint);font-size:12px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;font-family:var(--mono)}.foot b{color:var(--muted)}
-@media (max-width:980px){.g3,.g4{grid-template-columns:1fr 1fr}.g21{grid-template-columns:1fr}.chain{grid-template-columns:repeat(3,1fr)}}
-@media (max-width:600px){.g3,.g4,.g2{grid-template-columns:1fr}.chain{grid-template-columns:1fr 1fr}.v.xl{font-size:30px}}
+.list li{display:flex;justify-content:space-between;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:8px 11px;font-size:13px}
+.list li .n{font-size:12px;color:var(--ink2);white-space:nowrap}.list li .n b{color:var(--red)}
+.empty{font-size:12.5px;color:var(--ink3);padding:10px 0}
+.line{display:flex;gap:22px;flex-wrap:wrap;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 18px;margin-top:14px}
+.line .k{display:block}.line .v{font-size:18px}.line .st{font-weight:800;font-size:14px}.line .st.r{color:var(--red)}.line .st.g{color:var(--green)}
+details summary{font-size:12.5px;font-weight:600;color:var(--ink2);cursor:pointer;margin-top:10px}
+.tabs2{display:inline-flex;gap:2px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:3px}
+.tabs2 button{border:0;background:transparent;color:var(--ink2);font-size:12px;font-weight:600;padding:5px 10px;border-radius:6px;cursor:pointer}.tabs2 button[aria-pressed="true"]{background:var(--panel);color:var(--ink);box-shadow:var(--shadow)}
+/* chart */
+.chartwrap{position:relative;margin-top:10px}.chartwrap svg{width:100%;height:auto;display:block}
+svg .grid{stroke:var(--line);stroke-width:1}svg .axis{fill:var(--ink3);font-size:10.5px;font-family:var(--font)}
+svg .b-act{fill:var(--brand2)}svg .b-ly{fill:var(--ink3);opacity:.35}svg .plan{fill:none;stroke:var(--amber);stroke-width:2}svg .plan-dot{fill:var(--amber)}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:11.5px;padding:6px 9px;border-radius:7px;white-space:nowrap;opacity:0;transform:translate(-50%,-115%);transition:opacity .1s}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--ink2)}.legend span{display:inline-flex;align-items:center;gap:6px}.sw{width:12px;height:12px;border-radius:3px;display:inline-block}
+.scen{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--panel2)}
+.scen.hl{border-color:var(--brand2);box-shadow:inset 0 0 0 1px var(--brand2)}
+.scen h3{font-size:14px;font-weight:700}.scen .res{display:flex;gap:18px;margin-top:8px}.scen .res .v{font-size:22px}
+@media (max-width:1100px){.chain{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr}}
+@media (max-width:860px){.shell{grid-template-columns:1fr}.side{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}.statement{grid-template-columns:1fr}.g2,.g3,.g4,.g21{grid-template-columns:1fr}.chain{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
-<div id="loading" class="screen"><div class="box"><div class="mono">Scorecard</div><p style="margin-top:10px">Laster…</p></div></div>
+<div id="loading" class="screen"><div class="box"><div class="k">Scorecard</div><p style="margin-top:10px">Laster…</p></div></div>
 <div id="authError" class="screen" style="display:none"><div class="box"><h2>Ingen tilgang</h2><p>Scorecard krever administratortilgang.</p><a class="btn" href="/">Tilbake til portalen</a></div></div>
 
-<div id="app" class="wrap" style="display:none">
-  <div class="mast">
+<div id="app" class="shell" style="display:none">
+  <aside class="side">
+    <div class="logo">House of Yachts<b>Scorecard</b></div>
+    <div class="goal" id="goal"></div>
+    <div class="nav" id="nav">
+      <button data-tab="na" aria-selected="true">Nå <small>uke for uke</small></button>
+      <button data-tab="aar">Året <small>måned · fjorår · lønnsomhet</small></button>
+      <button data-tab="plan">Planen <small>2027 · 1-3-5 · gate</small></button>
+    </div>
     <div>
-      <div class="brand-tag">House of Yachts · Weekly Scorecard</div>
-      <h1 id="title">H2 2026</h1>
-      <p class="sub" id="builtAt">—</p>
+      <div class="k" style="margin-bottom:6px">Vis for</div>
+      <div class="seg" id="unitSeg"><button data-u="Selskap" aria-pressed="true">Selskap</button><button data-u="Sindre">Sindre</button><button data-u="Henrik">Henrik+Marte</button></div>
     </div>
-    <div class="mast-actions">
-      <div class="seg" id="unitSeg"><button data-u="Selskap" aria-pressed="true">Selskap</button><button data-u="Sindre">Sindre</button><button data-u="Henrik">Henrik + Marte</button></div>
-      <button class="btn" id="themeBtn" type="button">☾ Mørk</button>
-      <button class="btn" id="rebuildBtn" type="button">↻ Bygg på nytt</button>
-      <a class="btn" href="/">Portal</a>
+    <div class="sidefoot">
+      <div id="sources"></div>
+      <div id="bank"></div>
+      <div id="builtAt"></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn" id="rebuildBtn" type="button">↻ Bygg på nytt</button><button class="btn" id="themeBtn" type="button">☾</button><a class="btn" href="/">Portal</a></div>
     </div>
-  </div>
-  <div class="statusbar"><div class="sources" id="sources"></div><div id="bank"></div></div>
-  <div id="degrade" class="degrade" style="display:none"></div>
-
-  <section id="hero"></section>
-  <section id="chain" class="card" style="margin-top:14px"></section>
-  <section id="table" class="card" style="margin-top:14px"></section>
-  <section class="grid g2" style="margin-top:14px"><div class="card" id="apne"></div><div class="card" id="ikkepub"></div></section>
-  <section id="portefolje" class="card" style="margin-top:14px"></section>
-  <section id="spaker" class="grid g4" style="margin-top:14px"></section>
-  <section id="likv" class="line"></section>
-
-  <div class="foot"><span>Kilder: <b>oppgjørsark (Dropbox)</b> · Oneflow · HubSpot · FINN · oppdrag_livslop · dashboard-state. Definisjoner låst 08.09.2026. Ingen beregning i klienten utover summer/snitt.</span><span id="footMeta"></span></div>
+  </aside>
+  <main class="main">
+    <div class="topbar"><div><h1 id="title">Nå</h1><div class="meta" id="subtitle"></div></div><div id="topright"></div></div>
+    <div id="degrade" class="card" style="display:none;border-left:4px solid var(--amber);margin-bottom:14px"></div>
+    <section class="pane on" id="pane-na"></section>
+    <section class="pane" id="pane-aar"></section>
+    <section class="pane" id="pane-plan"></section>
+  </main>
 </div>
 
 <script>
 'use strict';
 const ORIGIN=window.location.origin, API=`${ORIGIN}/.netlify/functions/scorecard-state`, EB_API=`${ORIGIN}/.netlify/functions/enablebanking`, IDENTITY=`${ORIGIN}/.netlify/identity`;
-let token=null, S=null, builtAt=null, UNIT='Selskap';
+let token=null,S=null,builtAt=null,UNIT='Selskap',TAB='na',LON='per_prisklasse';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const isNum=n=>typeof n==='number'&&Number.isFinite(n);
 const nok=(n,o={})=>{if(!isNum(n))return '—';const r=Math.round(n);return (r<0?'−':(o.sign&&r>0?'+':''))+Math.abs(r).toLocaleString('nb-NO');};
+const mnok=n=>isNum(n)?(n<0?'−':'')+(Math.abs(n)/1e6).toLocaleString('nb-NO',{minimumFractionDigits:1,maximumFractionDigits:1})+' M':'—';
 const n1=n=>isNum(n)?n.toLocaleString('nb-NO',{maximumFractionDigits:1}):'—';
 const pct=n=>isNum(n)?`${Math.round(n)} %`:'—';
 const dato=(iso,t)=>{if(!iso)return '—';const d=new Date(iso);if(isNaN(d))return '—';const s=d.toLocaleDateString('nb-NO',{day:'2-digit',month:'short'});return t?s+' '+d.toLocaleTimeString('nb-NO',{hour:'2-digit',minute:'2-digit'}):s;};
 const daysUntil=iso=>{if(!iso)return null;const d=new Date(iso);return isNaN(d)?null:Math.ceil((d-Date.now())/864e5);};
 const parseJwt=t=>{try{return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));}catch{return null;}};
 const cls=(f,m)=>{if(!isNum(m)||m<=0)return 'n';const r=f/m;return r>=1?'g':(r>=0.7?'a':'r');};
+const UNAME={Selskap:'Selskap',Sindre:'Sindre',Henrik:'Henrik + Marte',Daniel:'Daniel'};
+const MN=['jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov','des'];
 
-function applyTheme(t){if(t)document.documentElement.setAttribute('data-theme',t);else document.documentElement.removeAttribute('data-theme');const dark=t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches;$('themeBtn').textContent=dark?'☀ Lys':'☾ Mørk';}
-$('themeBtn').onclick=()=>{const cur=document.documentElement.getAttribute('data-theme');const dark=cur?cur==='dark':matchMedia('(prefers-color-scheme: dark)').matches;const next=dark?'light':'dark';try{localStorage.setItem('hoy_cockpit_theme',next);}catch{}applyTheme(next);};
-try{applyTheme(localStorage.getItem('hoy_cockpit_theme')||null);}catch{applyTheme(null);}
+function applyTheme(t){if(t)document.documentElement.setAttribute('data-theme',t);else document.documentElement.removeAttribute('data-theme');const dark=t==='dark';$('themeBtn').textContent=dark?'☀':'☾';}
+$('themeBtn').onclick=()=>{const next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';try{localStorage.setItem('hoy_cockpit_theme',next);}catch{}applyTheme(next);};
+try{applyTheme(localStorage.getItem('hoy_cockpit_theme')||'light');}catch{applyTheme('light');}
 document.querySelectorAll('#unitSeg button').forEach(b=>b.onclick=()=>{UNIT=b.dataset.u;document.querySelectorAll('#unitSeg button').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));render();});
+document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+function showTab(t){TAB=['na','aar','plan'].includes(t)?t:'na';document.querySelectorAll('#nav button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===TAB?'true':'false'));['na','aar','plan'].forEach(x=>$('pane-'+x).classList.toggle('on',x===TAB));$('title').textContent={na:'Nå',aar:'Året',plan:'Planen'}[TAB];if(location.hash!=='#'+TAB)history.replaceState(null,'','#'+TAB);}
+window.addEventListener('hashchange',()=>showTab(location.hash.slice(1)));
 
 async function init(){
-  const tok=localStorage.getItem('hoy_access_token'); if(!tok){window.location.href='/';return;}
+  const tok=localStorage.getItem('hoy_access_token');if(!tok){window.location.href='/';return;}
   try{const r=await fetch(`${IDENTITY}/user`,{headers:{Authorization:`Bearer ${tok}`}});if(!r.ok)throw 0;}catch{localStorage.removeItem('hoy_access_token');window.location.href='/';return;}
   if(!(parseJwt(tok)?.app_metadata?.roles||[]).includes('admin')){$('loading').style.display='none';$('authError').style.display='flex';return;}
-  token=tok; await load(); $('loading').style.display='none'; $('app').style.display='';
+  token=tok;await load();$('loading').style.display='none';$('app').style.display='';showTab(location.hash.slice(1)||'na');
 }
-async function load(){
-  const r=await fetch(`${API}?action=get`,{headers:{Authorization:`Bearer ${token}`}});
-  if(!r.ok){fatal(`scorecard-state svarte ${r.status}`);return;}
-  const j=await r.json(); S=j.state; builtAt=j.built_at;
-  if(!S){fatal('Ingen lagret scorecard ennå — trykk «Bygg på nytt» (tar ~20 s).');return;}
-  render();
-}
-function fatal(m){$('loading').style.display='none';$('app').style.display='';$('builtAt').textContent=m;$('degrade').style.display='';$('degrade').innerHTML=`<b>Ingen data</b><div>${esc(m)}</div>`;}
-$('rebuildBtn').onclick=async()=>{const b=$('rebuildBtn');b.disabled=true;b.textContent='↻ Bygger… (~20 s)';
-  try{const r=await fetch(`${API}?action=rebuild`,{method:'POST',headers:{Authorization:`Bearer ${token}`}});const j=await r.json();if(j.state){S=j.state;builtAt=S.meta?.built_at;render();}if(!j.ok)alert('Rebuild med feil: '+(j.error||j.step||'ukjent'));}
-  catch(e){alert('Rebuild feilet: '+e.message);}b.disabled=false;b.textContent='↻ Bygg på nytt';};
+async function load(){const r=await fetch(`${API}?action=get`,{headers:{Authorization:`Bearer ${token}`}});if(!r.ok){fatal(`scorecard-state svarte ${r.status}`);return;}const j=await r.json();S=j.state;builtAt=j.built_at;if(!S){fatal('Ingen lagret scorecard ennå — trykk «Bygg på nytt» (~25 s).');return;}render();}
+function fatal(m){$('loading').style.display='none';$('app').style.display='';$('degrade').style.display='';$('degrade').innerHTML=`<b>Ingen data</b><div>${esc(m)}</div>`;}
+$('rebuildBtn').onclick=async()=>{const b=$('rebuildBtn');b.disabled=true;b.textContent='↻ Bygger… (~25 s)';try{const r=await fetch(`${API}?action=rebuild`,{method:'POST',headers:{Authorization:`Bearer ${token}`}});const j=await r.json();if(j.state){S=j.state;builtAt=S.meta?.built_at;render();}if(!j.ok)alert('Rebuild med feil: '+(j.error||j.step||'ukjent'));}catch(e){alert('Rebuild feilet: '+e.message);}b.disabled=false;b.textContent='↻ Bygg på nytt';};
 
-// ── render ──────────────────────────────────────────────────────────────────
 function render(){
   const age=builtAt?Math.round((Date.now()-new Date(builtAt))/36e5):null;
-  $('builtAt').textContent=`bygget ${dato(builtAt,true)}${age!=null?` · ${age<1?'under 1 t':age+' t'} siden`:''} · uke ${(S.plan?.uke_na||'').slice(-2)} · ${S.plan?.uker_igjen} hele uker igjen`;
-  $('footMeta').textContent=`state ${dato(builtAt,true)}`;
-  renderSources(); renderBank(); renderHero(); renderChain(); renderTable(); renderLists(); renderPortefolje(); renderSpaker(); renderLikv();
+  $('builtAt').innerHTML=`Bygget ${dato(builtAt,true)}${age!=null?` (${age<1?'<1':age} t siden)`:''}.<br>Neste automatiske bygg 04:00.`;
+  $('subtitle').textContent=`${UNAME[UNIT]} · uke ${(S.plan?.uke_na||'').slice(-2)} · ${S.plan?.uker_igjen} hele uker igjen av H2`;
+  renderGoal();renderSources();renderBank();renderNa();renderAar();renderPlan();
 }
-const SRC_LABELS={ark:'Oppgjørsark',hubspot:'HubSpot',oneflow:'Oneflow',finn:'FINN',livslop:'Livsløp',likviditet:'Likviditet'};
-function renderSources(){
-  const src=S.meta?.sources||{};
-  $('sources').innerHTML=Object.keys(src).map(k=>{const s=src[k]||{};const t=s.error||(k==='ark'?`${s.rader} rader · siste ${s.siste_solgt}`:k==='finn'?`${s.med_dato}/${s.av} med FINN-dato`:k==='oneflow'?`${s.signert_h2} signert H2`:k==='hubspot'?`${s.leads} leads · ${s.calls_fsbo} FSBO-calls`:'');return `<span class="src ${s.ok?'':'bad'}" title="${esc(t)}"><span class="dot"></span>${esc(SRC_LABELS[k]||k)}</span>`;}).join('');
-  const bad=Object.keys(src).filter(k=>src[k]&&!src[k].ok);
-  const el=$('degrade'); if(!bad.length){el.style.display='none';return;}
-  el.style.display=''; el.innerHTML=`<b>Degradert</b> — kilder som feilet i siste bygg:<ul>${bad.map(k=>`<li>${esc(SRC_LABELS[k]||k)}: ${esc(src[k].error||'feilet')}</li>`).join('')}</ul>`;
+function renderGoal(){
+  const A=S.aar||{},H=A.helaar||{},L=S.likviditet||{};
+  $('goal').innerHTML=`<div class="k">Målet</div>
+    <div class="g"><span>H2 2026</span><b>${mnok(S.plan.maal.Selskap)}</b></div>
+    <div class="g sub"><span>levert ${pct(100*S.plan.levert.Selskap/S.plan.maal.Selskap)}</span><span>${nok(S.plan.levert.Selskap)}</span></div>
+    <div class="g"><span>Helår 2026</span><b>${mnok(H.maal)}</b></div>
+    <div class="g sub"><span>levert ${pct(100*H.levert/H.maal)}</span><span>${nok(H.levert)}</span></div>
+    <div class="g"><span>2027 resultat</span><b>i pluss</b></div>
+    <div class="g sub"><span>North Star 1,5 M → 3 M → 5 M</span></div>
+    <div class="g"><span>Ansette Q1</span><b style="color:${L.status==='GRØNT'?'var(--green)':'var(--red)'}">${L.status==='GRØNT'?'JA':'NEI'}</b></div>`;
 }
-function renderBank(){
-  const L=S.likviditet||{}; const d=daysUntil(L.bank_consent_utlop); const live=L.bank_kilde==='live'; const exp=d!=null&&d<=0, soon=d!=null&&d>0&&d<=14;
-  $('bank').innerHTML=`<span class="chip ${exp?'red':(live?'green':'amber')}">${exp?'banksamtykke utløpt':(live?'bank live · DNB':'bank fallback')}</span> <span class="chip">${d==null?'ingen bankkobling':(exp?'utløp '+dato(L.bank_consent_utlop):'samtykke '+d+' d')}</span>${(exp||soon||!live)?` <button class="btn ${exp||soon?'warn':''}" id="renewBtn" type="button">${exp?'Forny tilgang':(soon?'Forny snart':'Koble bank')}</button>`:''}`;
-  const rb=$('renewBtn'); if(rb) rb.onclick=async()=>{rb.disabled=true;rb.textContent='Starter…';try{const r=await fetch(`${EB_API}?action=auth_start`,{method:'POST',headers:{Authorization:`Bearer ${token}`}});const j=await r.json();if(!r.ok||!j.url)throw new Error(j.error||'ingen URL');window.open(j.url,'_blank','noopener');rb.textContent='BankID åpnet ↗';}catch(e){alert('Kunne ikke starte bankkobling: '+e.message);rb.disabled=false;rb.textContent='Forny tilgang';}};
-}
-function unitPlan(u){return S.plan?.per_uke?.[u]||null;}
-function heroCard(u,big){
-  const maal=S.plan.maal[u], lev=S.plan.levert[u]||0, p=maal?100*lev/maal:null, pu=unitPlan(u)||{}; const pf=S.portefolje?.per_megler?.[u];
-  const exp=pf?Math.min(100-Math.min(100,p||0),100*pf.forventet/maal):0;
-  return `<div class="card ${big?'brand':''}">
-    <div class="k">${u==='Henrik'?'Henrik + Marte':u} · H2 2026 · omsetning eks. mva</div>
-    <div class="v ${big?'xl':''}">${nok(lev)}<span class="unit">av ${nok(maal)} · ${pct(p)}</span></div>
-    <div class="bar"><i class="${cls(lev,maal)==='g'?'g':''}" style="width:${Math.min(100,p||0)}%"></i><i class="exp" style="width:${exp}%"></i></div>
-    <div class="sub">rest ${nok(pu.rest)} = <b>${nok(pu.omsetning)} per uke</b> i ${S.plan.uker_igjen} uker · ≈ ${n1(pu.solgt)} salg · ${n1(pu.signert)} signeringer · ${n1(pu.leads)} leads per uke${pf?` · portefølje ventet ${nok(pf.forventet)}`:''}</div>
-  </div>`;
-}
-function renderHero(){
-  $('hero').innerHTML=`<div class="grid g21">${heroCard('Selskap',true)}<div class="grid" style="grid-template-columns:1fr">${heroCard('Sindre')}${heroCard('Henrik')}</div></div>`;
-}
+const SRC_LABELS={ark:'Oppgjørsark',hubspot:'HubSpot',oneflow:'Oneflow',finn:'FINN',kurver:'Kurver',livslop:'Livsløp',aar:'Året',lonnsomhet:'PowerOffice',plan2027:'Motor',likviditet:'Likviditet'};
+function renderSources(){const src=S.meta?.sources||{};$('sources').innerHTML=Object.keys(src).map(k=>`<span class="src ${src[k]?.ok?'':'bad'}" title="${esc(src[k]?.error||'')}"><span class="dot"></span>${esc(SRC_LABELS[k]||k)}</span>`).join('');
+  const bad=Object.keys(src).filter(k=>src[k]&&!src[k].ok);const el=$('degrade');if(!bad.length){el.style.display='none';return;}el.style.display='';el.innerHTML=`<b>Degradert</b> — kilder som feilet i siste bygg: ${bad.map(k=>`${esc(SRC_LABELS[k]||k)} (${esc(src[k].error||'')})`).join(', ')}`;}
+function renderBank(){const L=S.likviditet||{};const d=daysUntil(L.bank_consent_utlop);const live=L.bank_kilde==='live';const exp=d!=null&&d<=0,soon=d!=null&&d>0&&d<=14;
+  $('bank').innerHTML=`<span class="src ${exp?'bad':''}"><span class="dot" style="background:${live&&!exp?'var(--green)':'var(--amber)'}"></span>${exp?'banksamtykke utløpt':(live?'DNB live':'bank fallback')} · ${d==null?'ingen kobling':(exp?'utløpt':d+' d')}</span>${(exp||soon||!live)?` <button class="btn ${exp||soon?'warn':''}" id="renewBtn" type="button" style="margin-top:6px">${exp?'Forny banktilgang':(soon?'Forny snart':'Koble bank')}</button>`:''}`;
+  const rb=$('renewBtn');if(rb)rb.onclick=async()=>{rb.disabled=true;rb.textContent='Starter…';try{const r=await fetch(`${EB_API}?action=auth_start`,{method:'POST',headers:{Authorization:`Bearer ${token}`}});const j=await r.json();if(!r.ok||!j.url)throw new Error(j.error||'ingen URL');window.open(j.url,'_blank','noopener');rb.textContent='BankID åpnet ↗';}catch(e){alert('Kunne ikke starte bankkobling: '+e.message);rb.disabled=false;}};}
+
+/* ── NÅ ─────────────────────────────────────────────────────────────────── */
+const unitPlan=u=>S.plan?.per_uke?.[u]||S.plan?.per_uke?.Selskap||{};
 const weeksSorted=()=>Object.values(S.uker||{}).sort((a,b)=>a.uke<b.uke?1:-1);
-function unitRow(w){return UNIT==='Selskap'?w.Selskap:(w[UNIT]||{});}
+const unitRow=w=>UNIT==='Selskap'?w.Selskap:(w[UNIT]||{});
+const rowPlan=w=>(w.plan&&w.plan[UNIT])||unitPlan(UNIT);
 function last4(col){const ws=weeksSorted().filter(w=>!w.paagaar).slice(0,4);return ws.length?ws.reduce((a,w)=>a+(unitRow(w)[col]||0),0)/ws.length:null;}
-function renderChain(){
-  const pu=unitPlan(UNIT)||{}; const cur=weeksSorted().find(w=>w.paagaar); const c=cur?unitRow(cur):{};
-  const kontakt=UNIT!=='Sindre';
+function renderNa(){
+  const pu=unitPlan(UNIT),pf=S.portefolje?.per_megler?.[UNIT]||{},maal=S.plan.maal[UNIT]||0,lev=S.plan.levert[UNIT]||0,p=maal?100*lev/maal:null;
+  const sp=pf.spredning||{};const exp=maal?Math.min(100-Math.min(100,p||0),100*(pf.forventet||0)/maal):0;
+  const oppNavn=Object.fromEntries((S.portefolje?.oppdrag||[]).map(o=>[o.nr,o.navn]));
+  const stmt=`<div class="statement">
+    <div><span class="k">Her er vi</span><div class="v xl">${nok(lev)}</div><div class="t">av ${nok(maal)} i H2 · ${pct(p)} · ${S.plan.uker_igjen} hele uker igjen</div><div class="bar"><i style="width:${Math.min(100,p||0)}%"></i><i class="exp" style="width:${exp}%"></i></div></div>
+    <div><span class="k">Hit skal vi</span><div class="v xl">${nok(maal)}</div><div class="t">porteføljen ventes å gi <b>${nok(pf.forventet)}</b> innen 31.12 (P25–P75: ${nok(sp.p25)}–${nok(sp.p75)}) → ${pct(pf.dekning_pct)} dekning${pf.gap>0?`, gap <b>${nok(pf.gap)}</b>`:', margin '+nok(-pf.gap)}</div></div>
+    <div><span class="k">Slik kommer vi dit</span>${pf.trengs?`<div class="v md">${n1(pf.trengs.signeringer)} nye signeringer</div><div class="t">≈ ${n1(pf.trengs.salg)} ekstra salg · ${pf.trengs.leads} leads · pluss at disse selger:</div>`:`<div class="v md">Selg porteføljen</div><div class="t">rest-mål ${nok(pu.omsetning)}/uke ≈ ${n1(pu.solgt)} salg/uke. Må selge før nyttår:</div>`}<div class="must">${(pf.ma_selge||[]).slice(0,8).map(nr=>`<span title="${esc(oppNavn[nr]||'')}">${esc(nr)} ${esc((oppNavn[nr]||'').slice(0,18))}</span>`).join('')||'<span>ingen — målet er dekket av levert</span>'}</div></div>
+  </div>`;
+  // trakt
+  const cur=weeksSorted().find(w=>w.paagaar);const c=cur?unitRow(cur):{};const kontakt=UNIT!=='Sindre';
   const pubAvg=(()=>{const ws=weeksSorted().filter(w=>!w.paagaar).slice(0,4);const k=ws.reduce((a,w)=>a+(unitRow(w).publisert_kjent||0),0),s=ws.reduce((a,w)=>a+(unitRow(w).publisert_7d||0),0);return k?100*s/k:null;})();
-  const steps=[
-    kontakt?{key:'kontakter',label:'Kontakter (FSBO)',avg:last4('kontakter'),plan:pu.kontakter,now:c.kontakter,note:'calls i HubSpot · Henrik+Marte'}:null,
+  const steps=[kontakt?{key:'kontakter',label:'Kontakter (FSBO)',avg:last4('kontakter'),plan:pu.kontakter,now:c.kontakter,note:'calls i HubSpot'}:null,
     {key:'leads',label:'Leads',avg:last4('leads'),plan:pu.leads,now:c.leads,note:'deals opprettet i Pipeline A'},
-    {key:'signert',label:'Signert',avg:last4('signert'),plan:pu.signert,now:c.signert,note:'Oneflow, oppdragsgivers signatur'},
+    {key:'signert',label:'Signert',avg:last4('signert'),plan:pu.signert,now:c.signert,note:'Oneflow, oppdragsgiver'},
     {key:'pub',label:'Publisert ≤7 dg',avg:pubAvg,plan:100,now:null,note:'FINN-dato − signert',isPct:true},
-    {key:'solgt',label:'Solgt',avg:last4('solgt'),plan:pu.solgt,now:c.solgt,note:'oppgjørsark, solgt dato'},
-    {key:'oms',label:'Omsetning eks. mva',avg:last4('omsetning'),plan:pu.omsetning,now:c.omsetning,note:'oppgjørsark · 50/50 ved samarbeid',isNok:true},
-  ].filter(Boolean);
-  // svakeste ledd = størst negativt avvik blant leading-stegene (kontakter/leads/signert/publisert)
-  let push=null,worst=0;
-  for(const s of steps){if(!['kontakter','leads','signert','pub'].includes(s.key)||!isNum(s.avg)||!isNum(s.plan)||s.plan<=0)continue;const r=s.avg/s.plan-1;if(r<worst){worst=r;push=s.key;}}
-  $('chain').innerHTML=`<h2>Siste 4 hele uker mot det planen krever nå <span class="chip">${UNIT==='Henrik'?'Henrik + Marte':UNIT}</span></h2>
-    <div class="sub">snitt per uke (uke ${weeksSorted().filter(w=>!w.paagaar).slice(0,4).map(w=>w.uke.slice(-2)).reverse().join(', ')}) mot rest-målet per uke. Leddet lengst til venstre som ligger mest bak, er der laget må gjøre mer.</div>
+    {key:'solgt',label:'Solgt',avg:last4('solgt'),plan:pu.solgt,now:c.solgt,note:'oppgjørsark'},
+    {key:'oms',label:'Omsetning eks. mva',avg:last4('omsetning'),plan:pu.omsetning,now:c.omsetning,note:'50/50 ved samarbeid',isNok:true}].filter(Boolean);
+  let push=null,worst=0;for(const s of steps){if(!['kontakter','leads','signert','pub'].includes(s.key)||!isNum(s.avg)||!isNum(s.plan)||s.plan<=0)continue;const r=s.avg/s.plan-1;if(r<worst){worst=r;push=s.key;}}
+  const chain=`<div class="card" style="margin-top:14px"><h2>Trakten · siste 4 hele uker mot det planen krever nå</h2><div class="sub">snitt per uke. Leddet lengst til venstre som ligger mest bak, er der laget må gjøre mer.</div>
     <div class="chain">${steps.map(s=>{const k=isNum(s.avg)&&isNum(s.plan)?cls(s.avg,s.plan):'n';const d=isNum(s.avg)&&isNum(s.plan)&&s.plan>0?Math.round(100*(s.avg/s.plan-1)):null;
-      return `<div class="step ${push===s.key?'push':''}"><span class="k">${esc(s.label)}</span><div class="v">${s.isNok?nok(s.avg):(s.isPct?pct(s.avg):n1(s.avg))}</div>
-      <div class="m">plan ${s.isNok?nok(s.plan):(s.isPct?'100 %':n1(s.plan))}/uke${s.now!=null?` · nå ${s.isNok?nok(s.now):n1(s.now)}`:''}</div>
-      <div class="d ${k}">${d==null?(isNum(s.avg)?'ingen målepunkter':'ingen data'):(d>=0?'+':'')+d+' % mot plan'}</div><div class="m" style="margin-top:6px;opacity:.8">${esc(s.note)}</div></div>`;}).join('')}</div>
-    <div class="foot-note">Plan per uke = (mål − levert) ÷ hele uker igjen; solgt = omsetning ÷ ${nok(S.plan.konstanter.inntekt_per_bat)}; signert = solgt × ${S.plan.konstanter.oppdrag_per_salg}; leads = signert ÷ ${S.plan.konstanter.vinnrate_proxy} (PROXY) ÷ ${S.plan.konstanter.lead_til_befaring} (plantall). Befaring og verdivurdering måles ikke — for dårlig logging.</div>`;
-}
-function renderTable(){
-  const pu=unitPlan(UNIT)||{}; const kontakt=UNIT!=='Sindre'; const ws=weeksSorted();
-  const tot={}; for(const w of ws){const r=unitRow(w);for(const k of Object.keys(r))tot[k]=(tot[k]||0)+r[k];}
+      return `<div class="step ${push===s.key?'push':''}"><span class="k">${esc(s.label)}</span><div class="v">${s.isNok?nok(s.avg):(s.isPct?pct(s.avg):n1(s.avg))}</div><div class="m">plan ${s.isNok?nok(s.plan):(s.isPct?'100 %':n1(s.plan))}/uke${s.now!=null?` · nå ${s.isNok?nok(s.now):n1(s.now)}`:''}</div><div class="d ${k}">${d==null?(isNum(s.avg)?'ingen målepunkter':'ingen data'):(d>=0?'+':'')+d+' %'}</div><div class="m" style="opacity:.8">${esc(s.note)}</div></div>`;}).join('')}</div>
+    <div class="note">Plan/uke = (mål − levert) ÷ hele uker igjen; solgt = omsetning ÷ ${nok(S.plan.konstanter.inntekt_per_bat)}; signert = solgt × ${S.plan.konstanter.oppdrag_per_salg}; leads = signert ÷ ${S.plan.konstanter.vinnrate_proxy} (proxy) ÷ ${S.plan.konstanter.lead_til_befaring}. Planen fryses hver uke fra og med uke ${(S.plan.uke_na||'').slice(-2)}; eldre uker vises mot dagens plan.</div></div>`;
+  // uketabell
+  const ws=weeksSorted();const tot={};for(const w of ws){const r=unitRow(w);for(const k of Object.keys(r))tot[k]=(tot[k]||0)+r[k];}
   const cell=(f,m,fmt)=>`<span class="cell ${cls(f,m)}"><span class="f">${fmt?fmt(f):n1(f)}</span>${isNum(m)&&m>0?`<span class="p">/ ${fmt?fmt(m):n1(m)}</span>`:''}</span>`;
-  $('table').innerHTML=`<h2>Uke for uke · H2 2026 <span class="chip">${UNIT==='Henrik'?'Henrik + Marte':UNIT}</span></h2>
-    <div class="sub">faktisk / plan per uke (planen er dagens rest-mål — den var lavere i sommer og stiger for hver uke dere ligger bak)</div>
+  const table=`<div class="card" style="margin-top:14px"><h2>Uke for uke · H2 2026</h2><div class="sub">faktisk / plan per uke · ${UNAME[UNIT]}</div>
     <div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th>Uke</th>${kontakt?'<th class="num">Kontakter</th>':''}<th class="num">Leads</th><th class="num">Signert</th><th class="num">Publisert ≤7</th><th class="num">Solgt</th><th class="num">Omsetning</th></tr></thead><tbody>
-    ${ws.map(w=>{const r=unitRow(w);return `<tr class="${w.paagaar?'now':''}"><td class="muted">${w.uke.slice(-2)}${w.paagaar?' <span class="chip blue">pågår</span>':''}<div class="k" style="letter-spacing:0;text-transform:none">${dato(w.start)}–${dato(w.slutt)}</div></td>
-      ${kontakt?`<td class="num">${cell(r.kontakter||0,pu.kontakter)}</td>`:''}
-      <td class="num">${cell(r.leads||0,pu.leads)}</td><td class="num">${cell(r.signert||0,pu.signert)}</td>
-      <td class="num">${r.publisert_kjent?`<span class="cell ${(r.publisert_7d||0)>=r.publisert_kjent?'g':'r'}"><span class="f">${r.publisert_7d||0}/${r.publisert_kjent}</span></span>`:'<span class="cell n"><span class="f" style="color:var(--faint)">—</span></span>'}</td>
-      <td class="num">${cell(r.solgt||0,pu.solgt)}</td><td class="num">${cell(r.omsetning||0,pu.omsetning,nok)}</td></tr>`;}).join('')}
-    <tr class="total"><td>H2 hittil</td>${kontakt?`<td class="num">${n1(tot.kontakter||0)}</td>`:''}<td class="num">${n1(tot.leads||0)}</td><td class="num">${n1(tot.signert||0)}</td><td class="num">${tot.publisert_kjent?`${tot.publisert_7d||0}/${tot.publisert_kjent}`:'—'}</td><td class="num">${n1(tot.solgt||0)}</td><td class="num">${nok(tot.omsetning||0)}</td></tr>
-    </tbody></table></div>`;
+    ${ws.map(w=>{const r=unitRow(w),pl=rowPlan(w);return `<tr class="${w.paagaar?'now':''}"><td><b>${w.uke.slice(-2)}</b>${w.paagaar?' <span class="chip blue">pågår</span>':''}${w.plan_frosset?'':''}<div style="font-size:11px;color:var(--ink3)">${dato(w.start)}–${dato(w.slutt)}</div></td>
+      ${kontakt?`<td class="num">${cell(r.kontakter||0,pl.kontakter)}</td>`:''}<td class="num">${cell(r.leads||0,pl.leads)}</td><td class="num">${cell(r.signert||0,pl.signert)}</td>
+      <td class="num">${r.publisert_kjent?`<span class="cell ${(r.publisert_7d||0)>=r.publisert_kjent?'g':'r'}"><span class="f">${r.publisert_7d||0}/${r.publisert_kjent}</span></span>`:'<span class="cell n"><span class="f" style="color:var(--ink3)">—</span></span>'}</td>
+      <td class="num">${cell(r.solgt||0,pl.solgt)}</td><td class="num">${cell(r.omsetning||0,pl.omsetning,nok)}</td></tr>`;}).join('')}
+    <tr class="total"><td>H2 hittil</td>${kontakt?`<td class="num">${n1(tot.kontakter||0)}</td>`:''}<td class="num">${n1(tot.leads||0)}</td><td class="num">${n1(tot.signert||0)}</td><td class="num">${tot.publisert_kjent?`${tot.publisert_7d||0}/${tot.publisert_kjent}`:'—'}</td><td class="num">${n1(tot.solgt||0)}</td><td class="num">${nok(tot.omsetning||0)}</td></tr></tbody></table></div></div>`;
+  // lister
+  const f=x=>UNIT==='Selskap'||x.megler===UNIT;const ap=(S.apne_avtaler||[]).filter(f),ip=(S.ikke_publisert||[]).filter(f);
+  const lists=`<div class="grid g2" style="margin-top:14px"><div class="card"><h2>Avtaler sendt, ikke signert <span class="chip">${ap.length}</span></h2><div class="sub">tilbud som ligger ute (Oneflow)</div>${ap.length?`<ul class="list">${ap.map(a=>`<li><span>${esc(a.navn.replace(/ ?- ?salgsavtale/i,''))} <span class="chip">${esc(a.megler)}</span></span><span class="n">sendt ${dato(a.sendt)} · <b>${a.dager} d</b></span></li>`).join('')}</ul>`:'<div class="empty">ingen åpne avtaler</div>'}</div>
+    <div class="card"><h2>Signert, ingen FINN-annonse funnet <span class="chip ${ip.length?'red':''}">${ip.length}</span></h2><div class="sub">mål ≤ 7 dager. Kan også være off-market eller manglende finn-kode på båtkortet.</div>${ip.length?`<ul class="list">${ip.map(a=>`<li><span>${esc((a.nr?a.nr+' · ':'')+a.navn.replace(/^\d{5} ?- ?/,'').replace(/ ?- ?salgsavtale/i,''))} <span class="chip">${esc(a.megler)}</span></span><span class="n">signert ${dato(a.signert)} · <b>${a.dager} d</b></span></li>`).join('')}</ul>`:'<div class="empty">alle nye oppdrag har annonse</div>'}</div></div>`;
+  // portefølje
+  const opp=(S.portefolje?.oppdrag||[]).filter(o=>UNIT==='Selskap'||o.megler===UNIT);const must=new Set(pf.ma_selge||[]);
+  const port=`<div class="card" style="margin-top:14px"><h2>Porteføljen · ${opp.length} aktive oppdrag <span class="chip">${S.portefolje?.horisont_dager} dager til nyttår</span></h2><div class="sub">${esc(S.portefolje?.formel||'')}. Sannsynlighetene regnes fra egne salgsdata hver natt (se Planen → datagrunnlag).</div>
+    <details><summary>Vis oppdragene (${opp.length}) — de som må selge først</summary><div style="overflow-x:auto"><table style="margin-top:8px"><thead><tr><th>Nr</th><th>Båt</th><th>Megler</th><th class="num">Pris</th><th>Klasse</th><th class="num">Alder</th><th class="num">P(salg i år)</th><th class="num">Ventet</th></tr></thead><tbody>
+    ${opp.map(o=>`<tr ${must.has(o.nr)?'style="background:var(--brand-soft)"':''}><td class="muted">${esc(o.nr)}${must.has(o.nr)?' <span class="chip green">må</span>':''}</td><td>${esc(o.navn||'')}${o.kilde==='oppdragsmodul'?' <span class="chip blue">ny</span>':''}</td><td class="muted">${esc(o.megler)}</td><td class="num">${o.pris?nok(o.pris):'<span style="color:var(--red)">mangler</span>'}</td><td class="muted">${esc(o.prisklasse)}</td><td class="num">${o.alder_dager} d</td><td class="num">${pct(100*o.p_salg_i_ar)}</td><td class="num"><b>${nok(o.forventet)}</b></td></tr>`).join('')}</tbody></table></div></details></div>`;
+  const L=S.likviditet||{};const ok=L.status==='GRØNT';
+  const likv=`<div class="line"><div><span class="k">Reell bank</span><div class="v">${nok(L.reell_bank)}</div></div><div><span class="k">Laveste ventet (plan)</span><div class="v ${isNum(L.laveste_plan)&&L.laveste_plan<L.buffer?'neg':''}">${nok(L.laveste_plan)} <span class="unit">${esc(L.laveste_label||'')}</span></div></div><div><span class="k">Buffer</span><div class="v">${nok(L.buffer)}</div></div><div><span class="k">Ansettelse Q1 2027</span><div class="st ${ok?'g':'r'}">${ok?'JA — gaten er åpen':'NEI — '+nok(L.mangler)+' under buffer'}</div></div><div class="note" style="margin:0;max-width:34ch">${esc(L.regel||'')} · frist ${dato(L.gate_frist)}</div></div>`;
+  $('pane-na').innerHTML=stmt+chain+table+lists+port+likv;
 }
-function renderLists(){
-  const f=x=>UNIT==='Selskap'||x.megler===UNIT;
-  const ap=(S.apne_avtaler||[]).filter(f), ip=(S.ikke_publisert||[]).filter(f);
-  $('apne').innerHTML=`<h2>Avtaler sendt, ikke signert <span class="chip">${ap.length}</span></h2><div class="sub">tilbud som ligger ute (Oneflow)</div>${ap.length?`<ul class="list">${ap.map(a=>`<li><span>${esc(a.navn.replace(/ ?- ?salgsavtale/i,''))} <span class="chip">${esc(a.megler)}</span></span><span class="n">sendt ${dato(a.sendt)} · <b>${a.dager} d</b></span></li>`).join('')}</ul>`:'<div class="empty">ingen åpne avtaler</div>'}`;
-  $('ikkepub').innerHTML=`<h2>Signert, ingen FINN-annonse funnet <span class="chip ${ip.length?'red':''}">${ip.length}</span></h2><div class="sub">mål: publisert ≤ ${S.plan.konstanter.publisert_mal_dager} dager etter signering. Kan også være off-market eller manglende finn-kode på båtkortet.</div>${ip.length?`<ul class="list">${ip.map(a=>`<li><span>${esc((a.nr?a.nr+' · ':'')+a.navn.replace(/^\d{5} ?- ?/,'').replace(/ ?- ?salgsavtale/i,''))} <span class="chip">${esc(a.megler)}</span></span><span class="n">signert ${dato(a.signert)} · <b>${a.dager} d</b></span></li>`).join('')}</ul>`:'<div class="empty">alle nye oppdrag har annonse</div>'}`;
+
+/* ── ÅRET ───────────────────────────────────────────────────────────────── */
+function renderAar(){
+  const A=S.aar;if(!A){$('pane-aar').innerHTML='<div class="empty">Året mangler i staten.</div>';return;}
+  const H=A.helaar,cur=A.maned_na;const act=A.omsetning[UNIT]||{},ly=(A.fjoraar.omsetning[UNIT]||{}),pl=A.plan[UNIT]||{},sold=A.solgt[UNIT]||{};
+  const ytd=(o,m)=>Object.keys(o).filter(k=>+k<=m).reduce((a,k)=>a+(o[k]||0),0);
+  const levYtd=ytd(act,12),plYtd=UNIT==='Selskap'?H.ytd_plan:ytd(pl,cur),lyYtd=ytd(ly,cur),lyYear=ytd(ly,12);
+  const maal=UNIT==='Selskap'?H.maal:(A.h1_fasit[UNIT]||0)+(S.plan.maal[UNIT]||0);
+  const head=`<div class="grid g4">
+    <div class="card"><span class="k">Levert ${A.year} hittil</span><div class="v">${nok(levYtd)}</div><div class="note">${UNIT==='Selskap'?`H1 ${nok(A.h1_fasit.Selskap)} + H2 ${nok(S.plan.levert.Selskap)}`:`H1 ${nok(A.h1_fasit[UNIT])} + H2 ${nok(S.plan.levert[UNIT])}`}</div></div>
+    <div class="card"><span class="k">Helårsmål ${A.year}</span><div class="v">${nok(maal)}</div><div class="note">${pct(100*levYtd/maal)} levert · ${UNIT==='Selskap'?'H1 fasit + 2,9 M revidert plan':'H1 fasit + H2-mål'}</div><div class="bar"><i class="${cls(levYtd,plYtd)}" style="width:${Math.min(100,100*levYtd/maal)}%"></i></div></div>
+    <div class="card"><span class="k">Mot plan hittil</span><div class="v ${levYtd>=plYtd?'pos':'neg'}">${nok(levYtd-plYtd,{sign:true})}</div><div class="note">plan t.o.m. ${MN[cur-1]}: ${nok(plYtd)}</div></div>
+    <div class="card"><span class="k">Mot fjoråret</span><div class="v ${levYtd>=lyYtd?'pos':'neg'}">${lyYtd?pct(100*(levYtd/lyYtd-1)):'—'}</div><div class="note">${A.year-1} samme periode ${nok(lyYtd)} · helår ${nok(lyYear)}</div></div></div>`;
+  // chart
+  const W=1000,Hh=280,pl0=64,pr=14,pt=16,pb=30;const vals=[];for(let m=1;m<=12;m++)vals.push(act[m]||0,ly[m]||0,pl[m]||0);const hi=Math.max(...vals,1)*1.08;
+  const y=v=>pt+(1-v/hi)*(Hh-pt-pb),x=m=>pl0+(m-1)*(W-pl0-pr)/12,bw=(W-pl0-pr)/12;
+  const step=[100000,200000,250000,500000,1000000].find(s=>hi/s<=6)||2000000;const ticks=[];for(let v=0;v<=hi;v+=step)ticks.push(v);
+  const svg=`<svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="Omsetning per måned">${ticks.map(v=>`<line class="grid" x1="${pl0}" x2="${W-pr}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text class="axis" x="${pl0-8}" y="${(y(v)+4).toFixed(1)}" text-anchor="end">${v?(v/1000).toLocaleString('nb-NO')+' k':'0'}</text>`).join('')}
+    ${Array.from({length:12},(_,i)=>i+1).map(m=>{const a=act[m]||0,l=ly[m]||0,p=pl[m]||0;const x0=x(m)+bw*0.12;const wA=bw*0.36,wL=bw*0.36;return `<rect class="b-ly" x="${(x0+wA+2).toFixed(1)}" y="${y(l).toFixed(1)}" width="${wL.toFixed(1)}" height="${(y(0)-y(l)).toFixed(1)}" rx="3"/><rect class="b-act" x="${x0.toFixed(1)}" y="${y(a).toFixed(1)}" width="${wA.toFixed(1)}" height="${(y(0)-y(a)).toFixed(1)}" rx="3" style="${m>cur?'opacity:.25':''}"/>${p?`<line class="plan" x1="${(x0-2).toFixed(1)}" x2="${(x0+wA+wL+4).toFixed(1)}" y1="${y(p).toFixed(1)}" y2="${y(p).toFixed(1)}"/>`:''}<text class="axis" x="${(x(m)+bw/2).toFixed(1)}" y="${Hh-8}" text-anchor="middle">${MN[m-1]}</text><rect data-m="${m}" class="hit" x="${x(m).toFixed(1)}" y="${pt}" width="${bw.toFixed(1)}" height="${Hh-pt-pb}" fill="transparent"/>`;}).join('')}</svg>`;
+  const chart=`<div class="card" style="margin-top:14px"><h2>Måned for måned · omsetning eks. mva <span class="chip">${UNAME[UNIT]}</span></h2><div class="sub">${esc(A.note)}</div><div class="chartwrap" id="aarChart">${svg}<div class="tip" id="aarTip"></div></div>
+    <div class="legend"><span><i class="sw" style="background:var(--brand2)"></i>${A.year}</span><span><i class="sw" style="background:var(--ink3);opacity:.35"></i>${A.year-1}</span><span><i class="sw" style="background:var(--amber);height:3px;border-radius:2px"></i>plan ${A.year}</span></div>
+    <details><summary>Vis tallene</summary><div style="overflow-x:auto"><table style="margin-top:8px"><thead><tr><th>Mnd</th><th class="num">${A.year}</th><th class="num">Plan</th><th class="num">Avvik</th><th class="num">${A.year-1}</th><th class="num">Solgt ${A.year}</th></tr></thead><tbody>${Array.from({length:12},(_,i)=>i+1).map(m=>`<tr class="${m===cur?'now':''}"><td>${MN[m-1]}</td><td class="num"><b>${nok(act[m])}</b></td><td class="num muted">${nok(pl[m])}</td><td class="num" style="color:${(act[m]||0)>=(pl[m]||0)?'var(--green)':'var(--red)'}">${m<=cur?nok((act[m]||0)-(pl[m]||0),{sign:true}):''}</td><td class="num muted">${nok(ly[m])}</td><td class="num">${sold[m]||0}</td></tr>`).join('')}<tr class="total"><td>Sum</td><td class="num">${nok(levYtd)}</td><td class="num">${nok(ytd(pl,12))}</td><td class="num">${nok(levYtd-plYtd,{sign:true})}</td><td class="num">${nok(lyYear)}</td><td class="num">${ytd(sold,12)}</td></tr></tbody></table></div></details></div>`;
+  // lønnsomhet
+  const LO=S.lonnsomhet||{};const groups={per_prisklasse:'Prisklasse',per_battype:'Båttype',per_merke:'Merke',per_megler:'Megler',per_kilde:'Oppdragskilde'};const rows=(LO[LON]||[]);
+  const lon=`<div class="card" style="margin-top:14px"><h2>Hva som funker · oppdrag signert 2024→ <span class="tabs2">${Object.entries(groups).map(([k,v])=>`<button data-lon="${k}" aria-pressed="${LON===k}">${v}</button>`).join('')}</span></h2>
+    <div class="sub">Close-rate = solgt av avgjorte. Bidrag = provisjonsinntekt − meglerlønn − direkte kost på PowerOffice-prosjektet (bilag fra mai 2025, kun der prosjektet har bilag). ${esc(LO.note||'')}</div>
+    <div style="overflow-x:auto"><table style="margin-top:8px"><thead><tr><th>${groups[LON]}</th><th class="num">Oppdrag</th><th class="num">Solgt</th><th class="num">Close</th><th class="num">Median oms</th><th class="num">Sum oms</th><th class="num">Median dager</th><th class="num">Median direkte kost</th><th class="num">Median bidrag</th><th class="num">n (PO)</th></tr></thead><tbody>
+    ${rows.length?rows.map(g=>`<tr><td><b>${esc(g.gruppe)}</b></td><td class="num">${g.oppdrag}</td><td class="num">${g.solgt}</td><td class="num">${pct(g.close_rate)}</td><td class="num">${nok(g.median_oms)}</td><td class="num">${nok(g.sum_oms)}</td><td class="num">${g.median_dager??'—'}</td><td class="num">${nok(g.median_direkte)}</td><td class="num" style="color:${(g.median_bidrag||0)<0?'var(--red)':'inherit'}">${nok(g.median_bidrag)}</td><td class="num muted">${g.po_n}</td></tr>`).join(''):'<tr><td colspan="10" class="empty">ingen grupper med ≥3 oppdrag — for kilde: fyll «Oppdragskilde» i arket</td></tr>'}</tbody></table></div></div>`;
+  // spaker
+  const sp=S.spaker||{},ipb=sp.inntekt_per_bat||{},ep=sp.eff_provisjonsgrad||{},u6=sp.under_6pct||{},sb=sp.snittbat||{};const P27=S.plan2027;const eff=P27?P27.scenarioer[1].med_spaker.resultat-P27.scenarioer[1].baseline.resultat:null;
+  const spak=`<div class="card" style="margin-top:14px"><h2>Spakene · bedre økonomi per båt før flere stoler <span class="chip green">verdt ${nok(eff)} på 2027-resultatet</span></h2><div class="sub">status YTD mot spak-målene i 1-3-5-planen. Effekten er forskjellen mellom baseline og «med spakene» i motoren for beslutnings-bemanningen.</div>
+    <div style="overflow-x:auto"><table style="margin-top:8px"><thead><tr><th>Spak</th><th class="num">Nå (YTD)</th><th class="num">H2</th><th class="num">Fasit 12 mnd</th><th class="num">Mål</th><th>Status</th></tr></thead><tbody>
+    <tr><td><b>Inntekt per solgt båt</b><div class="note" style="margin:0">premium-miks + 6 %-disiplin</div></td><td class="num"><b>${nok(ipb.ytd)}</b></td><td class="num">${nok(ipb.h2)}</td><td class="num muted">${nok(ipb.fasit)}</td><td class="num">${nok(ipb.spak_maal)}</td><td>${isNum(ipb.h2)&&ipb.h2>=ipb.spak_maal?'<span class="chip green">over mål i H2</span>':'<span class="chip amber">under mål</span>'}</td></tr>
+    <tr><td><b>Effektiv provisjonsgrad</b><div class="note" style="margin:0">gap til 6 % = rabatter</div></td><td class="num"><b>${isNum(ep.ytd_pct)?ep.ytd_pct.toLocaleString('nb-NO')+' %':'—'}</b></td><td class="num">${isNum(ep.h2_pct)?ep.h2_pct.toLocaleString('nb-NO')+' %':'—'}</td><td class="num muted">5,79 %</td><td class="num">6 %</td><td>${isNum(ep.h2_pct)&&ep.h2_pct>=5.95?'<span class="chip green">holder i H2</span>':'<span class="chip amber">rabatter gis</span>'}</td></tr>
+    <tr><td><b>Salg under 6 %</b><div class="note" style="margin:0">${esc(u6.note||'')}</div></td><td class="num"><b>${u6.antall??'—'} av ${u6.av??'—'}</b></td><td class="num"></td><td class="num muted">13 av 38 (H1)</td><td class="num">0</td><td>${(u6.antall||0)>0?'<span class="chip red">krever godkjenning</span>':'<span class="chip green">ingen</span>'}</td></tr>
+    <tr><td><b>Snitt salgssum</b><div class="note" style="margin:0">premium-miks</div></td><td class="num"><b>${nok(sb.ytd)}</b></td><td class="num"></td><td class="num muted">1 260 458</td><td class="num">${nok(sb.spak_maal)}</td><td>${isNum(sb.ytd)&&sb.ytd>=sb.spak_maal?'<span class="chip green">over</span>':'<span class="chip amber">under</span>'}</td></tr>
+    <tr><td><b>Markedskost per signert oppdrag</b><div class="note" style="margin:0">15k-tak; fra PowerOffice-prosjektene</div></td><td class="num"><b>${nok((LO.per_megler||[]).length?median((LO.oppdrag||[]).filter(o=>o.signert>='2026').map(o=>o.po.direkte)):null)}</b></td><td class="num"></td><td class="num muted">6 600</td><td class="num">4 552</td><td><span class="chip">median direkte kost 2026-oppdrag</span></td></tr>
+    </tbody></table></div></div>`;
+  $('pane-aar').innerHTML=head+chart+lon+spak;
+  document.querySelectorAll('[data-lon]').forEach(b=>b.onclick=()=>{LON=b.dataset.lon;renderAar();});
+  const wrap=$('aarChart'),tip=$('aarTip');if(wrap){wrap.querySelectorAll('rect.hit').forEach(r=>{r.addEventListener('mouseenter',()=>{const m=+r.dataset.m;const b=wrap.getBoundingClientRect(),rb=r.getBoundingClientRect();tip.innerHTML=`<b>${MN[m-1]} ${A.year}</b> ${nok(act[m])} · plan ${nok(pl[m])} · ${A.year-1}: ${nok(ly[m])} · ${sold[m]||0} salg`;tip.style.left=(rb.left-b.left+rb.width/2)+'px';tip.style.top=(rb.top-b.top+10)+'px';tip.style.opacity=1;});r.addEventListener('mouseleave',()=>tip.style.opacity=0);});}
 }
-function renderPortefolje(){
-  const P=S.portefolje||{}; const per=P.per_megler||{}; const units=['Selskap','Sindre','Henrik'];
-  const rows=units.map(u=>{const p=per[u];if(!p)return '';const m=p.maal||1;const r=Math.min(100,100*p.realisert/m),e=Math.min(100-r,100*p.forventet/m);
-    return `<div style="margin-top:12px"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><b>${u==='Henrik'?'Henrik + Marte':u}</b><span class="mono" style="font-family:var(--mono);font-size:12px;color:var(--muted)">${p.aktive} aktive${p.uten_pris?` (${p.uten_pris} uten pris)`:''} · realisert ${nok(p.realisert)} + ventet ${nok(p.forventet)} = <b style="color:${p.gap<=0?'var(--green)':'var(--red)'}">${pct(p.dekning_pct)}</b> av ${nok(p.maal)}</span></div>
-    <div class="bar"><i class="${p.gap<=0?'g':''}" style="width:${r}%"></i><i class="exp" style="width:${e}%"></i></div>
-    <div class="foot-note">${p.gap>0?`gap ${nok(p.gap)} → trengs ≈ <b>${n1(p.trengs.signeringer)} nye signeringer</b> (${n1(p.trengs.salg)} salg) ≈ ${p.trengs.leads} leads`:`porteføljen dekker målet med ${nok(-p.gap)} margin — forutsatt at close-ratene holder`}</div></div>`;}).join('');
-  const opp=(P.oppdrag||[]).filter(o=>UNIT==='Selskap'||o.megler===UNIT);
-  $('portefolje').innerHTML=`<h2>Portefølje · hva de aktive oppdragene ventes å gi innen 31.12 <span class="chip">${P.horisont_dager} dager igjen</span></h2><div class="sub">${esc(P.formel||'')}</div>${rows}
-    <details><summary>Vis oppdragene (${opp.length}) — sortert på ventet omsetning</summary><div style="overflow-x:auto"><table style="margin-top:8px"><thead><tr><th>Nr</th><th>Båt</th><th>Megler</th><th class="num">Pris</th><th>Klasse</th><th class="num">Alder</th><th class="num">P(salg i år)</th><th class="num">Ventet</th></tr></thead><tbody>
-    ${opp.map(o=>`<tr><td class="muted">${esc(o.nr)}</td><td>${esc(o.navn||'')}${o.kilde==='oppdragsmodul'?' <span class="chip blue">ny</span>':''}</td><td class="muted">${esc(o.megler)}</td><td class="num">${o.pris?nok(o.pris):'<span style="color:var(--red)">mangler</span>'}</td><td class="muted">${esc(o.prisklasse)}</td><td class="num">${o.alder_dager} d</td><td class="num">${pct(100*o.p_salg_i_ar)}</td><td class="num"><b>${nok(o.forventet)}</b></td></tr>`).join('')}</tbody></table></div></details>`;
-}
-function renderSpaker(){
-  const sp=S.spaker||{}; const t=(l,v,s,c)=>`<div class="card"><div class="k">${l}</div><div class="v ${c||''}">${v}</div><div class="sub">${s}</div></div>`;
-  const ipb=sp.inntekt_per_bat||{}, ep=sp.eff_provisjonsgrad||{}, u6=sp.under_6pct||{}, sb=sp.snittbat||{};
-  $('spaker').innerHTML=t('Spak · inntekt per solgt båt',`${nok(ipb.ytd)}<span class="unit">YTD</span>`,`H2 ${nok(ipb.h2)} · fasit 12 mnd ${nok(ipb.fasit)} · spak-mål ${nok(ipb.spak_maal)}`,isNum(ipb.ytd)&&ipb.ytd>=ipb.spak_maal?'pos':'')
-   +t('Spak · effektiv provisjonsgrad',`${isNum(ep.ytd_pct)?ep.ytd_pct.toLocaleString('nb-NO')+' %':'—'}<span class="unit">YTD</span>`,`H2 ${isNum(ep.h2_pct)?ep.h2_pct.toLocaleString('nb-NO')+' %':'—'} · mål 6 % · gap = rabatter`,isNum(ep.h2_pct)&&ep.h2_pct>=5.95?'pos':'')
-   +t('Salg under 6 %',`${u6.antall??'—'}<span class="unit">av ${u6.av??'—'} YTD</span>`,esc(u6.note||''),u6.antall>0?'neg':'pos')
-   +t('Snitt salgssum',`${nok(sb.ytd)}<span class="unit">YTD</span>`,`premium-miks-mål ${nok(sb.spak_maal)}`,isNum(sb.ytd)&&sb.ytd>=sb.spak_maal?'pos':'');
-}
-function renderLikv(){
-  const L=S.likviditet||{}; const ok=L.status==='GRØNT';
-  $('likv').innerHTML=`<div><span class="k">Reell bank</span><div class="v">${nok(L.reell_bank)}</div></div><div><span class="k">Laveste ventet (plan, P75)</span><div class="v ${isNum(L.laveste_plan)&&L.laveste_plan<L.buffer?'neg':''}">${nok(L.laveste_plan)} <span class="unit">${esc(L.laveste_label||'')}</span></div></div><div><span class="k">Buffer</span><div class="v">${nok(L.buffer)}</div></div><div><span class="k">Mangler</span><div class="v ${L.mangler>0?'neg':'pos'}">${nok(L.mangler)}</div></div><div><span class="k">Ansettelse Q1 2027</span><div class="st ${ok?'g':'r'}">${ok?'JA — gaten er åpen':'NEI — under buffer'}</div><div class="foot-note" style="margin-top:2px">frist ${dato(L.gate_frist)} · ${esc(L.regel||'')}</div></div>`;
+function median(a){a=a.filter(isNum).sort((x,y)=>x-y);return a.length?a[Math.floor(a.length/2)]:null;}
+
+/* ── PLANEN ─────────────────────────────────────────────────────────────── */
+function renderPlan(){
+  const P27=S.plan2027,L=S.likviditet||{},K=S.kurver;if(!P27){$('pane-plan').innerHTML='<div class="empty">Plan mangler.</div>';return;}
+  const ns=P27.north_star;
+  const top=`<div class="statement"><div><span class="k">North Star</span><div class="v xl">1,5 M</div><div class="t">resultat før skatt i 2027 → 3 M i 2029 → 5 M i 2031, etter Sindre-lønn kappet på 7,1 G</div></div>
+    <div><span class="k">Hva 2027 faktisk er</span><div class="v md">Ende i pluss</div><div class="t">Absorbere Daniel · bygge kapasitet · bevise spakene · ende i pluss. Gapet til 1,5 M tas i 2028–29. Det er planen rådgiveren godkjente.</div></div>
+    <div><span class="k">Hva som avgjør neste år</span><div class="v md">${L.status==='GRØNT'?'Gaten er åpen':'Gaten er stengt'}</div><div class="t">Laveste ventet bank ${nok(L.laveste_plan)} mot buffer ${nok(L.buffer)} → ${L.status==='GRØNT'?'én ansettelse i Q1 kan besluttes':'ingen ansettelse før ' + nok(L.mangler) + ' er lukket'} · frist ${dato(L.gate_frist)}</div></div></div>`;
+  const row=(l,f,cls)=>`<tr><td>${l}</td>${P27.scenarioer.map(s=>`<td class="num ${cls||''}">${f(s)}</td>`).join('')}</tr>`;
+  const scen=`<div class="card" style="margin-top:14px"><h2>2027 med to bemanninger · samme motor som 1-3-5-planen</h2><div class="sub">${esc(P27.note)}</div>
+    <div style="overflow-x:auto"><table style="margin-top:8px"><thead><tr><th>Økonomimotor 2027</th>${P27.scenarioer.map((s,i)=>`<th class="num" style="${i<2?'color:var(--ink)':''}">${esc(s.navn)}</th>`).join('')}</tr></thead><tbody>
+    ${row('Rampede stoler ved nyttår + nye',s=>`${s.rampede_ved_start} + ${s.nyansettelser.reduce((a,b)=>a+b,0)}`)}
+    ${row('Producing FTE',s=>n1(s.baseline.fte))}
+    ${row('Omsetning eks. mva',s=>nok(s.baseline.omsetning))}
+    ${row('− meglerkost 55 %',s=>nok(s.baseline.meglerkost),'muted')}
+    ${row('− Sindre 7,1 G',s=>nok(s.baseline.sindre),'muted')}
+    ${row('− markedskost',s=>nok(s.baseline.markedskost),'muted')}
+    ${row('− kostbase',s=>nok(s.baseline.kostbase),'muted')}
+    <tr class="total"><td>Resultat baseline</td>${P27.scenarioer.map(s=>`<td class="num" style="color:${s.baseline.resultat>=0?'var(--green)':'var(--red)'}">${nok(s.baseline.resultat)}</td>`).join('')}</tr>
+    <tr class="total"><td>Resultat med spakene</td>${P27.scenarioer.map(s=>`<td class="num" style="color:${s.med_spaker.resultat>=0?'var(--green)':'var(--red)'}">${nok(s.med_spaker.resultat)}</td>`).join('')}</tr>
+    ${row('Gap til North Star 1,5 M (m/spaker)',s=>nok(s.med_spaker.resultat-ns[2027]))}
+    ${row('Signerte oppdrag inn per år',s=>n1(s.baseline.oppdrag_inn))}
+    ${row('Omsetning per uke (46 uker)',s=>nok(s.baseline.uke_oms))}
+    </tbody></table></div>
+    <div class="note">${P27.scenarioer.map(s=>`<b>${esc(s.navn)}:</b> ${esc(s.note)}`).join('<br>')}</div></div>`;
+  const gate=`<div class="grid g2" style="margin-top:14px"><div class="card"><h2>Gaten · hva som må være sant før én ansettelse</h2><div class="sub">beslutning 28.08: maks 1 megler Q1 2027, utbytte utsatt, buffer 500k normal / 300k kun styregodkjent</div>
+    <ul class="list"><li><span>Laveste ventet bank (plan, P75) ≥ 500k <b>etter</b> ny stol</span><span class="n" style="color:${L.status==='GRØNT'?'var(--green)':'var(--red)'}">${nok(L.laveste_plan)} nå</span></li><li><span>Utbytte formelt utsatt (styret)</span><span class="n">ikke bekreftet</span></li><li><span>Faktiske bankdatoer avstemt (deal-for-deal)</span><span class="n">ikke bekreftet</span></li><li><span>Signert kandidat med startdato, onboarding og ramp</span><span class="n">ikke bekreftet</span></li><li><span>≥ 500k også etter kostnadsavviks-margin</span><span class="n">ikke bekreftet</span></li></ul>
+    <div class="note">Sekvensering: bevis 1 stol, frys 1 kvartal, så vurder neste. Kilde: Ansettelsesgate-artifacten / company-state.</div></div>
+    <div class="card"><h2>Datagrunnlaget · sannsynlighet for salg</h2><div class="sub">${esc(K?.note||'')} — oppdateres hver natt.</div>
+    <div style="overflow-x:auto"><table style="margin-top:8px"><thead><tr><th>Prisklasse</th><th class="num">n</th><th class="num">solgt ≤90 d</th><th class="num">≤180 d</th><th class="num">≤365 d</th><th>grunnlag</th></tr></thead><tbody>${Object.entries(K?.klasser||{}).map(([k,v])=>`<tr><td><b>${esc(k)}</b></td><td class="num">${v.n}</td><td class="num">${pct(100*v.solgt_innen_90)}</td><td class="num">${pct(100*v.solgt_innen_180)}</td><td class="num">${pct(100*v.solgt_innen_365)}</td><td class="muted">${v.slatt_sammen_med?`slått sammen med ${esc(v.slatt_sammen_med)} (n=${v.n_brukt})`:'egen kurve'}</td></tr>`).join('')}</tbody></table></div>
+    <div class="note">Avsluttede usolgte oppdrag regnes som «selger aldri». Aktive oppdrag teller som usolgt fram til i dag. Kurven blir bedre for hvert salg.</div></div></div>`;
+  $('pane-plan').innerHTML=top+scen+gate;
 }
 init();
 </script>

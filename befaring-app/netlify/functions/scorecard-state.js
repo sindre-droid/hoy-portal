@@ -144,7 +144,7 @@ async function buildScorecardState(sb) {
       const dn = r[col['Solgt dato']]; if (typeof dn !== 'number') continue;
       const d = excelDate(dn), inn = (r[col['Oppdrag inn']] || '').toString().trim(), av = (r[col['Solgt av']] || '').toString().trim();
       const oms = Number(r[col['Omsetning ex.mva']] || 0), sum = Number(r[col['Salgssum']] || 0);
-      sales.push({ nr: r[col['Oppdragsnr']] ?? null, bat: r[col['Båttype']] || '', dato: iso(d), inn, av, salgssum: sum, oms });
+      sales.push({ nr: r[col['Oppdragsnr']] ?? null, bat: r[col['Båttype']] || '', dato: iso(d), inn, av, salgssum: sum, oms, kilde: col['Oppdragskilde'] ? (r[col['Oppdragskilde']] || '').toString().trim() || null : null });
       if (d < FRA) continue;
       add(d, unitOf(av), 'solgt', 1);
       if (inn && av && inn !== av) { add(d, unitOf(inn), 'omsetning', oms / 2); add(d, unitOf(av), 'omsetning', oms / 2); }
@@ -236,16 +236,60 @@ async function buildScorecardState(sb) {
     konstanter: { inntekt_per_bat: P.INNT, oppdrag_per_salg: P.OPPDRAG_PER_SALG, vinnrate_proxy: P.VINNRATE_PROXY, lead_til_befaring: P.LEAD_TIL_BEFARING, kontakter_mal: P.KONTAKTER_MAL, publisert_mal_dager: P.PUBLISERT_MAL_DAGER },
     note: 'rest-mål = (mål − levert) ÷ hele uker igjen; regnes om hver natt. 2027: kvartalsmål fra Økonomimotor med besluttet bemanning.' };
 
+  // Frossen ukeplan: første bygg i en uke låser planen for den uken (historikken måles mot planen som gjaldt da)
+  let prevState = null;
+  try { const { data: prev } = await sb.from('scorecard_state').select('state').eq('id', 1).maybeSingle(); prevState = prev?.state || null; } catch {}
+  const planhistorikk = { ...(prevState?.planhistorikk || {}) };
+  if (!planhistorikk[curKey]) planhistorikk[curKey] = { frosset: now.toISOString(), per_uke: perUke };
+  state.planhistorikk = planhistorikk;
+
   // uker-tabell (alle H2-uker t.o.m. nå)
   const COLS = ['kontakter', 'kontakter_alle', 'leads', 'signert', 'publisert_7d', 'publisert_kjent', 'solgt', 'omsetning'];
   for (const k of h2Weeks) {
     if (k > curKey) break;
     const w = isoWeek(weekStart(2026, Number(k.slice(-2)))); const start = weekStart(2026, Number(k.slice(-2)));
-    const row = { uke: k, start: iso(start), slutt: iso(new Date(start.getTime() + 6 * 864e5)), paagaar: k === curKey };
+    const row = { uke: k, start: iso(start), slutt: iso(new Date(start.getTime() + 6 * 864e5)), paagaar: k === curKey, plan: (planhistorikk[k]?.per_uke) || null, plan_frosset: !!planhistorikk[k] };
     for (const u of ['Sindre', 'Henrik', 'Daniel', 'ukjent']) { const c = cell(k, u); if (Object.keys(c).length) row[u] = Object.fromEntries(COLS.map(x => [x, x === 'omsetning' ? Math.round(c[x] || 0) : (c[x] || 0)])); }
     row.Selskap = Object.fromEntries(COLS.map(x => [x, ['Sindre', 'Henrik', 'Daniel', 'ukjent'].reduce((a, u) => a + (row[u]?.[x] || 0), 0)]));
     state.uker[k] = row;
   }
+
+  // 5b. Close-rate-kurver regnet fra data hver natt (Kaplan–Meier på oppdrag signert 2024+) ──
+  // solgt = hendelse ved dager signert→solgt; aktiv = sensurert i dag; avsluttet usolgt = selger aldri (blir i risikosettet).
+  // Klasser med < MIN_N slås sammen med naboklassen. Ingen hardkodede tall.
+  const KURVER = { klasser: {}, note: 'Kaplan–Meier per prisklasse, oppdrag signert ≥ 2024 med Oneflow-dato; klasser < 25 oppdrag slås sammen med nabo' };
+  const MIN_N = 25, TMAX = 400;
+  const klasseAv = (p) => !p ? 'ukjent' : p < 1e6 ? '<1M' : p < 2e6 ? '1-2M' : p < 5e6 ? '2-5M' : '>5M';
+  function kmCurve(obs) { // obs: [{t, event}] → S[t] for t=0..TMAX
+    const S = new Array(TMAX + 1).fill(1); let surv = 1;
+    const byT = {}; for (const o of obs) { const t = Math.max(0, Math.min(TMAX, Math.round(o.t))); (byT[t] ??= []).push(o); }
+    let atRisk = obs.length;
+    for (let t = 0; t <= TMAX; t++) { const g = byT[t] || []; const d = g.filter(o => o.event).length; if (atRisk > 0 && d > 0) surv *= (1 - d / atRisk); S[t] = surv; atRisk -= g.length; }
+    return S;
+  }
+  try {
+    const { data: hist } = await sb.from('oppdrag_livslop').select('oppdragsnr,status,prisantydning,oppdragsavtale_signert,oppdragsavtale_kilde,solgt_dato').gte('oppdragsavtale_signert', '2024-01-01').limit(2000);
+    const obsBy = { '<1M': [], '1-2M': [], '2-5M': [], '>5M': [], ukjent: [] };
+    for (const r of hist || []) {
+      if (!r.oppdragsavtale_signert) continue;
+      const k = klasseAv(r.prisantydning); let t, event;
+      if (r.status === 'solgt' && r.solgt_dato) { t = days(r.oppdragsavtale_signert, r.solgt_dato); event = true; if (t < 0) continue; }
+      else if (r.status === 'aktiv') { t = days(r.oppdragsavtale_signert, today); event = false; }
+      else { t = TMAX; event = false; } // avsluttet usolgt: selger aldri
+      obsBy[k].push({ t, event });
+    }
+    const ORDER = ['<1M', '1-2M', '2-5M', '>5M'];
+    for (const k of ORDER) {
+      let obs = obsBy[k], brukt = [k];
+      if (obs.length < MIN_N) { const i = ORDER.indexOf(k); const nb = ORDER[i - 1] || ORDER[i + 1]; obs = obs.concat(obsBy[nb]); brukt.push(nb); }
+      const S = kmCurve(obs);
+      KURVER.klasser[k] = { n: obsBy[k].length, n_brukt: obs.length, slatt_sammen_med: brukt.length > 1 ? brukt[1] : null, S90: +(1 - S[90]).toFixed(3), S180: +(1 - S[180]).toFixed(3), S365: +(1 - S[365]).toFixed(3), S };
+    }
+    { const all = ORDER.flatMap(k => obsBy[k]).concat(obsBy.ukjent); const S = kmCurve(all); KURVER.klasser.ukjent = { n: obsBy.ukjent.length, n_brukt: all.length, slatt_sammen_med: 'alle', S90: +(1 - S[90]).toFixed(3), S180: +(1 - S[180]).toFixed(3), S365: +(1 - S[365]).toFixed(3), S }; }
+    state.kurver = { ...KURVER, klasser: Object.fromEntries(Object.entries(KURVER.klasser).map(([k, v]) => [k, { n: v.n, n_brukt: v.n_brukt, slatt_sammen_med: v.slatt_sammen_med, solgt_innen_90: v.S90, solgt_innen_180: v.S180, solgt_innen_365: v.S365 }])) };
+    state.meta.sources.kurver = { ok: true, oppdrag: (hist || []).length };
+  } catch (e) { state.meta.sources.kurver = { ok: false, error: e.message }; }
+  const pSalgInnen = (klasse, alder, horisont) => { const c = KURVER.klasser[klasse] || KURVER.klasser.ukjent; if (!c) return null; const S = c.S; const s1 = S[Math.min(TMAX, alder)], s2 = S[Math.min(TMAX, alder + horisont)]; return s1 > 0 ? Math.max(0, Math.min(1, (s1 - s2) / s1)) : 0; };
 
   // 6. Portefølje: forventet omsetning innen 31.12 ───────────────────────────
   try {
@@ -263,26 +307,30 @@ async function buildScorecardState(sb) {
     const bids = [...new Set(Object.values(bo).filter(Boolean))];
     for (let i = 0; i < bids.length; i += 100) { const j = await hs(`/crm/v3/objects/${P.BOATS}/batch/read`, { inputs: bids.slice(i, i + 100).map(id => ({ id: String(id) })), properties: ['pris'] }); for (const b of j.results || []) bp[b.id] = b.properties?.pris ? Number(b.properties.pris) : null; }
     for (const a of nye) items.push({ nr: String(a.number), navn: a.vessel_name, megler: unitOf(EMAILS[(a.broker_email || '').toLowerCase()]), pris: bp[bo[a.deal_id]] ?? null, signert: (a.oppdragsavtale_signed_at || '').slice(0, 10) || null, kilde: 'oppdragsmodul' });
-    const klasse = (p) => !p ? 'ukjent' : p < 1e6 ? '<1M' : p < 2e6 ? '1-2M' : p < 5e6 ? '2-5M' : '>5M';
-    const C = (k, t) => { const c = P.CLOSE[k] || P.CLOSE.ukjent; const pts = [[0, 0], [90, c[0]], [180, c[1]], [365, c[2]]]; if (t >= 365) return c[2]; for (let i = 1; i < pts.length; i++) if (t <= pts[i][0]) { const [t0, c0] = pts[i - 1], [t1, c1] = pts[i]; return c0 + (c1 - c0) * (t - t0) / (t1 - t0); } return c[2]; };
     const horizon = days(today, P.H2.slutt);
     for (const it of items) {
-      it.prisklasse = klasse(it.pris);
+      it.prisklasse = klasseAv(it.pris);
       it.forventet_provisjon = it.pris ? Math.max(45000, it.pris * 0.06) / 1.25 : P.INNT;
       const alder = it.signert ? Math.max(0, days(it.signert, today)) : 0;
-      const c1 = C(it.prisklasse, alder), c2 = C(it.prisklasse, alder + horizon);
-      it.alder_dager = alder; it.p_salg_i_ar = c1 >= 1 ? 0 : Math.max(0, Math.min(1, (c2 - c1) / (1 - c1)));
+      it.alder_dager = alder; it.p_salg_i_ar = pSalgInnen(it.prisklasse, alder, horizon) ?? 0;
       it.forventet = Math.round(it.forventet_provisjon * it.p_salg_i_ar);
     }
+    // Spredning (P25/P75) ved Monte Carlo over binære utfall — 2000 trekk, deterministisk frø
+    let seed = 42; const rnd = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+    const simFor = (mine) => { const sums = []; for (let i = 0; i < 2000; i++) { let s = 0; for (const it of mine) if (rnd() < it.p_salg_i_ar) s += it.forventet_provisjon; sums.push(s); } sums.sort((a, b) => a - b); return { p25: Math.round(sums[500]), p50: Math.round(sums[1000]), p75: Math.round(sums[1500]) }; };
     const per = {};
     for (const u of ['Selskap', 'Sindre', 'Henrik', 'Daniel']) {
       const mine = items.filter(i => u === 'Selskap' || i.megler === u);
       const forventet = mine.reduce((a, i) => a + i.forventet, 0), maal = P.H2.maal[u] ?? 0, real = levert[u] || 0;
       const gap = maal - real - forventet; const salg = Math.max(0, gap) / P.INNT, sign = salg * P.OPPDRAG_PER_SALG;
-      per[u] = { aktive: mine.length, uten_pris: mine.filter(i => !i.pris).length, forventet: Math.round(forventet), realisert: Math.round(real), maal, gap: Math.round(gap), dekning_pct: maal ? Math.round(100 * (real + forventet) / maal) : null,
-        trengs: gap > 0 ? { salg: +salg.toFixed(1), signeringer: +sign.toFixed(1), leads: +(sign / P.VINNRATE_PROXY / P.LEAD_TIL_BEFARING).toFixed(0) } : null };
+      // «disse må selge»: færrest mulig oppdrag (høyest forventet provisjon × p) som dekker gapet mot mål
+      const maSelge = []; let dekket = 0; const restGap = maal - real;
+      for (const it of [...mine].sort((a, b) => b.forventet - a.forventet)) { if (dekket >= restGap) break; maSelge.push(it.nr); dekket += it.forventet_provisjon; }
+      per[u] = { aktive: mine.length, uten_pris: mine.filter(i => !i.pris).length, forventet: Math.round(forventet), spredning: simFor(mine), realisert: Math.round(real), maal, gap: Math.round(gap), dekning_pct: maal ? Math.round(100 * (real + forventet) / maal) : null,
+        trengs: gap > 0 ? { salg: +salg.toFixed(1), signeringer: +sign.toFixed(1), leads: +(sign / P.VINNRATE_PROXY / P.LEAD_TIL_BEFARING).toFixed(0) } : null,
+        ma_selge: restGap > 0 ? maSelge : [] };
     }
-    state.portefolje = { per_megler: per, oppdrag: items.sort((a, b) => b.forventet - a.forventet), horisont_dager: horizon, formel: 'forventet = max(45k, pris×6 %)÷1,25 × P(solgt innen 31.12 | ikke solgt ennå), close-rate per prisklasse fra fase 1 (signert 2024+)', note: 'livsløp sist importert manuelt; nye nummer hentes fra oppdragsmodulen med pris fra HubSpot boat' };
+    state.portefolje = { per_megler: per, oppdrag: items.sort((a, b) => b.forventet - a.forventet), horisont_dager: horizon, formel: 'forventet = max(45k, pris×6 %)÷1,25 × P(solgt innen 31.12 | ikke solgt ennå); P fra Kaplan–Meier-kurve per prisklasse, regnet fra oppdrag_livslop hver natt', note: 'livsløp sist importert manuelt; nye nummer hentes fra oppdragsmodulen med pris fra HubSpot boat' };
     state.meta.sources.livslop = { ok: true, aktive: items.length, fra_livslop: items.filter(i => i.kilde === 'livsløp').length, nye_fra_modul: nye.length };
   } catch (e) { state.meta.sources.livslop = { ok: false, error: e.message }; }
 
@@ -298,6 +346,95 @@ async function buildScorecardState(sb) {
       snittbat: { ytd: y.length ? Math.round(sumY / y.length) : null, spak_maal: 1600000 },
     };
   } catch (e) { state.spaker = { error: e.message }; }
+
+
+  // 9. ÅRET: måned for måned 2026 mot plan, og 2025 ved siden av ───────────────
+  try {
+    const year = now.getUTCFullYear();
+    const mk = () => Object.fromEntries(Array.from({ length: 12 }, (_, i) => [i + 1, 0]));
+    const M = { Selskap: mk(), Sindre: mk(), Henrik: mk(), Daniel: mk() }, MS = { Selskap: mk(), Sindre: mk(), Henrik: mk(), Daniel: mk() };
+    const addM = (obj, m, who, v) => { obj[who] ??= mk(); obj[who][m] += v; obj.Selskap[m] += v; };
+    for (const sRow of sales) { if (!sRow.dato.startsWith(String(year))) continue; const m = Number(sRow.dato.slice(5, 7));
+      if (sRow.inn && sRow.av && sRow.inn !== sRow.av) { addM(M, m, unitOf(sRow.inn), sRow.oms / 2); addM(M, m, unitOf(sRow.av), sRow.oms / 2); } else addM(M, m, unitOf(sRow.av), sRow.oms);
+      MS[unitOf(sRow.av)] ??= mk(); MS[unitOf(sRow.av)][m] += 1; MS.Selskap[m] += 1; }
+    // fjorår fra livsløpet (oppgjørsliste 2025 importert)
+    const { data: ly } = await sb.from('oppdrag_livslop').select('solgt_dato,omsetning_ex_mva,megler_email').gte('solgt_dato', `${year - 1}-01-01`).lt('solgt_dato', `${year}-01-01`).limit(2000);
+    const LY = { Selskap: mk() }, LYS = { Selskap: mk() };
+    for (const r of ly || []) { const m = Number((r.solgt_dato || '').slice(5, 7)); if (!m) continue; const who = unitOf(EMAILS[(r.megler_email || '').toLowerCase()] || 'ukjent'); addM(LY, m, who, Number(r.omsetning_ex_mva || 0)); LYS[who] ??= mk(); LYS[who][m] += 1; LYS.Selskap[m] += 1; }
+    // plan per måned: H1 = budsjett (budgets_company), H2 = 2,9M sesongfordelt (revidert plan aug 2026)
+    const { data: bud } = await sb.from('budgets_company').select('period_month,target_revenue_nok,target_sales_count').eq('period_year', year);
+    const budM = mk(); for (const b of bud || []) budM[b.period_month] = Number(b.target_revenue_nok || 0);
+    const h2seas = P.SEAS.slice(6).reduce((a, b) => a + b, 0);
+    const planM = { Selskap: mk(), Sindre: mk(), Henrik: mk() };
+    for (let m = 1; m <= 12; m++) { if (m <= 6) planM.Selskap[m] = budM[m]; else for (const u of ['Selskap', 'Sindre', 'Henrik']) planM[u][m] = Math.round(P.H2.maal[u] * P.SEAS[m - 1] / h2seas); }
+    const h1Sum = (obj) => [1, 2, 3, 4, 5, 6].reduce((a, m) => a + (obj[m] || 0), 0);
+    const helaarMaal = Math.round(h1Sum(M.Selskap)) + P.H2.maal.Selskap; // revidert plan 16.08: H1 fasit + 2,9M ≈ 5,18M (opprinnelig budsjett 3,6M + 3,4M er forkastet)
+    const ytd = (obj, upto) => Object.keys(obj).filter(m => Number(m) <= upto).reduce((a, m) => a + obj[m], 0);
+    const curM = now.getUTCMonth() + 1;
+    state.aar = { year, maned_na: curM, omsetning: M, solgt: MS, fjoraar: { omsetning: LY, solgt: LYS, kilde: 'oppdrag_livslop (oppgjørsliste ' + (year - 1) + ')' }, plan: planM,
+      h1_fasit: { Selskap: Math.round(h1Sum(M.Selskap)), Sindre: Math.round(h1Sum(M.Sindre)), Henrik: Math.round(h1Sum(M.Henrik)), Daniel: Math.round(h1Sum(M.Daniel)), budsjett: Math.round(h1Sum(planM.Selskap)) },
+      helaar: { maal: helaarMaal, opprinnelig_budsjett: Math.round(h1Sum(planM.Selskap)) + 3400000, levert: Math.round(ytd(M.Selskap, 12)), ytd_plan: Math.round(h1Sum(M.Selskap) + [7, 8, 9, 10, 11, 12].filter(m => m <= curM).reduce((a, m) => a + planM.Selskap[m], 0)), fjoraar_ytd: Math.round(ytd(LY.Selskap, curM)), fjoraar_helaar: Math.round(ytd(LY.Selskap, 12)) },
+      note: 'H1-plan = budsjett mai 2026 (budgets_company); H2-plan = 2,9M (revidert 16.08) sesongfordelt med motorens profil; helår = H1-budsjett + 2,9M' };
+    state.meta.sources.aar = { ok: true, fjoraar_rader: (ly || []).length, budsjett_rader: (bud || []).length };
+  } catch (e) { state.meta.sources.aar = { ok: false, error: e.message }; }
+
+  // 10. LØNNSOMHET per oppdrag: PowerOffice-prosjekt (kode = oppdragsnr) + livsløp ─────
+  // inntekt = konto 3xxx (snudd fortegn), meglerkost = 5xxx, direkte kost = 4xxx/6xxx/7xxx → firmabidrag
+  try {
+    const { data: projs } = await sb.from('po_projects').select('id,code').limit(5000);
+    const codeOf = {}; for (const p of projs || []) if (/^\d{5}$/.test(p.code || '')) codeOf[p.id] = p.code;
+    const tx = []; for (let from = 0; ; from += 1000) { const { data } = await sb.from('po_account_transactions').select('project_id,account_no,amount').not('project_id', 'is', null).gte('account_no', 3000).lt('account_no', 8000).range(from, from + 999); tx.push(...(data || [])); if (!data || data.length < 1000) break; }
+    const pl = {};
+    for (const t of tx) { const nr = codeOf[t.project_id]; if (!nr) continue; const a = Number(t.account_no), v = Number(t.amount || 0); const p = (pl[nr] ??= { inntekt: 0, meglerkost: 0, direkte: 0 });
+      if (a < 4000) p.inntekt -= v; else if (a >= 5000 && a < 6000) p.meglerkost += v; else p.direkte += v; }
+    const { data: liv2 } = await sb.from('oppdrag_livslop').select('oppdragsnr,status,prisantydning,prisklasse,oppdragsavtale_signert,solgt_dato,omsetning_ex_mva,salgssum,battype,batmodell,megler_email,annonse_publisert').gte('oppdragsavtale_signert', '2024-01-01').limit(2000);
+    const kildeOf = {}; for (const sRow of sales) if (sRow.nr && sRow.kilde) kildeOf[String(sRow.nr)] = sRow.kilde;
+    const rows = [];
+    for (const r of liv2 || []) {
+      const nr = String(r.oppdragsnr), p = pl[nr];
+      rows.push({ nr, navn: r.batmodell, merke: (r.batmodell || '').split(/[\s-]/)[0] || 'ukjent', battype: r.battype || 'ukjent', prisklasse: r.prisklasse || klasseAv(r.prisantydning), status: r.status, megler: unitOf(EMAILS[(r.megler_email || '').toLowerCase()] || 'ukjent'), kilde: kildeOf[nr] || null,
+        signert: (r.oppdragsavtale_signert || '').slice(0, 10) || null, solgt: r.solgt_dato || null, dager: r.solgt_dato && r.oppdragsavtale_signert ? days(r.oppdragsavtale_signert, r.solgt_dato) : null,
+        oms: Number(r.omsetning_ex_mva || 0), po: p ? { inntekt: Math.round(p.inntekt), meglerkost: Math.round(p.meglerkost), direkte: Math.round(p.direkte), bidrag: Math.round(p.inntekt - p.meglerkost - p.direkte) } : null });
+    }
+    const med = (arr) => { const a = arr.filter(isFinite).sort((x, y) => x - y); return a.length ? a[Math.floor(a.length / 2)] : null; };
+    const grp = (key) => { const g = {}; for (const r of rows) (g[r[key] || 'ukjent'] ??= []).push(r);
+      return Object.entries(g).map(([k, rs]) => { const solgt = rs.filter(r => r.status === 'solgt'), avgj = rs.filter(r => r.status !== 'aktiv'), med_po = rs.filter(r => r.po && r.status === 'solgt');
+        return { gruppe: k, oppdrag: rs.length, solgt: solgt.length, aktive: rs.filter(r => r.status === 'aktiv').length, close_rate: avgj.length ? Math.round(100 * solgt.length / avgj.length) : null, median_oms: med(solgt.map(r => r.oms)), sum_oms: Math.round(solgt.reduce((a, r) => a + r.oms, 0)), median_dager: med(solgt.map(r => r.dager)),
+          po_n: med_po.length, median_direkte: med(med_po.map(r => r.po.direkte)), median_bidrag: med(med_po.map(r => r.po.bidrag)), sum_bidrag: Math.round(med_po.reduce((a, r) => a + r.po.bidrag, 0)) }; }).filter(g => g.oppdrag >= 3).sort((a, b) => b.sum_oms - a.sum_oms); };
+    state.lonnsomhet = { per_prisklasse: grp('prisklasse'), per_battype: grp('battype'), per_merke: grp('merke').slice(0, 15), per_kilde: grp('kilde'), per_megler: grp('megler'), oppdrag: rows.filter(r => r.po).sort((a, b) => (b.po.bidrag) - (a.po.bidrag)),
+      note: 'PowerOffice-prosjekter har bilag fra mai 2025; eldre oppdrag mangler prosjektkost. Bidrag = inntekt − meglerkost (5xxx) − direkte kost (4/6/7xxx), før felleskost. Oppdragskilde-kolonnen i arket er tom per sep 2026 — fylles den, kommer «per kilde» av seg selv.' };
+    state.meta.sources.lonnsomhet = { ok: true, prosjekter_med_bilag: Object.keys(pl).length, transaksjoner: tx.length };
+  } catch (e) { state.meta.sources.lonnsomhet = { ok: false, error: e.message }; }
+
+  // 11. PLANEN 2027: Økonomimotor-P&L for to bemanninger (som nå / beslutning), baseline og med spakene ──
+  // Port av Økonomimotor-arket (verifisert: 2 rampede + 3 nye → −665 535; 2+1 → +84 478; 2+0 → −138 463).
+  try {
+    const MOT = { STOL: 1500000, SINDRE: 2300000, INNT: 58375, OPPDRAG_PER_SALG: 1.30, MK: 6600, MKOST: 0.55, SINDRE_TAK: 969498, LOAD: 1.165, SATS: 0.45, GRUNN: 1880000, TRINN: 60000, REKR: 75000, LEDER: 900000, KONTOR: 300000, BACK: 500000,
+      SPAK: { INNT: 76800, MK: 4552, STOL: 1800000 } };
+    const RAMP = [0.40, 0.75, 1.00, 1.00]; // kvartalsvis for Q1-ansatt; Q2-ansatt starter ett kvartal senere osv.
+    function motor(rampede, hiresQ, spak) { // hiresQ = [q1,q2,q3,q4] antall nyansettelser
+      const stol = spak ? MOT.SPAK.STOL : MOT.STOL, innt = spak ? MOT.SPAK.INNT : MOT.INNT, mk = spak ? MOT.SPAK.MK : MOT.MK;
+      let fte = rampede, bemAvg = rampede, hires = 0; const fteQ = [rampede, rampede, rampede, rampede];
+      hiresQ.forEach((n, q) => { hires += n; for (let k = q; k < 4; k++) fteQ[k] += n * RAMP[k - q]; bemAvg += n * (4 - q) / 4; });
+      fte = fteQ.reduce((a, b) => a + b, 0) / 4; const bemSlutt = rampede + hires;
+      const megOms = fte * stol, oms = megOms + MOT.SINDRE, bater = oms / innt, oppdrag = bater * MOT.OPPDRAG_PER_SALG;
+      const meglerkost = megOms * MOT.MKOST, sindre = Math.min(MOT.SATS * MOT.SINDRE, MOT.SINDRE_TAK) * MOT.LOAD, markedskost = oppdrag * mk;
+      const kostbase = MOT.GRUNN + MOT.TRINN * Math.max(0, bemAvg - 2) + MOT.REKR * hires + (bemSlutt >= 5 ? MOT.LEDER : 0) + (bemSlutt >= 6 ? MOT.KONTOR : 0) + (bemSlutt >= 8 ? MOT.BACK : 0);
+      const res = oms - meglerkost - sindre - markedskost - kostbase;
+      const kv = fteQ.map(f => Math.round((f * stol + MOT.SINDRE) / 4));
+      return { fte: +fte.toFixed(4), bemannet_slutt: bemSlutt, omsetning: Math.round(oms), bater: +bater.toFixed(1), oppdrag_inn: +oppdrag.toFixed(1), meglerkost: -Math.round(meglerkost), sindre: -Math.round(sindre), markedskost: -Math.round(markedskost), kostbase: -Math.round(kostbase), resultat: Math.round(res), kvartal_oms: kv, uke_oms: Math.round(oms / 46) };
+    }
+    const scen = (navn, rampede, hiresQ, note) => ({ navn, rampede_ved_start: rampede, nyansettelser: hiresQ, note, baseline: motor(rampede, hiresQ, false), med_spaker: motor(rampede, hiresQ, true) });
+    state.plan2027 = { north_star: { 2027: 1500000, 2029: 3000000, 2031: 5000000, maal: 'resultat før skatt etter Sindre-lønn kappet på 7,1 G' },
+      scenarioer: [
+        scen('Som i dag', 1, [0, 0, 0, 0], 'Sindre + Henrik. Ingen ansettelse.'),
+        scen('Beslutningen 28.08', 1, [1, 0, 0, 0], 'Sindre + Henrik + 1 ny stol i Q1 2027 — krever at gaten åpner (P75 ≥ 500k) innen 15.12.'),
+        scen('Opprinnelig plan', 2, [1, 1, 1, 0], 'Motorens 2 + 3: forutsatte to rampede stoler ved nyttår (Henrik + Daniel). Daniel er ute.'),
+        scen('Forretningsmodell-artifactens «2 + 1»', 2, [1, 0, 0, 0], 'Samme som beslutningen, men med to rampede ved start — slik artifacten regnet (+84 478). Avvik fra fasit: Daniel teller med.'),
+      ],
+      motor: MOT, note: 'Samme motor som Økonomimotor-arket. Kapasitet = FTE × stol + Sindre 2,3M; meglerkost 55 %; Sindre 7,1 G × 1,165; markedskost per signert oppdrag; trinnvis kostbase. Spakene: 76 800/båt, 4 552 markedskost, 1,8M-stoler. Ukeomsetning = årsomsetning ÷ 46 arbeidsuker.' };
+    state.meta.sources.plan2027 = { ok: true };
+  } catch (e) { state.meta.sources.plan2027 = { ok: false, error: e.message }; }
 
   // 8. Likviditet/gate — én linje fra dashboard_state ────────────────────────
   try {
