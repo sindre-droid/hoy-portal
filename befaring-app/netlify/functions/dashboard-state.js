@@ -128,7 +128,11 @@ async function buildDashboardState(sb){
           bankTilgjengelig=ebz.balance_available!=null?Math.round(Number(ebz.balance_available)):null;}}
     }catch(e){/* behold fallback */}
     // beslutte-scenario: 0 nye ansettelser, utbytte utsatt (dagens beslutning)
-    const hires=[-6,-6],eng=[{belop:0,maaned:9},{belop:125000,maaned:11},{belop:50000,maaned:10}];
+    // Engangsposter 2027 (positiv = utbetaling, negativ = innbetaling). Måned = 2027-måned.
+    // Sargo 45 Fly (solgt 03.09.2026, nybygg levert juni 2027): provisjon 794 832 eks mva = 993 540 inkl mva
+    // betales ved levering → innbetaling juni 2027, mva-andelen (198 708) ut i termin 4 (aug). Regnes som 2026-omsetning i scorecardet.
+    const hires=[-6,-6],eng=[{belop:0,maaned:9},{belop:125000,maaned:11},{belop:50000,maaned:10},
+      {belop:-993540,maaned:6,note:'Sargo 45 Fly — provisjon inkl mva ved levering'},{belop:198708,maaned:8,note:'mva på Sargo-provisjon, termin 4'}];
     const scen={};for(const k of [1,2,3]){const r=liq({scen:k,hires,engangs:eng,opening});scen[['','base','plan','stress'][k]]={laveste:r.laveste,label:r.lavesteLabel,slutt:r.slutt};}
     state.likviditet={snapshot_date:s?s.snapshot_date:null,
       reell_bank:opening,bank_kilde:bankKilde,bank_saldo_dato:bankSaldoDato,bank_tilgjengelig:bankTilgjengelig,bank_consent_utlop:bankConsentUtlop,
@@ -138,9 +142,10 @@ async function buildDashboardState(sb){
       kassekreditt:LM.KASSE,buffer:LM.BUFFER,
       scenarioer:scen, plan_UB:liq({scen:2,hires,engangs:eng,opening}).UB,
       gate:{buffer:LM.BUFFER,laveste_plan:scen.plan.laveste,
-        status:scen.plan.laveste>=LM.BUFFER?'GRØNT (tall)':(scen.plan.laveste>=0?'GULT':'RØDT'),
+        status:scen.plan.laveste>=LM.BUFFER?'GRØNT':'RØDT', // under buffer = rød for ansettelse (company-state-regel; «gult» finnes ikke)
         mangler:Math.max(0,LM.BUFFER-scen.plan.laveste)}};
     state.spaker.cash_lag={median_d:14,p75_d:32,p90_d:61,kilde:'deal-for-deal n=92'};
+    state.likviditet.engangsposter_2027=eng.filter(e=>e.belop);
     state.meta.sources.likviditet={ok:true,snapshot:s?s.snapshot_date:'ingen'};
     state.meta.sources.bank={ok:bankKilde==='live',kilde:bankKilde,consent_utlop:bankConsentUtlop,note:bankKilde==='live'?'live DNB-saldo (Enable Banking)':'fallback: hovedbok 1920 + frossen avstemmingsdiff'};
   }catch(e){state.meta.sources.likviditet={ok:false,error:e.message};}

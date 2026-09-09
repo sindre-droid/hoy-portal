@@ -34,6 +34,8 @@ const P = {
   KONTAKTER_MAL: 50,      // FSBO-kontakter per uke (Henrik+Marte)
   PUBLISERT_MAL_DAGER: 7,
   H2: { start: '2026-07-01', slutt: '2026-12-31', maal: { Selskap: 2900000, Sindre: 1400000, Henrik: 1500000 } },
+  // Daniels oppdrag solgt av andre ETTER at han sluttet: 100 % til den som solgte (Sindre 9. sep). Før: 50/50 som ellers.
+  DANIEL_SLUTT: '2026-08-16',
   // 2027: kapasitet med BESLUTTET bemanning (2 + 0 til noe er vedtatt). Oppdateres ved ansettelse.
   PLAN_2027: { Sindre: 2300000, Henrik: 1500000, nye_stoler: [] },
   SEAS: [0.030, 0.0524, 0.0874, 0.0554, 0.1728, 0.2095, 0.1457, 0.0554, 0.0816, 0.0340, 0.0447, 0.0311],
@@ -147,7 +149,8 @@ async function buildScorecardState(sb) {
       sales.push({ nr: r[col['Oppdragsnr']] ?? null, bat: r[col['Båttype']] || '', dato: iso(d), inn, av, salgssum: sum, oms, kilde: col['Oppdragskilde'] ? (r[col['Oppdragskilde']] || '').toString().trim() || null : null });
       if (d < FRA) continue;
       add(d, unitOf(av), 'solgt', 1);
-      if (inn && av && inn !== av) { add(d, unitOf(inn), 'omsetning', oms / 2); add(d, unitOf(av), 'omsetning', oms / 2); }
+      const fulltTilSelger = inn === 'Daniel' && av !== 'Daniel' && iso(d) >= P.DANIEL_SLUTT;
+      if (inn && av && inn !== av && !fulltTilSelger) { add(d, unitOf(inn), 'omsetning', oms / 2); add(d, unitOf(av), 'omsetning', oms / 2); }
       else add(d, unitOf(av), 'omsetning', oms);
     }
     state.meta.sources.ark = { ok: true, rader: sales.length, siste_solgt: sales.map(s => s.dato).sort().slice(-1)[0], uten_oppdragsnr: sales.filter(s => !s.nr).map(s => s.bat) };
@@ -171,7 +174,9 @@ async function buildScorecardState(sb) {
     const pages = []; for (let o = 100; o < total; o += 100) pages.push(of(`/contracts?limit=100&offset=${o}`));
     for (const j of await Promise.all(pages)) all.push(...(j.data || []));
     const tid = (c) => Number(c._private_ownerside?.template_id || 0), nm = (c) => c._private?.name || c.name || '';
-    const broker = (c) => { for (const p of c.parties || []) for (const pt of p.participants || []) { const e = (pt.email || '').toLowerCase(); if (EMAILS[e]) return unitOf(EMAILS[e]); } return 'ukjent'; };
+    // Oneflow: bedrifts-parter har participants[]; privatpersoner (selgere) har ett participant-objekt
+    const parts = (p) => (p.participants && p.participants.length) ? p.participants : (p.participant ? [p.participant] : []);
+    const broker = (c) => { for (const p of c.parties || []) for (const pt of parts(p)) { const e = (pt.email || '').toLowerCase(); if (EMAILS[e]) return unitOf(EMAILS[e]); } return 'ukjent'; };
     const oas = all.filter(c => tid(c) === P.OA_TEMPLATE);
     // åpne: sendt, ikke signert, ikke utløpt/avvist
     for (const c of oas) if (c.published_time && c.state === 'pending')
@@ -180,7 +185,7 @@ async function buildScorecardState(sb) {
     const cands = oas.filter(c => c.state === 'signed' && c.state_updated_time && new Date(c.state_updated_time) >= new Date(FRA - 14 * 864e5));
     for (let i = 0; i < cands.length; i += 10) await Promise.all(cands.slice(i, i + 10).map(async c => {
       const det = await of(`/contracts/${c.id}`); const times = [];
-      for (const p of det.parties || []) for (const pt of p.participants || []) if (pt.signatory && pt.sign_state === 'signed' && !(pt.email || '').toLowerCase().endsWith('@h-y.no') && pt.sign_state_updated_time) times.push(pt.sign_state_updated_time);
+      for (const p of det.parties || []) { if (p.my_party) continue; for (const pt of parts(p)) if (pt.sign_state === 'signed' && pt.sign_state_updated_time && !(pt.email || '').toLowerCase().endsWith('@h-y.no')) times.push(pt.sign_state_updated_time); }
       const ts = times.length ? times.sort().slice(-1)[0] : c.state_updated_time;
       if (new Date(ts) < FRA) return;
       const nr = (nm(c).trim().match(/^(\d{5})/) || [])[1] || null;
@@ -212,7 +217,7 @@ async function buildScorecardState(sb) {
       if (!pub && L?.annonse_publisert && L.annonse_kilde === 'finn') { pub = L.annonse_publisert; kilde = 'finn (livsløp)'; }
       s.finn_kode = kode || null; s.publisert = pub ? pub.slice(0, 10) : null; s.publisert_kilde = kilde;
       s.pris = boat[boatOfDeal[A?.deal_id]]?.pris ? Number(boat[boatOfDeal[A?.deal_id]].pris) : null;
-      if (pub) { const dg = days(s.signert, pub); s.dager_til_publisert = dg; add(new Date(s.signert), s.megler, 'publisert_kjent'); if (dg <= P.PUBLISERT_MAL_DAGER) add(new Date(s.signert), s.megler, 'publisert_7d'); }
+      if (pub) { const raw = days(s.signert, pub); s.forhandspublisert = raw < 0; s.dager_til_publisert = Math.max(0, raw); add(new Date(s.signert), s.megler, 'publisert_kjent'); if (s.dager_til_publisert <= P.PUBLISERT_MAL_DAGER) add(new Date(s.signert), s.megler, 'publisert_7d'); if (raw < 0) add(new Date(s.signert), s.megler, 'forhandspublisert'); }
       else if (days(s.signert, now) > P.PUBLISERT_MAL_DAGER) state.ikke_publisert.push({ nr: s.nr, navn: s.navn, megler: s.megler, signert: s.signert, dager: days(s.signert, now) });
     }
     state.ikke_publisert.sort((a, b) => b.dager - a.dager);
@@ -244,7 +249,7 @@ async function buildScorecardState(sb) {
   state.planhistorikk = planhistorikk;
 
   // uker-tabell (alle H2-uker t.o.m. nå)
-  const COLS = ['kontakter', 'kontakter_alle', 'leads', 'signert', 'publisert_7d', 'publisert_kjent', 'solgt', 'omsetning'];
+  const COLS = ['kontakter', 'kontakter_alle', 'leads', 'signert', 'publisert_7d', 'publisert_kjent', 'forhandspublisert', 'solgt', 'omsetning'];
   for (const k of h2Weeks) {
     if (k > curKey) break;
     const w = isoWeek(weekStart(2026, Number(k.slice(-2)))); const start = weekStart(2026, Number(k.slice(-2)));
@@ -276,29 +281,30 @@ async function buildScorecardState(sb) {
       if (r.status === 'solgt' && r.solgt_dato) { t = days(r.oppdragsavtale_signert, r.solgt_dato); event = true; if (t < 0) continue; }
       else if (r.status === 'aktiv') { t = days(r.oppdragsavtale_signert, today); event = false; }
       else { t = TMAX; event = false; } // avsluttet usolgt: selger aldri
-      obsBy[k].push({ t, event });
+      obsBy[k].push({ t, event, avsluttet: r.status !== 'solgt' && r.status !== 'aktiv' });
     }
     const ORDER = ['<1M', '1-2M', '2-5M', '>5M'];
     for (const k of ORDER) {
       let obs = obsBy[k], brukt = [k];
       if (obs.length < MIN_N) { const i = ORDER.indexOf(k); const nb = ORDER[i - 1] || ORDER[i + 1]; obs = obs.concat(obsBy[nb]); brukt.push(nb); }
       const S = kmCurve(obs);
-      KURVER.klasser[k] = { n: obsBy[k].length, n_brukt: obs.length, slatt_sammen_med: brukt.length > 1 ? brukt[1] : null, S90: +(1 - S[90]).toFixed(3), S180: +(1 - S[180]).toFixed(3), S365: +(1 - S[365]).toFixed(3), S };
+      const Salt = kmCurve(obs.filter(o => !o.avsluttet)); // alternativ: avsluttede usolgte holdes utenfor (optimistisk)
+      KURVER.klasser[k] = { n: obsBy[k].length, n_brukt: obs.length, slatt_sammen_med: brukt.length > 1 ? brukt[1] : null, S90: +(1 - S[90]).toFixed(3), S180: +(1 - S[180]).toFixed(3), S365: +(1 - S[365]).toFixed(3), S, Salt, alt365: +(1 - Salt[365]).toFixed(3) };
     }
-    { const all = ORDER.flatMap(k => obsBy[k]).concat(obsBy.ukjent); const S = kmCurve(all); KURVER.klasser.ukjent = { n: obsBy.ukjent.length, n_brukt: all.length, slatt_sammen_med: 'alle', S90: +(1 - S[90]).toFixed(3), S180: +(1 - S[180]).toFixed(3), S365: +(1 - S[365]).toFixed(3), S }; }
-    state.kurver = { ...KURVER, klasser: Object.fromEntries(Object.entries(KURVER.klasser).map(([k, v]) => [k, { n: v.n, n_brukt: v.n_brukt, slatt_sammen_med: v.slatt_sammen_med, solgt_innen_90: v.S90, solgt_innen_180: v.S180, solgt_innen_365: v.S365 }])) };
+    { const all = ORDER.flatMap(k => obsBy[k]).concat(obsBy.ukjent); const S = kmCurve(all), Salt = kmCurve(all.filter(o => !o.avsluttet)); KURVER.klasser.ukjent = { n: obsBy.ukjent.length, n_brukt: all.length, slatt_sammen_med: 'alle', S90: +(1 - S[90]).toFixed(3), S180: +(1 - S[180]).toFixed(3), S365: +(1 - S[365]).toFixed(3), S, Salt, alt365: +(1 - Salt[365]).toFixed(3) }; }
+    state.kurver = { ...KURVER, klasser: Object.fromEntries(Object.entries(KURVER.klasser).map(([k, v]) => [k, { n: v.n, n_brukt: v.n_brukt, slatt_sammen_med: v.slatt_sammen_med, solgt_innen_90: v.S90, solgt_innen_180: v.S180, solgt_innen_365: v.S365, alt_uten_avsluttede_365: v.alt365 }])) };
     state.meta.sources.kurver = { ok: true, oppdrag: (hist || []).length };
   } catch (e) { state.meta.sources.kurver = { ok: false, error: e.message }; }
-  const pSalgInnen = (klasse, alder, horisont) => { const c = KURVER.klasser[klasse] || KURVER.klasser.ukjent; if (!c) return null; const S = c.S; const s1 = S[Math.min(TMAX, alder)], s2 = S[Math.min(TMAX, alder + horisont)]; return s1 > 0 ? Math.max(0, Math.min(1, (s1 - s2) / s1)) : 0; };
+  const pSalgInnen = (klasse, alder, horisont, alt) => { const c = KURVER.klasser[klasse] || KURVER.klasser.ukjent; if (!c) return null; const S = alt ? c.Salt : c.S; const s1 = S[Math.min(TMAX, alder)], s2 = S[Math.min(TMAX, alder + horisont)]; return s1 > 0 ? Math.max(0, Math.min(1, (s1 - s2) / s1)) : 0; };
 
   // 6. Portefølje: forventet omsetning innen 31.12 ───────────────────────────
   try {
     const soldNrs = new Set(sales.map(s => String(s.nr)).filter(Boolean));
-    const { data: liv } = await sb.from('oppdrag_livslop').select('oppdragsnr,status,prisantydning,prisklasse,oppdragsavtale_signert,megler_email,batmodell').eq('status', 'aktiv');
+    const { data: liv } = await sb.from('oppdrag_livslop').select('oppdragsnr,status,prisantydning,prisklasse,oppdragsavtale_signert,megler_email,batmodell,deal_a_id,deal_b_id').eq('status', 'aktiv');
     const { data: asg } = await sb.from('assignment_numbers').select('number,deal_id,vessel_name,broker_email,oppdragsavtale_signed_at').eq('year', 2026);
     const livNr = new Set((liv || []).map(r => String(r.oppdragsnr)));
     const items = [];
-    for (const r of liv || []) if (!soldNrs.has(String(r.oppdragsnr))) items.push({ nr: String(r.oppdragsnr), navn: r.batmodell, megler: unitOf(EMAILS[(r.megler_email || '').toLowerCase()]), pris: r.prisantydning, signert: (r.oppdragsavtale_signert || '').slice(0, 10) || null, kilde: 'livsløp' });
+    for (const r of liv || []) if (!soldNrs.has(String(r.oppdragsnr))) items.push({ nr: String(r.oppdragsnr), navn: r.batmodell, megler_opprinnelig: unitOf(EMAILS[(r.megler_email || '').toLowerCase()]), megler: unitOf(EMAILS[(r.megler_email || '').toLowerCase()]), pris: r.prisantydning, signert: (r.oppdragsavtale_signert || '').slice(0, 10) || null, kilde: 'livsløp', deal_id: r.deal_b_id || r.deal_a_id || null });
     // nye nummer som livsløpet ikke har (etter siste import) — pris fra HubSpot boat
     const nye = (asg || []).filter(a => !livNr.has(String(a.number)) && !soldNrs.has(String(a.number)) && !/charter/i.test(a.vessel_name || ''));
     const dealIds = nye.map(a => a.deal_id).filter(Boolean);
@@ -306,14 +312,23 @@ async function buildScorecardState(sb) {
     for (let i = 0; i < dealIds.length; i += 100) { const j = await hs('/crm/v3/objects/deals/batch/read', { inputs: dealIds.slice(i, i + 100).map(id => ({ id: String(id) })), properties: ['boat_id', 'dealstage'] }); for (const d of j.results || []) bo[d.id] = d.properties?.boat_id; }
     const bids = [...new Set(Object.values(bo).filter(Boolean))];
     for (let i = 0; i < bids.length; i += 100) { const j = await hs(`/crm/v3/objects/${P.BOATS}/batch/read`, { inputs: bids.slice(i, i + 100).map(id => ({ id: String(id) })), properties: ['pris'] }); for (const b of j.results || []) bp[b.id] = b.properties?.pris ? Number(b.properties.pris) : null; }
-    for (const a of nye) items.push({ nr: String(a.number), navn: a.vessel_name, megler: unitOf(EMAILS[(a.broker_email || '').toLowerCase()]), pris: bp[bo[a.deal_id]] ?? null, signert: (a.oppdragsavtale_signed_at || '').slice(0, 10) || null, kilde: 'oppdragsmodul' });
+    for (const a of nye) items.push({ nr: String(a.number), navn: a.vessel_name, megler_opprinnelig: unitOf(EMAILS[(a.broker_email || '').toLowerCase()]), megler: unitOf(EMAILS[(a.broker_email || '').toLowerCase()]), pris: bp[bo[a.deal_id]] ?? null, signert: (a.oppdragsavtale_signed_at || '').slice(0, 10) || null, kilde: 'oppdragsmodul', deal_id: a.deal_id || null });
+    // Ansvarlig megler NÅ = eier av HubSpot-dealen (Daniels portefølje er omfordelt der; livsløpet er statisk)
+    const ownIds = [...new Set(items.map(i => i.deal_id).filter(Boolean).map(String))]; const owner = {};
+    const dealState = {};
+    for (let i = 0; i < ownIds.length; i += 100) { const j = await hs('/crm/v3/objects/deals/batch/read', { inputs: ownIds.slice(i, i + 100).map(id => ({ id })), properties: ['hubspot_owner_id', 'hs_is_closed_lost', 'hs_is_closed_won', 'dealstage'] }); for (const d of j.results || []) { owner[d.id] = d.properties?.hubspot_owner_id; dealState[d.id] = d.properties || {}; } }
+    let omfordelt = 0; const tapt = [];
+    for (const it of items) { const o = owner[String(it.deal_id)]; if (o && OWNERS[o]) { const u = unitOf(OWNERS[o]); if (u !== it.megler) { it.megler = u; it.omfordelt_fra = it.megler_opprinnelig; omfordelt++; } }
+      const st = dealState[String(it.deal_id)] || {}; if (String(st.hs_is_closed_lost) === 'true') { it.tapt_i_hubspot = true; tapt.push(it.nr); } if (String(st.hs_is_closed_won) === 'true') it.vunnet_i_hubspot_ikke_i_ark = true; }
+    // Closed lost i HubSpot = avsluttet usolgt → ut av porteføljen (livsløpet er statisk siden siste import)
+    const tapteNr = new Set(tapt); for (let i = items.length - 1; i >= 0; i--) if (tapteNr.has(items[i].nr)) items.splice(i, 1);
     const horizon = days(today, P.H2.slutt);
     for (const it of items) {
       it.prisklasse = klasseAv(it.pris);
       it.forventet_provisjon = it.pris ? Math.max(45000, it.pris * 0.06) / 1.25 : P.INNT;
       const alder = it.signert ? Math.max(0, days(it.signert, today)) : 0;
-      it.alder_dager = alder; it.p_salg_i_ar = pSalgInnen(it.prisklasse, alder, horizon) ?? 0;
-      it.forventet = Math.round(it.forventet_provisjon * it.p_salg_i_ar);
+      it.alder_dager = alder; it.p_salg_i_ar = pSalgInnen(it.prisklasse, alder, horizon) ?? 0; it.p_alt = pSalgInnen(it.prisklasse, alder, horizon, true) ?? 0;
+      it.forventet = Math.round(it.forventet_provisjon * it.p_salg_i_ar); it.forventet_alt = Math.round(it.forventet_provisjon * it.p_alt);
     }
     // Spredning (P25/P75) ved Monte Carlo over binære utfall — 2000 trekk, deterministisk frø
     let seed = 42; const rnd = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
@@ -326,12 +341,17 @@ async function buildScorecardState(sb) {
       // «disse må selge»: færrest mulig oppdrag (høyest forventet provisjon × p) som dekker gapet mot mål
       const maSelge = []; let dekket = 0; const restGap = maal - real;
       for (const it of [...mine].sort((a, b) => b.forventet - a.forventet)) { if (dekket >= restGap) break; maSelge.push(it.nr); dekket += it.forventet_provisjon; }
-      per[u] = { aktive: mine.length, uten_pris: mine.filter(i => !i.pris).length, forventet: Math.round(forventet), spredning: simFor(mine), realisert: Math.round(real), maal, gap: Math.round(gap), dekning_pct: maal ? Math.round(100 * (real + forventet) / maal) : null,
+      const priset = mine.filter(i => i.pris), upriset = mine.filter(i => !i.pris);
+      per[u] = { aktive: mine.length, uten_pris: upriset.length, omfordelt_hit: mine.filter(i => i.omfordelt_fra).length, forventet: Math.round(forventet), spredning: simFor(mine),
+        scenarioer: { priset: Math.round(priset.reduce((a, i) => a + i.forventet, 0)), upriset_standard: Math.round(upriset.reduce((a, i) => a + i.forventet, 0)), uten_avsluttede_i_kurven: Math.round(mine.reduce((a, i) => a + i.forventet_alt, 0)) },
+        realisert: Math.round(real), maal, gap: Math.round(gap), dekning_pct: maal ? Math.round(100 * (real + forventet) / maal) : null,
         trengs: gap > 0 ? { salg: +salg.toFixed(1), signeringer: +sign.toFixed(1), leads: +(sign / P.VINNRATE_PROXY / P.LEAD_TIL_BEFARING).toFixed(0) } : null,
         ma_selge: restGap > 0 ? maSelge : [] };
     }
     state.portefolje = { per_megler: per, oppdrag: items.sort((a, b) => b.forventet - a.forventet), horisont_dager: horizon, formel: 'forventet = max(45k, pris×6 %)÷1,25 × P(solgt innen 31.12 | ikke solgt ennå); P fra Kaplan–Meier-kurve per prisklasse, regnet fra oppdrag_livslop hver natt', note: 'livsløp sist importert manuelt; nye nummer hentes fra oppdragsmodulen med pris fra HubSpot boat' };
-    state.meta.sources.livslop = { ok: true, aktive: items.length, fra_livslop: items.filter(i => i.kilde === 'livsløp').length, nye_fra_modul: nye.length };
+    state.portefolje.scenario_note = 'Hovedtall = prisede oppdrag + uprisede med standard 58 375 (fasit-snitt) — vises også hver for seg. «Uten avsluttede i kurven» = alternativ (optimistisk) kurve der avsluttede usolgte oppdrag holdes utenfor i stedet for å telle som aldri-solgt.';
+    state.portefolje.tapt_i_hubspot = tapt; state.portefolje.vunnet_ikke_i_ark = items.filter(i => i.vunnet_i_hubspot_ikke_i_ark).map(i => i.nr);
+    state.meta.sources.livslop = { ok: true, aktive: items.length, fra_livslop: items.filter(i => i.kilde === 'livsløp').length, nye_fra_modul: nye.length, omfordelt_via_hubspot: omfordelt, tapt_i_hubspot: tapt.length };
   } catch (e) { state.meta.sources.livslop = { ok: false, error: e.message }; }
 
   // 7. Spaker (fra arket, YTD) ───────────────────────────────────────────────
@@ -355,7 +375,8 @@ async function buildScorecardState(sb) {
     const M = { Selskap: mk(), Sindre: mk(), Henrik: mk(), Daniel: mk() }, MS = { Selskap: mk(), Sindre: mk(), Henrik: mk(), Daniel: mk() };
     const addM = (obj, m, who, v) => { obj[who] ??= mk(); obj[who][m] += v; obj.Selskap[m] += v; };
     for (const sRow of sales) { if (!sRow.dato.startsWith(String(year))) continue; const m = Number(sRow.dato.slice(5, 7));
-      if (sRow.inn && sRow.av && sRow.inn !== sRow.av) { addM(M, m, unitOf(sRow.inn), sRow.oms / 2); addM(M, m, unitOf(sRow.av), sRow.oms / 2); } else addM(M, m, unitOf(sRow.av), sRow.oms);
+      const fullt = sRow.inn === 'Daniel' && sRow.av !== 'Daniel' && sRow.dato >= P.DANIEL_SLUTT;
+      if (sRow.inn && sRow.av && sRow.inn !== sRow.av && !fullt) { addM(M, m, unitOf(sRow.inn), sRow.oms / 2); addM(M, m, unitOf(sRow.av), sRow.oms / 2); } else addM(M, m, unitOf(sRow.av), sRow.oms);
       MS[unitOf(sRow.av)] ??= mk(); MS[unitOf(sRow.av)][m] += 1; MS.Selskap[m] += 1; }
     // fjorår fra livsløpet (oppgjørsliste 2025 importert)
     const { data: ly } = await sb.from('oppdrag_livslop').select('solgt_dato,omsetning_ex_mva,megler_email').gte('solgt_dato', `${year - 1}-01-01`).lt('solgt_dato', `${year}-01-01`).limit(2000);
