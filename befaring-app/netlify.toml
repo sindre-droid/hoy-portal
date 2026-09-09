@@ -138,7 +138,8 @@
 
 [functions."scorecard-nightly"]
   schedule = "0 4 * * *"
-  timeout = 26
+
+# Selve bygget (20–40 s) kjører i scorecard-rebuild-background (-background = 15 min, ingen timeout-innstilling nødvendig)
 
 [functions."poweroffice-nightly"]
   schedule = "30 3 * * *"

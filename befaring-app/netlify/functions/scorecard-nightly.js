@@ -1,13 +1,10 @@
 // ── scorecard-nightly.js ─────────────────────────────────────────────────────
-// Planlagt bygger for Weekly Scorecard (04:00, etter dashboard-state 03:30).
-// Egen fil fordi Netlify ikke lar HTTP-kall nå funksjoner som har schedule.
+// Planlagt trigger 04:00 (etter dashboard-state 03:30). Selve bygget kjører i
+// scorecard-rebuild-background (bakgrunnsfunksjon, ingen 26 s-grense).
 // ─────────────────────────────────────────────────────────────────────────────
-const core = require('./poweroffice-sync.js');
-const sc = require('./scorecard-state.js');
-
 exports.handler = async () => {
-  const t = Date.now();
-  const r = await sc.buildScorecardState(core.supabase());
-  console.log('[scorecard-nightly]', r.ok ? 'OK' : 'FEIL', r.error || '', 'ms=' + (Date.now() - t), JSON.stringify(r.state?.meta?.sources || {}));
-  return { statusCode: r.ok ? 200 : 500, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ok: r.ok, error: r.error, ms: Date.now() - t }) };
+  const base = process.env.URL || 'https://silver-puffpuff-8a67de.netlify.app';
+  const r = await fetch(`${base}/.netlify/functions/scorecard-rebuild-background`, { method: 'POST', headers: { 'x-internal-key': process.env.SUPABASE_SERVICE_KEY || '' } });
+  console.log('[scorecard-nightly] trigget bakgrunnsbygg →', r.status);
+  return { statusCode: 200, body: JSON.stringify({ ok: r.status === 202 || r.ok, status: r.status }) };
 };

@@ -177,7 +177,10 @@ async function init(){
 }
 async function load(){const r=await fetch(`${API}?action=get`,{headers:{Authorization:`Bearer ${token}`}});if(!r.ok){fatal(`scorecard-state svarte ${r.status}`);return;}const j=await r.json();S=j.state;builtAt=j.built_at;if(!S){fatal('Ingen lagret scorecard ennå — trykk «Bygg på nytt» (~25 s).');return;}render();}
 function fatal(m){$('loading').style.display='none';$('app').style.display='';$('degrade').style.display='';$('degrade').innerHTML=`<b>Ingen data</b><div>${esc(m)}</div>`;}
-$('rebuildBtn').onclick=async()=>{const b=$('rebuildBtn');b.disabled=true;b.textContent='↻ Bygger… (~25 s)';try{const r=await fetch(`${API}?action=rebuild`,{method:'POST',headers:{Authorization:`Bearer ${token}`}});const j=await r.json();if(j.state){S=j.state;builtAt=S.meta?.built_at;render();}if(!j.ok)alert('Rebuild med feil: '+(j.error||j.step||'ukjent'));}catch(e){alert('Rebuild feilet: '+e.message);}b.disabled=false;b.textContent='↻ Bygg på nytt';};
+$('rebuildBtn').onclick=async()=>{const b=$('rebuildBtn');b.disabled=true;b.textContent='↻ Starter…';const before=builtAt;
+  try{const r=await fetch(`${API}?action=rebuild`,{method:'POST',headers:{Authorization:`Bearer ${token}`}});const j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)throw new Error(j.error||('status '+r.status));
+    for(let i=1;i<=24;i++){b.textContent=`↻ Bygger… ${i*5} s`;await new Promise(res=>setTimeout(res,5000));const g=await fetch(`${API}?action=get`,{headers:{Authorization:`Bearer ${token}`}});const gj=await g.json();if(gj.state&&gj.built_at!==before){S=gj.state;builtAt=gj.built_at;render();break;}if(i===24)alert('Bygget er startet, men er ikke ferdig etter 2 min — last siden på nytt om litt.');}}
+  catch(e){alert('Rebuild feilet: '+e.message);}b.disabled=false;b.textContent='↻ Bygg på nytt';};
 
 function render(){
   const age=builtAt?Math.round((Date.now()-new Date(builtAt))/36e5):null;

@@ -459,7 +459,12 @@ exports.handler = async (event) => {
   const sb = supabase(), action = (event.queryStringParameters || {}).action || 'get';
   const respond = (ok, p) => ({ statusCode: ok ? 200 : 502, headers: { ...CORS, 'Content-Type': 'application/json' }, body: JSON.stringify(p) });
   if (action === 'get') { const { data } = await sb.from('scorecard_state').select('*').eq('id', 1).maybeSingle(); return respond(true, { state: data ? data.state : null, built_at: data ? data.built_at : null }); }
-  if (action === 'rebuild') { const r = await buildScorecardState(sb); return respond(r.ok, r); }
+  if (action === 'rebuild') {
+    // Bygget tar 20–40 s → kjøres i bakgrunnsfunksjon; klienten poller ?action=get til built_at endrer seg
+    const base = process.env.URL || `https://${event.headers.host}`;
+    const r = await fetch(`${base}/.netlify/functions/scorecard-rebuild-background`, { method: 'POST', headers: { 'x-internal-key': process.env.SUPABASE_SERVICE_KEY || '' } });
+    return respond(r.status === 202 || r.ok, { ok: r.status === 202 || r.ok, started: true, status: r.status });
+  }
   return respond(false, { error: 'Ukjent action: ' + action });
 };
 module.exports.buildScorecardState = buildScorecardState;
