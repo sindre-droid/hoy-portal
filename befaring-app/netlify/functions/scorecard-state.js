@@ -300,11 +300,11 @@ async function buildScorecardState(sb) {
   // 6. Portefølje: forventet omsetning innen 31.12 ───────────────────────────
   try {
     const soldNrs = new Set(sales.map(s => String(s.nr)).filter(Boolean));
-    const { data: liv } = await sb.from('oppdrag_livslop').select('oppdragsnr,status,prisantydning,prisklasse,oppdragsavtale_signert,megler_email,batmodell,deal_a_id,deal_b_id').eq('status', 'aktiv');
+    const { data: liv } = await sb.from('oppdrag_livslop').select('oppdragsnr,status,prisantydning,prisklasse,oppdragsavtale_signert,megler_email,batmodell,deal_a_id,deal_b_id,boat_hs_id').eq('status', 'aktiv');
     const { data: asg } = await sb.from('assignment_numbers').select('number,deal_id,vessel_name,broker_email,oppdragsavtale_signed_at').eq('year', 2026);
     const livNr = new Set((liv || []).map(r => String(r.oppdragsnr)));
     const items = [];
-    for (const r of liv || []) if (!soldNrs.has(String(r.oppdragsnr))) items.push({ nr: String(r.oppdragsnr), navn: r.batmodell, megler_opprinnelig: unitOf(EMAILS[(r.megler_email || '').toLowerCase()]), megler: unitOf(EMAILS[(r.megler_email || '').toLowerCase()]), pris: r.prisantydning, signert: (r.oppdragsavtale_signert || '').slice(0, 10) || null, kilde: 'livsløp', deal_id: r.deal_b_id || r.deal_a_id || null });
+    for (const r of liv || []) if (!soldNrs.has(String(r.oppdragsnr))) items.push({ nr: String(r.oppdragsnr), navn: r.batmodell, megler_opprinnelig: unitOf(EMAILS[(r.megler_email || '').toLowerCase()]), megler: unitOf(EMAILS[(r.megler_email || '').toLowerCase()]), pris: r.prisantydning, pris_kilde: r.prisantydning ? 'livsløp' : null, signert: (r.oppdragsavtale_signert || '').slice(0, 10) || null, kilde: 'livsløp', deal_id: r.deal_b_id || r.deal_a_id || null, boat_id: r.boat_hs_id || null });
     // nye nummer som livsløpet ikke har (etter siste import) — pris fra HubSpot boat
     const nye = (asg || []).filter(a => !livNr.has(String(a.number)) && !soldNrs.has(String(a.number)) && !/charter/i.test(a.vessel_name || ''));
     const dealIds = nye.map(a => a.deal_id).filter(Boolean);
@@ -313,6 +313,13 @@ async function buildScorecardState(sb) {
     const bids = [...new Set(Object.values(bo).filter(Boolean))];
     for (let i = 0; i < bids.length; i += 100) { const j = await hs(`/crm/v3/objects/${P.BOATS}/batch/read`, { inputs: bids.slice(i, i + 100).map(id => ({ id: String(id) })), properties: ['pris'] }); for (const b of j.results || []) bp[b.id] = b.properties?.pris ? Number(b.properties.pris) : null; }
     for (const a of nye) items.push({ nr: String(a.number), navn: a.vessel_name, megler_opprinnelig: unitOf(EMAILS[(a.broker_email || '').toLowerCase()]), megler: unitOf(EMAILS[(a.broker_email || '').toLowerCase()]), pris: bp[bo[a.deal_id]] ?? null, signert: (a.oppdragsavtale_signed_at || '').slice(0, 10) || null, kilde: 'oppdragsmodul', deal_id: a.deal_id || null });
+    // Pris NÅ = båtkortet i HubSpot (`pris`) for ALLE oppdrag — livsløpets prisantydning er statisk siden import
+    for (const it of items) if (!it.boat_id && it.deal_id && bo[String(it.deal_id)]) it.boat_id = bo[String(it.deal_id)];
+    const needBoat = items.filter(i => i.deal_id && !i.boat_id).map(i => String(i.deal_id));
+    for (let i = 0; i < needBoat.length; i += 100) { const j = await hs('/crm/v3/objects/deals/batch/read', { inputs: needBoat.slice(i, i + 100).map(id => ({ id })), properties: ['boat_id'] }); for (const d of j.results || []) { const it = items.find(x => String(x.deal_id) === d.id); if (it) it.boat_id = d.properties?.boat_id || null; } }
+    const allBoats = [...new Set(items.map(i => i.boat_id).filter(Boolean).map(String))]; const boatPris = {};
+    for (let i = 0; i < allBoats.length; i += 100) { const j = await hs(`/crm/v3/objects/${P.BOATS}/batch/read`, { inputs: allBoats.slice(i, i + 100).map(id => ({ id })), properties: ['pris'] }); for (const b of j.results || []) boatPris[b.id] = b.properties?.pris ? Number(b.properties.pris) : null; }
+    for (const it of items) { const p = boatPris[String(it.boat_id)]; if (p) { it.pris = p; it.pris_kilde = 'hubspot'; } }
     // Ansvarlig megler NÅ = eier av HubSpot-dealen (Daniels portefølje er omfordelt der; livsløpet er statisk)
     const ownIds = [...new Set(items.map(i => i.deal_id).filter(Boolean).map(String))]; const owner = {};
     const dealState = {};
