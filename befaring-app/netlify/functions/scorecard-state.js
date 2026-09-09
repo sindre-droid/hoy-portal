@@ -332,7 +332,7 @@ async function buildScorecardState(sb) {
     }
     // Spredning (P25/P75) ved Monte Carlo over binære utfall — 2000 trekk, deterministisk frø
     let seed = 42; const rnd = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
-    const simFor = (mine) => { const sums = []; for (let i = 0; i < 2000; i++) { let s = 0; for (const it of mine) if (rnd() < it.p_salg_i_ar) s += it.forventet_provisjon; sums.push(s); } sums.sort((a, b) => a - b); return { p25: Math.round(sums[500]), p50: Math.round(sums[1000]), p75: Math.round(sums[1500]) }; };
+    const simFor = (mine, pKey = 'p_salg_i_ar') => { const sums = []; for (let i = 0; i < 2000; i++) { let s = 0; for (const it of mine) if (rnd() < it[pKey]) s += it.forventet_provisjon; sums.push(s); } sums.sort((a, b) => a - b); return { p25: Math.round(sums[500]), p50: Math.round(sums[1000]), p75: Math.round(sums[1500]) }; };
     const per = {};
     for (const u of ['Selskap', 'Sindre', 'Henrik', 'Daniel']) {
       const mine = items.filter(i => u === 'Selskap' || i.megler === u);
@@ -342,14 +342,24 @@ async function buildScorecardState(sb) {
       const maSelge = []; let dekket = 0; const restGap = maal - real;
       for (const it of [...mine].sort((a, b) => b.forventet - a.forventet)) { if (dekket >= restGap) break; maSelge.push(it.nr); dekket += it.forventet_provisjon; }
       const priset = mine.filter(i => i.pris), upriset = mine.filter(i => !i.pris);
-      per[u] = { aktive: mine.length, uten_pris: upriset.length, omfordelt_hit: mine.filter(i => i.omfordelt_fra).length, forventet: Math.round(forventet), spredning: simFor(mine),
+      // Base / Downside / Upside (rådgiver 9. sep): beslutninger tas på Downside.
+      //   Base     = P50, hovedkurve, prisede + uprisede (standard 58 375)
+      //   Downside = P25, hovedkurve, KUN prisede oppdrag
+      //   Upside   = P75, optimistisk kurve (avsluttede usolgte sensurert), alle
+      const base = simFor(mine), down = simFor(priset), up = simFor(mine, 'p_alt');
+      const scen = { base: base.p50, downside: down.p25, upside: up.p75 };
+      const gapDown = maal - real - scen.downside; const salgD = Math.max(0, gapDown) / P.INNT, signD = salgD * P.OPPDRAG_PER_SALG;
+      per[u] = { aktive: mine.length, uten_pris: upriset.length, omfordelt_hit: mine.filter(i => i.omfordelt_fra).length, forventet: Math.round(forventet), spredning: base,
         scenarioer: { priset: Math.round(priset.reduce((a, i) => a + i.forventet, 0)), upriset_standard: Math.round(upriset.reduce((a, i) => a + i.forventet, 0)), uten_avsluttede_i_kurven: Math.round(mine.reduce((a, i) => a + i.forventet_alt, 0)) },
+        bdu: scen, gap_downside: Math.round(gapDown), dekning_downside_pct: maal ? Math.round(100 * (real + scen.downside) / maal) : null,
+        trengs_downside: gapDown > 0 ? { salg: +salgD.toFixed(1), signeringer: +signD.toFixed(1), leads: +(signD / P.VINNRATE_PROXY / P.LEAD_TIL_BEFARING).toFixed(0) } : null,
         realisert: Math.round(real), maal, gap: Math.round(gap), dekning_pct: maal ? Math.round(100 * (real + forventet) / maal) : null,
         trengs: gap > 0 ? { salg: +salg.toFixed(1), signeringer: +sign.toFixed(1), leads: +(sign / P.VINNRATE_PROXY / P.LEAD_TIL_BEFARING).toFixed(0) } : null,
         ma_selge: restGap > 0 ? maSelge : [] };
     }
     state.portefolje = { per_megler: per, oppdrag: items.sort((a, b) => b.forventet - a.forventet), horisont_dager: horizon, formel: 'forventet = max(45k, pris×6 %)÷1,25 × P(solgt innen 31.12 | ikke solgt ennå); P fra Kaplan–Meier-kurve per prisklasse, regnet fra oppdrag_livslop hver natt', note: 'livsløp sist importert manuelt; nye nummer hentes fra oppdragsmodulen med pris fra HubSpot boat' };
-    state.portefolje.scenario_note = 'Hovedtall = prisede oppdrag + uprisede med standard 58 375 (fasit-snitt) — vises også hver for seg. «Uten avsluttede i kurven» = alternativ (optimistisk) kurve der avsluttede usolgte oppdrag holdes utenfor i stedet for å telle som aldri-solgt.';
+    state.portefolje.scenario_note = 'Base = P50 (hovedkurve, prisede + uprisede m/ standard 58 375). Downside = P25, kun prisede oppdrag. Upside = P75, optimistisk kurve (avsluttede usolgte sensurert). Beslutninger tas på Downside.';
+    state.plan.trakt_note = 'AKTIVITETSPROXY, IKKE MÅLT TRAKT: 68 % er vinnraten i hele Pipeline A (prospect→signert), 50 % er plantall prospect→befaring — lead-behovet er derfor en grov proxy til stage-historikk finnes.';
     state.portefolje.tapt_i_hubspot = tapt; state.portefolje.vunnet_ikke_i_ark = items.filter(i => i.vunnet_i_hubspot_ikke_i_ark).map(i => i.nr);
     state.meta.sources.livslop = { ok: true, aktive: items.length, fra_livslop: items.filter(i => i.kilde === 'livsløp').length, nye_fra_modul: nye.length, omfordelt_via_hubspot: omfordelt, tapt_i_hubspot: tapt.length };
   } catch (e) { state.meta.sources.livslop = { ok: false, error: e.message }; }

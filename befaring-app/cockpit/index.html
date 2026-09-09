@@ -212,20 +212,29 @@ const weeksSorted=()=>Object.values(S.uker||{}).sort((a,b)=>a.uke<b.uke?1:-1);
 const unitRow=w=>UNIT==='Selskap'?w.Selskap:(w[UNIT]||{});
 const rowPlan=w=>(w.plan&&w.plan[UNIT])||unitPlan(UNIT);
 function last4(col){const ws=weeksSorted().filter(w=>!w.paagaar).slice(0,4);return ws.length?ws.reduce((a,w)=>a+(unitRow(w)[col]||0),0)/ws.length:null;}
+function actionFor(u,pf,pu,oppNavn){
+  const t=pf.trengs_downside, must=(pf.ma_selge||[]).slice(0,6);
+  if(t) return `<div class="v md">${n1(t.signeringer)} nye signeringer</div><div class="t">≈ ${n1(t.salg)} salg · ${t.leads} leads (proxy) — gap ${nok(pf.gap_downside)} på downside. Må selge: </div><div class="must">${must.map(nr=>`<span title="${esc(oppNavn[nr]||'')}">${esc(nr)} ${esc((oppNavn[nr]||'').slice(0,18))}</span>`).join('')}</div>`;
+  return `<div class="v md">Dekket på downside</div><div class="t">margin ${nok(-pf.gap_downside)} · ikke press utover å selge porteføljen. Må selge: </div><div class="must">${must.map(nr=>`<span title="${esc(oppNavn[nr]||'')}">${esc(nr)} ${esc((oppNavn[nr]||'').slice(0,18))}</span>`).join('')||'<span>ingen</span>'}</div>`;
+}
+function actionsAll(){
+  const P=S.portefolje?.per_megler||{}; const rows=['Henrik','Sindre'].map(u=>{const p=P[u]||{};const t=p.trengs_downside;return `<div style="margin-top:6px"><b>${UNAME[u]}:</b> ${t?`${n1(t.signeringer)} nye signeringer (≈ ${t.leads} leads, proxy) — gap ${nok(p.gap_downside)} på downside`:`dekket på downside (margin ${nok(-p.gap_downside)}) — selg porteføljen, ingen ekstra push`}</div>`;});
+  return `<div class="v md">Én person, ett tall</div><div class="t">${rows.join('')}</div>`;
+}
 function renderNa(){
   const pu=unitPlan(UNIT),pf=S.portefolje?.per_megler?.[UNIT]||{},maal=S.plan.maal[UNIT]||0,lev=S.plan.levert[UNIT]||0,p=maal?100*lev/maal:null;
   const sp=pf.spredning||{};const exp=maal?Math.min(100-Math.min(100,p||0),100*(pf.forventet||0)/maal):0;
   const oppNavn=Object.fromEntries((S.portefolje?.oppdrag||[]).map(o=>[o.nr,o.navn]));
   const stmt=`<div class="statement">
     <div><span class="k">Her er vi</span><div class="v xl">${nok(lev)}</div><div class="t">av ${nok(maal)} i H2 · ${pct(p)} · ${S.plan.uker_igjen} hele uker igjen</div><div class="bar"><i style="width:${Math.min(100,p||0)}%"></i><i class="exp" style="width:${exp}%"></i></div></div>
-    <div><span class="k">Hit skal vi</span><div class="v xl">${nok(maal)}</div><div class="t">porteføljen ventes å gi <b>${nok(pf.forventet)}</b> innen 31.12 (P25–P75: ${nok(sp.p25)}–${nok(sp.p75)}) → ${pct(pf.dekning_pct)} dekning${pf.gap>0?`, gap <b>${nok(pf.gap)}</b>`:', margin '+nok(-pf.gap)}</div><div class="t" style="opacity:.7;font-size:12px">herav prisede ${nok(pf.scenarioer?.priset)} · uprisede (standard 58 375) ${nok(pf.scenarioer?.upriset_standard)} · optimistisk kurve ${nok(pf.scenarioer?.uten_avsluttede_i_kurven)}</div></div>
-    <div><span class="k">Slik kommer vi dit</span>${pf.trengs?`<div class="v md">${n1(pf.trengs.signeringer)} nye signeringer</div><div class="t">≈ ${n1(pf.trengs.salg)} ekstra salg · ${pf.trengs.leads} leads · pluss at disse selger:</div>`:`<div class="v md">Selg porteføljen</div><div class="t">rest-mål ${nok(pu.omsetning)}/uke ≈ ${n1(pu.solgt)} salg/uke. Må selge før nyttår:</div>`}<div class="must">${(pf.ma_selge||[]).slice(0,8).map(nr=>`<span title="${esc(oppNavn[nr]||'')}">${esc(nr)} ${esc((oppNavn[nr]||'').slice(0,18))}</span>`).join('')||'<span>ingen — målet er dekket av levert</span>'}</div></div>
+    <div><span class="k">Hit skal vi</span><div class="v xl">${nok(maal)}</div><div class="t">porteføljen ventes å gi <b>${nok(pf.bdu?.base)}</b> (Base, P50) · <b style="color:#ffd6cf">Downside ${nok(pf.bdu?.downside)}</b> (P25, kun prisede) · Upside ${nok(pf.bdu?.upside)} (P75, optimistisk kurve) → dekning ${pct(pf.dekning_pct)} base / <b>${pct(pf.dekning_downside_pct)} downside</b></div><div class="t" style="opacity:.7;font-size:12px">prisede ${nok(pf.scenarioer?.priset)} · uprisede (standard) ${nok(pf.scenarioer?.upriset_standard)} · ${pf.uten_pris} uten pris</div></div>
+    <div><span class="k">Slik kommer vi dit · besluttes på Downside</span>${UNIT==='Selskap'?actionsAll():actionFor(UNIT,pf,pu,oppNavn)}</div>
   </div>`;
   // trakt
   const cur=weeksSorted().find(w=>w.paagaar);const c=cur?unitRow(cur):{};const kontakt=UNIT!=='Sindre';
   const pubAvg=(()=>{const ws=weeksSorted().filter(w=>!w.paagaar).slice(0,4);const k=ws.reduce((a,w)=>a+(unitRow(w).publisert_kjent||0),0),s=ws.reduce((a,w)=>a+(unitRow(w).publisert_7d||0),0);return k?100*s/k:null;})();
   const steps=[kontakt?{key:'kontakter',label:'Kontakter (FSBO)',avg:last4('kontakter'),plan:pu.kontakter,now:c.kontakter,note:'calls i HubSpot'}:null,
-    {key:'leads',label:'Leads',avg:last4('leads'),plan:pu.leads,now:c.leads,note:'deals opprettet i Pipeline A'},
+    {key:'leads',label:'Leads',avg:last4('leads'),plan:pu.leads,now:c.leads,note:'Pipeline A · plan = proxy'},
     {key:'signert',label:'Signert',avg:last4('signert'),plan:pu.signert,now:c.signert,note:'Oneflow, oppdragsgiver'},
     {key:'pub',label:'Publisert ≤7 dg',avg:pubAvg,plan:100,now:null,note:'FINN-dato − signert (forhåndspublisert = 0 d)',isPct:true},
     {key:'solgt',label:'Solgt',avg:last4('solgt'),plan:pu.solgt,now:c.solgt,note:'oppgjørsark'},
@@ -234,7 +243,7 @@ function renderNa(){
   const chain=`<div class="card" style="margin-top:14px"><h2>Trakten · siste 4 hele uker mot det planen krever nå</h2><div class="sub">snitt per uke. Leddet lengst til venstre som ligger mest bak, er der laget må gjøre mer.</div>
     <div class="chain">${steps.map(s=>{const k=isNum(s.avg)&&isNum(s.plan)?cls(s.avg,s.plan):'n';const d=isNum(s.avg)&&isNum(s.plan)&&s.plan>0?Math.round(100*(s.avg/s.plan-1)):null;
       return `<div class="step ${push===s.key?'push':''}"><span class="k">${esc(s.label)}</span><div class="v">${s.isNok?nok(s.avg):(s.isPct?pct(s.avg):n1(s.avg))}</div><div class="m">plan ${s.isNok?nok(s.plan):(s.isPct?'100 %':n1(s.plan))}/uke${s.now!=null?` · nå ${s.isNok?nok(s.now):n1(s.now)}`:''}</div><div class="d ${k}">${d==null?(isNum(s.avg)?'ingen målepunkter':'ingen data'):(d>=0?'+':'')+d+' %'}</div><div class="m" style="opacity:.8">${esc(s.note)}</div></div>`;}).join('')}</div>
-    <div class="note">Plan/uke = (mål − levert) ÷ hele uker igjen; solgt = omsetning ÷ ${nok(S.plan.konstanter.inntekt_per_bat)}; signert = solgt × ${S.plan.konstanter.oppdrag_per_salg}; leads = signert ÷ ${S.plan.konstanter.vinnrate_proxy} (proxy) ÷ ${S.plan.konstanter.lead_til_befaring}. Planen fryses hver uke fra og med uke ${(S.plan.uke_na||'').slice(-2)}; eldre uker vises mot dagens plan.</div></div>`;
+    <div class="note"><b style="color:var(--amber)">${esc(S.plan.trakt_note||'Aktivitetsproxy, ikke målt trakt.')}</b><br>Plan/uke = (mål − levert) ÷ hele uker igjen; solgt = omsetning ÷ ${nok(S.plan.konstanter.inntekt_per_bat)}; signert = solgt × ${S.plan.konstanter.oppdrag_per_salg}; leads = signert ÷ ${S.plan.konstanter.vinnrate_proxy} ÷ ${S.plan.konstanter.lead_til_befaring}. Planen fryses hver uke fra og med uke ${(S.plan.uke_na||'').slice(-2)}; eldre uker vises mot dagens plan.</div></div>`;
   // uketabell
   const ws=weeksSorted();const tot={};for(const w of ws){const r=unitRow(w);for(const k of Object.keys(r))tot[k]=(tot[k]||0)+r[k];}
   const cell=(f,m,fmt)=>`<span class="cell ${cls(f,m)}"><span class="f">${fmt?fmt(f):n1(f)}</span>${isNum(m)&&m>0?`<span class="p">/ ${fmt?fmt(m):n1(m)}</span>`:''}</span>`;
@@ -251,7 +260,7 @@ function renderNa(){
     <div class="card"><h2>Signert, ingen FINN-annonse funnet <span class="chip ${ip.length?'red':''}">${ip.length}</span></h2><div class="sub">mål ≤ 7 dager. Kan også være off-market eller manglende finn-kode på båtkortet.</div>${ip.length?`<ul class="list">${ip.map(a=>`<li><span>${esc((a.nr?a.nr+' · ':'')+a.navn.replace(/^\d{5} ?- ?/,'').replace(/ ?- ?salgsavtale/i,''))} <span class="chip">${esc(a.megler)}</span></span><span class="n">signert ${dato(a.signert)} · <b>${a.dager} d</b></span></li>`).join('')}</ul>`:'<div class="empty">alle nye oppdrag har annonse</div>'}</div></div>`;
   // portefølje
   const opp=(S.portefolje?.oppdrag||[]).filter(o=>UNIT==='Selskap'||o.megler===UNIT);const must=new Set(pf.ma_selge||[]);
-  const port=`<div class="card" style="margin-top:14px"><h2>Porteføljen · ${opp.length} aktive oppdrag <span class="chip">${S.portefolje?.horisont_dager} dager til nyttår</span>${pf.omfordelt_hit?`<span class="chip blue">${pf.omfordelt_hit} omfordelt fra Daniel</span>`:''}</h2><div class="sub">${esc(S.portefolje?.formel||'')}. Ansvarlig megler = eier av HubSpot-dealen (Daniels portefølje er omfordelt der). ${esc(S.portefolje?.scenario_note||'')}</div>
+  const port=`<div class="card" style="margin-top:14px"><h2>Porteføljen · ${opp.length} aktive oppdrag <span class="chip">${S.portefolje?.horisont_dager} dager til nyttår</span>${pf.omfordelt_hit?`<span class="chip blue">${pf.omfordelt_hit} omfordelt fra Daniel</span>`:''}</h2><div class="sub">${esc(S.portefolje?.formel||'')}. Ansvarlig megler = eier av HubSpot-dealen; closed lost i HubSpot er ute. ${esc(S.portefolje?.scenario_note||'')}</div>
     <details><summary>Vis oppdragene (${opp.length}) — de som må selge først</summary><div style="overflow-x:auto"><table style="margin-top:8px"><thead><tr><th>Nr</th><th>Båt</th><th>Megler</th><th class="num">Pris</th><th>Klasse</th><th class="num">Alder</th><th class="num">P(salg i år)</th><th class="num">Ventet</th></tr></thead><tbody>
     ${opp.map(o=>`<tr ${must.has(o.nr)?'style="background:var(--brand-soft)"':''}><td class="muted">${esc(o.nr)}${must.has(o.nr)?' <span class="chip green">må</span>':''}</td><td>${esc(o.navn||'')}${o.kilde==='oppdragsmodul'?' <span class="chip blue">ny</span>':''}</td><td class="muted">${esc(o.megler)}${o.omfordelt_fra?` <span class="chip blue" title="fra ${esc(o.omfordelt_fra)}">omf.</span>`:''}</td><td class="num">${o.pris?nok(o.pris):'<span style="color:var(--red)">mangler</span>'}</td><td class="muted">${esc(o.prisklasse)}</td><td class="num">${o.alder_dager} d</td><td class="num">${pct(100*o.p_salg_i_ar)}</td><td class="num"><b>${nok(o.forventet)}</b></td></tr>`).join('')}</tbody></table></div></details></div>`;
   const L=S.likviditet||{};const ok=L.status==='GRØNT';
@@ -311,7 +320,7 @@ function renderPlan(){
     <div><span class="k">Hva som avgjør neste år</span><div class="v md">${L.status==='GRØNT'?'Gaten er åpen':'Gaten er stengt'}</div><div class="t">Laveste ventet bank ${nok(L.laveste_plan)} mot buffer ${nok(L.buffer)} → ${L.status==='GRØNT'?'én ansettelse i Q1 kan besluttes':'ingen ansettelse før ' + nok(L.mangler) + ' er lukket'} · frist ${dato(L.gate_frist)}</div></div></div>`;
   const row=(l,f,cls)=>`<tr><td>${l}</td>${P27.scenarioer.map(s=>`<td class="num ${cls||''}">${f(s)}</td>`).join('')}</tr>`;
   const scen=`<div class="card" style="margin-top:14px"><h2>2027 med to bemanninger · samme motor som 1-3-5-planen</h2><div class="sub">${esc(P27.note)}</div>
-    <div style="overflow-x:auto"><table style="margin-top:8px"><thead><tr><th>Økonomimotor 2027</th>${P27.scenarioer.map((s,i)=>`<th class="num" style="${i<2?'color:var(--ink)':''}">${esc(s.navn)}</th>`).join('')}</tr></thead><tbody>
+    <div style="overflow-x:auto"><table style="margin-top:8px"><thead><tr><th>Økonomimotor 2027</th>${P27.scenarioer.map((s,i)=>`<th class="num" style="${i<2?'color:var(--ink)':''}">${esc(s.navn)}<div style="font-weight:500;text-transform:none;letter-spacing:0">${['gjeldende beslutningsstatus','betinget — åpnes hvis gaten passerer','historisk referanse, ikke aktiv','feil forutsetning (Daniel)'][i]||''}</div></th>`).join('')}</tr></thead><tbody>
     ${row('Rampede stoler ved nyttår + nye',s=>`${s.rampede_ved_start} + ${s.nyansettelser.reduce((a,b)=>a+b,0)}`)}
     ${row('Producing FTE',s=>n1(s.baseline.fte))}
     ${row('Omsetning eks. mva',s=>nok(s.baseline.omsetning))}
