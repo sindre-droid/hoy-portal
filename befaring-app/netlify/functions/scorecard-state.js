@@ -317,12 +317,6 @@ async function buildScorecardState(sb) {
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
-  // Planlagt kjøring (Netlify schedule): ingen auth-header, body = {"next_run": ...}
-  if (!event.headers?.authorization && /next_run/.test(event.body || '')) {
-    const r = await buildScorecardState(supabase());
-    console.log('[scorecard-state] scheduled', r.ok ? 'OK' : 'FEIL', r.error || '', JSON.stringify(r.state?.meta?.sources || {}));
-    return { statusCode: r.ok ? 200 : 500, body: JSON.stringify({ ok: r.ok, error: r.error }) };
-  }
   const auth = verifyAdmin(event);
   if (!auth.ok) return { statusCode: auth.status, headers: { ...CORS, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: auth.error }) };
   const sb = supabase(), action = (event.queryStringParameters || {}).action || 'get';

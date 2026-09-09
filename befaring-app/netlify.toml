@@ -131,8 +131,12 @@
   schedule = "50 * * * *"
   timeout = 26
 
-# Weekly Scorecard: bygges 04:00 (etter dashboard-state 03:30); ark+HubSpot+Oneflow+FINN tar ~20 s
+# Weekly Scorecard: HTTP-funksjon (get/rebuild, ~20 s) + egen planlagt bygger 04:00
+# (Netlify sperrer HTTP-kall til funksjoner med schedule — derfor to filer)
 [functions."scorecard-state"]
+  timeout = 26
+
+[functions."scorecard-nightly"]
   schedule = "0 4 * * *"
   timeout = 26
 
