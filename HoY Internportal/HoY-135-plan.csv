@@ -1,0 +1,68 @@
+﻿=== ARK: 1-3-5 Plan ===
+HOUSE OF YACHTS — 1/3/5-ÅRSPLAN;;;;
+North Star: resultat før skatt (etter Sindre-lønn kappet på 7,1G). Mål og bemanning settes i Økonomimotor.;;;;
+"Planen handler om stoler, ikke navn. Stol = rampet megler; Sindre egen stol; buffer = planlagt tom.";;;;
+;Målt siste 12 mnd;År 1 (2027);År 3 (2029);År 5 (2031)
+1. NORTH STAR (fra Økonomimotor);;;;
+Resultatmål før skatt;736978;1500000;3000000;5000000
+Omsetning målet krever (behov);4378153;17992845;23695849;31299855
+Kapasitet med planlagt bemanning;;7718750;13287500;17787500
+Resultat med planlagt bemanning / GAP mot mål;-313631;-2165535;-2913096;-3729510
+2. FRA OMSETNING TIL BÅTER (behov);;;;
+Inntekt per solgt båt, ex mva (fasit);58375;58375;58375;58375
+Båter som må selges per år;75;308.2286;405.9246;536.186
+Båter per måned;6.25;25.6857;33.8271;44.6822
+3. FRA BÅTER TIL STOLER;;;;
+Producing megler-FTE målet krever;;10.4619;14.2639;19.3332
+Planlagt producing FTE (bemanningsplan m/ramp);1;3.6125;7.325;10.325
+Megler-stoler å bemanne for målet (rundet opp + buffer);;12;16;21
+Planlagt bemannet ved årets slutt;1;5;8;11
+REKRUTTERINGSGAP mot målet (stoler);;7;8;10
+"4. FRA STOLER TIL UKENTLIGE AKTIVITETER (behov; 68 % er PROXY)";;;;
+Signerte oppdrag inn per år (båter × 1,30 planantakelse);67;400.6972;527.702;697.0417
+Signerte oppdrag per uke;1.4565;8.7108;11.4718;15.1531
+Befaringer per år (÷ 68 % PROXY-vinnrate);98.5294;589.2606;776.0324;1025
+Befaringer per uke (teamet);2.1419;12.81;16.8703;22.2839
+Kvalifiserte prospects per år (÷ 50 %);133;1179;1552;2050
+Nye prospects per uke (teamet);2.8913;25.62;33.7405;44.5679
+Befaringer per uke PER planlagt FTE (inkl. Sindre);1.071;2.7772;2.0265;1.9677
+Når en megler slutter: rør ikke målene. Oppdater bemanningsplanen i Økonomimotor + «bemannet i dag» i Forutsetninger.;;;;
+Rekrutteringsgapet og resultat-gapet oppdaterer seg selv — det er de to tallene ukemøtet skal styre på.;;;;
+
+=== ARK: Spaker ===
+SPAKER — samme bemanningsplan, bedre driftsøkonomi;;;;
+Scenario: provisjonsdisiplin ≥6 %/45k + premium-miks (snittbåt mot 1,6M), markedskost-tak, sterkere stoler (1,8M).;;;;
+Scenario-parametre (blå = juster):;;;;
+Inntekt per båt ex mva (1,6M snittbåt × 6 % ÷ 1,25);76800;;;
+Markedskost per signert oppdrag (CFO-mål);4552;;;
+Omsetning per producing megler-stol (produksjonsmål);1800000;;;
+;;År 1 (2027);År 3 (2029);År 5 (2031)
+Resultatmål (fra Økonomimotor);;1500000;3000000;5000000
+Kapasitets-omsetning m/spakene (samme FTE, 1,8M-stoler);;8802500;15485000;20885000
+− Meglerkost 55 % av megler-oms;;-3576375;-7251750;-10221750
+− Sindre-kompensasjon (7,1G, loaded);;-1129465;-1129465;-1129465
+− Markedskost (oms ÷ 76 800 × 1,30 × 4 552);(færre båter per krone enn baseline!);-678251;-1193152;-1609233
+− Kostbase (samme trinnkost som motoren, rad 19);;-3140000;-4075000;-4255000
+RESULTAT m/spakene på planlagt bemanning;;278409;1835633;3669552
+KONTROLL: linjene minus resultat (skal være 0);;0.0;0;0
+Resultat baseline (Økonomimotor);;-665535;86904;1270490
+Spak-effekt på resultatet;;943944;1748730;2399062
+BEHOV FOR MÅLET M/SPAKENE — selvkonsistent, samme metode som motoren. NB: FTE = produksjonskapasitet, IKKE personer.;;;;
+Scenario A (≤4 bemannede): nødvendig megler-oms;;6674286;11091057;16980086
+   → producing FTE-behov A;;3.7079;6.1617;9.4334
+Scenario B (5 bemannede, +leder): megler-oms;;9324349;13741120;19630149
+   → producing FTE-behov B;;5.1802;7.634;10.9056
+Scenario C (6–7, +leder+kontor): megler-oms;;10207703;14624475;20513503
+   → producing FTE-behov C;;5.6709;8.1247;11.3964
+Scenario D (≥8, +leder+kontor+backoffice): megler-oms;;11679960;16096732;21985760
+   → producing FTE-behov D;;6.4889;8.9426;12.2143
+ENDELIG nødvendig total omsetning m/spakene;(konsistent scenario);8974286;18396732;24285760
+ENDELIG producing FTE-behov m/spakene;;3.7079;8.9426;12.2143
+Bemannede meglere, steady-state (rundet opp);(rampede — i INNFASINGSÅR trengs flere pga ramp);4;9;13
+Producing FTE-behov baseline (Økonomimotor);;10.4619;14.2639;19.3332
+DE FIRE SPAKENE (CFO-analysen jul 2026) — verdt å hente FØR flere stoler rekrutteres:;;;;
+A. Provisjonsdisiplin: 13 av 38 H1-salg under 6 %/45k = ~266k tapt provisjon. Rabatt krever Sindres godkjenning. ~200k+/år.;;;;
+B. Marte-tripwire (18. okt): Henrik må vise 1,9M+ årstakt og bedre befaring-rate. Svinger resultatet 500–700k. Status aug: behold.;;;;
+"C. Markedskost-tak: 15k-tak håndheves; frys markedsføring over taket til pris justeres. Mål 4 552/oppdrag (målt 6 600).";;;;
+D. Sindres 7,1G-uttak: alt Sindre omsetter over ~2,15M koster ikke mer lønn — hans marginale omsetning er firmaets mest lønnsomme.;;;;
+E. (Ny) Premium-miks: fasit-snittet er 58 375/båt (median 50 400). Hver 10 000 kr høyere inntekt/båt ≈ 15–20 % færre båter for samme mål.;;;;

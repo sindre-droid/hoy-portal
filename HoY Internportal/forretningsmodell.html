@@ -1,0 +1,1548 @@
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<title>HoY Forretningsmodell</title>
+<style>
+:root{
+  --bg:#eef1ee; --surface:#ffffff; --surface2:#f6f8f6; --border:#dbe1dc; --border2:#c8d1ca;
+  --text:#171d19; --muted:#5d6a63; --faint:#8a958e;
+  --brand:#1F3D2E; --brand2:#2f5d47; --brand-ink:#eaf1ec; --brand-soft:#e3ece6;
+  --red:#c0392b; --red-bg:#fbecea; --amber:#b9820c; --amber-bg:#fbf3e0; --green:#2f8f4e; --green-bg:#e7f4ec;
+  --shadow:0 1px 2px rgba(20,40,30,.06),0 8px 24px rgba(20,40,30,.06);
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --sans:"IBM Plex Sans",-apple-system,Segoe UI,Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0e120f; --surface:#161b17; --surface2:#1b211c; --border:#2a322c; --border2:#3a443c;
+  --text:#e7ede9; --muted:#97a49c; --faint:#6f7c74;
+  --brand:#7fb79a; --brand2:#a9d4bf; --brand-ink:#0e120f; --brand-soft:#1c2a21;
+  --red:#e0685c; --red-bg:#2a1a18; --amber:#e0a83a; --amber-bg:#2a2214; --green:#5fbf7e; --green-bg:#16271b;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);
+}}
+:root[data-theme="dark"]{
+  --bg:#0e120f; --surface:#161b17; --surface2:#1b211c; --border:#2a322c; --border2:#3a443c;
+  --text:#e7ede9; --muted:#97a49c; --faint:#6f7c74;
+  --brand:#7fb79a; --brand2:#a9d4bf; --brand-ink:#0e120f; --brand-soft:#1c2a21;
+  --red:#e0685c; --red-bg:#2a1a18; --amber:#e0a83a; --amber-bg:#2a2214; --green:#5fbf7e; --green-bg:#16271b;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.5;font-size:15px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 20px 70px}
+h1,h2,h3{margin:0;text-wrap:balance}
+a{color:var(--brand2)}
+.tnum,.n{font-variant-numeric:tabular-nums}
+.mono{font-family:var(--mono)}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand2);outline-offset:2px}
+
+/* masthead */
+.mast{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:26px}
+.brand-tag{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--brand2);font-weight:600}
+.mast h1{font-size:27px;font-weight:600;letter-spacing:-.01em;margin-top:6px}
+.mast p{margin:4px 0 0;color:var(--muted);font-size:13.5px;max-width:60ch}
+.mast-r{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.themebtn{font-family:var(--mono);font-size:11px;letter-spacing:.08em;background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:7px 11px;border-radius:8px;cursor:pointer}
+.themebtn:hover{border-color:var(--border2);color:var(--text)}
+.stamp{font-family:var(--mono);font-size:11px;color:var(--faint);text-align:right;line-height:1.6;max-width:46ch;overflow-wrap:anywhere}
+
+/* sections */
+section{margin-top:34px}
+.sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:12px;flex-wrap:wrap}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--brand2);font-weight:600;background:var(--brand-soft);padding:4px 9px;border-radius:6px}
+.sec-head h2{font-size:19px;font-weight:600;letter-spacing:-.01em}
+.sec-head .lede{color:var(--muted);font-size:13.5px;flex-basis:100%;max-width:78ch;margin:0}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px 22px;box-shadow:var(--shadow)}
+.card h3{font-size:14px;font-weight:600}
+.sub{color:var(--muted);font-size:12.5px;margin-top:3px}
+.k{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11.5px;padding:3px 9px;border-radius:999px;font-weight:500;white-space:nowrap}
+.chip.red{background:var(--red-bg);color:var(--red)}
+.chip.amber{background:var(--amber-bg);color:var(--amber)}
+.chip.green{background:var(--green-bg);color:var(--green)}
+.chip.grey{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+.chip .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.neg{color:var(--red)}.pos{color:var(--green)}
+
+/* north star */
+.ns{display:grid;grid-template-columns:repeat(3,1fr) 1.15fr;gap:14px}
+.ns .card{padding:18px 20px}
+.ns .yr{display:flex;justify-content:space-between;align-items:baseline}
+.ns .yr .y{font-family:var(--mono);font-size:12px;letter-spacing:.1em;color:var(--brand2);font-weight:600}
+.ns .target{font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.1;margin-top:8px}
+.ns .target small{font-size:13px;color:var(--muted);font-weight:500;margin-left:6px}
+.bars{margin-top:14px;display:grid;gap:7px}
+.bar{display:grid;grid-template-columns:86px 1fr 74px;align-items:center;gap:8px;font-size:12px}
+.bar .lab{color:var(--muted)}
+.bar .val{text-align:right;font-family:var(--mono);font-size:12px}
+.track{position:relative;height:9px;background:var(--surface2);border-radius:5px;border:1px solid var(--border);overflow:hidden}
+.track i{position:absolute;top:0;bottom:0;border-radius:4px}
+.track i.b{background:var(--faint);opacity:.6}
+.track i.s{background:var(--brand2)}
+.track i.t{background:var(--green)}
+.track i.r{background:var(--red)}
+.track .z{position:absolute;top:-2px;bottom:-2px;width:1px;background:var(--border2)}
+.ns .now{background:var(--brand);color:var(--brand-ink);border-color:transparent}
+.ns .now .k{color:var(--brand-ink);opacity:.7}
+.ns .now .big{font-size:26px;font-weight:600;letter-spacing:-.01em;line-height:1.1;margin-top:4px}
+.ns .now .row{display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding:8px 0;border-top:1px solid rgba(255,255,255,.14)}
+.ns .now .row:first-of-type{border-top:0;padding-top:0}
+.ns .now .row .v{font-family:var(--mono);font-size:13px}
+.ns .now .prog{height:8px;background:rgba(255,255,255,.16);border-radius:4px;overflow:hidden;margin-top:6px}
+.ns .now .prog i{display:block;height:100%;background:var(--brand-ink);opacity:.9}
+.ns .now .foot{font-size:11.5px;opacity:.75;margin-top:6px;font-family:var(--mono)}
+
+/* motor */
+.controls{display:grid;grid-template-columns:1.1fr 1.6fr auto;gap:14px;margin-bottom:14px;align-items:end}
+.ctl{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;min-width:0}
+.ctl .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:8px}
+.seg{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:3px;gap:2px}
+.seg button{flex:1;min-width:0;border:0;background:transparent;color:var(--muted);font-family:var(--sans);font-size:13px;font-weight:500;padding:7px 6px;border-radius:6px;cursor:pointer;transition:.15s;white-space:nowrap}
+.seg{flex-wrap:wrap}
+.seg button:hover{color:var(--text)}
+.seg button[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink);font-weight:600}
+.ctl .hint{font-size:11.5px;color:var(--faint);margin-top:6px}
+.flow{display:grid;grid-template-columns:1fr 22px 1fr 22px 1fr 22px 1fr 22px 1.15fr;gap:6px;align-items:stretch}
+.node{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 15px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px;min-width:0}
+.node .k{margin-bottom:2px}
+.node .v{font-size:23px;font-weight:600;letter-spacing:-.01em;line-height:1.1}
+.node .v small{font-size:12px;color:var(--muted);font-weight:500;margin-left:4px}
+.node .f{font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.5}
+.node .d{font-size:12px;color:var(--muted);margin-top:auto;padding-top:6px;border-top:1px dashed var(--border)}
+.node.res{background:var(--brand);color:var(--brand-ink);border-color:transparent}
+.node.res .k,.node.res .f,.node.res .d{color:var(--brand-ink);opacity:.8}
+.node.res .d{border-color:rgba(255,255,255,.2)}
+.arrow{display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:18px}
+.pl{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.pl table{width:100%;border-collapse:collapse;font-size:13px}
+.pl td{padding:6px 4px;border-top:1px solid var(--border)}
+.pl tr:first-child td{border-top:0}
+.pl td.n{text-align:right;font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+.pl td.m{color:var(--muted);font-size:12px}
+.pl tr.tot td{font-weight:600;border-top:2px solid var(--border2)}
+.ramp{display:flex;gap:6px;margin-top:8px}
+.ramp span{flex:1;text-align:center;font-family:var(--mono);font-size:11px;padding:6px 2px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--muted)}
+.ramp span b{display:block;color:var(--text);font-size:13px}
+
+/* spaker */
+.lev{display:grid;gap:10px}
+.lever{display:grid;grid-template-columns:52px 1.5fr 1.2fr 150px 130px;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 16px;box-shadow:var(--shadow)}
+.lever .name{font-weight:600;font-size:14px}
+.lever .mech{font-size:12.5px;color:var(--muted);margin-top:2px}
+.lever .meas{font-size:12.5px;color:var(--muted)}
+.lever .meas b{color:var(--text);font-family:var(--mono);font-weight:500;font-size:12px}
+.lever .eff{text-align:right;font-family:var(--mono);font-size:13px}
+.lever .eff .k{margin-bottom:2px;text-align:right}
+.lever .eff .e{font-size:15px;font-weight:600}
+.lever.off .eff .e{color:var(--faint);font-weight:500}
+.sw{width:44px;height:26px;border-radius:13px;background:var(--border2);border:0;position:relative;cursor:pointer;transition:.15s;padding:0}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--surface);transition:.15s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.sw[aria-checked="true"]{background:var(--brand2)}
+.sw[aria-checked="true"]::after{left:21px}
+.sw[disabled]{opacity:.35;cursor:default}
+.lever .stat{display:flex;flex-direction:column;gap:5px;align-items:flex-start}
+.lever .stat small{font-size:11px;color:var(--faint);line-height:1.35}
+.levsum{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:14px}
+.levsum .card{padding:14px 18px}
+.levsum .v{font-size:22px;font-weight:600;letter-spacing:-.01em;margin-top:3px;font-variant-numeric:tabular-nums}
+
+/* status */
+.status{display:grid;grid-template-columns:1.25fr 1fr;gap:14px}
+.status>*,.status .card{min-width:0}
+.gapviz{margin-top:12px}
+.gapviz .row{display:grid;grid-template-columns:150px 1fr 90px;gap:10px;align-items:center;font-size:13px;padding:5px 0}
+.gapviz .row .val{text-align:right;font-family:var(--mono);font-size:12.5px}
+.jobs{display:grid;gap:8px;margin-top:14px}
+.job{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start;padding:11px 0;border-top:1px solid var(--border)}
+.job:first-child{border-top:0}
+.job .no{font-family:var(--mono);font-size:12px;color:var(--brand2);font-weight:600;padding-top:2px}
+.job .t{font-weight:600;font-size:14px}
+.job .s{font-size:12.5px;color:var(--muted);margin-top:2px}
+.decision{background:var(--brand);color:var(--brand-ink);border-color:transparent}
+.decision .k{color:var(--brand-ink);opacity:.7}
+.decision h3{color:var(--brand-ink)}
+.decision .big{font-size:17px;font-weight:600;line-height:1.35;margin-top:6px;text-wrap:balance}
+.decision ul{margin:12px 0 0;padding:0;list-style:none;display:grid;gap:6px}
+.decision li{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:7px 0;border-top:1px solid rgba(255,255,255,.14)}
+.decision li .v{font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+.decision a{color:var(--brand-ink)}
+.liq{margin-top:14px}
+.liq .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+.liq .cell{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px}
+.liq .cell .v{font-family:var(--mono);font-size:15px;font-weight:600;margin-top:2px}
+.liq .cell .s{font-size:11px;color:var(--faint);margin-top:2px}
+
+/* sources */
+.src{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:14px}
+.src .card{padding:16px 18px}
+.src dl{margin:8px 0 0;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12.5px}
+.src dt{color:var(--muted)}
+.src dd{margin:0;font-family:var(--mono);font-size:12px;text-align:right;overflow-wrap:anywhere}
+.src .warn{color:var(--amber)}
+.defs{font-size:12.5px;color:var(--muted);margin-top:8px;line-height:1.55}
+.defs b{color:var(--text)}
+.defs p{margin:6px 0 0}
+
+@media (max-width:900px){
+  .ns{grid-template-columns:1fr 1fr}
+  .controls{grid-template-columns:1fr}
+  .flow{grid-template-columns:1fr}
+  .arrow{transform:rotate(90deg);height:18px}
+  .pl,.status,.src{grid-template-columns:1fr}
+  .lever{grid-template-columns:52px 1fr;}
+  .lever .eff{text-align:left}.lever .eff .k{text-align:left}
+  .levsum{grid-template-columns:1fr 1fr}
+}
+@media (max-width:560px){.ns,.levsum{grid-template-columns:1fr}.seg button{font-size:12px;padding:6px 4px;white-space:normal}.wrap{padding:20px 14px 50px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<!-- company-state:start -->
+<script id="company-state" type="application/json">{
+  "schema_version": 1,
+  "sist_oppdatert": "2026-08-29T10:13:49+00:00",
+  "sist_oppdatert_av": "likviditetsmonitor-bygg.py (malt.likviditetsmonitor)",
+  "_les_meg": "Én kilde for HoY-artifactene (Ansettelsesgate, Likviditetsmonitor, Forretningsmodell). «besluttet» redigeres for hånd og røres aldri av skript. «malt» fylles av company-state-build.py. Beløp i NOK, datoer ISO.",
+  "besluttet": {
+    "bemanning": {
+      "meglere_na": 2,
+      "beskrivelse": "Sindre + Henrik. Daniel slutter H2 2026. Marte (assistent) beholdes.",
+      "ansettelser_besluttet": [],
+      "maks_ansettelser_q1_2027": 1,
+      "gate_frist": "2026-12-15",
+      "gate_status": "rod",
+      "gate_status_begrunnelse": "0 ans. + utsatt utbytte gir P75-lavpunkt ~35k under 500k-bufferen.",
+      "gate_sjekkliste": {
+        "utbytte_utsatt": false,
+        "bankdatoer_avstemt": false,
+        "p75_over_buffer_etter_ansettelse": false,
+        "signert_kandidat": false,
+        "buffer_etter_kostnadsavvik": false
+      },
+      "sekvensering": "Bevis 1 stol, frys 1 kvartal, så vurder neste."
+    },
+    "utbytte": {
+      "status": "utsatt",
+      "belop": 850000,
+      "planlagt_maned": "2027-09",
+      "besluttet_dato": null,
+      "notat": "Rest av besluttet utbytte. Utsettelse = største enkeltspak i likviditeten (~850k). Status: utsatt = anbefalt/vedtatt 28.08, ikke formelt styrebehandlet."
+    },
+    "engangsposter_2027": [
+      {
+        "belop": 125000,
+        "maaned": 11,
+        "notat": "Motfakturering Oslo Båt / krympeplast (netto)"
+      },
+      {
+        "belop": 50000,
+        "maaned": 10,
+        "notat": "Underleverandør (~50k, Sindre)"
+      }
+    ],
+    "buffer": {
+      "normal": 500000,
+      "unntak_styregodkjent": 300000,
+      "kassekreditt": 200000,
+      "regel": "500k normal. 300k kun som styregodkjent unntak."
+    },
+    "north_star": {
+      "maal": "Resultat før skatt etter Sindre-lønn kappet på 7,1G",
+      "2027": 1500000,
+      "2029": 3000000,
+      "2031": 5000000,
+      "sindre_lonn_tak": 969498,
+      "status_2027": "Planen når ikke 1,5M (baseline −666k, spakene +278k). 2027 skal absorbere Daniel, bygge kapasitet, bevise spakene og ende i pluss."
+    },
+    "spaker": [
+      {
+        "id": "utbytte_utsettelse",
+        "navn": "Utsett utbytte",
+        "status": "aktiv",
+        "effekt_2027": 850000,
+        "notat": "Størst enkeltspak i likviditeten"
+      },
+      {
+        "id": "provisjonsdisiplin",
+        "navn": "Provisjonsdisiplin (6 %, min 45k)",
+        "status": "aktiv",
+        "effekt_2027": null,
+        "notat": ""
+      },
+      {
+        "id": "marte_tripwire",
+        "navn": "Marte-tripwire",
+        "status": "planlagt",
+        "frist": "2026-10-18",
+        "effekt_2027": null,
+        "notat": ""
+      },
+      {
+        "id": "markedskost_tak",
+        "navn": "Tak på markedskost",
+        "status": "planlagt",
+        "effekt_2027": null,
+        "notat": ""
+      },
+      {
+        "id": "fakturering_raskere",
+        "navn": "Raskere fakturering etter oppgjør",
+        "status": "planlagt",
+        "effekt_2027": null,
+        "notat": "Lukke de siste ~35k i 0-ansettelses-scenarioet"
+      }
+    ],
+    "cash_lag_lag_for_beslutning": "plan",
+    "tellemate_for_lonn": "kreditert"
+  },
+  "malt": {
+    "apningssaldo": {
+      "hovedbok_1920": -289978,
+      "avstemmingsdiff": 1360037,
+      "avstemmingsdiff_kilde": "PO bankavstemming: kontoutskrift 1 069 274 − hovedbok 1920 (−290 763). Frossen historisk differanse («Sum bevegelser 0»). MANUELL — oppdater fra GO ved behov. NB: klientmidler kan inngå.",
+      "reell_bank": 1070059,
+      "snapshot_date": "2026-08-29",
+      "kundefordringer": 1429008,
+      "bank_klient": 2
+    },
+    "cash_lag": {
+      "n": 92,
+      "median": 14,
+      "snitt": 24.1,
+      "p75": 31,
+      "p90": 61,
+      "maks": 116,
+      "andel_betalt_innen": {
+        "7": 0.23,
+        "14": 0.51,
+        "30": 0.75,
+        "60": 0.89
+      },
+      "metode": "PERCENTILE.EXC på solgt→fakturadato (operativ cash-proxy)",
+      "kilde": "deal-for-deal-oppgjor.csv, kolonne «Lag salg→faktura (d)»",
+      "bankdatoer_utfylt": 0,
+      "overtakelsesdatoer_utfylt": 0
+    },
+    "scenarioer_p75": {
+      "0_ans_utsatt": 465433,
+      "1_ans_q1_utsatt": 300022,
+      "full_ramp_utsatt": -493347,
+      "full_ramp_utbytte": -1343347,
+      "full_ramp_utbytte_base": -1099279,
+      "full_ramp_utbytte_stress": -2163183,
+      "lag": "plan (P75) der ikke annet er sagt",
+      "kilde": "company-state-build.py, samme motor som Ansettelsesgate"
+    },
+    "po_sync": {
+      "sist_ok": "2026-08-29T03:31:04.246+00:00",
+      "feil": [
+        "projects: fetch feilet: 502 {\"raw\":\"<!DOCTYPE html PUBLIC '-//W3C//DTD (2026-08-29T03:30)"
+      ]
+    },
+    "likviditetsmonitor": {
+      "generert": "2026-08-29T10:13:49",
+      "snapshot_date": "2026-08-29",
+      "bank": {
+        "hovedbok_1920": -289978,
+        "avstemmingsdiff": 1360037,
+        "kontoutskrift": 1070059,
+        "bank_klient": 2,
+        "skattetrekk_bundet": 0,
+        "disponibel": 1070059,
+        "kassekreditt": 200000
+      },
+      "po": {
+        "kundefordringer": 1429008,
+        "kundefordringer_openitems": 1429008,
+        "leverandorgjeld": -17130,
+        "mva_posisjon": -578155,
+        "betalbar_skatt": 14636,
+        "runrate_months": 14.0,
+        "runrate_4000": 63310,
+        "runrate_5000_lonn": 1002310,
+        "runrate_6000": 245277,
+        "runrate_7000": 61298,
+        "fast_kost_mnd": 93492,
+        "runway_mnd": 13.6,
+        "sync": [
+          {
+            "type": "projects",
+            "at": "2026-08-29T03:30:27.976+00:00",
+            "rows": 310,
+            "error_at": "2026-08-29T03:30:56.028+00:00"
+          },
+          {
+            "type": "outgoing_invoices",
+            "at": "2026-08-29T03:31:00+00:00",
+            "rows": 1193,
+            "error_at": null
+          },
+          {
+            "type": "customer_open_items",
+            "at": "2026-08-29T03:31:01.129+00:00",
+            "rows": 29,
+            "error_at": null
+          },
+          {
+            "type": "account_transactions",
+            "at": "2026-08-29T03:31:02.11+00:00",
+            "rows": 395,
+            "error_at": null
+          },
+          {
+            "type": "trial_balance",
+            "at": "2026-08-29T03:31:03.032+00:00",
+            "rows": 89,
+            "error_at": "2026-08-28T13:15:18.048+00:00"
+          },
+          {
+            "type": "liquidity_snapshot",
+            "at": "2026-08-29T03:31:04.246+00:00",
+            "rows": 1,
+            "error_at": null
+          }
+        ]
+      },
+      "cash_lag_modell": {
+        "median": 14,
+        "p75": 32,
+        "p90": 61,
+        "n": 92,
+        "notat": "Betalingsprofilene i modellen er kalibrert på disse (dokumentert 28.08). Se malt.cash_lag for løpende registerverdi."
+      },
+      "actuals": [
+        {
+          "month": "2025-01",
+          "bokfort_provisjon": 0,
+          "n_solgt": 0,
+          "fakturert_po": 0,
+          "innbetalt_po": 270000,
+          "n_fakturert": 2
+        },
+        {
+          "month": "2025-02",
+          "bokfort_provisjon": 315000,
+          "n_solgt": 2,
+          "fakturert_po": 256989,
+          "innbetalt_po": 256989,
+          "n_fakturert": 3
+        },
+        {
+          "month": "2025-03",
+          "bokfort_provisjon": 185040,
+          "n_solgt": 3,
+          "fakturert_po": 50640,
+          "innbetalt_po": 0,
+          "n_fakturert": 1
+        },
+        {
+          "month": "2025-04",
+          "bokfort_provisjon": 224500,
+          "n_solgt": 3,
+          "fakturert_po": 464388,
+          "innbetalt_po": 105628,
+          "n_fakturert": 6
+        },
+        {
+          "month": "2025-05",
+          "bokfort_provisjon": 1057492,
+          "n_solgt": 11,
+          "fakturert_po": 485027,
+          "innbetalt_po": 762326,
+          "n_fakturert": 9
+        },
+        {
+          "month": "2025-06",
+          "bokfort_provisjon": 1007075,
+          "n_solgt": 15,
+          "fakturert_po": 2076332,
+          "innbetalt_po": 2053314,
+          "n_fakturert": 18
+        },
+        {
+          "month": "2025-07",
+          "bokfort_provisjon": 886700,
+          "n_solgt": 12,
+          "fakturert_po": 941662,
+          "innbetalt_po": 706933,
+          "n_fakturert": 13
+        },
+        {
+          "month": "2025-08",
+          "bokfort_provisjon": 509000,
+          "n_solgt": 7,
+          "fakturert_po": 1152079,
+          "innbetalt_po": 1451334,
+          "n_fakturert": 14
+        },
+        {
+          "month": "2025-09",
+          "bokfort_provisjon": 774400,
+          "n_solgt": 9,
+          "fakturert_po": 703300,
+          "innbetalt_po": 703300,
+          "n_fakturert": 6
+        },
+        {
+          "month": "2025-10",
+          "bokfort_provisjon": 320867,
+          "n_solgt": 6,
+          "fakturert_po": 735916,
+          "innbetalt_po": 785185,
+          "n_fakturert": 24
+        },
+        {
+          "month": "2025-11",
+          "bokfort_provisjon": 387000,
+          "n_solgt": 4,
+          "fakturert_po": 489480,
+          "innbetalt_po": 441867,
+          "n_fakturert": 7
+        },
+        {
+          "month": "2025-12",
+          "bokfort_provisjon": 297000,
+          "n_solgt": 3,
+          "fakturert_po": 308118,
+          "innbetalt_po": 256464,
+          "n_fakturert": 6
+        },
+        {
+          "month": "2026-01",
+          "bokfort_provisjon": 0,
+          "n_solgt": 1,
+          "fakturert_po": 15044,
+          "innbetalt_po": 177860,
+          "n_fakturert": 2
+        },
+        {
+          "month": "2026-02",
+          "bokfort_provisjon": 184200,
+          "n_solgt": 3,
+          "fakturert_po": 162741,
+          "innbetalt_po": 137501,
+          "n_fakturert": 3
+        },
+        {
+          "month": "2026-03",
+          "bokfort_provisjon": 643350,
+          "n_solgt": 9,
+          "fakturert_po": 233537,
+          "innbetalt_po": 288865,
+          "n_fakturert": 3
+        },
+        {
+          "month": "2026-04",
+          "bokfort_provisjon": 295500,
+          "n_solgt": 6,
+          "fakturert_po": 558797,
+          "innbetalt_po": 433305,
+          "n_fakturert": 10
+        },
+        {
+          "month": "2026-05",
+          "bokfort_provisjon": 560800,
+          "n_solgt": 9,
+          "fakturert_po": 724771,
+          "innbetalt_po": 713877,
+          "n_fakturert": 15
+        },
+        {
+          "month": "2026-06",
+          "bokfort_provisjon": 948000,
+          "n_solgt": 10,
+          "fakturert_po": 836350,
+          "innbetalt_po": 987804,
+          "n_fakturert": 12
+        },
+        {
+          "month": "2026-07",
+          "bokfort_provisjon": 491200,
+          "n_solgt": 8,
+          "fakturert_po": 1030219,
+          "innbetalt_po": 0,
+          "n_fakturert": 16
+        },
+        {
+          "month": "2026-08",
+          "bokfort_provisjon": 170000,
+          "n_solgt": 4,
+          "fakturert_po": 328660,
+          "innbetalt_po": 0,
+          "n_fakturert": 9
+        }
+      ],
+      "pipeline": [
+        {
+          "oppdragsnr": "26015",
+          "navn": "Skilsø 39 Panorama",
+          "megler": "Henrik",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 286024,
+          "valuta": "NOK",
+          "solgt_dato": "2026-06-29",
+          "fakturadato": "2026-07-13",
+          "alder_dg": 47,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10395",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "25079",
+          "navn": "Storebro 430 Biscay Royal Cruiser",
+          "megler": "Henrik",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 110000,
+          "valuta": "NOK",
+          "solgt_dato": "2026-07-08",
+          "fakturadato": "2026-07-13",
+          "alder_dg": 47,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10396",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "26041",
+          "navn": "Nimbus 300R",
+          "megler": "Henrik",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 109387,
+          "valuta": "NOK",
+          "solgt_dato": "2026-07-05",
+          "fakturadato": "2026-07-09",
+          "alder_dg": 51,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10393",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "26065",
+          "navn": "Goldfish 29 Sport #072",
+          "megler": "Sindre",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 85426,
+          "valuta": "NOK",
+          "solgt_dato": "2026-07-08",
+          "fakturadato": "2026-07-13",
+          "alder_dg": 47,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10394",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "26058",
+          "navn": "Askeladden c83 2019",
+          "megler": "Henrik",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 66511,
+          "valuta": "NOK",
+          "solgt_dato": "2026-07-04",
+          "fakturadato": "2026-07-14",
+          "alder_dg": 46,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10398",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "26079",
+          "navn": "Patric Fontanini",
+          "megler": "",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 66375,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": "2026-08-26",
+          "alder_dg": 3,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10411",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "26059",
+          "navn": "Axopar 28 AC 2019",
+          "megler": "Henrik",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 65000,
+          "valuta": "NOK",
+          "solgt_dato": "2026-06-30",
+          "fakturadato": "2026-07-09",
+          "alder_dg": 51,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10392",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "26042",
+          "navn": "Cormate Utility 23-56",
+          "megler": "Sindre",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 58412,
+          "valuta": "NOK",
+          "solgt_dato": "2026-07-04",
+          "fakturadato": "2026-07-14",
+          "alder_dg": 46,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10397",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": null,
+          "navn": "SpareBank 1 Finans Østlandet",
+          "megler": "",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 57320,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": "2026-07-09",
+          "alder_dg": 51,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10391",
+          "merknad": "Fakturert (uten oppdragsnr) — tjeneste/annet"
+        },
+        {
+          "oppdragsnr": "26066",
+          "navn": "Jeanneau 40.3",
+          "megler": "Henrik",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 53644,
+          "valuta": "NOK",
+          "solgt_dato": "2026-07-18",
+          "fakturadato": "2026-07-22",
+          "alder_dg": 38,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10401",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "25075",
+          "navn": "Nimbus 230R",
+          "megler": "Henrik",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 49298,
+          "valuta": "NOK",
+          "solgt_dato": "2026-08-04",
+          "fakturadato": "2026-08-19",
+          "alder_dg": 10,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10409",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "26052",
+          "navn": "Fjord Terne 21",
+          "megler": "Henrik",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 48183,
+          "valuta": "NOK",
+          "solgt_dato": "2026-08-07",
+          "fakturadato": "2026-08-12",
+          "alder_dg": 17,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10403",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "25063",
+          "navn": "SeaSide 23",
+          "megler": "Henrik",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 46184,
+          "valuta": "NOK",
+          "solgt_dato": "2026-08-05",
+          "fakturadato": "2026-08-12",
+          "alder_dg": 17,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10404",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "26047",
+          "navn": "Draco 27 RS",
+          "megler": "Daniel",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 45814,
+          "valuta": "NOK",
+          "solgt_dato": "2026-07-09",
+          "fakturadato": "2026-07-22",
+          "alder_dg": 38,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10400",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "26055",
+          "navn": "Nimbus 300R",
+          "megler": "Henrik",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 45420,
+          "valuta": "NOK",
+          "solgt_dato": "2026-07-23",
+          "fakturadato": "2026-07-29",
+          "alder_dg": 31,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10402",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "26015",
+          "navn": "Skilsø 39 Panorama",
+          "megler": "Henrik",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 43750,
+          "valuta": "NOK",
+          "solgt_dato": "2026-06-29",
+          "fakturadato": "2026-08-14",
+          "alder_dg": 15,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10406",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "26060",
+          "navn": "Grand 850",
+          "megler": "Daniel",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 40573,
+          "valuta": "NOK",
+          "solgt_dato": "2026-08-11",
+          "fakturadato": "2026-08-19",
+          "alder_dg": 10,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10408",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": null,
+          "navn": "CORMATE AS",
+          "megler": "",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 24341,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": "2026-07-08",
+          "alder_dg": 52,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10390",
+          "merknad": "Fakturert (uten oppdragsnr) — tjeneste/annet"
+        },
+        {
+          "oppdragsnr": null,
+          "navn": "SEROTONIC AS",
+          "megler": "",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 23516,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": "2026-08-21",
+          "alder_dg": 8,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10410",
+          "merknad": "Fakturert (uten oppdragsnr) — tjeneste/annet"
+        },
+        {
+          "oppdragsnr": "25061",
+          "navn": "Hanse 388",
+          "megler": "Henrik",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 9690,
+          "valuta": "NOK",
+          "solgt_dato": "2026-03-15",
+          "fakturadato": "2026-05-18",
+          "alder_dg": 103,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10362",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": null,
+          "navn": "Tom Lindberg",
+          "megler": "",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 8000,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": "2026-07-08",
+          "alder_dg": 52,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10388",
+          "merknad": "Fakturert (uten oppdragsnr) — tjeneste/annet"
+        },
+        {
+          "oppdragsnr": null,
+          "navn": "Stein Erik Stinessen",
+          "megler": "",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 6000,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": "2026-07-08",
+          "alder_dg": 52,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10389",
+          "merknad": "Fakturert (uten oppdragsnr) — tjeneste/annet"
+        },
+        {
+          "oppdragsnr": null,
+          "navn": "Gerhard Ludvigsen",
+          "megler": "",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 5780,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": "2026-08-14",
+          "alder_dg": 15,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10405",
+          "merknad": "Fakturert (uten oppdragsnr) — tjeneste/annet"
+        },
+        {
+          "oppdragsnr": null,
+          "navn": "Karsten Kjoss",
+          "megler": "",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 5520,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": "2026-07-08",
+          "alder_dg": 52,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10387",
+          "merknad": "Fakturert (uten oppdragsnr) — tjeneste/annet"
+        },
+        {
+          "oppdragsnr": null,
+          "navn": "Steinar Robsahm Berg",
+          "megler": "",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 5000,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": "2026-08-18",
+          "alder_dg": 11,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10407",
+          "merknad": "Fakturert (uten oppdragsnr) — tjeneste/annet"
+        },
+        {
+          "oppdragsnr": null,
+          "navn": "Martin Norum",
+          "megler": "",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 3400,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": "2026-07-16",
+          "alder_dg": 44,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10399",
+          "merknad": "Fakturert (uten oppdragsnr) — tjeneste/annet"
+        },
+        {
+          "oppdragsnr": "25082",
+          "navn": "25082 - Italia Yacht 9.98",
+          "megler": "Henrik",
+          "status": "sannsynlig",
+          "kilde": "HubSpot B · In Contract",
+          "belop_inkl_mva": 112500,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": null,
+          "alder_dg": null,
+          "forventet_mnd": "2026-09",
+          "faktura_nr": null,
+          "merknad": "amount (ex mva) × 1,25 · forventet = i dag + 32 d"
+        },
+        {
+          "oppdragsnr": "26026",
+          "navn": "26026 - Dufour GL 385",
+          "megler": "Henrik",
+          "status": "sannsynlig",
+          "kilde": "HubSpot B · In Contract",
+          "belop_inkl_mva": 47940,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": null,
+          "alder_dg": null,
+          "forventet_mnd": "2026-09",
+          "faktura_nr": null,
+          "merknad": "amount (ex mva) × 1,25 · forventet = i dag + 32 d"
+        },
+        {
+          "oppdragsnr": null,
+          "navn": "SAS TWO TWELVE YACHTS GROUP 212 YACHTS",
+          "megler": "",
+          "status": "usikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 50697,
+          "valuta": "EUR",
+          "solgt_dato": null,
+          "fakturadato": "2025-05-26",
+          "alder_dg": 460,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10241",
+          "merknad": "Gammel/valuta — avklar med regnskapsfører (mulig spøkelsespost)"
+        },
+        {
+          "oppdragsnr": null,
+          "navn": "Dan Friis-Møller",
+          "megler": "",
+          "status": "usikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 7742,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": "2026-04-29",
+          "alder_dg": 122,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10356",
+          "merknad": "Gammel/valuta — avklar med regnskapsfører (mulig spøkelsespost)"
+        },
+        {
+          "oppdragsnr": null,
+          "navn": "Vigdis Higelin Aarestrup",
+          "megler": "",
+          "status": "usikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 2000,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": "2026-04-29",
+          "alder_dg": 122,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10355",
+          "merknad": "Gammel/valuta — avklar med regnskapsfører (mulig spøkelsespost)"
+        },
+        {
+          "oppdragsnr": "26056",
+          "navn": "26056 - SeaDan 400 Pro Fly 2006",
+          "megler": "Henrik",
+          "status": "usikker",
+          "kilde": "HubSpot B · Negotiation",
+          "belop_inkl_mva": 71400,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": null,
+          "alder_dg": null,
+          "forventet_mnd": "2026-10",
+          "faktura_nr": null,
+          "merknad": "amount (ex mva) × 1,25 · forventet = i dag + 61 d"
+        }
+      ],
+      "pipeline_sum": {
+        "sikker": 1368568,
+        "sannsynlig": 160440,
+        "usikker": 81142
+      },
+      "open_items_total": 1429008,
+      "verification": {
+        "status": "ok",
+        "maxdiff_kr": 0.23,
+        "xlsx_low": -1342098,
+        "js_low": -1342098,
+        "xlsx_opening": 1070059,
+        "config": "full ramp + utbytte sep 27, Base (regnearkets standard)",
+        "checked_at": "2026-08-29"
+      }
+    },
+    "forretningsmodell": {
+      "generert": "2026-08-29T10:15:23",
+      "kilde_fasit": "oppgjørslistene via HoY-1-3-5-arsplan.xlsx/Forutsetninger (Sindres valg 29.08.2026)",
+      "forutsetninger": {
+        "xlsx_modified": "2026-08-29 09:27",
+        "INNT": 58375,
+        "STOL": 1500000,
+        "SINDRE": 2300000,
+        "MKOST": 0.55,
+        "G71": 969498,
+        "SATS": 0.45,
+        "LOAD": 1.165,
+        "GRUNN": 1880000,
+        "TRINN": 60000,
+        "REKR": 75000,
+        "KONTOR": 300000,
+        "LEDER": 900000,
+        "BACK": 500000,
+        "MK": 6600,
+        "RATIO": 1.3,
+        "r1": 0.4,
+        "r2": 0.75,
+        "r3": 1,
+        "VINN": 0.68,
+        "PB": 0.5,
+        "UKER": 46,
+        "bemannet_i_dag": 1,
+        "spaker_input": {
+          "INNT": 76800,
+          "MK": 4552,
+          "STOL": 1800000,
+          "notat": "Spaker-arket: 1,6M snittbåt × 6 % ÷ 1,25 = 76 800; CFO-mål 4 552; stol 1,8M"
+        }
+      },
+      "bemanning_plan": {
+        "2027": {
+          "start": 2,
+          "q": [
+            1,
+            1,
+            1,
+            0
+          ]
+        },
+        "2029": {
+          "start": 6,
+          "q": [
+            1,
+            1,
+            0,
+            0
+          ]
+        },
+        "2031": {
+          "start": 9,
+          "q": [
+            1,
+            1,
+            0,
+            0
+          ]
+        }
+      },
+      "fasit_12mnd": {
+        "vindu": "27.08.2025–26.08.2026",
+        "omsetning_ex_mva": 4378153,
+        "boats": 75,
+        "per_boat": 58375,
+        "median_per_boat": 50400,
+        "snitt_salgssum": 1260458,
+        "median_salgssum": 1065000,
+        "eff_provisjon_inkl_mva": 0.0579,
+        "salgstid_median_dg": 89,
+        "salgstid_def": "signert → solgt. IKKE cash-lag (solgt → faktura, se malt.cash_lag).",
+        "oppdrag_inn": 67,
+        "kohort_oppdrag_per_salg": 1.38,
+        "kreditert": {
+          "Henrik": 1838820,
+          "Sindre": 1491253,
+          "Daniel": 882480,
+          "Jeanette": 165600
+        },
+        "resultat_motor_dagens_bemanning": -313631
+      },
+      "h2_2026": {
+        "maal": 2900000,
+        "levert": 626060,
+        "per": "2026-08-26",
+        "uker_igjen": 17,
+        "kilde": "Forutsetninger-arket (oppdateres ukentlig av Sindre)"
+      },
+      "regnskap_2025": {
+        "resultat_for_skatt": 736978,
+        "omsetning_ex_mva": 4860000,
+        "utbytte_besluttet": 1000000,
+        "kommentar": "Reelt 2025 ≈ break-even; rapportert løftet av engangsposter (kostnadsmodell jun 2026)."
+      },
+      "spaker_maling": {
+        "provisjonsdisiplin": {
+          "maal_pct": 0.06,
+          "min_nok": 45000,
+          "maalt_eff_pct": 0.0579,
+          "h1_rabatterte": 13,
+          "h1_salg": 38,
+          "h1_tapt": 266000
+        },
+        "premium_miks": {
+          "snittbaat_maal": 1600000,
+          "snittbaat_maalt": 1260458,
+          "per_boat_maal": 76800
+        },
+        "markedskost_tak": {
+          "tak_per_oppdrag": 15000,
+          "maal_per_oppdrag": 4552,
+          "maalt_per_oppdrag": 6600,
+          "paalopt_apne_oppdrag_jun": 286000
+        },
+        "sindre_7_1g": {
+          "tak": 969498,
+          "knekk_omsetning": 2154440,
+          "plan_sindre_stol": 2300000
+        },
+        "stol_1_8m": {
+          "plan": 1500000,
+          "spak": 1800000,
+          "henrik_kreditert_12m": 1838820
+        }
+      },
+      "kontroll_supabase": {
+        "kilde": "Supabase settlements — importert fra oppgjørslisten, kan ligge etter. KONTROLL, ikke fasit.",
+        "rader": 128,
+        "siste_solgt_dato": "2026-08-11",
+        "ytd_2026_ex_charter": 3159880,
+        "ytd_2026_n": 52,
+        "h2_levert": 536960,
+        "h2_n": 12,
+        "rabatterte_2026_n": 14,
+        "tapt_provisjon_2026_inkl_mva": 279990
+      }
+    }
+  }
+}</script>
+<!-- company-state:end -->
+
+<div class="wrap">
+  <header class="mast">
+    <div>
+      <div class="brand-tag">House of Yachts · Instrumentpanel</div>
+      <h1>Forretningsmodell</h1>
+      <p>North Star, motoren som skal levere den, spakene som løfter resultatet — og hvor vi faktisk står. Samme motor som HoY-1-3-5-arsplan.xlsx, samme felles kilde som Ansettelsesgate.</p>
+    </div>
+    <div class="mast-r">
+      <button class="themebtn" id="theme" type="button">LYS / MØRK</button>
+      <div class="stamp" id="stamp"></div>
+    </div>
+  </header>
+
+  <!-- ============ NORTH STAR ============ -->
+  <section id="northstar">
+    <div class="sec-head">
+      <span class="eyebrow">North Star</span>
+      <h2>Resultat før skatt — etter Sindre-lønn kappet på 7,1G</h2>
+      <p class="lede">Ett tall styrer alt: resultat før skatt, etter at Sindre har tatt lønn opp til 7,1G (<span class="n" id="g71"></span>). Søylene viser hva planlagt bemanning gir alene, hva den gir med spakene, og målet.</p>
+    </div>
+    <div class="ns" id="nsGrid"></div>
+  </section>
+
+  <!-- ============ MOTOREN ============ -->
+  <section id="motor">
+    <div class="sec-head">
+      <span class="eyebrow">Motoren</span>
+      <h2>Omsetning → båter → stoler → kostbase → resultat</h2>
+      <p class="lede">Bemanning gir kapasitet (ramp 40 / 75 / 100 % per kvartal), kapasitet gir omsetning, omsetning gir båter og oppdrag — og hvert trinn i bemanningen løfter kostbasen. Velg år og bemanning; alt regnes om.</p>
+    </div>
+    <div class="controls">
+      <div class="ctl"><div class="lbl">År</div>
+        <div class="seg" id="segYear"><button data-v="0">Målt 12 mnd</button><button data-v="2027">2027</button><button data-v="2029">2029</button><button data-v="2031">2031</button></div>
+        <div class="hint" id="yearHint"></div></div>
+      <div class="ctl"><div class="lbl">Bemanning 2027 (utenom Sindre)</div>
+        <div class="seg" id="segStaff"><button data-v="plan">Plan: 2 + 3 nye</button><button data-v="decision">Beslutning 28.08: 2 + 1 (Q1)</button><button data-v="none">Ingen nye: 2 + 0</button></div>
+        <div class="hint" id="staffHint"></div></div>
+      <div class="ctl"><div class="lbl">Spaker</div>
+        <div class="seg"><button id="btnLevers" data-v="0">Av</button></div>
+        <div class="hint">Skru på/av under «Spakene»</div></div>
+    </div>
+
+    <div class="flow" id="flow"></div>
+
+    <div class="pl">
+      <div class="card">
+        <h3>Resultatregnskapet bak tallet</h3>
+        <div class="sub" id="plSub"></div>
+        <table id="plTable"></table>
+      </div>
+      <div class="card">
+        <h3>Bemanning og ramp</h3>
+        <div class="sub" id="rampSub"></div>
+        <div class="ramp" id="rampRow"></div>
+        <table id="staffTable" style="margin-top:12px"></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SPAKENE ============ -->
+  <section id="spaker">
+    <div class="sec-head">
+      <span class="eyebrow">Spakene</span>
+      <h2>Bedre økonomi per båt slår flere stoler</h2>
+      <p class="lede">Samme bemanningsplan, bedre driftsøkonomi. Skru på en spak for å se effekten i motoren over. Status er hvor langt spaken faktisk er trukket — ikke hvor mye den er verdt.</p>
+    </div>
+    <div class="lev" id="levers"></div>
+    <div class="levsum" id="levsum"></div>
+  </section>
+
+  <!-- ============ STATUS ============ -->
+  <section id="status">
+    <div class="sec-head">
+      <span class="eyebrow">Status</span>
+      <h2>2027-planen når ikke 1,5M — og det er poenget med den</h2>
+      <p class="lede">Baseline gir minus, spakene løfter til pluss, og gapet til North Star gjenstår. 2027 er året som skal absorbere Daniel, bygge kapasitet, bevise spakene og ende i pluss. Ikke forveksle «økonomisk vanntett» med «strategisk ferdig».</p>
+    </div>
+    <div class="status">
+      <div class="card">
+        <h3>Gapet mot North Star 2027</h3>
+        <div class="sub">Planlagt bemanning (2 + 3 nye), tall fra motoren.</div>
+        <div class="gapviz" id="gapviz"></div>
+        <h3 style="margin-top:18px">De fire jobbene i 2027</h3>
+        <div class="jobs" id="jobs"></div>
+      </div>
+      <div>
+        <div class="card decision">
+          <div class="k">Beslutning <span id="decDate"></span></div>
+          <div class="big" id="decText"></div>
+          <ul id="decList"></ul>
+        </div>
+        <div class="card liq">
+          <h3>Likviditet under rampen</h3>
+          <div class="sub">Laveste saldo jan 27–des 28, Plan-scenario (P75 cash-lag 32 d), utbytte utsatt. Samme modell og åpningssaldo som Ansettelsesgate.</div>
+          <div class="grid" id="liqGrid"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ KILDER ============ -->
+  <section id="kilder">
+    <div class="sec-head">
+      <span class="eyebrow">Felles kilde</span>
+      <h2>Hvor tallene kommer fra</h2>
+    </div>
+    <div class="src">
+      <div class="card">
+        <h3>company-state.json</h3>
+        <div class="sub"><span class="mono">besluttet</span> redigeres for hånd, <span class="mono">malt</span> fylles av byggeskriptene (<span class="mono">company-state-build.py</span>, <span class="mono">forretningsmodell-bygg.py</span>). Samme fil bakes inn i Ansettelsesgate og Likviditetsmonitor — endres kilden, republiseres alle.</div>
+        <dl id="srcList"></dl>
+      </div>
+      <div class="card">
+        <h3>Kontroll: Supabase settlements</h3>
+        <div class="sub">Ikke fasit — importeres fra oppgjørslisten og kan ligge etter.</div>
+        <dl id="ctlList"></dl>
+      </div>
+      <div class="card">
+        <h3>Tre tellemåter, to klokker</h3>
+        <div class="defs">
+          <p><b>Oppdrag inn</b> — hvem hentet oppdraget. <b>Solgt av</b> — hvem lukket salget. <b>Kreditert</b> — 50/50 ved samarbeid; det lønna og motoren følger. Bland dem aldri.</p>
+          <p><b>Salgstid</b> — signert → solgt, median <span class="n" id="dSalgstid"></span> d. <b>Cash-lag</b> — solgt → faktura, median <span class="n" id="dCash"></span> d (P75 <span class="n" id="dP75"></span>). Salgstid styrer pipeline, cash-lag styrer likviditet. Aldri samme klokke.</p>
+          <p><b>Charter</b> holdes helt utenfor motoren.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+/* ---------- felles kilde (company-state.json: besluttet + malt) ---------- */
+const RAW=JSON.parse(document.getElementById('company-state').textContent||'{}');
+const B=RAW.besluttet||{}, MALT=RAW.malt||{}, FM=MALT.forretningsmodell||{};
+const M=FM.forutsetninger||{}, SPI=M.spaker_input||{}, NS=B.north_star||{}, PLAN=FM.bemanning_plan||{}, F=FM.fasit_12mnd||{}, LV=FM.spaker_maling||{};
+const AP=MALT.apningssaldo||{}, CL=MALT.cash_lag||{}, SC=MALT.scenarioer_p75||{}, H2=FM.h2_2026||{}, KT=FM.kontroll_supabase||{}, R25=FM.regnskap_2025||{};
+const BEM=B.bemanning||{}, UTB=B.utbytte||{}, BUF=B.buffer||{};
+const SPAK={};(B.spaker||[]).forEach(s=>SPAK[s.id]=s);
+if(!M.INNT){document.querySelector('.wrap').innerHTML='<p style="padding:40px 0">company-state.json mangler <code>malt.forretningsmodell</code> — kjør <code>python3 forretningsmodell-bygg.py</code> i HoY Internportal og republiser.</p>';throw new Error('no state');}
+
+/* ---------- formatering ---------- */
+const NB=v=>Math.round(Math.abs(v)).toLocaleString('nb-NO').replace(/ |\s/g,' ');
+const fmt=v=>(v<0?'−':'')+NB(v);
+const fmtS=v=>(v<0?'−':'+')+NB(v);
+const fmtk=v=>{const a=Math.abs(v),s=v<0?'−':'';return s+(a>=1e6?(a/1e6).toFixed(a>=1e7?1:2).replace('.',',')+'M':Math.round(a/1e3)+'k');};
+const fmtkS=v=>(v<0?'−':'+')+fmtk(Math.abs(v)).replace('−','');
+const pct=v=>(v*100).toFixed(2).replace('.',',')+' %';
+const d1=v=>v.toFixed(1).replace('.',',');
+const d2=v=>v.toFixed(2).replace('.',',');
+const ddmm=iso=>iso?iso.slice(8,10)+'.'+iso.slice(5,7)+'.'+iso.slice(0,4):'—';
+
+/* ---------- state ---------- */
+const S={year:2027,staff:'plan',lev:{prov:0,prem:0,mk:0,stol:0}};
+try{const s=JSON.parse(localStorage.getItem('hoy_fm'));if(s){Object.assign(S,s);S.lev=Object.assign({prov:0,prem:0,mk:0,stol:0},s.lev||{});}}catch(e){}
+const save=()=>{try{localStorage.setItem('hoy_fm',JSON.stringify(S));}catch(e){}};
+
+/* ---------- motoren (identisk med Økonomimotor-arket) ---------- */
+function params(lev){
+  const p={INNT:M.INNT,MK:M.MK,STOL:M.STOL};
+  if(lev.prov&&lev.prem)p.INNT=SPI.INNT;                       // 1,6M × 6 % ÷ 1,25 = 76 800 (Spaker-arket)
+  else if(lev.prov)p.INNT=M.INNT*(LV.provisjonsdisiplin.maal_pct/LV.provisjonsdisiplin.maalt_eff_pct);
+  else if(lev.prem)p.INNT=M.INNT*(LV.premium_miks.snittbaat_maal/LV.premium_miks.snittbaat_maalt);
+  if(lev.mk)p.MK=SPI.MK;
+  if(lev.stol)p.STOL=SPI.STOL;
+  return p;
+}
+function staffing(year){
+  const b=PLAN[String(year)];
+  if(year===2027){ if(S.staff==='decision')return{start:b.start,q:[1,0,0,0]}; if(S.staff==='none')return{start:b.start,q:[0,0,0,0]}; }
+  return b;
+}
+function motor(year,lev){
+  const p=params(lev);
+  if(year===0){ // Målt siste 12 mnd — fasit-omsetning, dagens kostnivå, 7,1G
+    const rev=F.omsetning_ex_mva, sind=F.kreditert.Sindre, meg=rev-sind;
+    const r={year:0,rev,meg,boats:F.boats,opp:F.oppdrag_inn,fte:1,avg:1,end:1,hires:0,
+      brk:meg*M.MKOST,sc:Math.min(M.SATS*sind,M.G71)*M.LOAD,mkt:F.oppdrag_inn*M.MK,kb:M.GRUNN,p,q:[0,0,0,0],start:1};
+    r.res=r.rev-r.brk-r.sc-r.mkt-r.kb; return r;
+  }
+  const st=staffing(year), rq=[M.r1,M.r2,M.r3,M.r3];
+  let fte=st.start, avg=st.start, hires=0;
+  st.q.forEach((n,i)=>{let s=0;for(let k=i;k<4;k++)s+=rq[k-i];fte+=n*s/4;avg+=n*(4-i)/4;hires+=n;});
+  const end=st.start+hires;
+  const kb=M.GRUNN+M.TRINN*Math.max(0,avg-2)+M.REKR*hires+(end>=5?M.LEDER:0)+(end>=6?M.KONTOR:0)+(end>=8?M.BACK:0);
+  const meg=fte*p.STOL, rev=meg+M.SINDRE, boats=rev/p.INNT, opp=boats*M.RATIO;
+  const r={year,rev,meg,boats,opp,fte,avg,end,hires,brk:meg*M.MKOST,sc:Math.min(M.SATS*M.SINDRE,M.G71)*M.LOAD,mkt:opp*p.MK,kb,p,q:st.q,start:st.start};
+  r.res=rev-r.brk-r.sc-r.mkt-r.kb; return r;
+}
+const OFF={prov:0,prem:0,mk:0,stol:0}, ALL={prov:1,prem:1,mk:1,stol:1};
+
+/* ---------- render: masthead ---------- */
+document.getElementById('stamp').innerHTML='company-state '+String(RAW.sist_oppdatert||'').slice(0,16).replace('T',' ')+' ('+(RAW.sist_oppdatert_av||'')+')<br>PO-snapshot '+ddmm(AP.snapshot_date)+' · fasit per '+ddmm(H2.per);
+document.getElementById('g71').textContent=fmt(NS.sindre_lonn_tak||M.G71)+' kr';
+document.getElementById('dSalgstid').textContent=F.salgstid_median_dg;
+document.getElementById('dCash').textContent=CL.median;
+document.getElementById('dP75').textContent=CL.p75;
+
+/* ---------- render: North Star ---------- */
+function bar(label,v,cls,mn,mx){
+  const span=mx-mn,l=v<0?(v-mn)/span*100:(0-mn)/span*100,w=Math.abs(v)/span*100,z=(0-mn)/span*100;
+  return `<div class="bar"><span class="lab">${label}</span><div class="track"><span class="z" style="left:${z}%"></span><i class="${cls}" style="left:${l}%;width:${w}%"></i></div><span class="val ${v<0?'neg':''}">${fmtk(v)}</span></div>`;
+}
+function renderNS(){
+  const years=[2027,2029,2031];const savedStaff=S.staff;S.staff='plan';
+  let h='';
+  years.forEach(y=>{const b=motor(y,OFF),s=motor(y,ALL),t=NS[y];
+    const mn=Math.min(0,b.res,s.res)*1.1,mx=Math.max(t,s.res)*1.08;
+    h+=`<div class="card"><div class="yr"><span class="y">${y===2027?'ÅR 1':y===2029?'ÅR 3':'ÅR 5'} · ${y}</span><span class="chip ${s.res>=t?'green':(s.res>0?'amber':'red')}">gap ${fmtkS(s.res-t)}</span></div>
+      <div class="target">${fmtk(t)}<small>mål</small></div>
+      <div class="bars">${bar('Bemanning alene',b.res,b.res<0?'r':'b',mn,mx)}${bar('Med spakene',s.res,'s',mn,mx)}${bar('North Star',t,'t',mn,mx)}</div></div>`;});
+  S.staff=savedStaff;
+  const h2=H2,rest=(h2.maal-h2.levert)/h2.uker_igjen,pr=Math.min(100,h2.levert/h2.maal*100);
+  h+=`<div class="card now"><div class="k">Hvor vi står</div><div class="big">${fmtk(R25.resultat_for_skatt)}<span style="font-size:13px;font-weight:500;opacity:.75;margin-left:8px">resultat før skatt 2025</span></div>
+    <div style="margin-top:12px">
+    <div class="row"><span>Motoren på dagens bemanning, 12 mnd fasit</span><span class="v">${fmt(F.resultat_motor_dagens_bemanning)}</span></div>
+    <div class="row"><span>${F.boats} båter · ${fmt(F.per_boat)}/båt · ${fmtk(F.omsetning_ex_mva)} ex mva</span><span class="v">${F.vindu.slice(0,5)}–${F.vindu.slice(16,21)}</span></div>
+    <div class="row" style="display:block"><div style="display:flex;justify-content:space-between"><span>H2 2026 levert (mål ${fmtk(h2.maal)})</span><span class="v">${fmt(h2.levert)}</span></div><div class="prog"><i style="width:${pr}%"></i></div><div class="foot">${pr.toFixed(0)} % · ${h2.uker_igjen} uker igjen · rest ${fmt(rest)}/uke · per ${ddmm(h2.per)}</div></div>
+    </div></div>`;
+  document.getElementById('nsGrid').innerHTML=h;
+}
+
+/* ---------- render: motor ---------- */
+function node(k,v,unit,f,d,cls){return `<div class="node ${cls||''}"><div class="k">${k}</div><div class="v">${v}${unit?`<small>${unit}</small>`:''}</div><div class="f">${f}</div>${d?`<div class="d">${d}</div>`:''}</div>`;}
+const AR='<div class="arrow">→</div>';
+function renderMotor(){
+  const y=S.year,r=motor(y,S.lev),b=motor(y,OFF),leversOn=Object.values(S.lev).some(x=>x);
+  const kbParts=[];
+  if(y!==0){kbParts.push('grunn '+fmtk(M.GRUNN));if(r.avg>2)kbParts.push('+'+fmtk(M.TRINN*(r.avg-2))+' trinn');if(r.hires)kbParts.push('+'+fmtk(M.REKR*r.hires)+' rekr.');if(r.end>=5)kbParts.push('+'+fmtk(M.LEDER)+' leder');if(r.end>=6)kbParts.push('+'+fmtk(M.KONTOR)+' kontor');if(r.end>=8)kbParts.push('+'+fmtk(M.BACK)+' backoffice');}
+  document.getElementById('flow').innerHTML=
+    node('Omsetning ex mva',fmtk(r.rev),'',y===0?'fasit oppgjørslister':`${d2(r.fte)} FTE × ${fmtk(r.p.STOL)} + Sindre ${fmtk(M.SINDRE)}`,y===0?'Kreditert: Henrik '+fmtk(F.kreditert.Henrik)+', Sindre '+fmtk(F.kreditert.Sindre)+', Daniel '+fmtk(F.kreditert.Daniel):'Stol = rampet megler. Sindre alltid egen stol.')+AR+
+    node('Båter solgt',d1(r.boats),'',`÷ ${fmt(r.p.INNT)} kr/båt`,`${d1(r.opp)} signerte oppdrag inn (× ${d2(M.RATIO)}) · ${d1(r.opp/M.UKER)}/uke`)+AR+
+    node('Stoler',y===0?'1':d2(r.fte),y===0?'bemannet':'producing FTE',y===0?'Henrik (+Marte)':`${r.start} rampede + ${r.hires} nye → ${r.end} ved årsslutt`,y===0?'Daniel slutter — telles ikke.':`Snitt bemannet ${d2(r.avg)} · ramp ${Math.round(M.r1*100)}/${Math.round(M.r2*100)}/${Math.round(M.r3*100)} %`)+AR+
+    node('Kostbase',fmtk(r.kb),'',y===0?'dagens nivå (Marte, Philip, kontor, systemer, avskr.)':kbParts.join(' '),'Trinnvis: +60k/stol >2, +75k per ansettelse, leder ≥5, kontor ≥6, backoffice ≥8')+AR+
+    node('Resultat før skatt',(r.res<0?'−':'')+fmtk(Math.abs(r.res)).replace('−',''),'',y===0?'motoren på fasit-tall':`mål ${fmtk(NS[y])} · gap ${fmtkS(r.res-NS[y])}`,leversOn?`Uten spaker: ${fmtk(b.res)} · spakene gir ${fmtkS(r.res-b.res)}`:(y===0?'Regnskapet 2025 viste +'+fmtk(R25.resultat_for_skatt)+' — løftet av engangsposter':'Skru på spaker for å se løftet'),'res');
+  document.getElementById('yearHint').textContent=y===0?'Fasit '+F.vindu+', ex charter':(y===2027?'Innfasingsår — resultatet under skal absorbere Daniel og rampen':'Steady-state-ramp fra Økonomimotor');
+  document.getElementById('staffHint').textContent=y===2027?(S.staff==='plan'?'Økonomimotor-arket: nyansettelser Q1, Q2 og Q3':S.staff==='decision'?'Maks én megler i Q1 — som besluttet 28.08':'Ingen nye — kun Henrik + én rampet stol'):'Bemanningsvalget gjelder 2027; '+(y===0?'målt-kolonnen':y)+' bruker plan';
+  const lb=document.getElementById('btnLevers');lb.textContent=leversOn?Object.values(S.lev).filter(x=>x).length+' av 4 på':'Av';lb.setAttribute('aria-pressed',leversOn?'true':'false');
+  // P&L
+  const rows=[['Omsetning ex mva',r.rev,y===0?'fasit':'kapasitet'],['− Meglerkost 55 % av megler-oms',-r.brk,`av ${fmtk(r.meg)}`],['− Sindre-kompensasjon (7,1G loaded)',-r.sc,'min(45 %, 7,1G) × 1,165'],['− Markedskost',-r.mkt,`${fmt(r.p.MK)} × ${d1(r.opp)} oppdrag`],['− Kostbase',-r.kb,y===0?'grunn':'trinnvis']];
+  document.getElementById('plTable').innerHTML=rows.map(([a,v,m])=>`<tr><td>${a}</td><td class="m">${m}</td><td class="n ${v<0?'':''}">${fmt(v)}</td></tr>`).join('')+`<tr class="tot"><td>Resultat før skatt</td><td class="m">${y===0?'':'mål '+fmt(NS[y])}</td><td class="n ${r.res<0?'neg':'pos'}">${fmt(r.res)}</td></tr>`;
+  document.getElementById('plSub').textContent=leversOn?'Med spaker: '+[S.lev.prov&&'provisjonsdisiplin',S.lev.prem&&'premium-miks',S.lev.mk&&'markedskost-tak',S.lev.stol&&'stol 1,8M'].filter(Boolean).join(', '):'Uten spaker (baseline).';
+  // ramp
+  const rq=[M.r1,M.r2,M.r3,M.r3];
+  const qf=[0,1,2,3].map(qi=>{let f=r.start;r.q.forEach((n,i)=>{if(i<=qi)f+=n*rq[qi-i];});return f;});
+  document.getElementById('rampRow').innerHTML=y===0?'<span>Målt<b>1 stol</b></span>':qf.map((f,i)=>`<span>Q${i+1}${r.q[i]?' +'+r.q[i]:''}<b>${d2(f)} FTE</b></span>`).join('');
+  document.getElementById('rampSub').textContent=y===0?'Dagens bemanning utenom Sindre.':`Nyansatt yter ${Math.round(M.r1*100)} % første kvartal, ${Math.round(M.r2*100)} % neste, deretter 100 %. Snittet = ${d2(r.fte)} FTE.`;
+  const q=y===0?null:[r.rev/4,r.rev/4,r.rev/4,r.rev/4];
+  const qrev=y===0?[]:qf.map(f=>f*r.p.STOL/4+M.SINDRE/4);
+  document.getElementById('staffTable').innerHTML=y===0?`<tr><td>Kreditert siste 12 mnd</td><td class="n">${fmtk(F.omsetning_ex_mva)}</td></tr><tr><td class="m">Henrik · Sindre · Daniel · Jeanette</td><td class="n">${[F.kreditert.Henrik,F.kreditert.Sindre,F.kreditert.Daniel,F.kreditert.Jeanette].map(fmtk).join(' · ')}</td></tr>`:
+    `<tr><td class="m">Kvartal</td><td class="m">Q1</td><td class="m">Q2</td><td class="m">Q3</td><td class="m">Q4</td></tr><tr><td>Omsetningsmål</td>${qrev.map(v=>`<td class="n">${fmtk(v)}</td>`).join('')}</tr><tr><td>Båter</td>${qrev.map(v=>`<td class="n">${d1(v/r.p.INNT)}</td>`).join('')}</tr><tr><td>Oppdrag inn</td>${qrev.map(v=>`<td class="n">${d1(v/r.p.INNT*M.RATIO)}</td>`).join('')}</tr>`;
+}
+
+/* ---------- render: spaker ---------- */
+// Status: fra besluttet.spaker (id) når den finnes, ellers standard under. aktiv=gul (vedtatt, ikke bevist), planlagt=gul, bevist=grønn, forkastet=grå.
+const STAT_MAP={aktiv:['amber','Aktiv, ikke bevist'],planlagt:['amber','Planlagt'],bevist:['green','Bevist'],forkastet:['grey','Forkastet'],ikke_startet:['red','Ikke startet']};
+function statusOf(id,fallback){const s=SPAK[id];if(s&&STAT_MAP[s.status])return [STAT_MAP[s.status][0],STAT_MAP[s.status][1]+(s.frist?' · frist '+ddmm(s.frist):''),s.notat||fallback[2]];return fallback;}
+const LEVERS=[
+ {k:'prov',id:'provisjonsdisiplin',name:'Provisjonsdisiplin',mech:'6 % / min. 45 000 håndheves; rabatt krever Sindres godkjenning.',
+  meas:()=>{const p=LV.provisjonsdisiplin;return `Målt effektiv <b>${pct(p.maalt_eff_pct)}</b> mot ${pct(p.maal_pct)} · H1: ${p.h1_rabatterte} av ${p.h1_salg} salg rabattert, ~${fmtk(p.h1_tapt)} tapt${KT.rabatterte_2026_n?` · 2026 hittil (Supabase): ${KT.rabatterte_2026_n} rabattert, ${fmtk(KT.tapt_provisjon_2026_inkl_mva)} inkl. mva`:''}`;},
+  fb:['amber','Regel vedtatt, ikke bevist','Godkjenningskrav innført jul 2026. Grønt når et kvartal viser ≥ 6,0 % effektivt.']},
+ {k:'prem',id:'premium_miks',name:'Premium-miks',mech:'Snittbåt mot 1,6M → 76 800 kr/båt (med 6 %). Hver 10 000 kr mer per båt ≈ 15–20 % færre båter for samme mål.',
+  meas:()=>{const p=LV.premium_miks;return `Snitt salgssum <b>${fmtk(p.snittbaat_maalt)}</b> (median ${fmtk(F.median_salgssum)}) mot mål ${fmtk(p.snittbaat_maal)} · ${fmt(F.per_boat)} kr/båt i dag`;},
+  fb:['red','Ikke startet','Ingen målt bevegelse i miksen. Krever aktiv oppdragsjakt i 2–5M-segmentet (Sindre tar Daniels 2–5M-båter).']},
+ {k:'mk',id:'markedskost_tak',name:'Markedskost-tak',mech:'15 000-tak per oppdrag håndheves; mål 4 552 per signert oppdrag.',
+  meas:()=>{const p=LV.markedskost_tak;return `Målt <b>${fmt(p.maalt_per_oppdrag)}</b> per signert oppdrag · mål ${fmt(p.maal_per_oppdrag)} · tak ${fmtk(p.tak_per_oppdrag)} · ~${fmtk(p.paalopt_apne_oppdrag_jun)} påløpt på åpne oppdrag (jun)`;},
+  fb:['amber','Tak vedtatt, måles','Håndheves fra H2. Grønt når snittet er under 5 000 per signert oppdrag.']},
+ {k:'stol',id:'stol_1_8m',name:'Stol-produksjon 1,8M',mech:'Rampet stol leverer 1,8M i stedet for plantallet 1,5M.',
+  meas:()=>{const p=LV.stol_1_8m;return `Henrik kreditert <b>${fmtk(p.henrik_kreditert_12m)}</b> siste 12 mnd · Daniel ${fmtk(F.kreditert.Daniel)} · plan ${fmtk(p.plan)}`;},
+  fb:['amber','Bevist av én','Henrik viser at 1,8M er mulig; n = 1. Marte-tripwire 18. okt er kontrollpunktet.']},
+ {k:'g71',id:'sindre_7_1g',name:'7,1G-uttak',mech:'Sindre tar lønn opp til 7,1G, resten som utbytte. Alt over ~2,15M i egen omsetning koster ikke mer lønn.',fixed:true,
+  meas:()=>{const p=LV.sindre_7_1g;return `Tak <b>${fmt(p.tak)}</b> · knekkpunkt ${fmtk(p.knekk_omsetning)} · plan Sindre-stol ${fmtk(p.plan_sindre_stol)}`;},
+  fb:['green','I modellen','Ligger i baseline (ikke en ekstra spak). Åpent: Marius bekrefter om 7,1G inkluderer feriepenger (eks-tolkning ≈ 115k dyrere).']},
+ {k:'opp',id:'fakturering_raskere',name:'Raskere oppgjør',mech:'Cash-spak, ikke resultat-spak: kortere solgt → faktura → bank gir høyere laveste saldo under rampen.',fixed:true,
+  meas:()=>`Cash-lag median <b>${CL.median} d</b> · P75 ${CL.p75} d · P90 ${CL.p90} d (n = ${CL.n}) · bankdatoer utfylt: ${CL.bankdatoer_utfylt||0} · salgstid ${F.salgstid_median_dg} d er en annen klokke`,
+  fb:['amber','Målt, ikke avstemt','Fakturadato er proxy for cash. Grønt når bankdatoer er avstemt i deal-for-deal-registeret.']},
+];
+function renderLevers(){
+  const y=S.year===0?2027:S.year;
+  document.getElementById('levers').innerHTML=LEVERS.map(L=>{
+    const on=L.fixed?false:!!S.lev[L.k];let eff='';const st=statusOf(L.id,L.fb);
+    if(!L.fixed){const base=motor(y,Object.assign({},S.lev,{[L.k]:0})),w=motor(y,Object.assign({},S.lev,{[L.k]:1}));eff=fmtkS(w.res-base.res);}
+    return `<div class="lever ${on?'':'off'}"><button class="sw" role="switch" aria-checked="${on}" data-k="${L.k}" ${L.fixed?'disabled':''} aria-label="${L.name}"></button>
+      <div><div class="name">${L.name}</div><div class="mech">${L.mech}</div></div>
+      <div class="meas">${L.meas()}</div>
+      <div class="stat"><span class="chip ${st[0]}"><span class="dot"></span>${st[1]}</span><small>${st[2]}</small></div>
+      <div class="eff"><div class="k">${L.fixed?(L.k==='g71'?'i baseline':'likviditet'):'effekt '+y}</div><div class="e">${L.fixed?(L.k==='g71'?'—':'+ saldo'):eff}</div></div></div>`;}).join('');
+  document.querySelectorAll('.sw:not([disabled])').forEach(b=>b.onclick=()=>{S.lev[b.dataset.k]=S.lev[b.dataset.k]?0:1;render();});
+  const yb=[2027,2029,2031].map(yy=>{const sv=S.staff;S.staff='plan';const b=motor(yy,OFF),a=motor(yy,ALL);S.staff=sv;return{yy,b:b.res,a:a.res};});
+  document.getElementById('levsum').innerHTML=yb.map(o=>`<div class="card"><div class="k">${o.yy} · med alle fire spakene</div><div class="v ${o.a<0?'neg':''}">${fmt(o.a)}</div><div class="sub">baseline ${fmtk(o.b)} → løft ${fmtkS(o.a-o.b)}</div></div>`).join('')+
+    `<div class="card" style="background:var(--brand-soft);border-color:transparent"><div class="k">Konklusjon</div><div style="font-size:13px;margin-top:4px">Spakene er verdt mer enn nye stoler — og bør trekkes <b>før</b> det rekrutteres bredt. Ingen av dem er bevist på resultatsiden ennå.</div></div>`;
+}
+
+/* ---------- render: status ---------- */
+function renderStatus(){
+  const sv=S.staff;S.staff='plan';const b=motor(2027,OFF),a=motor(2027,ALL);S.staff='decision';const dec=motor(2027,OFF),decA=motor(2027,ALL);S.staff=sv;
+  const t=NS['2027'],gap=t-a.res;
+  const mn=Math.min(0,b.res)*1.15,mx=t*1.08;
+  document.getElementById('gapviz').innerHTML=[['Baseline (2 + 3 nye)',b.res,'r'],['Løft fra spakene',a.res-b.res,'s'],['= Med spakene',a.res,'s'],['North Star 2027',t,'t'],['Gap som gjenstår',-gap,'r']].map(([l,v,c])=>{
+    const span=mx-mn,left=v<0?(v-mn)/span*100:(0-mn)/span*100,w=Math.abs(v)/span*100,z=(0-mn)/span*100;
+    return `<div class="row"><span>${l}</span><div class="track" style="height:11px"><span class="z" style="left:${z}%"></span><i class="${c}" style="left:${left}%;width:${w}%"></i></div><span class="val ${v<0?'neg':''}">${l.startsWith('Løft')?fmtS(v):fmt(v)}</span></div>`;}).join('');
+  const pr=H2.levert/H2.maal;
+  const lvStat=LEVERS.filter(L=>!L.fixed).map(L=>statusOf(L.id,L.fb)[0]);
+  const jobs=[
+    ['Absorbere Daniel',`H2-mål senket til ${fmtk(H2.maal)} uten Daniel; hans 11 oppdrag omfordelt (Sindre 2–5M, Henrik volum). Levert ${fmtk(H2.levert)} per ${ddmm(H2.per)} — ${Math.round(pr*100)} % med ${H2.uker_igjen} uker igjen.`,pr>=0.5?'green':pr>=0.2?'amber':'red',pr>=0.5?'På plan':'Bak plan'],
+    ['Bygge kapasitet',`Rekruttering starter september; første stol tidligst Q1 2027, gate-frist ${ddmm(BEM.gate_frist)}. Motoren med beslutningen (2 + 1): ${fmt(dec.res)} uten spaker, ${fmt(decA.res)} med.`,BEM.gate_status==='gronn'?'green':'amber','Maks '+(BEM.maks_ansettelser_q1_2027??1)+' i Q1 · gate '+(BEM.gate_status||'rød').replace('rod','rød').replace('gronn','grønn')],
+    ['Bevise spakene',`${lvStat.filter(s=>s==='green').length} av 4 resultat-spaker bevist, ${lvStat.filter(s=>s==='amber').length} gule, ${lvStat.filter(s=>s==='red').length} rød. Beviset må komme før neste ansettelse.`,lvStat.some(s=>s==='green')?'amber':'amber','Ingen bevist ennå'],
+    ['Ende i pluss',`Plan-bemanning: ${fmt(b.res)} baseline → ${fmt(a.res)} med spakene. Beslutnings-bemanning: ${fmt(dec.res)} → ${fmt(decA.res)}. Gapet til ${fmtk(t)} (${fmtk(gap)}) tas i 2028–2029.`,a.res>0?'amber':'red',a.res>0?'Pluss krever spakene':'Minus'],
+  ];
+  document.getElementById('jobs').innerHTML=jobs.map((j,i)=>`<div class="job"><span class="no">${i+1}</span><div><div class="t">${j[0]}</div><div class="s">${j[1]}</div></div><span class="chip ${j[2]}"><span class="dot"></span>${j[3]}</span></div>`).join('');
+  document.getElementById('decDate').textContent='28.08.2026';
+  document.getElementById('decText').textContent='Ikke full ramp. Maks '+(BEM.maks_ansettelser_q1_2027??1)+' megler Q1 2027, utbytte '+(UTB.status||'utsatt')+'. '+(BEM.sekvensering||'');
+  const ck=BEM.gate_sjekkliste||{},ckN=Object.values(ck).filter(Boolean).length,ckT=Object.keys(ck).length;
+  document.getElementById('decList').innerHTML=`<li><span>Ansettelser Q1 2027</span><span class="v">maks ${BEM.maks_ansettelser_q1_2027??1}</span></li><li><span>Utbytte (${fmtk(UTB.belop||0)} rest)</span><span class="v">${UTB.status||'—'}${UTB.planlagt_maned?' · planlagt '+UTB.planlagt_maned:''}</span></li><li><span>Bufferregel</span><span class="v">${fmtk(BUF.normal||0)} normal · ${fmtk(BUF.unntak_styregodkjent||0)} kun styrevedtak</span></li><li><span>Ansettelser vurderes på</span><span class="v">${(B.cash_lag_lag_for_beslutning||'plan')==='plan'?'Plan (P75 '+CL.p75+' d)':B.cash_lag_lag_for_beslutning}</span></li><li><span>Q1-gate, frist</span><span class="v">${ddmm(BEM.gate_frist)} · ${ckN} av ${ckT} punkter</span></li><li><span>Sjekklisten</span><span class="v"><a href="https://claude.ai/code/artifact/c407b05b-1c0e-4da6-91bf-936d78be8e4d">Ansettelsesgate →</a></span></li>`;
+  const buf=BUF.normal||500000;
+  const cell=(k,v,s)=>`<div class="cell"><div class="k">${k}</div><div class="v ${v<0?'neg':v<buf?'':'pos'}">${fmtk(v)}</div><div class="s">${s}</div></div>`;
+  const l0=SC['0_ans_utsatt'],l1=SC['1_ans_q1_utsatt'],lf=SC['full_ramp_utbytte'];
+  document.getElementById('liqGrid').innerHTML=cell('0 nye, utbytte utsatt',l0,(l0>=buf?'over':'under')+' '+fmtk(buf)+'-gulvet med '+fmtk(Math.abs(l0-buf)))+cell('1 ny i Q1, utsatt',l1,(l1>=buf?'over':'under')+' gulvet med '+fmtk(Math.abs(l1-buf)))+cell('Full ramp + utbytte',lf,'krever finansiering · Base '+fmtk(SC.full_ramp_utbytte_base)+' / Stress '+fmtk(SC.full_ramp_utbytte_stress))+
+    `<div class="cell" style="grid-column:1/-1"><div class="k">Åpningssaldo 1.1.2027 (felles kilde)</div><div class="v">${fmt(AP.reell_bank)}</div><div class="s">hovedbok 1920 ${fmt(AP.hovedbok_1920)} + avstemmingsdiff ${fmt(AP.avstemmingsdiff)} · kassekreditt ${fmtk(BUF.kassekreditt||0)} utenom · PO-snapshot ${ddmm(AP.snapshot_date)} · scenarioer fra company-state-build.py</div></div>`;
+}
+
+/* ---------- render: kilder ---------- */
+function renderSources(){
+  const dH2=(H2.levert||0)-(KT.h2_levert||0);
+  document.getElementById('srcList').innerHTML=[['Sist oppdatert',String(RAW.sist_oppdatert||'').slice(0,16).replace('T',' ')+' · '+(RAW.sist_oppdatert_av||'')],['malt.forretningsmodell',String(FM.generert||'').slice(0,16).replace('T',' ')],['PowerOffice-snapshot',ddmm(AP.snapshot_date)+' (nattlig 03:30)'],['Regneark-forutsetninger',M.xlsx_modified||'—'],['Fasit oppgjørsliste per',ddmm(H2.per)],['Bank reell (kontoutskrift)',fmt(AP.reell_bank)+' kr'],['Kundefordringer',fmt(AP.kundefordringer||0)+' kr'],['Cash-lag n / median / P75 / P90',`${CL.n} / ${CL.median} / ${CL.p75} / ${CL.p90} d`],['PO-sync feil',(MALT.po_sync&&MALT.po_sync.feil&&MALT.po_sync.feil.length)?`<span class="warn">${MALT.po_sync.feil.length}</span>`:'ingen']].map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join('');
+  document.getElementById('ctlList').innerHTML=[['Siste solgt-dato i Supabase',ddmm(KT.siste_solgt_dato)],['H2 levert (Supabase)',fmt(KT.h2_levert||0)+' kr · '+(KT.h2_n||0)+' salg'],['H2 levert (fasit, arket)',fmt(H2.levert)+' kr'],['Avvik fasit − Supabase',`<span class="${Math.abs(dH2)>1000?'warn':''}">${fmtS(dH2)} kr</span>`],['YTD 2026 ex charter (Supabase)',fmt(KT.ytd_2026_ex_charter||0)+' kr · '+(KT.ytd_2026_n||0)+' salg'],['Rabatterte 2026 (Supabase)',(KT.rabatterte_2026_n||0)+' · '+fmtk(KT.tapt_provisjon_2026_inkl_mva||0)+' inkl. mva']].map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join('')+(Math.abs(dH2)>1000?`<dt class="warn" style="grid-column:1/-1;margin-top:6px">Supabase ligger etter oppgjørslisten — importer før settlements brukes som fasit.</dt>`:'');
+}
+
+/* ---------- wire ---------- */
+function syncSeg(id,val){document.querySelectorAll('#'+id+' button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v)===String(val)?'true':'false'));}
+function render(){renderNS();renderMotor();renderLevers();renderStatus();syncSeg('segYear',S.year);syncSeg('segStaff',S.staff);save();}
+document.querySelectorAll('#segYear button').forEach(b=>b.onclick=()=>{S.year=+b.dataset.v;render();});
+document.querySelectorAll('#segStaff button').forEach(b=>b.onclick=()=>{S.staff=b.dataset.v;render();});
+document.getElementById('btnLevers').onclick=()=>{const on=Object.values(S.lev).some(x=>x);S.lev=on?{prov:0,prem:0,mk:0,stol:0}:{prov:1,prem:1,mk:1,stol:1};render();};
+document.getElementById('theme').onclick=()=>{const cur=document.documentElement.getAttribute('data-theme');const mq=matchMedia('(prefers-color-scheme:dark)').matches;const isDark=cur?cur==='dark':mq;document.documentElement.setAttribute('data-theme',isDark?'light':'dark');};
+renderSources();render();
+</script>

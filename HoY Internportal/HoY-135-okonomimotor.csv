@@ -1,0 +1,105 @@
+﻿=== ARK: Økonomimotor ===
+ØKONOMIMOTOR — bemanning → kapasitet → resultat, mot målet;;;;
+v3: motoren regner nå BEGGE veier. Ned: planlagt bemanning (m/ramp) → kapasitet → P&L → resultat → GAP mot mål.;;;;
+Referanse nederst: hvilken omsetning målet KREVER (med samme trinnvise kostbase).;;;;
+;Målt siste 12 mnd;År 1 (2027);År 3 (2029);År 5 (2031)
+INPUT;;;;
+Resultatmål før skatt  [målt = regnskap 2025];736978;1500000;3000000;5000000
+Sindre-stolens omsetning;1491253;2300000;2300000;2300000
+BEMANNINGSPLAN (PLANANTAKELSE — juster og se resultatet endre seg);;;;
+Rampede megler-stoler ved årets start;1;2;6;9
+Nyansettelser Q1 (fra kvartalets start);0;1;1;1
+Nyansettelser Q2;0;1;1;1
+Nyansettelser Q3;0;1;0;0
+Nyansettelser Q4;0;0;0;0
+EFFEKTIVE producing megler-FTE i året (ramp-vektet);1;3.6125;7.325;10.325
+MEGLER-STOLER bemannet ved årets slutt;1;5;8;11
+Gjennomsnittlig bemannede stoler i året (Q1-ansatt teller 100 %, Q2 75 %, Q3 50 %, Q4 25 %);1;4.25;7.75;10.75
+TRINNVIS KOSTBASE (fasit-basert: 60k/stol + 75k engangs per ansettelse + terskler 5/6/8 på årets slutt);;;;
+Kostbase i året, ekskl. markedskost;1880000;3140000;4075000;4255000
+KAPASITET → RESULTAT (P&L på planlagt bemanning);;;;
+Kapasitets-omsetning ex mva (FTE × stol + Sindre);4378153;7718750;13287500;17787500
+Båter solgt (omsetning ÷ inntekt per båt);75;132.227;227.6231;304.7109
+Signerte oppdrag inn (båter × 1,30 — planantakelse);67;171.8951;295.9101;396.1242
+− Meglerkost inkl. AGA/feriepenger (55 % av megler-oms);-1587795;-2980312;-6043125;-8518125
+− Sindre-kompensasjon (min av 45 % og 7,1G, loaded);-781789;-1129465;-1129465;-1129465
+− Markedskost (per signert oppdrag × oppdrag inn);-442200;-1134507;-1953006;-2614420
+− Kostbase (trinnvis, rad 19);-1880000;-3140000;-4075000;-4255000
+RESULTAT med planlagt bemanning;-313631;-665535;86904;1270490
+GAP mot resultatmål (negativt = mangler);;-2165535;-2913096;-3729510
+Implisert nettomargin (informativ);-0.0716;-0.0862;0.0065;0.0714
+KVARTALSMÅL 2027 (regnet av bemanningsplanen for år 1 — rampen synlig);;;;
+;Q1 2027;Q2 2027;Q3 2027;Q4 2027
+Producing FTE i kvartalet;2.4;3.15;4.15;4.75
+Omsetningsmål ex mva (FTE × stol/4 + Sindre/4);1475000;1756250;2131250;2356250
+Båter solgt;25.2677;30.0857;36.5096;40.364
+Signerte oppdrag inn;32.848;39.1113;47.4625;52.4732
+Kontroll: snittet av de fire kvartals-FTE-ene = årets FTE i rad 15. Summen av kvartalsomsetningen = rad 21 for år 1.;;;;
+BEHOV FOR MÅLET — selvkonsistent kostbase (flere stoler → høyere kostbase → mer omsetning …);;;;
+Kostbasen avhenger av antall stoler, som avhenger av omsetningen. Fire scenarioer — modellen velger det som er konsistent med sitt eget stol-antall. (Steady-state: engangs rekrutteringskost holdes utenfor.);;;;
+Scenario A (≤4 stoler): nødvendig megler-oms;;9229441;14932445;22536450
+   → producing FTE-behov A;;6.153;9.955;15.0243
+Scenario B (5 stoler, + salgsleder): megler-oms;;12651243;18354247;25958253
+   → producing FTE-behov B;;8.4342;12.2362;17.3055
+Scenario C (6–7 stoler, + leder + kontor): megler-oms;;13791844;19494848;27098854
+   → producing FTE-behov C;;9.1946;12.9966;18.0659
+Scenario D (≥8 stoler, + leder + kontor + backoffice): megler-oms;;15692845;21395849;28999855
+   → producing FTE-behov D;;10.4619;14.2639;19.3332
+ENDELIG nødvendig megler-omsetning (konsistent scenario);;15692845;21395849;28999855
+ENDELIG nødvendig total omsetning;;17992845;23695849;31299855
+ENDELIG producing FTE-behov (kapasitet, IKKE personer);;10.4619;14.2639;19.3332
+Bemannede meglere for målet, steady-state (rundet opp + buffer);;12;16;21
+Omsetningsgap (kapasitet − behov);;-10274095;-10408349;-13512355
+FTE ≠ personer: i et INNFASINGSÅR yter nyansatte 40–100 % (rampen), så samme FTE krever flere bemannede — sammenlign rad 15 (FTE) mot rad 16 (bemannede) i planen. Scenario-tersklene (5/6/8) gjelder BEMANNEDE.;;;;
+Buffer-stolen har ingen kostnad i modellen (planlagt tom). Vinnraten 68 % brukes kun i aktivitetsnedbrytningen og er PROXY.;;;;
+Charter er holdt helt utenfor. Målt-kolonnen = fasit-omsetning m/dagens kostnivå og 7,1G — regnskapet 2025 viste +737k, se broen i Historikk.;;;;
+
+=== ARK: Forutsetninger ===
+FORUTSETNINGER — én datadefinisjon per KPI;;
+Gule celler = juster fritt (alt rekalkulerer). FASIT = oppgjørslistene («lønn solgte båter»), ikke HubSpot. Oppdatert 26.08.2026.;;
+FASIT SALG — kilde: oppgjørslister 2025+2026, solgt-dato 27.08.2025–26.08.2026, EX CHARTER;;
+Inntekt per solgt båt, ex mva (MOTOR-INPUT);58375;DEF: sum omsetning ex mva 4 378 153 / 75 båtsalg i oppgjørslistene siste 12 mnd. Median 50 400. Alle 75 har beløp (fasit — ikke HubSpot-amount, som manglet 4 deals og ga 64 100). Charter (170k) holdt HELT utenfor.
+Snittbåtverdi (salgssum) — informativ;1260458;DEF: snitt salgssum i oppgjørslistene, 75/75 deals. Median 1 065 000. Brukes IKKE i motoren.
+Provisjonsgrad 1: standard avtalt;0.06;DEF: 6,00 % av salgssum INKL mva, min. 45 000 inkl mva (= 36 000 ex). Kontraktsstandard.
+Provisjonsgrad 2: målt effektiv (fasit, alle 75);0.0579;DEF: sum(oms ex mva × 1,25) / sum(salgssum) = 5,79 % inkl mva (4,63 % ex). Teller og nevner er nå SAMME utvalg (75/75) — kontrolltallet fra v2 er dermed identisk og trengs ikke lenger. Gap til 6 % = rabatter/min.honorar.
+Charter — holdes utenfor motoren;170000;"1 charteroppdrag siste 12 mnd (AD Astra, 170 000 ex mva). Egen produksjonsenhet; regnes IKKE i inntekt per båt, båter/år eller stol-kapasitet."
+STOL-DEFINISJONER OG KAPASITET;;
+DEF «stol»;;Én fullt produktiv megler ETTER ramp (6–9 mnd). Sindre er ALLTID egen stol utenom. «Producing FTE» = effektiv produksjonskapasitet i året (ramp-vektet, desimal). «Bemannet» = personer på lønn. Buffer-stol = planlagt tom (rekrutteringspipeline).
+Omsetning per producing megler-stol (plantall);1500000;PRODUKSJONSMÅL for rampet stol. Fasit siste 12 mnd KREDITERT (50/50 v/samarbeid — det lønna følger): Henrik 1 838 820, Sindre 1 491 253, Daniel 882 480. Solgt av: Henrik 2 007 420 (35 båter) — han lukker også andres oppdrag.
+Sindre-stolens omsetning per år (plantall);2300000;"CFO-anbefalt mål ~2,28M. Fasit siste 12 mnd kreditert: 1 491 253 (2025: 2 083 205) — inkl. lederrolle; han HENTET oppdrag for langt mer (2,5M inn i 2025)."
+Break-even per ny stol (egne kostnader);198007;FORMEL: løpende trinnkost ÷ megler-marginal (1−0,55−markedskost-rate) ≈ 200k omsetning dekker stolens EGNE kostnader. Å dekke en ANDEL av felles faste krever ~1,2–1,7M (jf. «Lønnsomhet per megler» i kostnadsmodellen) — det er Sindres poeng om når en megler begynner å tjene penger.
+Churn-buffer (stoler planlagt tomme);1;Ditt valg: planlegg alltid som om én stol står tom (Daniel-effekten).
+Megler-stoler bemannet i dag (utenom Sindre);1;Henrik (+Marte som assistent). Daniel slutter → telles ikke.
+RAMP-PROFIL FOR NYANSATT MEGLER (PLANANTAKELSE);;
+Produksjon måned 1–3 (andel av full stol);0.4;EMPIRI (begge startet mars/apr 2025): Henrik solgte 1 963k i år 1 (2,35M-rate), Daniel 570k (0,76M-rate) — snitt ≈ full stol, men enorm spredning. 40/75/100 ligger bevisst under snittet av n=2.
+Produksjon måned 4–6;0.75;Egen portefølje bygges. Median salgstid 89 dg → første oppgjør kommer ~3 mnd etter første oppdrag.
+Produksjon måned 7–12;1;"Fullt producing fra ~mnd 7. Henrik beviste at det er mulig; churn-bufferen tar høyde for en Daniel-profil."
+TRINNVIS KOSTBASE (PLANANTAKELSE — juster mot egne tall);;
+Grunnkostbase per år (dekker inntil 2 megler-stoler);1880000;DEF: kostbase fullastet 2,54M (kostnadsmodell jun 2026) minus markedskost-andelen. Inkl. Marte, Philip, avskrivning 228k, kontor, systemer — dagens nivå.
+Løpende tilleggskost per bemannet stol utover 2;60000;FASIT-BASERT (kostnadsbudsjett 2026): parkering ~18k + CRM/lisenser ~30k + telefon/forsikring ~12k per hode. Kontor koster INGENTING før stol nr. 6 (plass på dagens kontor).
+Engangs rekrutterings-/onboardingkost per nyansettelse;75000;PLANANTAKELSE: annonsering, intervjutid, utstyr, opplæring — belastes ansettelsesåret.
+Kontorutvidelse fra ≥6 bemannede stoler;300000;PLASSHOLDER — dagens kontor har plass til ~5. Sjekk leieavtalen for faktisk kostnad ved utvidelse.
+Salgsleder/daglig-leder-kapasitet fra ≥5 stoler;900000;PLANANTAKELSE: ved 5+ meglere kan ikke Sindre både selge 2,3M og lede alene.
+Ekstra backoffice/administrasjon fra ≥8 stoler;500000;PLANANTAKELSE: kundeservice, oppgjør, kontor.
+Markedskost per signert oppdrag inn;6600;DEF: målt snitt per SIGNERT oppdrag. CFO-mål: 4 552 + 15k-tak håndheves.
+MEGLERKOST OG SINDRE-LØNN;;
+Meglerkost, fullastet andel av megler-omsetning;0.55;DEF: meglerprovisjon (40 %) + AGA + feriepenger ≈ 55 øre per megler-omsetningskrone.
+Grunnbeløpet G (per 1.5.2026);136549;Kilde: nav.no/grunnbelopet. Oppdateres hver mai.
+Sindres lønnstak (7,1G);969498;DEF: 7,1G = taket for pensjonsopptjening i folketrygden — over dette lønner utbytte seg. Pensjonsgivende inntekt inkluderer feriepenger.
+Sindres provisjonssats;0.45;45 % av egen omsetning ex mva (før tak).
+Lønns-loading (AGA + feriepenger);1.165;"For Sindre: AGA/OTP-påslag. 7,1G-taket antas å INKLUDERE feriepenger (12 %, ikke 10,2) → grunnlønn ≈ 865 623 + 12 % FP = 969 498. MARIUS BEKREFTER inkl/eks-tolkningen; eks-tolkning koster ~115k mer."
+TRAKT — kilder: kohortanalyse (Historikk) + HubSpot Pipeline A per 26.08.2026;;
+Signerte oppdrag inn per solgt båt (PLANANTAKELSE);1.3;"KOHORTMÅLT på modne oppdrag (>365 dg, n=58): 72 % solgt → 58/42 = 1,38 oppdrag/salg; hvis alle 8 åpne til slutt selges: 58/50 = 1,16. 1,30 = planantakelse mellom. v2-tallet 1,15 forkastet (samtidighetsfeil, jf. rådgiver)."
+Vinnrate Pipeline A — PROXY for befaring→signering;0.68;PROXY, IKKE målt close rate befaring→signering! DEF: 67 vunnet / 99 avgjorte deals i Pipeline A siste 12 mnd (hele trakten, prospect→signert). Isolert befaring→signering krever stage-historikk — mangler (mål: 90 %).
+Prospect → befaring-rate (plantall);0.5;Målt per megler (CFO-analyse): Sindre 74 %, Daniel 52 %, Henrik+Marte 28 %.
+Arbeidsuker per år;46;Ferie/helligdager trukket fra.
+SCORECARD-PARAMETRE (H2 2026);;
+H2-2026-mål omsetning ex mva (uten Daniel);2900000;Fra revidert H2-plan aug 2026.
+H2 levert hittil ex mva (fasit, per 26.08);626060;Oppgjørsliste 2026: juli 392 960 + august 233 100. Oppdater ukentlig.
+Hele uker igjen av H2 2026;17;ISO-uke 36–52 = 17 hele uker (i dag er uke 35 — inneværende deluke telles IKKE). Reduser med 1 hver mandag.
+MANGLER – MÅ MÅLES;;
+Befaring → signering isolert (mål 90 %);;Krever stage-historikk i Pipeline A — sett opp HubSpot-rapport. Største traktehull.
+Presise signerings-/salgsdatoer til kohorten;;"B-deal createdate er proxy for signeringsdato; closedate delvis bulk-satt. Supabase oppdrag_livslop (433 rader) kan gi presise datoer."
+Henvendelse → befaring per kilde;;FINN / nettside / referral / FSBO. Lead source må fylles konsekvent.
+FSBO-/outreach-aktivitet per megler per uke;;Logges ikke i dag — inn i scorecardet.
+Faktiske trinnkostnader ved vekst;;150k/stol, 900k leder, 500k backoffice er PLANANTAKELSER — kalibrer mot tilbud/regnskap før 3/5-års bemanning låses.

@@ -1,0 +1,9 @@
+﻿Scenario;Laveste kontantsaldo;Lavpunkt måned;Bunn før overtrekk (inkl. 200k kassekreditt);Kontantsaldo des 2028
+1 Planlagt: 3 ans. 2027 +1 (2028), utbytte 850k, base 89d;-3933541;jun 28;-3733541;-333418
+2 Planlagt, UTBYTTE UTSATT (0);-3083541;jun 28;-2883541;516582
+3 2 ans. 2027 (dropp Q3) +1 (2028), utbytte 850k;-2557439;jun 28;-2357439;494916
+4 1 ans. 2027 (kun Q1) +1 (2028), utbytte 850k;-1790259;jun 28;-1590259;988079
+5 0 ans. (frys ramp), utbytte 850k;-1167462;jun 28;-967462;422364
+6 0 ans. (frys ramp), utbytte UTSATT;-363248;jun 27;-163248;1272364
+7 Planlagt, EMPIRISK betaling 27d, utbytte 850k;-1429328;apr 28;-1229328;481555
+8 Planlagt, EMPIRISK 27d, utbytte UTSATT;-579328;apr 28;-379328;1331555

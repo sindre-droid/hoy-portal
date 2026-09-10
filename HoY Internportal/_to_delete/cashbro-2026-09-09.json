@@ -1,0 +1,6734 @@
+{
+ "generert": "2026-09-09",
+ "bank": 688567,
+ "bank_kilde": "live",
+ "param": {
+  "oppgjor_arbeidsdager": 3,
+  "cash_lag_sannsynlig_dager": 32,
+  "drift_fast_mnd": 137000,
+  "faste_lonninger_brutto_mnd": 25000,
+  "sindre_brutto_mnd": 80791.5,
+  "aga_sats": 0.141,
+  "feriepenger_sats": 0.12,
+  "megler_provisjonssats": 0.4,
+  "utbytte": [],
+  "kjente_innbetalinger": [
+   {
+    "belop": 993540,
+    "dato": "2027-06-15",
+    "note": "Sargo 45 Fly — nybygg, provisjon inkl mva ved levering juni 2027 (ingen kjøpekontrakt i Oneflow)"
+   }
+  ],
+  "engangs": [
+   {
+    "belop": 125000,
+    "dato": "2027-11-15",
+    "note": "motfakturering Oslo Båt"
+   },
+   {
+    "belop": 50000,
+    "dato": "2027-10-15",
+    "note": "underleverandør"
+   }
+  ],
+  "forskuddsskatt_2027": 162000,
+  "annullert": [
+   "26035"
+  ],
+  "mottatt_uten_faktura": [
+   "Hanse 385"
+  ],
+  "downside_sannsynlig_faktor": 0.77,
+  "mva_inngaende_andel_drift": 0.6
+ },
+ "kalender": {
+  "2026-09": {
+   "SIKKER · kundefordring (fakturert, ubetalt)": 102364.44,
+   "SIKKER · provisjon ved overtakelse": 799500.0,
+   "UT · drift fast (regnskapssnitt)": -137000.0,
+   "UT · Sindre lønn 7,1 G": -80791.5,
+   "UT · faste lønninger (Marte, Philip)": -25000.0,
+   "UT · AGA termin (faste lønninger)": -29833.202999999998,
+   "SIKKER · kjent innbetaling (param)": 0.0,
+   "SANNSYNLIG · portefølje × P": 0.0,
+   "UT · meglerprovisjon sannsynlig (Henrik)": 0.0,
+   "UT · forskuddsskatt": 0.0,
+   "UT · meglerprovisjon (Henrik, 40 % + AGA/FP)": 0.0,
+   "UT · mva-oppgjør (sikker+sannsynlig)": 0.0
+  },
+  "2026-10": {
+   "UT · meglerprovisjon (Henrik, 40 % + AGA/FP)": -183399.84,
+   "SANNSYNLIG · portefølje × P": 326235.00750811334,
+   "UT · drift fast (regnskapssnitt)": -137000.0,
+   "UT · Sindre lønn 7,1 G": -80791.5,
+   "UT · faste lønninger (Marte, Philip)": -25000.0,
+   "SIKKER · kjent innbetaling (param)": 0.0,
+   "SIKKER · kundefordring (fakturert, ubetalt)": 0.0,
+   "SIKKER · provisjon ved overtakelse": 0.0,
+   "UT · meglerprovisjon sannsynlig (Henrik)": 0.0,
+   "UT · AGA termin (faste lønninger)": 0.0,
+   "UT · forskuddsskatt": 0.0,
+   "UT · mva-oppgjør (sikker+sannsynlig)": 0.0
+  },
+  "2026-11": {
+   "SANNSYNLIG · portefølje × P": 378518.46306490316,
+   "UT · meglerprovisjon sannsynlig (Henrik)": -66658.13746558082,
+   "UT · drift fast (regnskapssnitt)": -137000.0,
+   "UT · Sindre lønn 7,1 G": -80791.5,
+   "UT · faste lønninger (Marte, Philip)": -25000.0,
+   "UT · AGA termin (faste lønninger)": -29833.202999999998,
+   "SIKKER · kjent innbetaling (param)": 0.0,
+   "SIKKER · kundefordring (fakturert, ubetalt)": 0.0,
+   "SIKKER · provisjon ved overtakelse": 0.0,
+   "UT · forskuddsskatt": 0.0,
+   "UT · meglerprovisjon (Henrik, 40 % + AGA/FP)": 0.0,
+   "UT · mva-oppgjør (sikker+sannsynlig)": 0.0
+  },
+  "2026-12": {
+   "SANNSYNLIG · portefølje × P": 289505.90808388795,
+   "UT · meglerprovisjon sannsynlig (Henrik)": -86085.43018178598,
+   "UT · drift fast (regnskapssnitt)": -137000.0,
+   "UT · Sindre lønn 7,1 G": -80791.5,
+   "UT · faste lønninger (Marte, Philip)": -25000.0,
+   "UT · mva-oppgjør (sikker+sannsynlig)": -192267.00150162267,
+   "SIKKER · kjent innbetaling (param)": 0.0,
+   "SIKKER · kundefordring (fakturert, ubetalt)": 0.0,
+   "SIKKER · provisjon ved overtakelse": 0.0,
+   "UT · AGA termin (faste lønninger)": 0.0,
+   "UT · forskuddsskatt": 0.0,
+   "UT · meglerprovisjon (Henrik, 40 % + AGA/FP)": 0.0
+  },
+  "2027-01": {
+   "SANNSYNLIG · portefølje × P": 296752.57274863386,
+   "UT · meglerprovisjon sannsynlig (Henrik)": -64113.354572102406,
+   "UT · drift fast (regnskapssnitt)": -137000.0,
+   "UT · Sindre lønn 7,1 G": -80791.5,
+   "UT · faste lønninger (Marte, Philip)": -25000.0,
+   "UT · AGA termin (faste lønninger)": -29833.202999999998,
+   "SIKKER · kjent innbetaling (param)": 0.0,
+   "SIKKER · kundefordring (fakturert, ubetalt)": 0.0,
+   "SIKKER · provisjon ved overtakelse": 0.0,
+   "UT · forskuddsskatt": 0.0,
+   "UT · meglerprovisjon (Henrik, 40 % + AGA/FP)": 0.0,
+   "UT · mva-oppgjør (sikker+sannsynlig)": 0.0
+  },
+  "2027-02": {
+   "SANNSYNLIG · portefølje × P": 309798.4011506148,
+   "UT · meglerprovisjon sannsynlig (Henrik)": -56633.767463437835,
+   "UT · drift fast (regnskapssnitt)": -137000.0,
+   "UT · Sindre lønn 7,1 G": -80791.5,
+   "UT · faste lønninger (Marte, Philip)": -25000.0,
+   "UT · forskuddsskatt": -81000.0,
+   "UT · mva-oppgjør (sikker+sannsynlig)": -100724.87422975822,
+   "SIKKER · kjent innbetaling (param)": 0.0,
+   "SIKKER · kundefordring (fakturert, ubetalt)": 0.0,
+   "SIKKER · provisjon ved overtakelse": 0.0,
+   "UT · AGA termin (faste lønninger)": 0.0,
+   "UT · meglerprovisjon (Henrik, 40 % + AGA/FP)": 0.0
+  },
+  "2027-03": {
+   "SANNSYNLIG · portefølje × P": 271025.1532971694,
+   "UT · meglerprovisjon sannsynlig (Henrik)": -49585.25415320568,
+   "UT · drift fast (regnskapssnitt)": -137000.0,
+   "UT · Sindre lønn 7,1 G": -80791.5,
+   "UT · faste lønninger (Marte, Philip)": -25000.0,
+   "UT · AGA termin (faste lønninger)": -29833.202999999998,
+   "SIKKER · kjent innbetaling (param)": 0.0,
+   "SIKKER · kundefordring (fakturert, ubetalt)": 0.0,
+   "SIKKER · provisjon ved overtakelse": 0.0,
+   "UT · forskuddsskatt": 0.0,
+   "UT · meglerprovisjon (Henrik, 40 % + AGA/FP)": 0.0,
+   "UT · mva-oppgjør (sikker+sannsynlig)": 0.0
+  },
+  "2027-04": {
+   "SANNSYNLIG · portefølje × P": 296838.77349639806,
+   "UT · meglerprovisjon sannsynlig (Henrik)": -37965.914840850266,
+   "UT · drift fast (regnskapssnitt)": -137000.0,
+   "UT · Sindre lønn 7,1 G": -80791.5,
+   "UT · faste lønninger (Marte, Philip)": -25000.0,
+   "UT · forskuddsskatt": -81000.0,
+   "UT · mva-oppgjør (sikker+sannsynlig)": -88430.19477984974,
+   "SIKKER · kjent innbetaling (param)": 0.0,
+   "SIKKER · kundefordring (fakturert, ubetalt)": 0.0,
+   "SIKKER · provisjon ved overtakelse": 0.0,
+   "UT · AGA termin (faste lønninger)": 0.0,
+   "UT · meglerprovisjon (Henrik, 40 % + AGA/FP)": 0.0
+  },
+  "2027-05": {
+   "SANNSYNLIG · portefølje × P": 253765.1233107652,
+   "UT · meglerprovisjon sannsynlig (Henrik)": -37403.77741618828,
+   "UT · drift fast (regnskapssnitt)": -137000.0,
+   "UT · Sindre lønn 7,1 G": -80791.5,
+   "UT · faste lønninger (Marte, Philip)": -25000.0,
+   "UT · AGA termin (faste lønninger)": -29833.202999999998,
+   "SIKKER · kjent innbetaling (param)": 0.0,
+   "SIKKER · kundefordring (fakturert, ubetalt)": 0.0,
+   "SIKKER · provisjon ved overtakelse": 0.0,
+   "UT · forskuddsskatt": 0.0,
+   "UT · meglerprovisjon (Henrik, 40 % + AGA/FP)": 0.0,
+   "UT · mva-oppgjør (sikker+sannsynlig)": 0.0
+  },
+  "2027-06": {
+   "SANNSYNLIG · portefølje × P": 199119.04506162356,
+   "UT · meglerprovisjon sannsynlig (Henrik)": -26716.864176586758,
+   "UT · drift fast (regnskapssnitt)": -137000.0,
+   "UT · Sindre lønn 7,1 G": -80791.5,
+   "UT · faste lønninger (Marte, Philip)": -25000.0,
+   "SIKKER · kjent innbetaling (param)": 993540.0,
+   "UT · mva-oppgjør (sikker+sannsynlig)": -80692.7853587135,
+   "SIKKER · kundefordring (fakturert, ubetalt)": 0.0,
+   "SIKKER · provisjon ved overtakelse": 0.0,
+   "UT · AGA termin (faste lønninger)": 0.0,
+   "UT · forskuddsskatt": 0.0,
+   "UT · meglerprovisjon (Henrik, 40 % + AGA/FP)": 0.0
+  }
+ },
+ "kurve": [
+  {
+   "mnd": "2026-09",
+   "sikker_inn": 901864,
+   "sannsynlig_netto": 0,
+   "kostnader": -272625,
+   "saldo_downside": 1317807,
+   "saldo_base": 1317807
+  },
+  {
+   "mnd": "2026-10",
+   "sikker_inn": 0,
+   "sannsynlig_netto": 326235,
+   "kostnader": -426191,
+   "saldo_downside": 1142816,
+   "saldo_base": 1217850
+  },
+  {
+   "mnd": "2026-11",
+   "sikker_inn": 0,
+   "sannsynlig_netto": 311860,
+   "kostnader": -272625,
+   "saldo_downside": 1110324,
+   "saldo_base": 1257086
+  },
+  {
+   "mnd": "2026-12",
+   "sikker_inn": 0,
+   "sannsynlig_netto": 203420,
+   "kostnader": -435059,
+   "saldo_downside": 831899,
+   "saldo_base": 1025448
+  },
+  {
+   "mnd": "2027-01",
+   "sikker_inn": 0,
+   "sannsynlig_netto": 232639,
+   "kostnader": -272625,
+   "saldo_downside": 738407,
+   "saldo_base": 985463
+  },
+  {
+   "mnd": "2027-02",
+   "sikker_inn": 0,
+   "sannsynlig_netto": 253165,
+   "kostnader": -424516,
+   "saldo_downside": 508827,
+   "saldo_base": 814111
+  },
+  {
+   "mnd": "2027-03",
+   "sikker_inn": 0,
+   "sannsynlig_netto": 221440,
+   "kostnader": -272625,
+   "saldo_downside": 406711,
+   "saldo_base": 762926
+  },
+  {
+   "mnd": "2027-04",
+   "sikker_inn": 0,
+   "sannsynlig_netto": 258873,
+   "kostnader": -412222,
+   "saldo_downside": 193822,
+   "saldo_base": 609577
+  },
+  {
+   "mnd": "2027-05",
+   "sikker_inn": 0,
+   "sannsynlig_netto": 216361,
+   "kostnader": -272625,
+   "saldo_downside": 87795,
+   "saldo_base": 553314
+  },
+  {
+   "mnd": "2027-06",
+   "sikker_inn": 993540,
+   "sannsynlig_netto": 172402,
+   "kostnader": -323484,
+   "saldo_downside": 890601,
+   "saldo_base": 1395772
+  }
+ ],
+ "sikker": [
+  {
+   "nr": "25081",
+   "navn": "25081 - Hydrolift X-32S R - Kjøpekontrakt",
+   "signert_kk": "2026-09-07",
+   "overtakelse": "2026-09-10",
+   "salgssum": 2600000.0,
+   "provisjon_inkl": 156000,
+   "oms_eks": 124800,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": false,
+   "betalt": false,
+   "levert": null,
+   "status": "venter overtakelse",
+   "cash": "2026-09-15"
+  },
+  {
+   "nr": "26062",
+   "navn": "26062 - Kjøpekontrakt - Riva Rivamare 38",
+   "signert_kk": "2026-09-08",
+   "overtakelse": "2026-09-09",
+   "salgssum": 5000000.0,
+   "provisjon_inkl": 300000,
+   "oms_eks": 240000,
+   "i_arket": true,
+   "solgt_av": "Sindre",
+   "fakturert": false,
+   "betalt": false,
+   "levert": null,
+   "status": "venter overtakelse",
+   "cash": "2026-09-14"
+  },
+  {
+   "nr": "26080",
+   "navn": "26080 - Hallberg Rassy 31 2000 - Kjøpekontrakt",
+   "signert_kk": "2026-09-03",
+   "overtakelse": "2026-09-07",
+   "salgssum": 0.0,
+   "provisjon_inkl": 46500,
+   "oms_eks": 37200,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": false,
+   "betalt": false,
+   "levert": "2026-09-04",
+   "status": "venter overtakelse",
+   "cash": "2026-09-10"
+  },
+  {
+   "nr": "26077",
+   "navn": "26077 - Comfortina 35 - Kjøpekontrakt",
+   "signert_kk": "2026-09-03",
+   "overtakelse": null,
+   "salgssum": 800000.0,
+   "provisjon_inkl": 48000,
+   "oms_eks": 38400,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": false,
+   "betalt": false,
+   "levert": null,
+   "status": "MANGLER overtakelsesdato"
+  },
+  {
+   "nr": "26053",
+   "navn": "26053 - Marex 350 CC - Kjøpekontrakt",
+   "signert_kk": "2026-09-03",
+   "overtakelse": "2026-09-09",
+   "salgssum": 1500000.0,
+   "provisjon_inkl": 90000,
+   "oms_eks": 72000,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": false,
+   "betalt": false,
+   "levert": null,
+   "status": "venter overtakelse",
+   "cash": "2026-09-14"
+  },
+  {
+   "nr": "26012",
+   "navn": "26012 - Storebro 420 Baltic - Kjøpekontrakt",
+   "signert_kk": "2026-09-02",
+   "overtakelse": "2026-09-04",
+   "salgssum": 900000.0,
+   "provisjon_inkl": 55200,
+   "oms_eks": 44160,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": false,
+   "betalt": false,
+   "levert": "2026-09-08",
+   "status": "venter overtakelse",
+   "cash": "2026-09-09"
+  },
+  {
+   "nr": "26029",
+   "navn": "26029 - Quicksilver 875 Sundeck - Kjøpekontrakt",
+   "signert_kk": "2026-09-02",
+   "overtakelse": "2026-09-04",
+   "salgssum": 1030000.0,
+   "provisjon_inkl": 61800,
+   "oms_eks": 49440,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": false,
+   "betalt": false,
+   "levert": "2026-09-04",
+   "status": "venter overtakelse",
+   "cash": "2026-09-09"
+  },
+  {
+   "nr": "26056",
+   "navn": "26056 - SeaDan 400 Pro Fly 2006 - Kjøpekontrakt",
+   "signert_kk": "2026-08-31",
+   "overtakelse": "2026-09-04",
+   "salgssum": 1000000.0,
+   "provisjon_inkl": 60000,
+   "oms_eks": 48000,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": true,
+   "betalt": false,
+   "levert": "2026-09-04",
+   "status": "kundefordring (i pkt 2)"
+  },
+  {
+   "nr": "26026",
+   "navn": "26026 - Dufour GL 385 - kjøpekontrakt",
+   "signert_kk": "2026-09-07",
+   "overtakelse": "2026-09-07",
+   "salgssum": 710000.0,
+   "provisjon_inkl": 45000,
+   "oms_eks": 36000,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": false,
+   "betalt": false,
+   "levert": null,
+   "status": "venter overtakelse",
+   "cash": "2026-09-10"
+  },
+  {
+   "nr": null,
+   "navn": "Hanse 385 - kjøpekontrakt",
+   "status": "mottatt uten faktura",
+   "overtakelse": null,
+   "provisjon_inkl": 0,
+   "solgt_av": null
+  },
+  {
+   "nr": "26060",
+   "navn": "26060 - Grand G850 - Kjøpekontrakt",
+   "signert_kk": "2026-08-11",
+   "overtakelse": "2026-08-11",
+   "salgssum": 130000.0,
+   "provisjon_inkl": 40000,
+   "oms_eks": 32000,
+   "i_arket": true,
+   "solgt_av": "Daniel",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-08-11",
+   "status": "betalt"
+  },
+  {
+   "nr": "25063",
+   "navn": "25063 - SeaSide 23 - kjøpekontrakt",
+   "signert_kk": "2026-08-07",
+   "overtakelse": null,
+   "salgssum": 670000.0,
+   "provisjon_inkl": 45000,
+   "oms_eks": 36000,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-08-07",
+   "status": "betalt"
+  },
+  {
+   "nr": "25075",
+   "navn": "25075 - Nimbus 230R - Kjøpekontrakt",
+   "signert_kk": "2026-08-04",
+   "overtakelse": null,
+   "salgssum": 385000.0,
+   "provisjon_inkl": 45000,
+   "oms_eks": 36000,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-08-10",
+   "status": "betalt"
+  },
+  {
+   "nr": "26055",
+   "navn": "26055 - Nimbus 300R 2007 - kjøpekontrakt",
+   "signert_kk": "2026-07-23",
+   "overtakelse": null,
+   "salgssum": 780000.0,
+   "provisjon_inkl": 45000,
+   "oms_eks": 36000,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-07-24",
+   "status": "betalt"
+  },
+  {
+   "nr": "26052",
+   "navn": "26052 - Fjord Terne 21 - kjøpekontrakt",
+   "signert_kk": "2026-08-07",
+   "overtakelse": null,
+   "salgssum": 400000.0,
+   "provisjon_inkl": 40000,
+   "oms_eks": 40000,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": true,
+   "betalt": true,
+   "levert": null,
+   "status": "betalt"
+  },
+  {
+   "nr": "26066",
+   "navn": "26066 - Jeanneau 40.3 - kjøpekontrakt",
+   "signert_kk": "2026-07-18",
+   "overtakelse": null,
+   "salgssum": 875000.0,
+   "provisjon_inkl": 52500,
+   "oms_eks": 42000,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-07-20",
+   "status": "betalt"
+  },
+  {
+   "nr": "26047",
+   "navn": "26047 - Draco 27 RS - Kjøpekontrakt",
+   "signert_kk": "2026-07-13",
+   "overtakelse": "2026-07-17",
+   "salgssum": 725000.0,
+   "provisjon_inkl": 45000,
+   "oms_eks": 36000,
+   "i_arket": true,
+   "solgt_av": "Daniel",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-07-16",
+   "status": "betalt"
+  },
+  {
+   "nr": "26065",
+   "navn": "26065 - Kjøpekontrakt - Goldfish 29 Sport #072",
+   "signert_kk": "2026-07-08",
+   "overtakelse": "2026-07-09",
+   "salgssum": 1375000.0,
+   "provisjon_inkl": 82500,
+   "oms_eks": 66000,
+   "i_arket": true,
+   "solgt_av": "Sindre",
+   "fakturert": true,
+   "betalt": true,
+   "levert": null,
+   "status": "betalt"
+  },
+  {
+   "nr": "26042",
+   "navn": "26042 - Kjøpekontrakt - Cormate Utility 23-56",
+   "signert_kk": "2026-07-06",
+   "overtakelse": "2026-07-13",
+   "salgssum": 970000.0,
+   "provisjon_inkl": 58200,
+   "oms_eks": 46560,
+   "i_arket": true,
+   "solgt_av": "Sindre",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-07-25",
+   "status": "betalt"
+  },
+  {
+   "nr": "25079",
+   "navn": "25079 - Storebro 430 Biscay Royal Cruiser - Kjøpekontrakt",
+   "signert_kk": "2026-07-07",
+   "overtakelse": "2026-07-09",
+   "salgssum": 1810000.0,
+   "provisjon_inkl": 100000,
+   "oms_eks": 80000,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-07-09",
+   "status": "betalt"
+  },
+  {
+   "nr": "26041",
+   "navn": "26041 - Nimbus 300R 2005 - Kjøpekontrakt",
+   "signert_kk": "2026-07-05",
+   "overtakelse": "2026-07-07",
+   "salgssum": 700000.0,
+   "provisjon_inkl": 45000,
+   "oms_eks": 36000,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": true,
+   "betalt": true,
+   "levert": null,
+   "status": "betalt"
+  },
+  {
+   "nr": "26058",
+   "navn": "26058 - Askeladden c83 2019 - kjøpekontrakt",
+   "signert_kk": "2026-07-04",
+   "overtakelse": "2026-07-07",
+   "salgssum": 1050000.0,
+   "provisjon_inkl": 63000,
+   "oms_eks": 50400,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-07-09",
+   "status": "betalt"
+  },
+  {
+   "nr": "26059",
+   "navn": "26059 - Axopar 28 AC 2019 - Kjøpekontrakt",
+   "signert_kk": "2026-06-30",
+   "overtakelse": null,
+   "salgssum": 1065000.0,
+   "provisjon_inkl": 63900,
+   "oms_eks": 51120,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-07-13",
+   "status": "betalt"
+  },
+  {
+   "nr": "26015",
+   "navn": "26015 - Skilsø 39 Panorama - Kjøpekontrakt",
+   "signert_kk": "2026-06-29",
+   "overtakelse": "2026-06-03",
+   "salgssum": 5490000.0,
+   "provisjon_inkl": 274500,
+   "oms_eks": 219600,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-07-06",
+   "status": "betalt"
+  },
+  {
+   "nr": "26044",
+   "navn": "26044 - Beneteau 38 GT - Kjøpekontrakt",
+   "signert_kk": "2026-06-17",
+   "overtakelse": "2026-06-19",
+   "salgssum": 1750000.0,
+   "provisjon_inkl": 105000,
+   "oms_eks": 84000,
+   "i_arket": true,
+   "solgt_av": "Daniel",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-06-19",
+   "status": "betalt"
+  },
+  {
+   "nr": "26037",
+   "navn": "26037 - Kjøpekontrakt - Cormate SU23-36",
+   "signert_kk": "2026-06-17",
+   "overtakelse": "2026-06-18",
+   "salgssum": 800000.0,
+   "provisjon_inkl": 48000,
+   "oms_eks": 38400,
+   "i_arket": true,
+   "solgt_av": "Sindre",
+   "fakturert": true,
+   "betalt": true,
+   "levert": null,
+   "status": "betalt"
+  },
+  {
+   "nr": "26022",
+   "navn": "26022 - Goldfish 23 Tender - Kjøpekontrakt",
+   "signert_kk": "2026-06-16",
+   "overtakelse": "2026-06-18",
+   "salgssum": 800000.0,
+   "provisjon_inkl": 48000,
+   "oms_eks": 38400,
+   "i_arket": true,
+   "solgt_av": "Daniel",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-06-18",
+   "status": "betalt"
+  },
+  {
+   "nr": "26054",
+   "navn": "26054 - Kjøpekontrakt - Cormate SU27-04",
+   "signert_kk": "2026-06-18",
+   "overtakelse": "2026-06-19",
+   "salgssum": 1973000.0,
+   "provisjon_inkl": 117000,
+   "oms_eks": 93600,
+   "i_arket": true,
+   "solgt_av": "Sindre",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-06-19",
+   "status": "betalt"
+  },
+  {
+   "nr": "26016",
+   "navn": "26016 - Bavaria 33 HT - Kjøpekontrakt",
+   "signert_kk": "2026-06-12",
+   "overtakelse": "2026-06-16",
+   "salgssum": 1680000.0,
+   "provisjon_inkl": 84000,
+   "oms_eks": 67200,
+   "i_arket": true,
+   "solgt_av": "Daniel",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-06-16",
+   "status": "betalt"
+  },
+  {
+   "nr": "26050",
+   "navn": "26050 - Kjøpekontrakt - Goldfish 38 Supersport #023",
+   "signert_kk": "2026-06-09",
+   "overtakelse": null,
+   "salgssum": 2190000.0,
+   "provisjon_inkl": 90000,
+   "oms_eks": 72000,
+   "i_arket": true,
+   "solgt_av": "Sindre",
+   "fakturert": true,
+   "betalt": true,
+   "levert": null,
+   "status": "betalt"
+  },
+  {
+   "nr": "24015",
+   "navn": "24015 - Nimbus W9 T-Top - Kjøpekontrakt",
+   "signert_kk": "2026-06-03",
+   "overtakelse": "2026-06-12",
+   "salgssum": 1200000.0,
+   "provisjon_inkl": 72000,
+   "oms_eks": 57600,
+   "i_arket": true,
+   "solgt_av": "Daniel",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-06-12",
+   "status": "betalt"
+  },
+  {
+   "nr": "26028",
+   "navn": "26028 - Kjøpekontrakt - Goldfish 23 Tender",
+   "signert_kk": "2026-06-03",
+   "overtakelse": null,
+   "salgssum": 760000.0,
+   "provisjon_inkl": 45600,
+   "oms_eks": 36480,
+   "i_arket": true,
+   "solgt_av": "Sindre",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-06-10",
+   "status": "betalt"
+  },
+  {
+   "nr": "25049",
+   "navn": "25049 - Kjøpekontrakt - Hydrolift C-27",
+   "signert_kk": "2026-05-30",
+   "overtakelse": "2026-05-30",
+   "salgssum": 780000.0,
+   "provisjon_inkl": 45000,
+   "oms_eks": 36000,
+   "i_arket": true,
+   "solgt_av": "Daniel",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-06-01",
+   "status": "betalt"
+  },
+  {
+   "nr": "25052",
+   "navn": "25052 - Grandezza 27S-Kjøpekontrakt",
+   "signert_kk": "2026-06-03",
+   "overtakelse": null,
+   "salgssum": 975000.0,
+   "provisjon_inkl": 58500,
+   "oms_eks": 46800,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": true,
+   "betalt": true,
+   "levert": null,
+   "status": "betalt"
+  },
+  {
+   "nr": "26034",
+   "navn": "26034 - Kjøpekontrakt - Windy 27 Solano",
+   "signert_kk": "2026-05-29",
+   "overtakelse": "2026-06-03",
+   "salgssum": 1310000.0,
+   "provisjon_inkl": 78600,
+   "oms_eks": 62880,
+   "i_arket": true,
+   "solgt_av": "Sindre",
+   "fakturert": true,
+   "betalt": true,
+   "levert": null,
+   "status": "betalt"
+  },
+  {
+   "nr": "26030",
+   "navn": "26030 - Cormate SU23 - Kjøpekontrakt",
+   "signert_kk": "2026-05-28",
+   "overtakelse": "2026-05-29",
+   "salgssum": 700000.0,
+   "provisjon_inkl": 45000,
+   "oms_eks": 36000,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-05-29",
+   "status": "betalt"
+  },
+  {
+   "nr": "26035",
+   "navn": "26035 - Kjøpekontrakt - Goldfish 43 Ocean #002",
+   "status": "annullert",
+   "overtakelse": null,
+   "provisjon_inkl": 0,
+   "solgt_av": null
+  },
+  {
+   "nr": "26025",
+   "navn": "26025 - Axopar 28 Aft Cabin - kjøpekontrakt",
+   "signert_kk": "2026-05-20",
+   "overtakelse": "2026-05-22",
+   "salgssum": 1220000.0,
+   "provisjon_inkl": 73200,
+   "oms_eks": 58560,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-05-23",
+   "status": "betalt"
+  },
+  {
+   "nr": "25012",
+   "navn": "25012 - Kjøpekontrakt - Goldfish 28 Tender",
+   "signert_kk": "2026-05-11",
+   "overtakelse": "2026-05-22",
+   "salgssum": 1400000.0,
+   "provisjon_inkl": 77000,
+   "oms_eks": 61600,
+   "i_arket": true,
+   "solgt_av": "Sindre",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-05-22",
+   "status": "betalt"
+  },
+  {
+   "nr": "25078",
+   "navn": "25078 - Kjøpekontrakt - Goldfish 28 Bullet #024",
+   "signert_kk": "2026-05-18",
+   "overtakelse": null,
+   "salgssum": 1250000.0,
+   "provisjon_inkl": 75000,
+   "oms_eks": 60000,
+   "i_arket": true,
+   "solgt_av": "Sindre",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-06-14",
+   "status": "betalt"
+  },
+  {
+   "nr": "25083",
+   "navn": "25083 - Nimbus W9 (2020) - Kjøpekontrakt",
+   "signert_kk": "2026-05-12",
+   "overtakelse": "2026-05-22",
+   "salgssum": 1450000.0,
+   "provisjon_inkl": 72500,
+   "oms_eks": 58000,
+   "i_arket": true,
+   "solgt_av": "Daniel",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-05-23",
+   "status": "betalt"
+  },
+  {
+   "nr": "26017",
+   "navn": "26017 - Fairline Targa 34 - Kjøpekontrakt",
+   "signert_kk": "2026-05-06",
+   "overtakelse": "2026-05-15",
+   "salgssum": 800000.0,
+   "provisjon_inkl": 48000,
+   "oms_eks": 38400,
+   "i_arket": true,
+   "solgt_av": "Daniel",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-05-19",
+   "status": "betalt"
+  },
+  {
+   "nr": "25055",
+   "navn": "25055 - Kjøpekontrakt - Goldfish 23 Tender",
+   "signert_kk": "2026-05-04",
+   "overtakelse": "2026-05-08",
+   "salgssum": 1050000.0,
+   "provisjon_inkl": 63000,
+   "oms_eks": 50400,
+   "i_arket": true,
+   "solgt_av": "Sindre",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-05-08",
+   "status": "betalt"
+  },
+  {
+   "nr": "25093",
+   "navn": "25093 - LD8322 Bavaria 36 AC - Kjøpekontrakt",
+   "signert_kk": "2026-05-04",
+   "overtakelse": "2026-05-15",
+   "salgssum": 670000.0,
+   "provisjon_inkl": 45000,
+   "oms_eks": 36000,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": true,
+   "betalt": true,
+   "levert": null,
+   "status": "betalt"
+  },
+  {
+   "nr": null,
+   "navn": "",
+   "signert_kk": "2026-04-28",
+   "overtakelse": "2026-05-29",
+   "salgssum": 425000.0,
+   "provisjon_inkl": 45000,
+   "oms_eks": 36000,
+   "i_arket": false,
+   "solgt_av": null,
+   "fakturert": false,
+   "betalt": false,
+   "levert": null,
+   "status": "overtatt, ikke fakturert ennå → antatt cash om 3 ad",
+   "cash": "2026-09-14"
+  },
+  {
+   "nr": "26027",
+   "navn": "26027 - Kjøpekontrakt - Goldfish 30 Sport",
+   "signert_kk": "2026-04-23",
+   "overtakelse": null,
+   "salgssum": 1625000.0,
+   "provisjon_inkl": 75000,
+   "oms_eks": 60000,
+   "i_arket": true,
+   "solgt_av": "Sindre",
+   "fakturert": true,
+   "betalt": true,
+   "levert": null,
+   "status": "betalt"
+  },
+  {
+   "nr": "26023",
+   "navn": "26023 - Kjøpekontrakt - Cormate 23 SU",
+   "signert_kk": "2026-04-22",
+   "overtakelse": "2026-04-22",
+   "salgssum": 900000.0,
+   "provisjon_inkl": 30000,
+   "oms_eks": 24000,
+   "i_arket": true,
+   "solgt_av": "Sindre",
+   "fakturert": true,
+   "betalt": true,
+   "levert": null,
+   "status": "betalt"
+  },
+  {
+   "nr": "25097",
+   "navn": "25097 - Scand 360 SE - kjøpekontrakt",
+   "signert_kk": "2026-04-10",
+   "overtakelse": "2026-04-17",
+   "salgssum": 690000.0,
+   "provisjon_inkl": 45000,
+   "oms_eks": 36000,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-04-17",
+   "status": "betalt"
+  },
+  {
+   "nr": "26001",
+   "navn": "26001 - Axopar 28 Cabin - Brabus - kjøpekontrakt",
+   "signert_kk": "2026-04-14",
+   "overtakelse": null,
+   "salgssum": 1280000.0,
+   "provisjon_inkl": 76800,
+   "oms_eks": 61440,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-04-14",
+   "status": "betalt"
+  },
+  {
+   "nr": "26003",
+   "navn": "26003 - Nord West 370 Fly - Kjøpekontrakt",
+   "signert_kk": "2026-03-29",
+   "overtakelse": "2026-04-17",
+   "salgssum": 1820000.0,
+   "provisjon_inkl": 109200,
+   "oms_eks": 87360,
+   "i_arket": true,
+   "solgt_av": "Daniel",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-04-17",
+   "status": "betalt"
+  },
+  {
+   "nr": "25072",
+   "navn": "25072 - Nordkapp 905 Grand Coupe - kjøpekontrakt",
+   "signert_kk": "2026-03-26",
+   "overtakelse": "2026-04-15",
+   "salgssum": 1150000.0,
+   "provisjon_inkl": 69000,
+   "oms_eks": 55200,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-04-30",
+   "status": "betalt"
+  },
+  {
+   "nr": "26011",
+   "navn": "26011 - Axopar 28 Cabin 2022 - kjøpekontrakt",
+   "signert_kk": "2026-03-28",
+   "overtakelse": "2026-03-28",
+   "salgssum": 1179000.0,
+   "provisjon_inkl": 50000,
+   "oms_eks": 40000,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-03-28",
+   "status": "betalt"
+  },
+  {
+   "nr": "26004",
+   "navn": "26004 - Ibiza 811 Touring - Kjøpekontrakt",
+   "signert_kk": "2026-03-24",
+   "overtakelse": "2026-04-17",
+   "salgssum": 1150000.0,
+   "provisjon_inkl": 69000,
+   "oms_eks": 55200,
+   "i_arket": true,
+   "solgt_av": "Daniel",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-04-24",
+   "status": "betalt"
+  },
+  {
+   "nr": "25061",
+   "navn": "25061 - LE4257 Hanse 388 - kjøpekontrakt",
+   "signert_kk": "2026-03-23",
+   "overtakelse": null,
+   "salgssum": 1700000.0,
+   "provisjon_inkl": 102000,
+   "oms_eks": 81600,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": true,
+   "betalt": false,
+   "levert": null,
+   "status": "kundefordring (i pkt 2)"
+  },
+  {
+   "nr": "26002",
+   "navn": "26002 - Kjøpekontrakt - Cormate SU 23",
+   "signert_kk": "2026-03-12",
+   "overtakelse": "2026-03-16",
+   "salgssum": 890000.0,
+   "provisjon_inkl": 53400,
+   "oms_eks": 42720,
+   "i_arket": true,
+   "solgt_av": "Sindre",
+   "fakturert": true,
+   "betalt": true,
+   "levert": null,
+   "status": "betalt"
+  },
+  {
+   "nr": "26009",
+   "navn": "26009 - Nimbus 230R - kjøpekontrakt",
+   "signert_kk": "2026-03-11",
+   "overtakelse": null,
+   "salgssum": 340000.0,
+   "provisjon_inkl": 15000,
+   "oms_eks": 12000,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-05-08",
+   "status": "betalt"
+  },
+  {
+   "nr": "26007",
+   "navn": "26007 - Kjøpekontrakt - Goldfish 30 Sport",
+   "signert_kk": "2026-03-10",
+   "overtakelse": "2026-05-08",
+   "salgssum": 2200000.0,
+   "provisjon_inkl": 118750,
+   "oms_eks": 95000,
+   "i_arket": true,
+   "solgt_av": "Sindre",
+   "fakturert": true,
+   "betalt": true,
+   "levert": null,
+   "status": "betalt"
+  },
+  {
+   "nr": "25080",
+   "navn": "25080 - Bavaria 35 Sport - Kjøpekontrakt",
+   "signert_kk": "2026-03-08",
+   "overtakelse": "2026-04-16",
+   "salgssum": 950000.0,
+   "provisjon_inkl": 57000,
+   "oms_eks": 45600,
+   "i_arket": true,
+   "solgt_av": "Daniel",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-04-16",
+   "status": "betalt"
+  },
+  {
+   "nr": "25089",
+   "navn": "25089 - Delphia 40.3 Kjøpekontrakt",
+   "signert_kk": "2026-02-11",
+   "overtakelse": "2026-03-31",
+   "salgssum": 900000.0,
+   "provisjon_inkl": 54000,
+   "oms_eks": 43200,
+   "i_arket": true,
+   "solgt_av": "Henrik",
+   "fakturert": true,
+   "betalt": true,
+   "levert": "2026-03-20",
+   "status": "betalt"
+  },
+  {
+   "nr": "25088",
+   "navn": "25088 - Kjøpekontrakt - Nimbus 300R",
+   "signert_kk": "2026-02-09",
+   "overtakelse": null,
+   "salgssum": 890000.0,
+   "provisjon_inkl": 53400,
+   "oms_eks": 42720,
+   "i_arket": true,
+   "solgt_av": "Sindre",
+   "fakturert": true,
+   "betalt": true,
+   "levert": null,
+   "status": "betalt"
+  }
+ ],
+ "sannsynlig": [
+  {
+   "nr": "26070",
+   "navn": "Nor-Tech 420 Monte Carlo",
+   "megler": "Sindre",
+   "pris": 13900000,
+   "p_i_ar": 0.18674330439036307
+  },
+  {
+   "nr": "26084",
+   "navn": "Beneteau Swift Trawler 52",
+   "megler": "Sindre",
+   "pris": 7650000,
+   "p_i_ar": 0.24219262454556567
+  },
+  {
+   "nr": "25096",
+   "navn": "Axopar 37 Sun Top",
+   "megler": "Henrik",
+   "pris": 1990000,
+   "p_i_ar": 0.5833333333333333
+  },
+  {
+   "nr": "26014",
+   "navn": "Sunseeker Predator 52",
+   "megler": "Henrik",
+   "pris": 4800000,
+   "p_i_ar": 0.21025641025641034
+  },
+  {
+   "nr": "26086",
+   "navn": "Ryck 280",
+   "megler": "Henrik",
+   "pris": 1790000,
+   "p_i_ar": 0.5120923913043478
+  },
+  {
+   "nr": "26069",
+   "navn": "Windy Grand Mistral 37 2008",
+   "megler": "Henrik",
+   "pris": 1750000,
+   "p_i_ar": 0.5216592071611253
+  },
+  {
+   "nr": "26071",
+   "navn": "Cormate T27 - 2013 TDI",
+   "megler": "Henrik",
+   "pris": 1390000,
+   "p_i_ar": 0.5216592071611253
+  },
+  {
+   "nr": "26072",
+   "navn": "Goldfish 38 Sport",
+   "megler": "Sindre",
+   "pris": 3340000,
+   "p_i_ar": 0.20595238095238091
+  },
+  {
+   "nr": "26031",
+   "navn": "Campi 400 Husbåt",
+   "megler": "Henrik",
+   "pris": 1799000,
+   "p_i_ar": 0.37499999999999994
+  },
+  {
+   "nr": "26033",
+   "navn": "Gobbi 425 SC 2004",
+   "megler": "Henrik",
+   "pris": 1650000,
+   "p_i_ar": 0.37499999999999994
+  },
+  {
+   "nr": "26073",
+   "navn": "Goldfish 23 Tender",
+   "megler": "Sindre",
+   "pris": 1150000,
+   "p_i_ar": 0.5216592071611253
+  },
+  {
+   "nr": "26083",
+   "navn": "Hydrolift X-26S",
+   "megler": "Henrik",
+   "pris": 1090000,
+   "p_i_ar": 0.5120923913043478
+  },
+  {
+   "nr": "26082",
+   "navn": "Nord West 370 Coupe 2010",
+   "megler": "Henrik",
+   "pris": 2100000,
+   "p_i_ar": 0.25407647907647907
+  },
+  {
+   "nr": "25067",
+   "navn": "Goldfish 32 SC #017",
+   "megler": "Sindre",
+   "pris": 1050000,
+   "p_i_ar": 0.5
+  },
+  {
+   "nr": "26078",
+   "navn": "Cormate Sportmate 24",
+   "megler": "Sindre",
+   "pris": 845000,
+   "p_i_ar": 0.6027501909854853
+  },
+  {
+   "nr": "25060",
+   "navn": "Goldfish 38 SuperSport #021",
+   "megler": "Sindre",
+   "pris": 1990000,
+   "p_i_ar": 0.2499999999999999
+  },
+  {
+   "nr": "26074",
+   "navn": "Capelli Tempest 1000 Open",
+   "megler": "Henrik",
+   "pris": 1290000,
+   "p_i_ar": 0.3622122762148338
+  },
+  {
+   "nr": "26085",
+   "navn": "Archambault A35",
+   "megler": "Henrik",
+   "pris": 800000,
+   "p_i_ar": 0.5789473684210527
+  },
+  {
+   "nr": "26043",
+   "navn": "Cormate T27-66",
+   "megler": "Sindre",
+   "pris": 1275000,
+   "p_i_ar": 0.3566176470588236
+  },
+  {
+   "nr": "26076",
+   "navn": "Bavaria 29 Sport",
+   "megler": "Henrik",
+   "pris": 1060000,
+   "p_i_ar": 0.41127287035215426
+  },
+  {
+   "nr": "26067",
+   "navn": "Bavaria 36 2004",
+   "megler": "Henrik",
+   "pris": 525000,
+   "p_i_ar": 0.5432586736934565
+  },
+  {
+   "nr": "26039",
+   "navn": "Cormate T27-64",
+   "megler": "Sindre",
+   "pris": 1080000,
+   "p_i_ar": 0.37499999999999994
+  },
+  {
+   "nr": "26035",
+   "navn": "Goldfish 43 Ocean #002",
+   "megler": "Sindre",
+   "pris": 7499000,
+   "p_i_ar": 0.05263157894736835
+  },
+  {
+   "nr": "26024",
+   "navn": "Goldfish 43 Ocean #003",
+   "megler": "Sindre",
+   "pris": 6900000,
+   "p_i_ar": 0.05263157894736835
+  },
+  {
+   "nr": "26061",
+   "navn": "Jeanneau Sun Odyssey 40.3",
+   "megler": "Henrik",
+   "pris": 1190000,
+   "p_i_ar": 0.3014705882352943
+  },
+  {
+   "nr": "25065",
+   "navn": "Saxdor 320 GTC",
+   "megler": "Sindre",
+   "pris": 2350000,
+   "p_i_ar": 0.14285714285714285
+  },
+  {
+   "nr": "26019",
+   "navn": "Beneteau Oceanis 51.1",
+   "megler": "Henrik",
+   "pris": 5990000,
+   "p_i_ar": 0.05263157894736835
+  },
+  {
+   "nr": "26010",
+   "navn": "Mary Ann III",
+   "megler": "Henrik",
+   "pris": 2490000,
+   "p_i_ar": 0.12500000000000008
+  },
+  {
+   "nr": "26048",
+   "navn": "Sea Ray 355 Sundancer",
+   "megler": "Henrik",
+   "pris": 799000,
+   "p_i_ar": 0.3434343434343435
+  },
+  {
+   "nr": "26040",
+   "navn": "Dufour 385GL",
+   "megler": "Henrik",
+   "pris": 720000,
+   "p_i_ar": 0.3434343434343435
+  },
+  {
+   "nr": "26064",
+   "navn": "Goldfish 30 Sport #007",
+   "megler": "Sindre",
+   "pris": 2050000,
+   "p_i_ar": 0.11538461538461543
+  },
+  {
+   "nr": "26036",
+   "navn": "Goldfish 28 RIB",
+   "megler": "Sindre",
+   "pris": 590000,
+   "p_i_ar": 0.292929292929293
+  },
+  {
+   "nr": "26046",
+   "navn": "Nimbus T11",
+   "megler": "Henrik",
+   "pris": 3200000,
+   "p_i_ar": 0.06250000000000004
+  },
+  {
+   "nr": "26018",
+   "navn": "Nautor Swan 53/55",
+   "megler": "Henrik",
+   "pris": 2890000,
+   "p_i_ar": 0.06250000000000004
+  },
+  {
+   "nr": "26021",
+   "navn": "Catalina",
+   "megler": "Henrik",
+   "pris": 790000,
+   "p_i_ar": 0.22222222222222224
+  },
+  {
+   "nr": "26045",
+   "navn": "Cormate Chase 34-13",
+   "megler": "Sindre",
+   "pris": 2750000,
+   "p_i_ar": 0.06250000000000004
+  },
+  {
+   "nr": "26049",
+   "navn": "Cormate T28-68",
+   "megler": "Sindre",
+   "pris": 2326900,
+   "p_i_ar": 0.06250000000000004
+  },
+  {
+   "nr": "26038",
+   "navn": "Cormate Chase 34-07",
+   "megler": "Sindre",
+   "pris": 2190000,
+   "p_i_ar": 0.06250000000000004
+  },
+  {
+   "nr": "24033",
+   "navn": "Nimbus T11",
+   "megler": "Sindre",
+   "pris": 4490000,
+   "p_i_ar": 0
+  },
+  {
+   "nr": "24024",
+   "navn": "Riva Dolceriva 48",
+   "megler": "Sindre",
+   "pris": 16900000,
+   "p_i_ar": 0
+  },
+  {
+   "nr": "26051",
+   "navn": "NordStar 34",
+   "megler": "Henrik",
+   "pris": 3250000,
+   "p_i_ar": 0
+  },
+  {
+   "nr": "26057",
+   "navn": "Steeler Yachts 52s",
+   "megler": "Sindre",
+   "pris": 19900000,
+   "p_i_ar": 0
+  },
+  {
+   "nr": "24042",
+   "navn": "Windy Camira 39",
+   "megler": "Sindre",
+   "pris": 3749000,
+   "p_i_ar": 0
+  },
+  {
+   "nr": "25027",
+   "navn": "Lagoon 52F",
+   "megler": "Sindre",
+   "pris": 8950000,
+   "p_i_ar": 0
+  },
+  {
+   "nr": "25056",
+   "navn": "Hanse 548",
+   "megler": "Henrik",
+   "pris": 7190000,
+   "p_i_ar": 0
+  },
+  {
+   "nr": "26013",
+   "navn": "Bavaria 36 AC",
+   "megler": "Henrik",
+   "pris": 525000,
+   "p_i_ar": 0
+  }
+ ],
+ "rader": [
+  {
+   "dato": "2026-09-14",
+   "linje": "SIKKER · kundefordring (fakturert, ubetalt)",
+   "belop": 7742,
+   "note": "prosjekt ? fakturert 2026-04-29"
+  },
+  {
+   "dato": "2026-09-14",
+   "linje": "SIKKER · kundefordring (fakturert, ubetalt)",
+   "belop": 71632,
+   "note": "prosjekt 26056 fakturert 2026-09-08"
+  },
+  {
+   "dato": "2026-09-14",
+   "linje": "SIKKER · kundefordring (fakturert, ubetalt)",
+   "belop": 5520,
+   "note": "prosjekt ? fakturert 2026-07-08"
+  },
+  {
+   "dato": "2026-09-14",
+   "linje": "SIKKER · kundefordring (fakturert, ubetalt)",
+   "belop": 9690,
+   "note": "prosjekt 25061 fakturert 2026-05-18"
+  },
+  {
+   "dato": "2026-09-14",
+   "linje": "SIKKER · kundefordring (fakturert, ubetalt)",
+   "belop": 5780,
+   "note": "prosjekt ? fakturert 2026-08-14"
+  },
+  {
+   "dato": "2026-09-14",
+   "linje": "SIKKER · kundefordring (fakturert, ubetalt)",
+   "belop": 2000,
+   "note": "prosjekt ? fakturert 2026-04-29"
+  },
+  {
+   "dato": "2026-09-15",
+   "linje": "SIKKER · provisjon ved overtakelse",
+   "belop": 156000,
+   "note": "25081 25081 - Hydrolift X-32S R - Kj overt. 2026-09-10"
+  },
+  {
+   "dato": "2026-10-01",
+   "linje": "UT · meglerprovisjon (Henrik, 40 % + AGA/FP)",
+   "belop": -62949,
+   "note": "25081"
+  },
+  {
+   "dato": "2026-09-15",
+   "linje": "_mva_ut",
+   "belop": -31200,
+   "note": ""
+  },
+  {
+   "dato": "2026-09-14",
+   "linje": "SIKKER · provisjon ved overtakelse",
+   "belop": 300000,
+   "note": "26062 26062 - Kjøpekontrakt - Riva R overt. 2026-09-09"
+  },
+  {
+   "dato": "2026-09-14",
+   "linje": "_mva_ut",
+   "belop": -60000,
+   "note": ""
+  },
+  {
+   "dato": "2026-09-10",
+   "linje": "SIKKER · provisjon ved overtakelse",
+   "belop": 46500,
+   "note": "26080 26080 - Hallberg Rassy 31 2000 overt. 2026-09-07"
+  },
+  {
+   "dato": "2026-10-01",
+   "linje": "UT · meglerprovisjon (Henrik, 40 % + AGA/FP)",
+   "belop": -18764,
+   "note": "26080"
+  },
+  {
+   "dato": "2026-09-10",
+   "linje": "_mva_ut",
+   "belop": -9300,
+   "note": ""
+  },
+  {
+   "dato": "2026-09-14",
+   "linje": "SIKKER · provisjon ved overtakelse",
+   "belop": 90000,
+   "note": "26053 26053 - Marex 350 CC - Kjøpeko overt. 2026-09-09"
+  },
+  {
+   "dato": "2026-10-01",
+   "linje": "UT · meglerprovisjon (Henrik, 40 % + AGA/FP)",
+   "belop": -36317,
+   "note": "26053"
+  },
+  {
+   "dato": "2026-09-14",
+   "linje": "_mva_ut",
+   "belop": -18000,
+   "note": ""
+  },
+  {
+   "dato": "2026-09-09",
+   "linje": "SIKKER · provisjon ved overtakelse",
+   "belop": 55200,
+   "note": "26012 26012 - Storebro 420 Baltic -  overt. 2026-09-04"
+  },
+  {
+   "dato": "2026-10-01",
+   "linje": "UT · meglerprovisjon (Henrik, 40 % + AGA/FP)",
+   "belop": -22274,
+   "note": "26012"
+  },
+  {
+   "dato": "2026-09-09",
+   "linje": "_mva_ut",
+   "belop": -11040,
+   "note": ""
+  },
+  {
+   "dato": "2026-09-09",
+   "linje": "SIKKER · provisjon ved overtakelse",
+   "belop": 61800,
+   "note": "26029 26029 - Quicksilver 875 Sundec overt. 2026-09-04"
+  },
+  {
+   "dato": "2026-10-01",
+   "linje": "UT · meglerprovisjon (Henrik, 40 % + AGA/FP)",
+   "belop": -24938,
+   "note": "26029"
+  },
+  {
+   "dato": "2026-09-09",
+   "linje": "_mva_ut",
+   "belop": -12360,
+   "note": ""
+  },
+  {
+   "dato": "2026-09-10",
+   "linje": "SIKKER · provisjon ved overtakelse",
+   "belop": 45000,
+   "note": "26026 26026 - Dufour GL 385 - kjøpek overt. 2026-09-07"
+  },
+  {
+   "dato": "2026-10-01",
+   "linje": "UT · meglerprovisjon (Henrik, 40 % + AGA/FP)",
+   "belop": -18158,
+   "note": "26026"
+  },
+  {
+   "dato": "2026-09-10",
+   "linje": "_mva_ut",
+   "belop": -9000,
+   "note": ""
+  },
+  {
+   "dato": "2026-09-14",
+   "linje": "SIKKER · provisjon ved overtakelse",
+   "belop": 45000,
+   "note": "None  overt. 2026-05-29"
+  },
+  {
+   "dato": "2026-09-14",
+   "linje": "_mva_ut",
+   "belop": -9000,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 54288,
+   "note": "26070 p=0.07"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -10858,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 22139,
+   "note": "26070 p=0.03"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -4428,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 8009,
+   "note": "26070 p=0.01"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1602,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 8286,
+   "note": "26070 p=0.01"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1657,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 31847,
+   "note": "26070 p=0.04"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -6369,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 31924,
+   "note": "26070 p=0.04"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -6385,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 35472,
+   "note": "26070 p=0.04"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -7094,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 34289,
+   "note": "26070 p=0.04"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -6858,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 35472,
+   "note": "26070 p=0.04"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -7094,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 25868,
+   "note": "26084 p=0.06"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -5174,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 36955,
+   "note": "26084 p=0.08"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -7391,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 31322,
+   "note": "26084 p=0.07"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -6264,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3948,
+   "note": "26084 p=0.01"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -790,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3948,
+   "note": "26084 p=0.01"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -790,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 5281,
+   "note": "26084 p=0.01"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -1056,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 16902,
+   "note": "26084 p=0.04"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -3380,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 16339,
+   "note": "26084 p=0.04"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -3268,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 16902,
+   "note": "26084 p=0.04"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -3380,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6732,
+   "note": "25096 p=0.06"
+  },
+  {
+   "dato": "2026-11-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2716,
+   "note": "25096"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1346,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 9617,
+   "note": "25096 p=0.08"
+  },
+  {
+   "dato": "2026-12-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -3881,
+   "note": "25096"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1923,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3847,
+   "note": "25096 p=0.03"
+  },
+  {
+   "dato": "2027-01-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1552,
+   "note": "25096"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -769,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 12345,
+   "note": "26014 p=0.04"
+  },
+  {
+   "dato": "2026-11-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -4982,
+   "note": "26014"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -2469,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 17636,
+   "note": "26014 p=0.06"
+  },
+  {
+   "dato": "2026-12-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -7117,
+   "note": "26014"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -3527,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 17049,
+   "note": "26014 p=0.06"
+  },
+  {
+   "dato": "2027-01-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -6879,
+   "note": "26014"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -3410,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 17636,
+   "note": "26014 p=0.06"
+  },
+  {
+   "dato": "2027-02-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -7117,
+   "note": "26014"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -3527,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 11170,
+   "note": "26014 p=0.04"
+  },
+  {
+   "dato": "2027-03-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -4507,
+   "note": "26014"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -2234,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 12252,
+   "note": "26086 p=0.11"
+  },
+  {
+   "dato": "2026-11-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -4944,
+   "note": "26086"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -2450,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 17503,
+   "note": "26086 p=0.16"
+  },
+  {
+   "dato": "2026-12-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -7063,
+   "note": "26086"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -3501,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 15415,
+   "note": "26086 p=0.14"
+  },
+  {
+   "dato": "2027-01-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -6220,
+   "note": "26086"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -3083,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6216,
+   "note": "26086 p=0.06"
+  },
+  {
+   "dato": "2027-02-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2508,
+   "note": "26086"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1243,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6216,
+   "note": "26086 p=0.06"
+  },
+  {
+   "dato": "2027-03-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2508,
+   "note": "26086"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1243,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 5117,
+   "note": "26086 p=0.05"
+  },
+  {
+   "dato": "2027-04-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2065,
+   "note": "26086"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -1023,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2634,
+   "note": "26086 p=0.02"
+  },
+  {
+   "dato": "2027-05-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1063,
+   "note": "26086"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -527,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2547,
+   "note": "26086 p=0.02"
+  },
+  {
+   "dato": "2027-06-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1028,
+   "note": "26086"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -509,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2634,
+   "note": "26086 p=0.02"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -527,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 14038,
+   "note": "26069 p=0.13"
+  },
+  {
+   "dato": "2026-11-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -5664,
+   "note": "26069"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -2808,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 19623,
+   "note": "26069 p=0.19"
+  },
+  {
+   "dato": "2026-12-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -7918,
+   "note": "26069"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -3925,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6884,
+   "note": "26069 p=0.07"
+  },
+  {
+   "dato": "2027-01-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2778,
+   "note": "26069"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1377,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 7121,
+   "note": "26069 p=0.07"
+  },
+  {
+   "dato": "2027-02-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2874,
+   "note": "26069"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1424,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6711,
+   "note": "26069 p=0.06"
+  },
+  {
+   "dato": "2027-03-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2708,
+   "note": "26069"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1342,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2716,
+   "note": "26069 p=0.03"
+  },
+  {
+   "dato": "2027-04-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1096,
+   "note": "26069"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -543,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3018,
+   "note": "26069 p=0.03"
+  },
+  {
+   "dato": "2027-05-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1218,
+   "note": "26069"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -604,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2918,
+   "note": "26069 p=0.03"
+  },
+  {
+   "dato": "2027-06-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1177,
+   "note": "26069"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -584,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3018,
+   "note": "26069 p=0.03"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -604,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 10941,
+   "note": "26071 p=0.13"
+  },
+  {
+   "dato": "2026-11-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -4415,
+   "note": "26071"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -2188,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 15630,
+   "note": "26071 p=0.19"
+  },
+  {
+   "dato": "2026-12-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -6307,
+   "note": "26071"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -3126,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 5701,
+   "note": "26071 p=0.07"
+  },
+  {
+   "dato": "2027-01-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2301,
+   "note": "26071"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1140,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 5550,
+   "note": "26071 p=0.07"
+  },
+  {
+   "dato": "2027-02-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2240,
+   "note": "26071"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1110,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 5550,
+   "note": "26071 p=0.07"
+  },
+  {
+   "dato": "2027-03-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2240,
+   "note": "26071"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1110,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2117,
+   "note": "26071 p=0.03"
+  },
+  {
+   "dato": "2027-04-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -854,
+   "note": "26071"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -423,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2352,
+   "note": "26071 p=0.03"
+  },
+  {
+   "dato": "2027-05-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -949,
+   "note": "26071"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -470,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2274,
+   "note": "26071 p=0.03"
+  },
+  {
+   "dato": "2027-06-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -918,
+   "note": "26071"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -455,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2352,
+   "note": "26071 p=0.03"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -470,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 15819,
+   "note": "26072 p=0.08"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -3164,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 22599,
+   "note": "26072 p=0.11"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -4520,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 296,
+   "note": "26072 p=0.00"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -59,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 7996,
+   "note": "26072 p=0.04"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -1599,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 8884,
+   "note": "26072 p=0.04"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1777,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 8588,
+   "note": "26072 p=0.04"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1718,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 8884,
+   "note": "26072 p=0.04"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1777,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 8864,
+   "note": "26031 p=0.08"
+  },
+  {
+   "dato": "2026-11-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -3577,
+   "note": "26031"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1773,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 11447,
+   "note": "26031 p=0.11"
+  },
+  {
+   "dato": "2026-12-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -4619,
+   "note": "26031"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -2289,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 5188,
+   "note": "26031 p=0.05"
+  },
+  {
+   "dato": "2027-01-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2093,
+   "note": "26031"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1038,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 5367,
+   "note": "26031 p=0.05"
+  },
+  {
+   "dato": "2027-02-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2166,
+   "note": "26031"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1073,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 5367,
+   "note": "26031 p=0.05"
+  },
+  {
+   "dato": "2027-03-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2166,
+   "note": "26031"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1073,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 4830,
+   "note": "26031 p=0.04"
+  },
+  {
+   "dato": "2027-04-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1949,
+   "note": "26031"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -966,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 5367,
+   "note": "26031 p=0.05"
+  },
+  {
+   "dato": "2027-05-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2166,
+   "note": "26031"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1073,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 5009,
+   "note": "26031 p=0.05"
+  },
+  {
+   "dato": "2027-06-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2021,
+   "note": "26031"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1002,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 7974,
+   "note": "26033 p=0.08"
+  },
+  {
+   "dato": "2026-11-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -3218,
+   "note": "26033"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1595,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 11392,
+   "note": "26033 p=0.12"
+  },
+  {
+   "dato": "2026-12-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -4597,
+   "note": "26033"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -2278,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 4667,
+   "note": "26033 p=0.05"
+  },
+  {
+   "dato": "2027-01-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1883,
+   "note": "26033"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -933,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 4828,
+   "note": "26033 p=0.05"
+  },
+  {
+   "dato": "2027-02-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1948,
+   "note": "26033"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -966,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 4828,
+   "note": "26033 p=0.05"
+  },
+  {
+   "dato": "2027-03-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1948,
+   "note": "26033"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -966,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 4345,
+   "note": "26033 p=0.04"
+  },
+  {
+   "dato": "2027-04-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1753,
+   "note": "26033"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -869,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 4828,
+   "note": "26033 p=0.05"
+  },
+  {
+   "dato": "2027-05-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1948,
+   "note": "26033"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -966,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 4667,
+   "note": "26033 p=0.05"
+  },
+  {
+   "dato": "2027-06-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1883,
+   "note": "26033"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -933,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 483,
+   "note": "26033 p=0.00"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -97,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 9052,
+   "note": "26073 p=0.13"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1810,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 12931,
+   "note": "26073 p=0.19"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -2586,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 4717,
+   "note": "26073 p=0.07"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -943,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 4592,
+   "note": "26073 p=0.07"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -918,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 4592,
+   "note": "26073 p=0.07"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -918,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 1752,
+   "note": "26073 p=0.03"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -350,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 1946,
+   "note": "26073 p=0.03"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -389,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 1881,
+   "note": "26073 p=0.03"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -376,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 1946,
+   "note": "26073 p=0.03"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -389,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 7461,
+   "note": "26083 p=0.11"
+  },
+  {
+   "dato": "2026-11-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -3011,
+   "note": "26083"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1492,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 10659,
+   "note": "26083 p=0.16"
+  },
+  {
+   "dato": "2026-12-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -4301,
+   "note": "26083"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -2132,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 9387,
+   "note": "26083 p=0.14"
+  },
+  {
+   "dato": "2027-01-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -3788,
+   "note": "26083"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1877,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3785,
+   "note": "26083 p=0.06"
+  },
+  {
+   "dato": "2027-02-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1527,
+   "note": "26083"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -757,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3785,
+   "note": "26083 p=0.06"
+  },
+  {
+   "dato": "2027-03-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1527,
+   "note": "26083"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -757,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3116,
+   "note": "26083 p=0.05"
+  },
+  {
+   "dato": "2027-04-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1257,
+   "note": "26083"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -623,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 1604,
+   "note": "26083 p=0.02"
+  },
+  {
+   "dato": "2027-05-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -647,
+   "note": "26083"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -321,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 1551,
+   "note": "26083 p=0.02"
+  },
+  {
+   "dato": "2027-06-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -626,
+   "note": "26083"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -310,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 1604,
+   "note": "26083 p=0.02"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -321,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 9155,
+   "note": "26082 p=0.07"
+  },
+  {
+   "dato": "2026-11-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -3694,
+   "note": "26082"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1831,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 13078,
+   "note": "26082 p=0.10"
+  },
+  {
+   "dato": "2026-12-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -5277,
+   "note": "26082"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -2616,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 10027,
+   "note": "26082 p=0.08"
+  },
+  {
+   "dato": "2027-01-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -4046,
+   "note": "26082"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -2005,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 1028,
+   "note": "26082 p=0.01"
+  },
+  {
+   "dato": "2027-04-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -415,
+   "note": "26082"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -206,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 5141,
+   "note": "26082 p=0.04"
+  },
+  {
+   "dato": "2027-05-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2075,
+   "note": "26082"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1028,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 4970,
+   "note": "26082 p=0.04"
+  },
+  {
+   "dato": "2027-06-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2005,
+   "note": "26082"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -994,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 5141,
+   "note": "26082 p=0.04"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1028,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 8597,
+   "note": "26078 p=0.17"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1719,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 12281,
+   "note": "26078 p=0.24"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -2456,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 5314,
+   "note": "26078 p=0.10"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1063,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3338,
+   "note": "26078 p=0.07"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -668,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3338,
+   "note": "26078 p=0.07"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -668,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 1380,
+   "note": "26078 p=0.03"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -276,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 1123,
+   "note": "26078 p=0.02"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -225,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 1086,
+   "note": "26078 p=0.02"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -217,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 1123,
+   "note": "26078 p=0.02"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -225,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6582,
+   "note": "25060 p=0.06"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1316,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 7103,
+   "note": "25060 p=0.06"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1421,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6867,
+   "note": "25060 p=0.06"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1373,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 7103,
+   "note": "25060 p=0.06"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1421,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 7103,
+   "note": "25060 p=0.06"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1421,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6393,
+   "note": "25060 p=0.05"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -1279,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 4025,
+   "note": "25060 p=0.03"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -805,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 12197,
+   "note": "26074 p=0.16"
+  },
+  {
+   "dato": "2026-11-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -4922,
+   "note": "26074"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -2439,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6593,
+   "note": "26074 p=0.09"
+  },
+  {
+   "dato": "2026-12-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2660,
+   "note": "26074"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1319,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6373,
+   "note": "26074 p=0.08"
+  },
+  {
+   "dato": "2027-01-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2572,
+   "note": "26074"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1275,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6086,
+   "note": "26074 p=0.08"
+  },
+  {
+   "dato": "2027-02-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2456,
+   "note": "26074"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1217,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2794,
+   "note": "26074 p=0.04"
+  },
+  {
+   "dato": "2027-03-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1127,
+   "note": "26074"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -559,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2515,
+   "note": "26074 p=0.03"
+  },
+  {
+   "dato": "2027-04-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1015,
+   "note": "26074"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -503,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2794,
+   "note": "26074 p=0.04"
+  },
+  {
+   "dato": "2027-05-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1127,
+   "note": "26074"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -559,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2701,
+   "note": "26074 p=0.03"
+  },
+  {
+   "dato": "2027-06-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1090,
+   "note": "26074"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -540,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2794,
+   "note": "26074 p=0.04"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -559,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6911,
+   "note": "26085 p=0.14"
+  },
+  {
+   "dato": "2026-11-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2789,
+   "note": "26085"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1382,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 9873,
+   "note": "26085 p=0.21"
+  },
+  {
+   "dato": "2026-12-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -3984,
+   "note": "26085"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1975,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 9544,
+   "note": "26085 p=0.20"
+  },
+  {
+   "dato": "2027-01-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -3851,
+   "note": "26085"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1909,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2684,
+   "note": "26085 p=0.06"
+  },
+  {
+   "dato": "2027-02-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1083,
+   "note": "26085"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -537,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2684,
+   "note": "26085 p=0.06"
+  },
+  {
+   "dato": "2027-03-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1083,
+   "note": "26085"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -537,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2415,
+   "note": "26085 p=0.05"
+  },
+  {
+   "dato": "2027-04-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -975,
+   "note": "26085"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -483,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 903,
+   "note": "26085 p=0.02"
+  },
+  {
+   "dato": "2027-05-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -364,
+   "note": "26085"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -181,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 873,
+   "note": "26085 p=0.02"
+  },
+  {
+   "dato": "2027-06-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -352,
+   "note": "26085"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -175,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 903,
+   "note": "26085 p=0.02"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -181,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 5643,
+   "note": "26043 p=0.07"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1129,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 8061,
+   "note": "26043 p=0.11"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1612,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6863,
+   "note": "26043 p=0.09"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1373,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3416,
+   "note": "26043 p=0.04"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -683,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3416,
+   "note": "26043 p=0.04"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -683,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3075,
+   "note": "26043 p=0.04"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -615,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3416,
+   "note": "26043 p=0.04"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -683,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3302,
+   "note": "26043 p=0.04"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -660,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3075,
+   "note": "26043 p=0.04"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -615,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 9961,
+   "note": "26076 p=0.16"
+  },
+  {
+   "dato": "2026-11-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -4020,
+   "note": "26076"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1992,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6889,
+   "note": "26076 p=0.11"
+  },
+  {
+   "dato": "2026-12-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2780,
+   "note": "26076"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1378,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 4885,
+   "note": "26076 p=0.08"
+  },
+  {
+   "dato": "2027-01-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1971,
+   "note": "26076"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -977,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 5054,
+   "note": "26076 p=0.08"
+  },
+  {
+   "dato": "2027-02-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2039,
+   "note": "26076"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1011,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2530,
+   "note": "26076 p=0.04"
+  },
+  {
+   "dato": "2027-03-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1021,
+   "note": "26076"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -506,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 1928,
+   "note": "26076 p=0.03"
+  },
+  {
+   "dato": "2027-04-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -778,
+   "note": "26076"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -386,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2142,
+   "note": "26076 p=0.03"
+  },
+  {
+   "dato": "2027-05-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -864,
+   "note": "26076"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -428,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2070,
+   "note": "26076 p=0.03"
+  },
+  {
+   "dato": "2027-06-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -835,
+   "note": "26076"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -414,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2142,
+   "note": "26076 p=0.03"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -428,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 10518,
+   "note": "26067 p=0.23"
+  },
+  {
+   "dato": "2026-11-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -4244,
+   "note": "26067"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -2104,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 5543,
+   "note": "26067 p=0.12"
+  },
+  {
+   "dato": "2026-12-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2237,
+   "note": "26067"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1109,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3948,
+   "note": "26067 p=0.09"
+  },
+  {
+   "dato": "2027-01-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1593,
+   "note": "26067"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -790,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 4084,
+   "note": "26067 p=0.09"
+  },
+  {
+   "dato": "2027-02-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1648,
+   "note": "26067"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -817,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 1555,
+   "note": "26067 p=0.03"
+  },
+  {
+   "dato": "2027-03-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -628,
+   "note": "26067"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -311,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 1237,
+   "note": "26067 p=0.03"
+  },
+  {
+   "dato": "2027-04-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -499,
+   "note": "26067"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -247,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 1374,
+   "note": "26067 p=0.03"
+  },
+  {
+   "dato": "2027-05-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -555,
+   "note": "26067"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -275,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 1329,
+   "note": "26067 p=0.03"
+  },
+  {
+   "dato": "2027-06-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -536,
+   "note": "26067"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -266,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 1374,
+   "note": "26067 p=0.03"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -275,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 5064,
+   "note": "26039 p=0.08"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1013,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 7235,
+   "note": "26039 p=0.11"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1447,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3937,
+   "note": "26039 p=0.06"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -787,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3066,
+   "note": "26039 p=0.05"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -613,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3066,
+   "note": "26039 p=0.05"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -613,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2759,
+   "note": "26039 p=0.04"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -552,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3066,
+   "note": "26039 p=0.05"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -613,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2964,
+   "note": "26039 p=0.05"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -593,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 1124,
+   "note": "26039 p=0.02"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -225,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3472,
+   "note": "26035 p=0.01"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -694,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 4960,
+   "note": "26035 p=0.01"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -992,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 19982,
+   "note": "26035 p=0.04"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -3996,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 21233,
+   "note": "26035 p=0.05"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -4247,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 21233,
+   "note": "26035 p=0.05"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -4247,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 19109,
+   "note": "26035 p=0.04"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -3822,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 21233,
+   "note": "26035 p=0.05"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -4247,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 20525,
+   "note": "26035 p=0.05"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -4105,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3539,
+   "note": "26035 p=0.01"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -708,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3212,
+   "note": "26024 p=0.01"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -642,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 11113,
+   "note": "26024 p=0.03"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -2223,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 18990,
+   "note": "26024 p=0.05"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -3798,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 19645,
+   "note": "26024 p=0.05"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -3929,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 19645,
+   "note": "26024 p=0.05"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -3929,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 17680,
+   "note": "26024 p=0.04"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -3536,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 19645,
+   "note": "26024 p=0.05"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -3929,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 13097,
+   "note": "26024 p=0.03"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -2619,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 8874,
+   "note": "26061 p=0.12"
+  },
+  {
+   "dato": "2026-11-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -3581,
+   "note": "26061"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1775,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6497,
+   "note": "26061 p=0.09"
+  },
+  {
+   "dato": "2026-12-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2622,
+   "note": "26061"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1299,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6281,
+   "note": "26061 p=0.09"
+  },
+  {
+   "dato": "2027-01-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2534,
+   "note": "26061"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1256,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 5000,
+   "note": "26061 p=0.07"
+  },
+  {
+   "dato": "2027-02-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2017,
+   "note": "26061"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1000,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2754,
+   "note": "26061 p=0.04"
+  },
+  {
+   "dato": "2027-03-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1111,
+   "note": "26061"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -551,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2478,
+   "note": "26061 p=0.03"
+  },
+  {
+   "dato": "2027-04-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1000,
+   "note": "26061"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -496,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2754,
+   "note": "26061 p=0.04"
+  },
+  {
+   "dato": "2027-05-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1111,
+   "note": "26061"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -551,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2662,
+   "note": "26061 p=0.04"
+  },
+  {
+   "dato": "2027-06-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1074,
+   "note": "26061"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -532,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2754,
+   "note": "26061 p=0.04"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -551,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2797,
+   "note": "26019 p=0.01"
+  },
+  {
+   "dato": "2026-11-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1129,
+   "note": "26019"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -559,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 13172,
+   "note": "26019 p=0.04"
+  },
+  {
+   "dato": "2026-12-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -5315,
+   "note": "26019"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -2634,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 16534,
+   "note": "26019 p=0.05"
+  },
+  {
+   "dato": "2027-01-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -6672,
+   "note": "26019"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -3307,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 17105,
+   "note": "26019 p=0.05"
+  },
+  {
+   "dato": "2027-02-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -6902,
+   "note": "26019"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -3421,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 17105,
+   "note": "26019 p=0.05"
+  },
+  {
+   "dato": "2027-03-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -6902,
+   "note": "26019"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -3421,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 15394,
+   "note": "26019 p=0.04"
+  },
+  {
+   "dato": "2027-04-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -6212,
+   "note": "26019"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -3079,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 17105,
+   "note": "26019 p=0.05"
+  },
+  {
+   "dato": "2027-05-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -6902,
+   "note": "26019"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -3421,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6842,
+   "note": "26019 p=0.02"
+  },
+  {
+   "dato": "2027-06-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2761,
+   "note": "26019"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1368,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 5876,
+   "note": "26010 p=0.04"
+  },
+  {
+   "dato": "2026-11-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2371,
+   "note": "26010"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1175,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 8395,
+   "note": "26010 p=0.06"
+  },
+  {
+   "dato": "2026-12-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -3388,
+   "note": "26010"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1679,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 8115,
+   "note": "26010 p=0.05"
+  },
+  {
+   "dato": "2027-01-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -3275,
+   "note": "26010"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1623,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 8395,
+   "note": "26010 p=0.06"
+  },
+  {
+   "dato": "2027-02-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -3388,
+   "note": "26010"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1679,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 8395,
+   "note": "26010 p=0.06"
+  },
+  {
+   "dato": "2027-03-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -3388,
+   "note": "26010"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1679,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 7555,
+   "note": "26010 p=0.05"
+  },
+  {
+   "dato": "2027-04-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -3049,
+   "note": "26010"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -1511,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 1119,
+   "note": "26010 p=0.01"
+  },
+  {
+   "dato": "2027-05-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -452,
+   "note": "26010"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -224,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 4889,
+   "note": "26048 p=0.10"
+  },
+  {
+   "dato": "2026-11-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1973,
+   "note": "26048"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -978,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6985,
+   "note": "26048 p=0.15"
+  },
+  {
+   "dato": "2026-12-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2818,
+   "note": "26048"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1397,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3508,
+   "note": "26048 p=0.07"
+  },
+  {
+   "dato": "2027-01-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1416,
+   "note": "26048"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -702,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2351,
+   "note": "26048 p=0.05"
+  },
+  {
+   "dato": "2027-02-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -949,
+   "note": "26048"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -470,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2351,
+   "note": "26048 p=0.05"
+  },
+  {
+   "dato": "2027-03-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -949,
+   "note": "26048"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -470,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2116,
+   "note": "26048 p=0.04"
+  },
+  {
+   "dato": "2027-04-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -854,
+   "note": "26048"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -423,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2351,
+   "note": "26048 p=0.05"
+  },
+  {
+   "dato": "2027-05-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -949,
+   "note": "26048"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -470,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2272,
+   "note": "26048 p=0.05"
+  },
+  {
+   "dato": "2027-06-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -917,
+   "note": "26048"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -454,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 940,
+   "note": "26048 p=0.02"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -188,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 4460,
+   "note": "26040 p=0.10"
+  },
+  {
+   "dato": "2026-11-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1800,
+   "note": "26040"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -892,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6371,
+   "note": "26040 p=0.14"
+  },
+  {
+   "dato": "2026-12-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2571,
+   "note": "26040"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1274,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 4045,
+   "note": "26040 p=0.09"
+  },
+  {
+   "dato": "2027-01-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1632,
+   "note": "26040"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -809,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2144,
+   "note": "26040 p=0.05"
+  },
+  {
+   "dato": "2027-02-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -865,
+   "note": "26040"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -429,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2144,
+   "note": "26040 p=0.05"
+  },
+  {
+   "dato": "2027-03-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -865,
+   "note": "26040"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -429,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 1930,
+   "note": "26040 p=0.04"
+  },
+  {
+   "dato": "2027-04-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -779,
+   "note": "26040"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -386,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2144,
+   "note": "26040 p=0.05"
+  },
+  {
+   "dato": "2027-05-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -865,
+   "note": "26040"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -429,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2073,
+   "note": "26040 p=0.05"
+  },
+  {
+   "dato": "2027-06-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -836,
+   "note": "26040"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -415,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 1286,
+   "note": "26040 p=0.03"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -257,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 9583,
+   "note": "26064 p=0.08"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1917,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 1046,
+   "note": "26064 p=0.01"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -209,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6279,
+   "note": "26064 p=0.05"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1256,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 5651,
+   "note": "26064 p=0.05"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -1130,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6279,
+   "note": "26064 p=0.05"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1256,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6070,
+   "note": "26064 p=0.05"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1214,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6279,
+   "note": "26064 p=0.05"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1256,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 4751,
+   "note": "26036 p=0.11"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -950,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6787,
+   "note": "26036 p=0.15"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1357,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2358,
+   "note": "26036 p=0.05"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -472,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2284,
+   "note": "26036 p=0.05"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -457,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2284,
+   "note": "26036 p=0.05"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -457,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2056,
+   "note": "26036 p=0.05"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -411,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2284,
+   "note": "26036 p=0.05"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -457,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2208,
+   "note": "26036 p=0.05"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -442,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 381,
+   "note": "26036 p=0.01"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -76,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2126,
+   "note": "26046 p=0.01"
+  },
+  {
+   "dato": "2027-01-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -858,
+   "note": "26046"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -425,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 10629,
+   "note": "26046 p=0.06"
+  },
+  {
+   "dato": "2027-02-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -4289,
+   "note": "26046"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -2126,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 10629,
+   "note": "26046 p=0.06"
+  },
+  {
+   "dato": "2027-03-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -4289,
+   "note": "26046"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -2126,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 9566,
+   "note": "26046 p=0.05"
+  },
+  {
+   "dato": "2027-04-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -3860,
+   "note": "26046"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -1913,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 10629,
+   "note": "26046 p=0.06"
+  },
+  {
+   "dato": "2027-05-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -4289,
+   "note": "26046"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -2126,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 10275,
+   "note": "26046 p=0.05"
+  },
+  {
+   "dato": "2027-06-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -4146,
+   "note": "26046"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -2055,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 9566,
+   "note": "26046 p=0.05"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1913,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 960,
+   "note": "26018 p=0.01"
+  },
+  {
+   "dato": "2026-11-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -387,
+   "note": "26018"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -192,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 9600,
+   "note": "26018 p=0.06"
+  },
+  {
+   "dato": "2026-12-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -3874,
+   "note": "26018"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1920,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 9280,
+   "note": "26018 p=0.05"
+  },
+  {
+   "dato": "2027-01-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -3745,
+   "note": "26018"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1856,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 9600,
+   "note": "26018 p=0.06"
+  },
+  {
+   "dato": "2027-02-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -3874,
+   "note": "26018"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1920,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 9600,
+   "note": "26018 p=0.06"
+  },
+  {
+   "dato": "2027-03-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -3874,
+   "note": "26018"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1920,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 8640,
+   "note": "26018 p=0.05"
+  },
+  {
+   "dato": "2027-04-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -3486,
+   "note": "26018"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -1728,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 9600,
+   "note": "26018 p=0.06"
+  },
+  {
+   "dato": "2027-05-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -3874,
+   "note": "26018"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1920,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 5790,
+   "note": "26021 p=0.12"
+  },
+  {
+   "dato": "2026-11-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -2337,
+   "note": "26021"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1158,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3699,
+   "note": "26021 p=0.08"
+  },
+  {
+   "dato": "2026-12-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1492,
+   "note": "26021"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -740,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2691,
+   "note": "26021 p=0.06"
+  },
+  {
+   "dato": "2027-01-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1086,
+   "note": "26021"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -538,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2784,
+   "note": "26021 p=0.06"
+  },
+  {
+   "dato": "2027-02-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1123,
+   "note": "26021"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -557,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2784,
+   "note": "26021 p=0.06"
+  },
+  {
+   "dato": "2027-03-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1123,
+   "note": "26021"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -557,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2506,
+   "note": "26021 p=0.05"
+  },
+  {
+   "dato": "2027-04-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1011,
+   "note": "26021"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -501,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2784,
+   "note": "26021 p=0.06"
+  },
+  {
+   "dato": "2027-05-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1123,
+   "note": "26021"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -557,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 742,
+   "note": "26021 p=0.02"
+  },
+  {
+   "dato": "2027-06-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -300,
+   "note": "26021"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -148,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 1827,
+   "note": "26045 p=0.01"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -365,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 9135,
+   "note": "26045 p=0.06"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1827,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 9135,
+   "note": "26045 p=0.06"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1827,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 8221,
+   "note": "26045 p=0.05"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -1644,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 9135,
+   "note": "26045 p=0.06"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1827,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 8830,
+   "note": "26045 p=0.05"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1766,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 8221,
+   "note": "26045 p=0.05"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1644,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 1546,
+   "note": "26049 p=0.01"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -309,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 7729,
+   "note": "26049 p=0.06"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1546,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 7729,
+   "note": "26049 p=0.06"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1546,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6956,
+   "note": "26049 p=0.05"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -1391,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 7729,
+   "note": "26049 p=0.06"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1546,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 7472,
+   "note": "26049 p=0.05"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1494,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6956,
+   "note": "26049 p=0.05"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1391,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6305,
+   "note": "26038 p=0.05"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1261,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 7274,
+   "note": "26038 p=0.06"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1455,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 7274,
+   "note": "26038 p=0.06"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1455,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 6547,
+   "note": "26038 p=0.05"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -1309,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 7274,
+   "note": "26038 p=0.06"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -1455,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 7032,
+   "note": "26038 p=0.05"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1406,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 1697,
+   "note": "26038 p=0.01"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -339,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 360,
+   "note": "26051 p=0.00"
+  },
+  {
+   "dato": "2027-01-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -145,
+   "note": "26051"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -72,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 10795,
+   "note": "26051 p=0.06"
+  },
+  {
+   "dato": "2027-02-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -4356,
+   "note": "26051"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -2159,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 10795,
+   "note": "26051 p=0.06"
+  },
+  {
+   "dato": "2027-03-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -4356,
+   "note": "26051"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -2159,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 9716,
+   "note": "26051 p=0.05"
+  },
+  {
+   "dato": "2027-04-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -3921,
+   "note": "26051"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -1943,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 10795,
+   "note": "26051 p=0.06"
+  },
+  {
+   "dato": "2027-05-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -4356,
+   "note": "26051"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -2159,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 10436,
+   "note": "26051 p=0.05"
+  },
+  {
+   "dato": "2027-06-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -4211,
+   "note": "26051"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -2087,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 10795,
+   "note": "26051 p=0.06"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -2159,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 9113,
+   "note": "26057 p=0.01"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -1823,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 13018,
+   "note": "26057 p=0.01"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -2604,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 12584,
+   "note": "26057 p=0.01"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -2517,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 54307,
+   "note": "26057 p=0.05"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -10861,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 55731,
+   "note": "26057 p=0.05"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -11146,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 50158,
+   "note": "26057 p=0.04"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -10032,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 55731,
+   "note": "26057 p=0.05"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -11146,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 53873,
+   "note": "26057 p=0.05"
+  },
+  {
+   "dato": "2027-05-18",
+   "linje": "_mva_ut_sann",
+   "belop": -10775,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 55731,
+   "note": "26057 p=0.05"
+  },
+  {
+   "dato": "2027-06-17",
+   "linje": "_mva_ut_sann",
+   "belop": -11146,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2195,
+   "note": "26013 p=0.05"
+  },
+  {
+   "dato": "2026-11-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -886,
+   "note": "26013"
+  },
+  {
+   "dato": "2026-10-18",
+   "linje": "_mva_ut_sann",
+   "belop": -439,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3136,
+   "note": "26013 p=0.07"
+  },
+  {
+   "dato": "2026-12-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1265,
+   "note": "26013"
+  },
+  {
+   "dato": "2026-11-17",
+   "linje": "_mva_ut_sann",
+   "belop": -627,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3031,
+   "note": "26013 p=0.07"
+  },
+  {
+   "dato": "2027-01-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1223,
+   "note": "26013"
+  },
+  {
+   "dato": "2026-12-18",
+   "linje": "_mva_ut_sann",
+   "belop": -606,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3136,
+   "note": "26013 p=0.07"
+  },
+  {
+   "dato": "2027-02-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1265,
+   "note": "26013"
+  },
+  {
+   "dato": "2027-01-17",
+   "linje": "_mva_ut_sann",
+   "belop": -627,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 3136,
+   "note": "26013 p=0.07"
+  },
+  {
+   "dato": "2027-03-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1265,
+   "note": "26013"
+  },
+  {
+   "dato": "2027-02-17",
+   "linje": "_mva_ut_sann",
+   "belop": -627,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 2822,
+   "note": "26013 p=0.06"
+  },
+  {
+   "dato": "2027-04-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -1139,
+   "note": "26013"
+  },
+  {
+   "dato": "2027-03-20",
+   "linje": "_mva_ut_sann",
+   "belop": -564,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "SANNSYNLIG · portefølje × P",
+   "belop": 1254,
+   "note": "26013 p=0.03"
+  },
+  {
+   "dato": "2027-05-01",
+   "linje": "UT · meglerprovisjon sannsynlig (Henrik)",
+   "belop": -506,
+   "note": "26013"
+  },
+  {
+   "dato": "2027-04-17",
+   "linje": "_mva_ut_sann",
+   "belop": -251,
+   "note": ""
+  },
+  {
+   "dato": "2026-09-01",
+   "linje": "UT · drift fast (regnskapssnitt)",
+   "belop": -137000,
+   "note": "param"
+  },
+  {
+   "dato": "2026-09-01",
+   "linje": "UT · Sindre lønn 7,1 G",
+   "belop": -80792,
+   "note": "param"
+  },
+  {
+   "dato": "2026-09-01",
+   "linje": "UT · faste lønninger (Marte, Philip)",
+   "belop": -25000,
+   "note": "PARAM MANGLER"
+  },
+  {
+   "dato": "2026-09-15",
+   "linje": "UT · AGA termin (faste lønninger)",
+   "belop": -29833,
+   "note": "termin"
+  },
+  {
+   "dato": "2026-09-01",
+   "linje": "_mva_inn",
+   "belop": 16440,
+   "note": ""
+  },
+  {
+   "dato": "2026-10-01",
+   "linje": "UT · drift fast (regnskapssnitt)",
+   "belop": -137000,
+   "note": "param"
+  },
+  {
+   "dato": "2026-10-01",
+   "linje": "UT · Sindre lønn 7,1 G",
+   "belop": -80792,
+   "note": "param"
+  },
+  {
+   "dato": "2026-10-01",
+   "linje": "UT · faste lønninger (Marte, Philip)",
+   "belop": -25000,
+   "note": "PARAM MANGLER"
+  },
+  {
+   "dato": "2026-10-01",
+   "linje": "_mva_inn",
+   "belop": 16440,
+   "note": ""
+  },
+  {
+   "dato": "2026-11-01",
+   "linje": "UT · drift fast (regnskapssnitt)",
+   "belop": -137000,
+   "note": "param"
+  },
+  {
+   "dato": "2026-11-01",
+   "linje": "UT · Sindre lønn 7,1 G",
+   "belop": -80792,
+   "note": "param"
+  },
+  {
+   "dato": "2026-11-01",
+   "linje": "UT · faste lønninger (Marte, Philip)",
+   "belop": -25000,
+   "note": "PARAM MANGLER"
+  },
+  {
+   "dato": "2026-11-15",
+   "linje": "UT · AGA termin (faste lønninger)",
+   "belop": -29833,
+   "note": "termin"
+  },
+  {
+   "dato": "2026-11-01",
+   "linje": "_mva_inn",
+   "belop": 16440,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-01",
+   "linje": "UT · drift fast (regnskapssnitt)",
+   "belop": -137000,
+   "note": "param"
+  },
+  {
+   "dato": "2026-12-01",
+   "linje": "UT · Sindre lønn 7,1 G",
+   "belop": -80792,
+   "note": "param"
+  },
+  {
+   "dato": "2026-12-01",
+   "linje": "UT · faste lønninger (Marte, Philip)",
+   "belop": -25000,
+   "note": "PARAM MANGLER"
+  },
+  {
+   "dato": "2026-12-01",
+   "linje": "_mva_inn",
+   "belop": 16440,
+   "note": ""
+  },
+  {
+   "dato": "2027-01-01",
+   "linje": "UT · drift fast (regnskapssnitt)",
+   "belop": -137000,
+   "note": "param"
+  },
+  {
+   "dato": "2027-01-01",
+   "linje": "UT · Sindre lønn 7,1 G",
+   "belop": -80792,
+   "note": "param"
+  },
+  {
+   "dato": "2027-01-01",
+   "linje": "UT · faste lønninger (Marte, Philip)",
+   "belop": -25000,
+   "note": "PARAM MANGLER"
+  },
+  {
+   "dato": "2027-01-15",
+   "linje": "UT · AGA termin (faste lønninger)",
+   "belop": -29833,
+   "note": "termin"
+  },
+  {
+   "dato": "2027-01-01",
+   "linje": "_mva_inn",
+   "belop": 16440,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-01",
+   "linje": "UT · drift fast (regnskapssnitt)",
+   "belop": -137000,
+   "note": "param"
+  },
+  {
+   "dato": "2027-02-01",
+   "linje": "UT · Sindre lønn 7,1 G",
+   "belop": -80792,
+   "note": "param"
+  },
+  {
+   "dato": "2027-02-01",
+   "linje": "UT · faste lønninger (Marte, Philip)",
+   "belop": -25000,
+   "note": "PARAM MANGLER"
+  },
+  {
+   "dato": "2027-02-01",
+   "linje": "_mva_inn",
+   "belop": 16440,
+   "note": ""
+  },
+  {
+   "dato": "2027-03-01",
+   "linje": "UT · drift fast (regnskapssnitt)",
+   "belop": -137000,
+   "note": "param"
+  },
+  {
+   "dato": "2027-03-01",
+   "linje": "UT · Sindre lønn 7,1 G",
+   "belop": -80792,
+   "note": "param"
+  },
+  {
+   "dato": "2027-03-01",
+   "linje": "UT · faste lønninger (Marte, Philip)",
+   "belop": -25000,
+   "note": "PARAM MANGLER"
+  },
+  {
+   "dato": "2027-03-15",
+   "linje": "UT · AGA termin (faste lønninger)",
+   "belop": -29833,
+   "note": "termin"
+  },
+  {
+   "dato": "2027-03-01",
+   "linje": "_mva_inn",
+   "belop": 16440,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-01",
+   "linje": "UT · drift fast (regnskapssnitt)",
+   "belop": -137000,
+   "note": "param"
+  },
+  {
+   "dato": "2027-04-01",
+   "linje": "UT · Sindre lønn 7,1 G",
+   "belop": -80792,
+   "note": "param"
+  },
+  {
+   "dato": "2027-04-01",
+   "linje": "UT · faste lønninger (Marte, Philip)",
+   "belop": -25000,
+   "note": "PARAM MANGLER"
+  },
+  {
+   "dato": "2027-04-01",
+   "linje": "_mva_inn",
+   "belop": 16440,
+   "note": ""
+  },
+  {
+   "dato": "2027-05-01",
+   "linje": "UT · drift fast (regnskapssnitt)",
+   "belop": -137000,
+   "note": "param"
+  },
+  {
+   "dato": "2027-05-01",
+   "linje": "UT · Sindre lønn 7,1 G",
+   "belop": -80792,
+   "note": "param"
+  },
+  {
+   "dato": "2027-05-01",
+   "linje": "UT · faste lønninger (Marte, Philip)",
+   "belop": -25000,
+   "note": "PARAM MANGLER"
+  },
+  {
+   "dato": "2027-05-15",
+   "linje": "UT · AGA termin (faste lønninger)",
+   "belop": -29833,
+   "note": "termin"
+  },
+  {
+   "dato": "2027-05-01",
+   "linje": "_mva_inn",
+   "belop": 16440,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-01",
+   "linje": "UT · drift fast (regnskapssnitt)",
+   "belop": -137000,
+   "note": "param"
+  },
+  {
+   "dato": "2027-06-01",
+   "linje": "UT · Sindre lønn 7,1 G",
+   "belop": -80792,
+   "note": "param"
+  },
+  {
+   "dato": "2027-06-01",
+   "linje": "UT · faste lønninger (Marte, Philip)",
+   "belop": -25000,
+   "note": "PARAM MANGLER"
+  },
+  {
+   "dato": "2027-06-01",
+   "linje": "_mva_inn",
+   "belop": 16440,
+   "note": ""
+  },
+  {
+   "dato": "2027-06-15",
+   "linje": "SIKKER · kjent innbetaling (param)",
+   "belop": 993540,
+   "note": "Sargo 45 Fly — nybygg, provisjon inkl mva ved levering juni 2027 (ingen kjøpekontrakt i Oneflow)"
+  },
+  {
+   "dato": "2027-06-15",
+   "linje": "_mva_ut",
+   "belop": -198708,
+   "note": ""
+  },
+  {
+   "dato": "2027-02-15",
+   "linje": "UT · forskuddsskatt",
+   "belop": -81000,
+   "note": ""
+  },
+  {
+   "dato": "2027-04-15",
+   "linje": "UT · forskuddsskatt",
+   "belop": -81000,
+   "note": ""
+  },
+  {
+   "dato": "2026-12-10",
+   "linje": "UT · mva-oppgjør (sikker+sannsynlig)",
+   "belop": -192267,
+   "note": "termin 9-10/2026"
+  },
+  {
+   "dato": "2027-02-10",
+   "linje": "UT · mva-oppgjør (sikker+sannsynlig)",
+   "belop": -100725,
+   "note": "termin 11-12/2026"
+  },
+  {
+   "dato": "2027-04-10",
+   "linje": "UT · mva-oppgjør (sikker+sannsynlig)",
+   "belop": -88430,
+   "note": "termin 1-2/2027"
+  },
+  {
+   "dato": "2027-06-10",
+   "linje": "UT · mva-oppgjør (sikker+sannsynlig)",
+   "belop": -80693,
+   "note": "termin 3-4/2027"
+  }
+ ]
+}

@@ -1,0 +1,194 @@
+{
+ "version": 1,
+ "generated_at": "2026-08-29 10:05",
+ "sources": {
+  "po_snapshot_date": "2026-08-29",
+  "po_computed_at": "2026-08-29T03:31:04.118+00:00",
+  "xlsx": "HoY-1-3-5-arsplan.xlsx",
+  "xlsx_modified": "2026-08-29 09:27",
+  "fasit_per": "2026-08-26",
+  "settlements_rows": 128
+ },
+ "cash": {
+  "hb1920": -289978,
+  "avstemmingsdiff": 1360037,
+  "bank_reell": 1070059,
+  "skattetrekk_bundet": 0,
+  "disponibel": 1070059,
+  "bro_sep_des": 0,
+  "opening_2027": 1070059,
+  "buffer": 500000,
+  "kassekreditt": 200000,
+  "kundefordringer": 1429008,
+  "mva_gjeld": -578155,
+  "leverandorgjeld": -17130,
+  "betalbar_skatt": 14636,
+  "driftskost_aar_u_lonn": 262779,
+  "lonn_5xxx_i_vindu": 1002310,
+  "runrate_months": 14
+ },
+ "motor": {
+  "INNT": 58375,
+  "STOL": 1500000,
+  "SINDRE": 2300000,
+  "MKOST": 0.55,
+  "G71": 969498,
+  "SATS": 0.45,
+  "LOAD": 1.165,
+  "GRUNN": 1880000,
+  "TRINN": 60000,
+  "REKR": 75000,
+  "KONTOR": 300000,
+  "LEDER": 900000,
+  "BACK": 500000,
+  "MK": 6600,
+  "RATIO": 1.3,
+  "r1": 0.4,
+  "r2": 0.75,
+  "r3": 1,
+  "VINN": 0.68,
+  "PB": 0.5,
+  "UKER": 46,
+  "bemannet_i_dag": 1
+ },
+ "spaker_input": {
+  "INNT": 76800,
+  "MK": 4552,
+  "STOL": 1800000
+ },
+ "north_star": {
+  "2027": 1500000,
+  "2029": 3000000,
+  "2031": 5000000
+ },
+ "bemanning_plan": {
+  "2027": {
+   "start": 2,
+   "q": [
+    1,
+    1,
+    1,
+    0
+   ]
+  },
+  "2029": {
+   "start": 6,
+   "q": [
+    1,
+    1,
+    0,
+    0
+   ]
+  },
+  "2031": {
+   "start": 9,
+   "q": [
+    1,
+    1,
+    0,
+    0
+   ]
+  }
+ },
+ "fasit12": {
+  "vindu": "27.08.2025–26.08.2026",
+  "omsetning_ex_mva": 4378153,
+  "boats": 75,
+  "per_boat": 58375,
+  "median_per_boat": 50400,
+  "snitt_salgssum": 1260458,
+  "median_salgssum": 1065000,
+  "eff_provisjon_inkl_mva": 0.0579,
+  "salgstid_median_dg": 89,
+  "oppdrag_inn": 67,
+  "kohort_oppdrag_per_salg": 1.38,
+  "kreditert": {
+   "Henrik": 1838820,
+   "Sindre": 1491253,
+   "Daniel": 882480,
+   "Jeanette": 165600
+  },
+  "resultat_motor_dagens_bemanning": -313631
+ },
+ "cashlag": {
+  "def": "solgt → faktura, deal-for-deal (n=92)",
+  "median": 14,
+  "snitt": 24,
+  "p75": 32,
+  "p90": 61,
+  "maks": 116,
+  "betalt_innen_7_14_30_60": [
+   0.23,
+   0.51,
+   0.75,
+   0.89
+  ]
+ },
+ "regnskap": {
+  "2025_resultat_for_skatt": 736978,
+  "2025_omsetning_ex_mva": 4860000,
+  "2025_utbytte": 1000000,
+  "2025_utbytte_ubetalt_inn_2026": 850000,
+  "kommentar": "Reelt 2025 ≈ break-even; rapportert løftet av engangsposter."
+ },
+ "h2_2026": {
+  "maal": 2900000,
+  "levert": 626060,
+  "per": "2026-08-26",
+  "uker_igjen": 17
+ },
+ "spaker": {
+  "provisjon": {
+   "maal_pct": 0.06,
+   "min_nok": 45000,
+   "maalt_eff_pct": 0.0579,
+   "h1_rabatterte": 13,
+   "h1_salg": 38,
+   "h1_tapt": 266000
+  },
+  "premium": {
+   "snittbaat_maal": 1600000,
+   "snittbaat_maalt": 1260458,
+   "per_boat_maal": 76800
+  },
+  "markedskost": {
+   "tak_per_oppdrag": 15000,
+   "maal_per_oppdrag": 4552,
+   "maalt_per_oppdrag": 6600
+  },
+  "g71": {
+   "tak": 969498,
+   "sindre_omsetning_plan": 2300000,
+   "knekk": 2154440
+  },
+  "oppgjor": {
+   "cashlag_median": 14,
+   "cashlag_p75": 32,
+   "salgstid_median": 89
+  },
+  "stol": {
+   "plan": 1500000,
+   "spak": 1800000
+  }
+ },
+ "beslutning": {
+  "dato": "2026-08-28",
+  "tekst": "Ikke full ramp. Maks 1 megler Q1 2027, utsett utbytte.",
+  "maks_ansettelser_q1": 1,
+  "utbytte": "utsatt",
+  "buffer_normal": 500000,
+  "buffer_unntak": 300000,
+  "gate_frist": "2026-12-15",
+  "liq_scenario_for_ansettelse": "Plan (P75 32d)"
+ },
+ "kontroll_supabase": {
+  "kilde": "Supabase settlements (importert fra oppgjørsliste — kan ligge etter)",
+  "siste_solgt_dato": "2026-08-11",
+  "ytd_2026_ex_charter": 3159880,
+  "ytd_2026_n": 52,
+  "h2_levert": 536960,
+  "h2_n": 12,
+  "rabatterte_2026_n": 14,
+  "tapt_provisjon_2026_inkl_mva": 279990
+ }
+}

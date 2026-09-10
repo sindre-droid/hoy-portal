@@ -1,0 +1,7 @@
+﻿Scenario;Cash-lag;Laveste kontantsaldo;Bunn + 200k kassekreditt;Vurdering
+Full ramp + utbytte 850k;Base median 14d;-1342098;-1142098;Trenger finansiering
+Full ramp + utbytte 850k;Plan P75 32d;-1615612;-1415612;Trenger finansiering
+Full ramp + utbytte 850k;Stress P90 61d;-2598390;-2398390;Trenger finansiering
+Full ramp + utbytte UTSATT;Plan P75 32d;-765612;-565612;Trenger ~0,6M
+1 ansettelse (Q1) + utbytte UTSATT;Plan P75 32d;300022;500022;Positiv, men under 500k-buffer
+0 ansettelser + utbytte UTSATT;Plan P75 32d;465433;665433;Positiv, ~ på 500k-buffer

@@ -1,0 +1,1014 @@
+{
+  "schema_version": 1,
+  "sist_oppdatert": "2026-08-29T10:13:49+00:00",
+  "sist_oppdatert_av": "likviditetsmonitor-bygg.py (malt.likviditetsmonitor)",
+  "_les_meg": "Én kilde for HoY-artifactene (Ansettelsesgate, Likviditetsmonitor, Forretningsmodell). «besluttet» redigeres for hånd og røres aldri av skript. «malt» fylles av company-state-build.py. Beløp i NOK, datoer ISO.",
+  "besluttet": {
+    "bemanning": {
+      "meglere_na": 2,
+      "beskrivelse": "Sindre + Henrik. Daniel slutter H2 2026. Marte (assistent) beholdes.",
+      "ansettelser_besluttet": [],
+      "maks_ansettelser_q1_2027": 1,
+      "gate_frist": "2026-12-15",
+      "gate_status": "rod",
+      "gate_status_begrunnelse": "0 ans. + utsatt utbytte gir P75-lavpunkt ~35k under 500k-bufferen.",
+      "gate_sjekkliste": {
+        "utbytte_utsatt": false,
+        "bankdatoer_avstemt": false,
+        "p75_over_buffer_etter_ansettelse": false,
+        "signert_kandidat": false,
+        "buffer_etter_kostnadsavvik": false
+      },
+      "sekvensering": "Bevis 1 stol, frys 1 kvartal, så vurder neste."
+    },
+    "utbytte": {
+      "status": "utsatt",
+      "belop": 850000,
+      "planlagt_maned": "2027-09",
+      "besluttet_dato": null,
+      "notat": "Rest av besluttet utbytte. Utsettelse = største enkeltspak i likviditeten (~850k). Status: utsatt = anbefalt/vedtatt 28.08, ikke formelt styrebehandlet."
+    },
+    "engangsposter_2027": [
+      {
+        "belop": 125000,
+        "maaned": 11,
+        "notat": "Motfakturering Oslo Båt / krympeplast (netto)"
+      },
+      {
+        "belop": 50000,
+        "maaned": 10,
+        "notat": "Underleverandør (~50k, Sindre)"
+      }
+    ],
+    "buffer": {
+      "normal": 500000,
+      "unntak_styregodkjent": 300000,
+      "kassekreditt": 200000,
+      "regel": "500k normal. 300k kun som styregodkjent unntak."
+    },
+    "north_star": {
+      "maal": "Resultat før skatt etter Sindre-lønn kappet på 7,1G",
+      "2027": 1500000,
+      "2029": 3000000,
+      "2031": 5000000,
+      "sindre_lonn_tak": 969498,
+      "status_2027": "Planen når ikke 1,5M (baseline −666k, spakene +278k). 2027 skal absorbere Daniel, bygge kapasitet, bevise spakene og ende i pluss."
+    },
+    "spaker": [
+      {
+        "id": "utbytte_utsettelse",
+        "navn": "Utsett utbytte",
+        "status": "aktiv",
+        "effekt_2027": 850000,
+        "notat": "Størst enkeltspak i likviditeten"
+      },
+      {
+        "id": "provisjonsdisiplin",
+        "navn": "Provisjonsdisiplin (6 %, min 45k)",
+        "status": "aktiv",
+        "effekt_2027": null,
+        "notat": ""
+      },
+      {
+        "id": "marte_tripwire",
+        "navn": "Marte-tripwire",
+        "status": "planlagt",
+        "frist": "2026-10-18",
+        "effekt_2027": null,
+        "notat": ""
+      },
+      {
+        "id": "markedskost_tak",
+        "navn": "Tak på markedskost",
+        "status": "planlagt",
+        "effekt_2027": null,
+        "notat": ""
+      },
+      {
+        "id": "fakturering_raskere",
+        "navn": "Raskere fakturering etter oppgjør",
+        "status": "planlagt",
+        "effekt_2027": null,
+        "notat": "Lukke de siste ~35k i 0-ansettelses-scenarioet"
+      }
+    ],
+    "cash_lag_lag_for_beslutning": "plan",
+    "tellemate_for_lonn": "kreditert"
+  },
+  "malt": {
+    "apningssaldo": {
+      "hovedbok_1920": -289978,
+      "avstemmingsdiff": 1360037,
+      "avstemmingsdiff_kilde": "PO bankavstemming: kontoutskrift 1 069 274 − hovedbok 1920 (−290 763). Frossen historisk differanse («Sum bevegelser 0»). MANUELL — oppdater fra GO ved behov. NB: klientmidler kan inngå.",
+      "reell_bank": 1070059,
+      "snapshot_date": "2026-08-29",
+      "kundefordringer": 1429008,
+      "bank_klient": 2
+    },
+    "cash_lag": {
+      "n": 92,
+      "median": 14,
+      "snitt": 24.1,
+      "p75": 31,
+      "p90": 61,
+      "maks": 116,
+      "andel_betalt_innen": {
+        "7": 0.23,
+        "14": 0.51,
+        "30": 0.75,
+        "60": 0.89
+      },
+      "metode": "PERCENTILE.EXC på solgt→fakturadato (operativ cash-proxy)",
+      "kilde": "deal-for-deal-oppgjor.csv, kolonne «Lag salg→faktura (d)»",
+      "bankdatoer_utfylt": 0,
+      "overtakelsesdatoer_utfylt": 0
+    },
+    "scenarioer_p75": {
+      "0_ans_utsatt": 465433,
+      "1_ans_q1_utsatt": 300022,
+      "full_ramp_utsatt": -493347,
+      "full_ramp_utbytte": -1343347,
+      "full_ramp_utbytte_base": -1099279,
+      "full_ramp_utbytte_stress": -2163183,
+      "lag": "plan (P75) der ikke annet er sagt",
+      "kilde": "company-state-build.py, samme motor som Ansettelsesgate"
+    },
+    "po_sync": {
+      "sist_ok": "2026-08-29T03:31:04.246+00:00",
+      "feil": [
+        "projects: fetch feilet: 502 {\"raw\":\"<!DOCTYPE html PUBLIC '-//W3C//DTD (2026-08-29T03:30)"
+      ]
+    },
+    "likviditetsmonitor": {
+      "generert": "2026-08-29T10:13:49",
+      "snapshot_date": "2026-08-29",
+      "bank": {
+        "hovedbok_1920": -289978,
+        "avstemmingsdiff": 1360037,
+        "kontoutskrift": 1070059,
+        "bank_klient": 2,
+        "skattetrekk_bundet": 0,
+        "disponibel": 1070059,
+        "kassekreditt": 200000
+      },
+      "po": {
+        "kundefordringer": 1429008,
+        "kundefordringer_openitems": 1429008,
+        "leverandorgjeld": -17130,
+        "mva_posisjon": -578155,
+        "betalbar_skatt": 14636,
+        "runrate_months": 14.0,
+        "runrate_4000": 63310,
+        "runrate_5000_lonn": 1002310,
+        "runrate_6000": 245277,
+        "runrate_7000": 61298,
+        "fast_kost_mnd": 93492,
+        "runway_mnd": 13.6,
+        "sync": [
+          {
+            "type": "projects",
+            "at": "2026-08-29T03:30:27.976+00:00",
+            "rows": 310,
+            "error_at": "2026-08-29T03:30:56.028+00:00"
+          },
+          {
+            "type": "outgoing_invoices",
+            "at": "2026-08-29T03:31:00+00:00",
+            "rows": 1193,
+            "error_at": null
+          },
+          {
+            "type": "customer_open_items",
+            "at": "2026-08-29T03:31:01.129+00:00",
+            "rows": 29,
+            "error_at": null
+          },
+          {
+            "type": "account_transactions",
+            "at": "2026-08-29T03:31:02.11+00:00",
+            "rows": 395,
+            "error_at": null
+          },
+          {
+            "type": "trial_balance",
+            "at": "2026-08-29T03:31:03.032+00:00",
+            "rows": 89,
+            "error_at": "2026-08-28T13:15:18.048+00:00"
+          },
+          {
+            "type": "liquidity_snapshot",
+            "at": "2026-08-29T03:31:04.246+00:00",
+            "rows": 1,
+            "error_at": null
+          }
+        ]
+      },
+      "cash_lag_modell": {
+        "median": 14,
+        "p75": 32,
+        "p90": 61,
+        "n": 92,
+        "notat": "Betalingsprofilene i modellen er kalibrert på disse (dokumentert 28.08). Se malt.cash_lag for løpende registerverdi."
+      },
+      "actuals": [
+        {
+          "month": "2025-01",
+          "bokfort_provisjon": 0,
+          "n_solgt": 0,
+          "fakturert_po": 0,
+          "innbetalt_po": 270000,
+          "n_fakturert": 2
+        },
+        {
+          "month": "2025-02",
+          "bokfort_provisjon": 315000,
+          "n_solgt": 2,
+          "fakturert_po": 256989,
+          "innbetalt_po": 256989,
+          "n_fakturert": 3
+        },
+        {
+          "month": "2025-03",
+          "bokfort_provisjon": 185040,
+          "n_solgt": 3,
+          "fakturert_po": 50640,
+          "innbetalt_po": 0,
+          "n_fakturert": 1
+        },
+        {
+          "month": "2025-04",
+          "bokfort_provisjon": 224500,
+          "n_solgt": 3,
+          "fakturert_po": 464388,
+          "innbetalt_po": 105628,
+          "n_fakturert": 6
+        },
+        {
+          "month": "2025-05",
+          "bokfort_provisjon": 1057492,
+          "n_solgt": 11,
+          "fakturert_po": 485027,
+          "innbetalt_po": 762326,
+          "n_fakturert": 9
+        },
+        {
+          "month": "2025-06",
+          "bokfort_provisjon": 1007075,
+          "n_solgt": 15,
+          "fakturert_po": 2076332,
+          "innbetalt_po": 2053314,
+          "n_fakturert": 18
+        },
+        {
+          "month": "2025-07",
+          "bokfort_provisjon": 886700,
+          "n_solgt": 12,
+          "fakturert_po": 941662,
+          "innbetalt_po": 706933,
+          "n_fakturert": 13
+        },
+        {
+          "month": "2025-08",
+          "bokfort_provisjon": 509000,
+          "n_solgt": 7,
+          "fakturert_po": 1152079,
+          "innbetalt_po": 1451334,
+          "n_fakturert": 14
+        },
+        {
+          "month": "2025-09",
+          "bokfort_provisjon": 774400,
+          "n_solgt": 9,
+          "fakturert_po": 703300,
+          "innbetalt_po": 703300,
+          "n_fakturert": 6
+        },
+        {
+          "month": "2025-10",
+          "bokfort_provisjon": 320867,
+          "n_solgt": 6,
+          "fakturert_po": 735916,
+          "innbetalt_po": 785185,
+          "n_fakturert": 24
+        },
+        {
+          "month": "2025-11",
+          "bokfort_provisjon": 387000,
+          "n_solgt": 4,
+          "fakturert_po": 489480,
+          "innbetalt_po": 441867,
+          "n_fakturert": 7
+        },
+        {
+          "month": "2025-12",
+          "bokfort_provisjon": 297000,
+          "n_solgt": 3,
+          "fakturert_po": 308118,
+          "innbetalt_po": 256464,
+          "n_fakturert": 6
+        },
+        {
+          "month": "2026-01",
+          "bokfort_provisjon": 0,
+          "n_solgt": 1,
+          "fakturert_po": 15044,
+          "innbetalt_po": 177860,
+          "n_fakturert": 2
+        },
+        {
+          "month": "2026-02",
+          "bokfort_provisjon": 184200,
+          "n_solgt": 3,
+          "fakturert_po": 162741,
+          "innbetalt_po": 137501,
+          "n_fakturert": 3
+        },
+        {
+          "month": "2026-03",
+          "bokfort_provisjon": 643350,
+          "n_solgt": 9,
+          "fakturert_po": 233537,
+          "innbetalt_po": 288865,
+          "n_fakturert": 3
+        },
+        {
+          "month": "2026-04",
+          "bokfort_provisjon": 295500,
+          "n_solgt": 6,
+          "fakturert_po": 558797,
+          "innbetalt_po": 433305,
+          "n_fakturert": 10
+        },
+        {
+          "month": "2026-05",
+          "bokfort_provisjon": 560800,
+          "n_solgt": 9,
+          "fakturert_po": 724771,
+          "innbetalt_po": 713877,
+          "n_fakturert": 15
+        },
+        {
+          "month": "2026-06",
+          "bokfort_provisjon": 948000,
+          "n_solgt": 10,
+          "fakturert_po": 836350,
+          "innbetalt_po": 987804,
+          "n_fakturert": 12
+        },
+        {
+          "month": "2026-07",
+          "bokfort_provisjon": 491200,
+          "n_solgt": 8,
+          "fakturert_po": 1030219,
+          "innbetalt_po": 0,
+          "n_fakturert": 16
+        },
+        {
+          "month": "2026-08",
+          "bokfort_provisjon": 170000,
+          "n_solgt": 4,
+          "fakturert_po": 328660,
+          "innbetalt_po": 0,
+          "n_fakturert": 9
+        }
+      ],
+      "pipeline": [
+        {
+          "oppdragsnr": "26015",
+          "navn": "Skilsø 39 Panorama",
+          "megler": "Henrik",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 286024,
+          "valuta": "NOK",
+          "solgt_dato": "2026-06-29",
+          "fakturadato": "2026-07-13",
+          "alder_dg": 47,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10395",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "25079",
+          "navn": "Storebro 430 Biscay Royal Cruiser",
+          "megler": "Henrik",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 110000,
+          "valuta": "NOK",
+          "solgt_dato": "2026-07-08",
+          "fakturadato": "2026-07-13",
+          "alder_dg": 47,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10396",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "26041",
+          "navn": "Nimbus 300R",
+          "megler": "Henrik",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 109387,
+          "valuta": "NOK",
+          "solgt_dato": "2026-07-05",
+          "fakturadato": "2026-07-09",
+          "alder_dg": 51,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10393",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "26065",
+          "navn": "Goldfish 29 Sport #072",
+          "megler": "Sindre",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 85426,
+          "valuta": "NOK",
+          "solgt_dato": "2026-07-08",
+          "fakturadato": "2026-07-13",
+          "alder_dg": 47,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10394",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "26058",
+          "navn": "Askeladden c83 2019",
+          "megler": "Henrik",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 66511,
+          "valuta": "NOK",
+          "solgt_dato": "2026-07-04",
+          "fakturadato": "2026-07-14",
+          "alder_dg": 46,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10398",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "26079",
+          "navn": "Patric Fontanini",
+          "megler": "",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 66375,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": "2026-08-26",
+          "alder_dg": 3,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10411",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "26059",
+          "navn": "Axopar 28 AC 2019",
+          "megler": "Henrik",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 65000,
+          "valuta": "NOK",
+          "solgt_dato": "2026-06-30",
+          "fakturadato": "2026-07-09",
+          "alder_dg": 51,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10392",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "26042",
+          "navn": "Cormate Utility 23-56",
+          "megler": "Sindre",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 58412,
+          "valuta": "NOK",
+          "solgt_dato": "2026-07-04",
+          "fakturadato": "2026-07-14",
+          "alder_dg": 46,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10397",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": null,
+          "navn": "SpareBank 1 Finans Østlandet",
+          "megler": "",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 57320,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": "2026-07-09",
+          "alder_dg": 51,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10391",
+          "merknad": "Fakturert (uten oppdragsnr) — tjeneste/annet"
+        },
+        {
+          "oppdragsnr": "26066",
+          "navn": "Jeanneau 40.3",
+          "megler": "Henrik",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 53644,
+          "valuta": "NOK",
+          "solgt_dato": "2026-07-18",
+          "fakturadato": "2026-07-22",
+          "alder_dg": 38,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10401",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "25075",
+          "navn": "Nimbus 230R",
+          "megler": "Henrik",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 49298,
+          "valuta": "NOK",
+          "solgt_dato": "2026-08-04",
+          "fakturadato": "2026-08-19",
+          "alder_dg": 10,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10409",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "26052",
+          "navn": "Fjord Terne 21",
+          "megler": "Henrik",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 48183,
+          "valuta": "NOK",
+          "solgt_dato": "2026-08-07",
+          "fakturadato": "2026-08-12",
+          "alder_dg": 17,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10403",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "25063",
+          "navn": "SeaSide 23",
+          "megler": "Henrik",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 46184,
+          "valuta": "NOK",
+          "solgt_dato": "2026-08-05",
+          "fakturadato": "2026-08-12",
+          "alder_dg": 17,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10404",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "26047",
+          "navn": "Draco 27 RS",
+          "megler": "Daniel",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 45814,
+          "valuta": "NOK",
+          "solgt_dato": "2026-07-09",
+          "fakturadato": "2026-07-22",
+          "alder_dg": 38,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10400",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "26055",
+          "navn": "Nimbus 300R",
+          "megler": "Henrik",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 45420,
+          "valuta": "NOK",
+          "solgt_dato": "2026-07-23",
+          "fakturadato": "2026-07-29",
+          "alder_dg": 31,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10402",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "26015",
+          "navn": "Skilsø 39 Panorama",
+          "megler": "Henrik",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 43750,
+          "valuta": "NOK",
+          "solgt_dato": "2026-06-29",
+          "fakturadato": "2026-08-14",
+          "alder_dg": 15,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10406",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": "26060",
+          "navn": "Grand 850",
+          "megler": "Daniel",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 40573,
+          "valuta": "NOK",
+          "solgt_dato": "2026-08-11",
+          "fakturadato": "2026-08-19",
+          "alder_dg": 10,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10408",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": null,
+          "navn": "CORMATE AS",
+          "megler": "",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 24341,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": "2026-07-08",
+          "alder_dg": 52,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10390",
+          "merknad": "Fakturert (uten oppdragsnr) — tjeneste/annet"
+        },
+        {
+          "oppdragsnr": null,
+          "navn": "SEROTONIC AS",
+          "megler": "",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 23516,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": "2026-08-21",
+          "alder_dg": 8,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10410",
+          "merknad": "Fakturert (uten oppdragsnr) — tjeneste/annet"
+        },
+        {
+          "oppdragsnr": "25061",
+          "navn": "Hanse 388",
+          "megler": "Henrik",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 9690,
+          "valuta": "NOK",
+          "solgt_dato": "2026-03-15",
+          "fakturadato": "2026-05-18",
+          "alder_dg": 103,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10362",
+          "merknad": "Fakturert i PO, åpen post — cash tas fra klientmidler ved oppgjør; bankdato ikke avstemt"
+        },
+        {
+          "oppdragsnr": null,
+          "navn": "Tom Lindberg",
+          "megler": "",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 8000,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": "2026-07-08",
+          "alder_dg": 52,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10388",
+          "merknad": "Fakturert (uten oppdragsnr) — tjeneste/annet"
+        },
+        {
+          "oppdragsnr": null,
+          "navn": "Stein Erik Stinessen",
+          "megler": "",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 6000,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": "2026-07-08",
+          "alder_dg": 52,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10389",
+          "merknad": "Fakturert (uten oppdragsnr) — tjeneste/annet"
+        },
+        {
+          "oppdragsnr": null,
+          "navn": "Gerhard Ludvigsen",
+          "megler": "",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 5780,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": "2026-08-14",
+          "alder_dg": 15,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10405",
+          "merknad": "Fakturert (uten oppdragsnr) — tjeneste/annet"
+        },
+        {
+          "oppdragsnr": null,
+          "navn": "Karsten Kjoss",
+          "megler": "",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 5520,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": "2026-07-08",
+          "alder_dg": 52,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10387",
+          "merknad": "Fakturert (uten oppdragsnr) — tjeneste/annet"
+        },
+        {
+          "oppdragsnr": null,
+          "navn": "Steinar Robsahm Berg",
+          "megler": "",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 5000,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": "2026-08-18",
+          "alder_dg": 11,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10407",
+          "merknad": "Fakturert (uten oppdragsnr) — tjeneste/annet"
+        },
+        {
+          "oppdragsnr": null,
+          "navn": "Martin Norum",
+          "megler": "",
+          "status": "sikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 3400,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": "2026-07-16",
+          "alder_dg": 44,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10399",
+          "merknad": "Fakturert (uten oppdragsnr) — tjeneste/annet"
+        },
+        {
+          "oppdragsnr": "25082",
+          "navn": "25082 - Italia Yacht 9.98",
+          "megler": "Henrik",
+          "status": "sannsynlig",
+          "kilde": "HubSpot B · In Contract",
+          "belop_inkl_mva": 112500,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": null,
+          "alder_dg": null,
+          "forventet_mnd": "2026-09",
+          "faktura_nr": null,
+          "merknad": "amount (ex mva) × 1,25 · forventet = i dag + 32 d"
+        },
+        {
+          "oppdragsnr": "26026",
+          "navn": "26026 - Dufour GL 385",
+          "megler": "Henrik",
+          "status": "sannsynlig",
+          "kilde": "HubSpot B · In Contract",
+          "belop_inkl_mva": 47940,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": null,
+          "alder_dg": null,
+          "forventet_mnd": "2026-09",
+          "faktura_nr": null,
+          "merknad": "amount (ex mva) × 1,25 · forventet = i dag + 32 d"
+        },
+        {
+          "oppdragsnr": null,
+          "navn": "SAS TWO TWELVE YACHTS GROUP 212 YACHTS",
+          "megler": "",
+          "status": "usikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 50697,
+          "valuta": "EUR",
+          "solgt_dato": null,
+          "fakturadato": "2025-05-26",
+          "alder_dg": 460,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10241",
+          "merknad": "Gammel/valuta — avklar med regnskapsfører (mulig spøkelsespost)"
+        },
+        {
+          "oppdragsnr": null,
+          "navn": "Dan Friis-Møller",
+          "megler": "",
+          "status": "usikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 7742,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": "2026-04-29",
+          "alder_dg": 122,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10356",
+          "merknad": "Gammel/valuta — avklar med regnskapsfører (mulig spøkelsespost)"
+        },
+        {
+          "oppdragsnr": null,
+          "navn": "Vigdis Higelin Aarestrup",
+          "megler": "",
+          "status": "usikker",
+          "kilde": "PO åpen post",
+          "belop_inkl_mva": 2000,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": "2026-04-29",
+          "alder_dg": 122,
+          "forventet_mnd": "2026-08",
+          "faktura_nr": "10355",
+          "merknad": "Gammel/valuta — avklar med regnskapsfører (mulig spøkelsespost)"
+        },
+        {
+          "oppdragsnr": "26056",
+          "navn": "26056 - SeaDan 400 Pro Fly 2006",
+          "megler": "Henrik",
+          "status": "usikker",
+          "kilde": "HubSpot B · Negotiation",
+          "belop_inkl_mva": 71400,
+          "valuta": "NOK",
+          "solgt_dato": null,
+          "fakturadato": null,
+          "alder_dg": null,
+          "forventet_mnd": "2026-10",
+          "faktura_nr": null,
+          "merknad": "amount (ex mva) × 1,25 · forventet = i dag + 61 d"
+        }
+      ],
+      "pipeline_sum": {
+        "sikker": 1368568,
+        "sannsynlig": 160440,
+        "usikker": 81142
+      },
+      "open_items_total": 1429008,
+      "verification": {
+        "status": "ok",
+        "maxdiff_kr": 0.23,
+        "xlsx_low": -1342098,
+        "js_low": -1342098,
+        "xlsx_opening": 1070059,
+        "config": "full ramp + utbytte sep 27, Base (regnearkets standard)",
+        "checked_at": "2026-08-29"
+      }
+    },
+    "forretningsmodell": {
+      "generert": "2026-08-29T10:15:23",
+      "kilde_fasit": "oppgjørslistene via HoY-1-3-5-arsplan.xlsx/Forutsetninger (Sindres valg 29.08.2026)",
+      "forutsetninger": {
+        "xlsx_modified": "2026-08-29 09:27",
+        "INNT": 58375,
+        "STOL": 1500000,
+        "SINDRE": 2300000,
+        "MKOST": 0.55,
+        "G71": 969498,
+        "SATS": 0.45,
+        "LOAD": 1.165,
+        "GRUNN": 1880000,
+        "TRINN": 60000,
+        "REKR": 75000,
+        "KONTOR": 300000,
+        "LEDER": 900000,
+        "BACK": 500000,
+        "MK": 6600,
+        "RATIO": 1.3,
+        "r1": 0.4,
+        "r2": 0.75,
+        "r3": 1,
+        "VINN": 0.68,
+        "PB": 0.5,
+        "UKER": 46,
+        "bemannet_i_dag": 1,
+        "spaker_input": {
+          "INNT": 76800,
+          "MK": 4552,
+          "STOL": 1800000,
+          "notat": "Spaker-arket: 1,6M snittbåt × 6 % ÷ 1,25 = 76 800; CFO-mål 4 552; stol 1,8M"
+        }
+      },
+      "bemanning_plan": {
+        "2027": {
+          "start": 2,
+          "q": [
+            1,
+            1,
+            1,
+            0
+          ]
+        },
+        "2029": {
+          "start": 6,
+          "q": [
+            1,
+            1,
+            0,
+            0
+          ]
+        },
+        "2031": {
+          "start": 9,
+          "q": [
+            1,
+            1,
+            0,
+            0
+          ]
+        }
+      },
+      "fasit_12mnd": {
+        "vindu": "27.08.2025–26.08.2026",
+        "omsetning_ex_mva": 4378153,
+        "boats": 75,
+        "per_boat": 58375,
+        "median_per_boat": 50400,
+        "snitt_salgssum": 1260458,
+        "median_salgssum": 1065000,
+        "eff_provisjon_inkl_mva": 0.0579,
+        "salgstid_median_dg": 89,
+        "salgstid_def": "signert → solgt. IKKE cash-lag (solgt → faktura, se malt.cash_lag).",
+        "oppdrag_inn": 67,
+        "kohort_oppdrag_per_salg": 1.38,
+        "kreditert": {
+          "Henrik": 1838820,
+          "Sindre": 1491253,
+          "Daniel": 882480,
+          "Jeanette": 165600
+        },
+        "resultat_motor_dagens_bemanning": -313631
+      },
+      "h2_2026": {
+        "maal": 2900000,
+        "levert": 626060,
+        "per": "2026-08-26",
+        "uker_igjen": 17,
+        "kilde": "Forutsetninger-arket (oppdateres ukentlig av Sindre)"
+      },
+      "regnskap_2025": {
+        "resultat_for_skatt": 736978,
+        "omsetning_ex_mva": 4860000,
+        "utbytte_besluttet": 1000000,
+        "kommentar": "Reelt 2025 ≈ break-even; rapportert løftet av engangsposter (kostnadsmodell jun 2026)."
+      },
+      "spaker_maling": {
+        "provisjonsdisiplin": {
+          "maal_pct": 0.06,
+          "min_nok": 45000,
+          "maalt_eff_pct": 0.0579,
+          "h1_rabatterte": 13,
+          "h1_salg": 38,
+          "h1_tapt": 266000
+        },
+        "premium_miks": {
+          "snittbaat_maal": 1600000,
+          "snittbaat_maalt": 1260458,
+          "per_boat_maal": 76800
+        },
+        "markedskost_tak": {
+          "tak_per_oppdrag": 15000,
+          "maal_per_oppdrag": 4552,
+          "maalt_per_oppdrag": 6600,
+          "paalopt_apne_oppdrag_jun": 286000
+        },
+        "sindre_7_1g": {
+          "tak": 969498,
+          "knekk_omsetning": 2154440,
+          "plan_sindre_stol": 2300000
+        },
+        "stol_1_8m": {
+          "plan": 1500000,
+          "spak": 1800000,
+          "henrik_kreditert_12m": 1838820
+        }
+      },
+      "kontroll_supabase": {
+        "kilde": "Supabase settlements — importert fra oppgjørslisten, kan ligge etter. KONTROLL, ikke fasit.",
+        "rader": 128,
+        "siste_solgt_dato": "2026-08-11",
+        "ytd_2026_ex_charter": 3159880,
+        "ytd_2026_n": 52,
+        "h2_levert": 536960,
+        "h2_n": 12,
+        "rabatterte_2026_n": 14,
+        "tapt_provisjon_2026_inkl_mva": 279990
+      }
+    }
+  }
+}

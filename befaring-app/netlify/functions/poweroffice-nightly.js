@@ -3,7 +3,7 @@
 // Holder speilet ferskt så HoY-likviditetsmodellen alltid har oppdaterte tall,
 // uten manuell admin-kjøring. Ingen auth (scheduled function, ikke offentlig rute).
 //
-// Kjører: projects, outgoingInvoices, open_items, account_transactions (siste 45 dg),
+// Kjører: projects, outgoingInvoices, open_items, account_transactions (hele regnskapsåret), payroll,
 // trial_balance, og til slutt liquidity_snapshot.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -20,7 +20,8 @@ exports.handler = async () => {
     out.projects     = await sync.syncProjects(sb);
     out.invoices     = await sync.syncOutgoingInvoices(sb);
     out.open_items   = await sync.syncOpenItems(sb);
-    out.transactions = await sync.syncAccountTransactions(sb, 45);
+    out.transactions = await sync.syncAccountTransactions(sb, 0);
+    out.payroll      = await sync.syncPayroll(sb);
     out.trial_balance = await liq.syncTrialBalance(sb);
     out.snapshot     = out.trial_balance.ok ? await liq.computeSnapshot(sb) : { ok: false, skipped: true };
     out.bank         = await eb.refreshBalance(sb);

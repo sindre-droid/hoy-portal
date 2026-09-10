@@ -1,0 +1,36 @@
+﻿FORUTSETNINGER — én datadefinisjon per KPI;;
+Gule celler = juster fritt (alt rekalkulerer). Kolonne C: eksakt definisjon + kilde. Oppdatert 26.08.2026.;;
+MÅLT SALG — kilde: HubSpot Pipeline B, stage «Solgt», closedate 26.08.2025–26.08.2026;;
+Inntekt per solgt båt, ex mva (MOTOR-INPUT);64100;DEF: gjennomsnitt av deal.amount (provisjon ex mva) på de 72 av 75 solgte deals som har amount. Sum 4 617 685 / 72. Median 52 946. Dette er det ENESTE provisjonstallet motoren bruker.
+Snittbåtverdi (salgssum) — informativ;1408000;DEF: snitt av final_sales_price_nok (45 deals), ellers opprinnelig prisantydning (17 deals) = 62 av 75 deals. Median 1 184 500. Brukes IKKE i motoren.
+Provisjonsgrad 1: standard avtalt;0.06;DEF: 6,00 % av salgssum INKL mva, min. 45 000 inkl mva (= 36 000 ex). Kontraktsstandard.
+Provisjonsgrad 2: målt effektiv (matchede deals);0.0588;DEF: sum(amount×1,25) / sum(salgssum) på de 62 deals som har BÅDE provisjon og salgssum = 5,88 % inkl mva (4,70 % ex). Gapet til 6 % = rabatter/min.honorar-miks.
+Provisjonsgrad 3: implisitt av snittene;0.0569;DEF: (64 100×1,25)/1 408 000 = 5,69 % inkl mva (4,55 % ex). Avviker fra grad 2 fordi teller (72 deals) og nevner (62 deals) er ulike utvalg. Kun kontrolltall.
+Båter solgt per år (teamet);75;DEF: antall closed won-deals i Pipeline B siste 12 mnd, ekskl. 1 charteroppdrag.
+Omsetning ex mva siste 12 mnd;4787685;DEF: sum deal.amount på solgte + charter 170k. 4 deals mangler amount → reelt noe høyere. NB: dette er OPPGJØRSBASIS, ikke regnskapets driftsinntekter — se resultatbroen i Historikk.
+STOL-DEFINISJONER OG KAPASITET;;
+DEF «stol»;;"Én fullt produktiv megler ETTER opplæring/ramp (6–9 mnd). Sindre regnes ALLTID som egen stol utenom meglerstolene. «Producing stoler som trengs» er kapasitetsbehov (desimaltall); «å bemanne» = behov rundet OPP + churn-buffer. Buffer-stolen er PLANLAGT tom (rekrutteringspipeline), ikke produksjon."
+Omsetning per producing megler-stol (plantall);1500000;PRODUKSJONSMÅL for rampet stol, ikke målt snitt. Målt siste 12 mnd: Henrik(+Marte) 1 811 712 (31 båter), Daniel 718 400 (15), Jeanette 676 800 (8). Juster hvis du mener rampet stol yter mer/mindre.
+Sindre-stolens omsetning per år (plantall);2300000;CFO-anbefalt mål: ~2,28M. Målt siste 12 mnd: 1 410 773 (21 båter, inkl. leder-rolle).
+Churn-buffer (stoler planlagt tomme);1;Ditt valg: planlegg alltid som om én stol står tom (Daniel-effekten).
+Megler-stoler bemannet i dag (utenom Sindre);1;Henrik (+Marte som assistent). Daniel slutter → telles ikke.
+ØKONOMIMOTOR — kilder: HoY-kostnadsmodell-2026.xlsx (jun) + CFO-analyse H2 (jul);;
+Meglerkost, fullastet andel av megler-omsetning;0.55;DEF: meglerprovisjon (40 %) + AGA + feriepenger ≈ 55 øre per megler-omsetningskrone. Kontroll: 1 − 0,55 = firmaandel 45 øre (kostnadsmodellens tall).
+Fast kostbase per år, ekskl. markedskost;1880000;DEF: kostbase fullastet 2,54M (kostnadsmodell) minus markedskost-andelen (100 oppdrag × 6 600). Inkluderer Marte, Philip fastlønn, avskrivning 228k, kontor, systemer.
+Markedskost per signert oppdrag inn;6600;DEF: målt snitt (foto, annonser, klargjøring) per SIGNERT oppdrag. CFO-mål: 4 552 + 15k-tak per oppdrag håndheves.
+Grunnbeløpet G (per 1.5.2026);136549;Kilde: nav.no/grunnbelopet. Oppdateres hver mai.
+Sindres lønnstak (7,1G);969498;DEF: Sindres regel — egen provisjon/lønn skal ikke overstige 7,1G. Alt han omsetter over taket blir selskapsresultat.
+Sindres provisjonssats;0.45;45 % av egen omsetning ex mva (før tak).
+Lønns-loading (AGA + feriepenger);1.165;Påslag på utbetalt lønn.
+TRAKT — kilde: HubSpot Pipeline A siste 12 mnd + CFO-analyse;;
+Signerte oppdrag inn per solgt båt;1.15;DEF: slakk mellom signert og solgt (noen signerte selges aldri, jf. 10 tapte fjernet i aug-audit). Målt: 67 signert / 75 solgt siste 12 mnd (backlog utligner over tid).
+Close rate befaring → signert oppdrag;0.68;Ditt valg: målt 68 % = 67 vunnet av 99 AVGJORTE deals i Pipeline A (hele trakten, ikke kun befaring). Befaring→signering ISOLERT: mangler – må måles (mål 90 %).
+Prospect → befaring-rate;0.5;Målt per megler (CFO-analyse): Sindre 74 %, Daniel 52 %, Henrik+Marte 28 %. 50 % = plantall.
+Arbeidsuker per år;46;Ferie/helligdager trukket fra.
+Uker igjen av H2 2026 (for scorecard-rampen);18;Uke 36–52 + inneværende. Juster underveis.
+H2-2026-mål omsetning ex mva (uten Daniel);2900000;Fra revidert H2-plan aug 2026 (Sindre 1,4M / Henrik 1,5M).
+MANGLER – MÅ MÅLES (inn i scorecardet fra nå);;
+Befaring → signering isolert (mål 90 %);;Krever stage-historikk i Pipeline A — sett opp HubSpot-rapport.
+Henvendelse → befaring per kilde;;FINN / nettside / referral / FSBO. Lead source-feltet må fylles konsekvent.
+FSBO-/outreach-aktivitet per megler per uke;;Logges ikke i dag.
+Tid signert oppdrag → publisert (mål ≤ 7 dg);;Måles fra signert oppdragsavtale til aktiv annonse.

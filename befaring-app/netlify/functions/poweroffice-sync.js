@@ -338,10 +338,16 @@ async function syncOutgoingInvoices(sb) {
   }
 }
 
-async function syncAccountTransactions(sb, days = 30) {
+// days = 0 → «regnskapsåret»: fra 1. jan i år (jan–feb: fra 1. jan i fjor, pga. årsoppgjørsposteringer).
+// Vindu etter bilagsdato, IKKE etter når bilaget ble bokført — regnskapsfører bokfører ofte 1–2 mnd på etterskudd,
+// så et kort vindu (45 dg) mistet hele måneder (juni 2026 manglet). Hele året = ~3–4k rader, 4 sider à 1000.
+async function syncAccountTransactions(sb, days = 0) {
   try {
-    const today    = new Date().toISOString().slice(0, 10);
-    const fromDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const now      = new Date();
+    const today    = now.toISOString().slice(0, 10);
+    const fromDate = days > 0
+      ? new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+      : `${now.getUTCMonth() < 2 ? now.getUTCFullYear() - 1 : now.getUTCFullYear()}-01-01`;
     const path     = `/AccountTransactions?fromDate=${fromDate}&toDate=${today}`;
     const r = await poFetchAll(path, { pageSize: 1000, maxPages: 100 });
     if (!r.ok) {
@@ -411,6 +417,89 @@ async function syncOpenItems(sb) {
   }
 }
 
+// ── Lønn: ansatte, arbeidsforhold (fastlønn) og lønnslinjer ─────────────────
+// Hovedboken har ikke employee_account_no, så lønn per person må hentes herfra.
+// Krever at integrasjonen i PowerOffice GO har rettighetene Employee, Employment,
+// EmploymentSalary/EmploymentFixedSalary, SalaryLine og PayItem (Innstillinger → Integrasjoner).
+// Mangler rettighet → 403 lagres i po_sync_state.last_error for 'payroll'.
+function mapEmployee(e) {
+  return {
+    id: e.Id, number: e.Number, first_name: e.FirstName, last_name: e.LastName,
+    email: e.EmailAddress, job_title: e.JobTitle, start_date: e.StartDate || e.HiredDate || null,
+    end_date: e.EndDate || null, is_archived: !!e.IsArchived,
+    last_changed_offset: e.LastChangedDateTimeOffset, raw_data: e, synced_at: new Date().toISOString(),
+  };
+}
+function mapEmployment(m, salaries, fixed) {
+  const cur = (salaries || []).slice().sort((a, b) => String(b.FromDate || '').localeCompare(String(a.FromDate || '')))[0] || null;
+  return {
+    id: m.Id, employee_id: m.EmployeeId, employment_form: m.EmploymentForm, employment_type: m.EmploymentType,
+    start_date: m.StartDate || null, end_date: m.EndDate || null, profession_title: m.ProfessionTitle,
+    annual_salary: cur ? cur.AnnualSalary : null, hourly_rate: cur ? cur.HourlyRate : null,
+    remuneration_type: cur ? cur.RemunerationType : null, salary_from_date: cur ? cur.FromDate : null,
+    fixed_salaries: fixed || [], salaries: salaries || [],
+    last_changed_offset: m.LastChangedDateTimeOffset, raw_data: m, synced_at: new Date().toISOString(),
+  };
+}
+function mapSalaryLine(l) {
+  return {
+    id: l.Id, employee_id: l.EmployeeId, employment_id: l.EmploymentId, pay_item_id: l.PayItemId,
+    amount: l.Amount, rate: l.Rate, quantity: l.Quantity, from_date: l.FromDate || null, to_date: l.ToDate || null,
+    income_year: l.IncomeYear, project_id: l.ProjectId, account_id: l.AccountId, department_id: l.DepartmentId,
+    deduction_type: l.DeductionType, comment: l.Comment, is_locked: !!l.IsLocked, is_deleted: !!l.IsDeletedByUser,
+    last_changed_offset: l.LastChangedDateTimeOffset, created_offset: l.CreatedDateTimeOffset,
+    raw_data: l, synced_at: new Date().toISOString(),
+  };
+}
+function mapPayItem(p) {
+  return { id: p.Id, code: p.Code, name: p.Name, description: p.Description, is_active: p.IsActive !== false, raw_data: p, synced_at: new Date().toISOString() };
+}
+
+async function syncPayroll(sb) {
+  const out = { ok: true };
+  try {
+    // 1. Lønnsarter (for å tolke linjene: fastlønn / provisjon / bonus / trekk)
+    const pi = await poFetchAll('/PayItems');
+    if (!pi.ok) { await setSyncError(sb, 'payroll', `PayItems: ${pi.status} ${JSON.stringify(pi.error).slice(0,200)}`); return { ok: false, step: 'payitems', error: pi }; }
+    if (pi.data.length) { const { error } = await sb.from('po_pay_items').upsert(pi.data.map(mapPayItem), { onConflict: 'id' }); if (error) throw new Error('po_pay_items: ' + error.message); }
+    out.pay_items = pi.data.length;
+
+    // 2. Ansatte (inkl. sluttede — trengs for å tolke historiske linjer)
+    const em = await poFetchAll('/Employees');
+    if (!em.ok) { await setSyncError(sb, 'payroll', `Employees: ${em.status} ${JSON.stringify(em.error).slice(0,200)}`); return { ok: false, step: 'employees', error: em }; }
+    if (em.data.length) { const { error } = await sb.from('po_employees').upsert(em.data.map(mapEmployee), { onConflict: 'id' }); if (error) throw new Error('po_employees: ' + error.message); }
+    out.employees = em.data.length;
+
+    // 3. Arbeidsforhold + gjeldende lønn + faste lønnslinjer per arbeidsforhold
+    const emp = await poFetchAll('/Employees/Employments');
+    if (!emp.ok) { await setSyncError(sb, 'payroll', `Employments: ${emp.status} ${JSON.stringify(emp.error).slice(0,200)}`); return { ok: false, step: 'employments', error: emp }; }
+    const empRows = [];
+    for (const m of emp.data) {
+      const sal = await poFetchAll(`/Employees/Employments/${m.Id}/Salaries`);
+      const fix = await poFetchAll(`/Employees/Employments/${m.Id}/FixedSalaries`);
+      empRows.push(mapEmployment(m, sal.ok ? sal.data : [], fix.ok ? fix.data : []));
+    }
+    if (empRows.length) { const { error } = await sb.from('po_employments').upsert(empRows, { onConflict: 'id' }); if (error) throw new Error('po_employments: ' + error.message); }
+    out.employments = empRows.length;
+
+    // 4. Lønnslinjer (alle — små volumer; det er disse som gir brutto per person per måned)
+    const sl = await poFetchAll('/SalaryLines', { pageSize: 1000, maxPages: 50 });
+    if (!sl.ok) { await setSyncError(sb, 'payroll', `SalaryLines: ${sl.status} ${JSON.stringify(sl.error).slice(0,200)}`); return { ok: false, step: 'salarylines', error: sl }; }
+    const rows = sl.data.map(mapSalaryLine);
+    for (let i = 0; i < rows.length; i += 500) {
+      const { error } = await sb.from('po_salary_lines').upsert(rows.slice(i, i + 500), { onConflict: 'id' });
+      if (error) throw new Error('po_salary_lines: ' + error.message);
+    }
+    out.salary_lines = rows.length;
+
+    await setSyncState(sb, 'payroll', { last_changed_offset: maxLastChanged(sl.data), rows_synced_total: rows.length, last_error: null });
+    return out;
+  } catch (e) {
+    await setSyncError(sb, 'payroll', e.message);
+    return { ok: false, error: e.message, ...out };
+  }
+}
+
 // ── Handler ─────────────────────────────────────────────────────────────────
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
@@ -455,18 +544,24 @@ exports.handler = async (event) => {
   }
 
   if (action === 'sync_transactions') {
-    const days = parseInt(params.days || '30', 10);
+    const days = parseInt(params.days || '0', 10);
     const r = await syncAccountTransactions(sb, days);
     return respond(r.ok, { action, days, ...r });
   }
 
+  if (action === 'sync_payroll') {
+    const r = await syncPayroll(sb);
+    return respond(r.ok, { action, ...r });
+  }
+
   if (action === 'sync_all') {
-    const days = parseInt(params.days || '30', 10);
+    const days = parseInt(params.days || '0', 10);
     const out = {};
     out.projects     = await syncProjects(sb);
     out.invoices     = await syncOutgoingInvoices(sb);
     out.open_items   = await syncOpenItems(sb);
     out.transactions = await syncAccountTransactions(sb, days);
+    out.payroll      = await syncPayroll(sb);
     const allOk = Object.values(out).every(r => r.ok);
     return respond(allOk, { action, days, results: out });
   }
@@ -486,3 +581,4 @@ module.exports.syncProjects = syncProjects;
 module.exports.syncOutgoingInvoices = syncOutgoingInvoices;
 module.exports.syncOpenItems = syncOpenItems;
 module.exports.syncAccountTransactions = syncAccountTransactions;
+module.exports.syncPayroll = syncPayroll;

@@ -1,0 +1,82 @@
+﻿=== ARK: LES MEG ===
+LES MEG — hele modellen forklart i klartekst
+HVA MODELLEN GJØR, I ÉN SETNING
+Den oversetter resultatmålet ditt (1,5M → 3M → 5M før skatt) til: hvor mange båter som må selges, hvor mange meglere det krever, hva de koster, og hva dere derfor må gjøre hver uke. Charter holdes helt utenfor.
+FARGEKODENE
+GUL celle med blå skrift = et VALG du kan endre — alt annet regner seg om automatisk.
+Svart skrift = utregnet av modellen. Grønn skrift = hentet fra et annet ark. Rød = et gap/avvik du skal styre på.
+DE FEM TALLENE SOM STYRER ALT (alle i Forutsetninger)
+1. INNTEKT PER SOLGT BÅT: 58 375 kr ex mva. Målt av oppgjørslistene dine: 4 378 153 kr provisjon delt på 75 solgte båter siste 12 mnd. Vil du ha 1 million mer i omsetning, må dere selge ca. 17 båter mer — eller øke dette tallet (dyrere båter / 6 %-disiplin).
+2. OMSETNING PER MEGLER-STOL: 1,5M per år for en ferdig opplært megler. Tellemåten er KREDITERT omsetning (50/50-splitt når én henter og en annen selger — det lønna følger): Henrik 1,84M, Daniel 0,88M siste 12 mnd. 1,5M er plantallet ditt.
+3. MEGLERKOST: 55 øre av hver megler-krone går til megleren (40 % provisjon + arbeidsgiveravgift + feriepenger). Firmaet beholder 45 øre FØR andre kostnader.
+4. KOSTBASE: 1,88M i året dekker dagens drift (Marte, Philip, kontor, systemer, avskrivning). Vokser dere, vokser den TRINNVIS (fasit-basert fra kostnadsbudsjettet): +60k per megler utover 2 (parkering/lisenser/telefon), +75k engangs per nyansettelse, +900k salgsleder ved 5, +300k kontorutvidelse ved 6 (plassholder — sjekk leieavtalen), +500k backoffice ved 8.
+"5. DIN EGEN LØNN: kappet på 7,1G = 969 498 kr — pensjonsopptjeningstaket; over dette lønner utbytte seg. Antas å inkludere feriepenger (12 %) → grunnlønn ≈ 865 623 (Marius bekrefter). Alt du selger utover ca. 2,15M koster ikke firmaet mer lønn — din marginale omsetning er den mest lønnsomme i selskapet."
+SLIK REGNES ETT ÅR UT — 2027 MED TALL (følg med i Økonomimotor-arket)
+"STEG 1 — Hvem selger? Bemanningsplanen sier: 2 ferdige meglere ved nyttår + 3 nyansettelser (Q1, Q2, Q3). En nyansatt yter 40 % første kvartal, 75 % neste, så 100 % — empirien (Henrik nesten full fart i år 1, Daniel to år) sier profilen er persondrevet; dette er litt under snittet av de to. Regnet om blir det 3,61 «hele» meglere i snitt gjennom året (rad 15)."
+STEG 2 — Hva selger de? 3,61 meglere × 1,5M + deg selv (2,3M) = 7,72M omsetning (rad 21). Delt på 58 375 = ca. 132 båter (rad 22). Ganger 1,30 = ca. 172 oppdrag som må signeres, for erfaringen viser at ikke alle signerte selges (rad 23).
+STEG 3 — Hva koster det? Meglerne: 55 % av deres 5,42M = 2,98M. Din lønn: 1,13M (7,1G + avgifter). Markedsføring: 6 600 kr × 172 oppdrag = 1,13M. Kostbase: 1,88M + 135k trinnkost + 225k rekruttering (3 ansettelser) + salgsleder 900k = 3,14M.
+STEG 4 — Resultat: 7,72M − 2,98M − 1,13M − 1,13M − 3,14M = MINUS 666 000 (rad 28). Gapet mot målet på +1,5M er altså 2,2M (rad 29). DET er tallet som forteller at 2027-målet ikke nås med denne planen og dagens økonomi.
+HVORFOR STÅR DET SÅ STORE TALL UNDER «BEHOV»?
+Behov-delen svarer på motsatt spørsmål: hva MÅTTE omsetningen vært for å nå målet? Her ligger felle nr. 1 som rådgiveren fant: flere meglere → høyere kostbase → enda mer omsetning trengs → enda flere meglere. Modellen løser det nå ved å regne tre scenarioer (uten leder / med leder / med leder+backoffice) og velge det som henger sammen med sitt eget antall stoler. Svaret for 2027: ca. 18M omsetning og 10,5 producing FTE ≈ 11 bemannede meglere (12 med buffer). NB: FTE er produksjonskapasitet, ikke personer — i et innfasingsår trengs flere bemannede enn FTE fordi nyansatte yter 40–100 %. Uansett: veien til målet er IKKE antall hoder, men bedre økonomi per båt (se Spaker).
+SPAKER-ARKET — DEN REALISTISKE VEIEN
+Samme bemanningsplan, men med: 6 %-provisjon håndhevet + dyrere båter i snitt (76 800/båt), markedskost ned til 4 552, og stoler som leverer 1,8M. Da blir resultatet ca. +0,3M i 2027, +1,8M i 2029 og +3,7M i 2031 — uten én ekstra ansettelse utover planen. Konklusjon: spakene er verdt mer enn nye stoler, og de bør trekkes FØR dere rekrutterer bredt.
+HVA ER FAKTA, HVA ER ANTAKELSER, HVA ER PROXY?
+FAKTA (fasit): 58 375/båt, 75 båter, per-megler-tall, salgstid 89 dg, kohorten. Kilde: oppgjørslistene + HubSpot, definert per rad i Forutsetninger.
+PLANANTAKELSE (gule celler — dine valg): 1,30 oppdrag/salg (målt 1,38 på modne), stol = 1,5M, ramp-profilen, alle trinnkostene, 2,3M til deg selv.
+PROXY (midlertidig tall til det er målt): 68 % «befaring→signering» er egentlig vinnraten i hele Pipeline A. 50 % prospect→befaring er et plantall. Begge byttes ut når de er målt separat — de står på Mangler-listen.
+SLIK FINNER DU FEIL SELV (kontrollpunktene)
+1. Økonomimotor rad 38: snittet av kvartals-FTE-ene skal være lik årets FTE (rad 15), og kvartalsomsetningene skal summere til rad 21.
+2. P&L-linjene (rad 21 og 24–27) skal alltid summere nøyaktig til resultatet i rad 28 — det er hele regnestykket, ingenting er skjult.
+3. Historikk-arket: fasit-tallene skal stemme mot oppgjørslistene dine, og resultatbroen mot årsregnskapet (rest på 705k skal avstemmes med Marius).
+4. Endrer du en gul celle og et tall IKKE beveger seg som du forventer — da har enten du eller modellen misforstått noe. Si fra.
+HVA SOM STYRES HVOR
+"Ukentlig drift: Weekly Scorecard (H2-rest-målet: 126 330 kr/uke). Kvartal: kvartalsmålene i Økonomimotor. Året/strategien: resultat-gapet og rekrutteringsgapet i 1-3-5 Plan. Rådgivers vurdering: H2-delen er klar til bruk; 2027–2031 er retningsgivende til trinnkostene er kalibrert og proxyene målt."
+
+=== ARK: Historikk ===
+HISTORIKK — fasit, kohort og resultatbro;;;;;;;
+Alt her er MÅLT (oppgjørslister/regnskap/HubSpot) — ingen mål eller antakelser. Charter holdt utenfor båt-tallene.;;;;;;;
+FASIT SISTE 12 MND (oppgjørslister, 27.08.2025–26.08.2026, ex charter);;;;;;;
+Båter solgt;75;;;;;;
+Omsetning ex mva (provisjon);4378153;alle 75 med beløp — fasit, ikke HubSpot;;;;;
+Snitt / median per båt;58375;median 50 400;;;;;
+Snitt / median salgssum;1260458;"median 1 065 000; eff. provisjonsgrad 5,79 % inkl mva";;;;;
+Charter (egen enhet, utenfor motoren);170000;1 oppdrag (AD Astra);;;;;
+PER MEGLER — TRE MÅTER Å TELLE (alle fra oppgjørslistene);;;;;;;
+OPPDRAG INN = hvem hentet oppdraget · SOLGT AV = hvem lukket salget · KREDITERT = 50/50-splitt ved samarbeid — det lønna følger, og det stol-tallene i modellen bruker.;;;;;;;
+Megler;Kreditert 12 mnd;Solgt av 12 mnd;Kreditert 2025;Solgt av 2025;Oppdrag inn 2025;;
+Henrik (+Marte);1838820;2007420;1599192;1962912;1156272;;
+Sindre;1491253;1309453;2083205;1597805;2532605;;
+Daniel (slutter);882480;953280;532320;570000;494640;;
+Jeanette (sluttet);165600;108000;642800;726800;674000;;
+Sum;4378153;4378153;4857517;4857517;4857517;;
+Sindre er ANSKAFFELSESMOTOREN (2,5M i oppdrag inn 2025), Henrik er LUKKEMOTOREN (2,0M solgt av) — ~630k av Henriks salg i 2025 var Sindres oppdrag (delt 50/50 i oppgjøret).;;;;;;;
+RAMP-EMPIRI: Henrik startet mars 2025 → år 1 KREDITERT 1 599 192 (1,9M-rate, delvis ved å lukke Sindres oppdrag). Daniel startet april 2025 → år 1 kreditert 532 320 (0,71M-rate).;;;;;;;
+"→ Ramp er PERSONDREVET, ikke tidsdrevet — og kan AKSELERERES ved at Sindre mater nye meglere med oppdrag, slik Henrik fikk i 2025. Snitt år 1-rate ≈ 1,3M kreditert (n=2, enorm spredning); churn-bufferen dekker Daniel-utfallet.";;;;;;;
+KOHORT: SIGNERT OPPDRAG → SOLGT (HubSpot Pipeline B, 163 oppdrag siden sep 2024);;;;;;;
+B-deal opprettet = PROXY for signeringsdato. Closedate delvis bulk-satt (noen umulige salgstider) → indikativt.;;;;;;;
+Signert kvartal;n;Solgt;Tapt;Åpne;Solgt ≤90 dg;Solgt ≤180 dg;Median dager
+2025-Q1;11;11;0;0;4;8;106
+2025-Q2;32;20;8;4;9;16;95
+2025-Q3;25;18;0;7;6;9;189
+2025-Q4;11;5;5;1;1;4;143
+2026-Q1;18;9;1;8;4;9;116
+2026-Q2;49;19;2;28;17;19;47
+2026-Q3;16;2;0;14;2;2;(datofeil)
+MODNE kohorter (signert >365 dg siden, n=58);72 % solgt · 14 % tapt · 14 % fortsatt åpne;;;;;;
+→ Signerte oppdrag per salg (modne);58/42 = 1,38 (hvis alle 8 åpne selges: 58/50 = 1,16);;;;;;
+Salgstid (85 solgte av 163 oppdrag sep-24→nå);median 89 dg · snitt 123 dg · 51 % ≤90 · 79 % ≤180. NB: annen kilde/periode (HubSpot, 24 mnd) enn fasitens 75 siste 12 mnd;;;;;;
+PIPELINE A — OPPDRAG INN (HubSpot, siste 12 mnd per 26.08.2026);;;;;;;
+Nye prospects (deals opprettet);133;;;;;;
+Signert oppdragsavtale (Vunnet);67;;;;;;
+Tapt;32;;;;;;
+Fortsatt åpne;34;;;;;;
+Vinnrate av avgjorte (67/99) — PROXY;0.68;Prospect→befaring per megler (CFO-analyse): Sindre 74 % · Daniel 52 % · Henrik+Marte 28 %;;;;;
+RESULTATBRO 2025 — fra regnskap til modell (avstem «rest» med Marius);;;;;;;
+Sum driftsinntekter, årsregnskap 2025;6174978;Endelig årsregnskap, signert 16.06.26;;;;;
+Omsetning oppgjørsbasis ex mva 2025;4857517;Oppgjørslisten 2025;;;;;
+Differanse inntektssiden;1317461;forklares delvis under:;;;;;
+  herav engangs «rydding»-inntekt (3900);200000;ca-beløp;;;;;
+  herav Serotonic-gjennomstrømming;412000;inntekt m/motsvarende kostnad, netto ~0;;;;;
+  herav rest — MÅ AVSTEMMES;705461;periodisering 3090, mva-føring, annet — Marius (RVT);;;;;
+Resultat før skatt 2025, regnskap;736978;løftet av underuttak Sindre + engangsposter;;;;;
+Modellert fullastet resultat siste 12 mnd;-313631;negativt: fasit-omsetningen er under dagens break-even;;;;;

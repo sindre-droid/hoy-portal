@@ -1,0 +1,199 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+company-state.py — FELLES KILDE for HoY-instrumentpanelene (Forretningsmodell + Ansettelsesgate).
+
+Bygger company_state.json fra:
+  1. PowerOffice-speilet i Supabase (po_liquidity_snapshot, nattlig 03:30)   → cash-posisjon
+  2. HoY-1-3-5-arsplan.xlsx / Forutsetninger + Likviditet (gule inputceller) → motor-parametre, H2-fasit
+  3. Supabase settlements                                                      → KONTROLL-tall (ikke fasit)
+  4. Faste fasit-/beslutningsblokker nederst i denne fila (oppdateres ved ny måling/beslutning)
+
+Bruk:
+  python3 company-state.py            # skriver company_state.json ved siden av skriptet
+  python3 company-state.py --embed    # + limer JSON inn i forretningsmodell.html og ansettelsesgate.html
+                                      #   (mellom <script id="company-state" ...> og </script>)
+Deretter: republiser artifactene (Claude) — samme tall begge steder.
+
+Kjør fra ~/hoy-portal/HoY Internportal/. Supabase-nøkkel leses fra ../befaring-app/.env.
+"""
+import os, sys, json, re, datetime, urllib.request
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+XLSX = os.path.join(HERE, 'HoY-1-3-5-arsplan.xlsx')
+OUT = os.path.join(HERE, 'company_state.json')
+EMBED_FILES = ['forretningsmodell.html', 'ansettelsesgate.html']
+
+# ---------- 1. Supabase ----------
+def env():
+    u = os.environ.get('SUPABASE_URL'); k = os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
+    if u and k: return u, k
+    home = os.path.expanduser('~')
+    for cand in [os.path.join(HERE, '..', 'befaring-app', '.env'), os.path.join(HERE, 'befaring-app', '.env'),
+                 os.path.join(home, 'hoy-portal', 'befaring-app', '.env'),
+                 os.path.join(home, 'mnt', 'hoy-portal', 'befaring-app', '.env')]:
+        if os.path.exists(cand):
+            e = {}
+            for line in open(cand, encoding='utf-8'):
+                line = line.strip()
+                if '=' in line and not line.startswith('#'):
+                    a, b = line.split('=', 1); e[a.strip()] = b.strip()
+            u = e.get('SUPABASE_URL'); k = e.get('SUPABASE_SERVICE_ROLE_KEY') or e.get('SUPABASE_SERVICE_KEY')
+            if u and k: return u, k
+    return None, None
+
+def sb(q):
+    u, k = env()
+    if not u:
+        print('[supabase] fant ikke SUPABASE_URL/nøkkel (.env) — cash/kontroll blir tomme'); return None
+    try:
+        req = urllib.request.Request(u.rstrip('/') + '/rest/v1/' + q, headers={'apikey': k, 'Authorization': 'Bearer ' + k})
+        with urllib.request.urlopen(req, timeout=20) as r: return json.loads(r.read().decode())
+    except Exception as e:
+        print('[supabase] feilet:', q[:40], e); return None
+
+po = (sb('po_liquidity_snapshot?select=*&order=snapshot_date.desc&limit=1') or [None])[0]
+settl = sb('settlements?select=oppdragsnr,boat_type,sold_date,sale_amount,commission,revenue_ex_vat&order=sold_date') or []
+
+# ---------- 2. Regneark (gule inputceller) ----------
+def sheet_inputs(ws):
+    d = {}
+    for row in ws.iter_rows(min_row=1, max_row=120, max_col=2, values_only=True):
+        if row[0] and row[1] is not None and not isinstance(row[1], str):
+            d[str(row[0]).strip()] = row[1]
+    return d
+
+FX, LQ = {}, {}
+xlsx_mtime = None
+try:
+    import openpyxl
+    wb = openpyxl.load_workbook(XLSX, data_only=True)
+    FX = sheet_inputs(wb['Forutsetninger']); LQ = sheet_inputs(wb['Likviditet'])
+    xlsx_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(XLSX)).strftime('%Y-%m-%d %H:%M')
+except Exception as e:
+    print('[xlsx] kunne ikke lese regnearket:', e)
+
+def fx(prefix, default):
+    for k, v in FX.items():
+        if k.startswith(prefix): return v
+    return default
+def lq(prefix, default):
+    for k, v in LQ.items():
+        if k.startswith(prefix): return v
+    return default
+
+h2_per = None
+for k in FX:
+    m = re.search(r'per (\d{2})\.(\d{2})\)', k)
+    if k.startswith('H2 levert') and m: h2_per = f"2026-{m.group(2)}-{m.group(1)}"
+
+# ---------- 3. Cash-posisjon (samme regel som Likviditet-arket) ----------
+hb1920 = round(po['bank_drift']) if (po and po.get('bank_drift') is not None) else round(lq('Hovedbok 1920', -290763))
+diff = lq('+ Avstemmingsdifferanse', 1360037)
+skt = abs(po.get('skattetrekk') or 0) if po else lq('— herav bundet', 0)
+bro = lq('Netto driftskontantstrøm', 0)
+bank_reell = hb1920 + diff
+disponibel = bank_reell - skt
+rr_m = (po.get('runrate_months') or 12) if po else 12
+
+# ---------- 4. Kontroll fra Supabase settlements (IKKE fasit) ----------
+s26 = [r for r in settl if r['sold_date'] and r['sold_date'] >= '2026-01-01' and 'Charter' not in str(r['boat_type'])]
+h2s = [r for r in s26 if r['sold_date'] >= '2026-07-01']
+rab = [r for r in s26 if r['sale_amount'] and r['commission'] and r['commission'] < max(0.06 * r['sale_amount'], 45000) - 500]
+kontroll = {
+    'kilde': 'Supabase settlements (importert fra oppgjørsliste — kan ligge etter)',
+    'siste_solgt_dato': settl[-1]['sold_date'] if settl else None,
+    'ytd_2026_ex_charter': round(sum(r['revenue_ex_vat'] or 0 for r in s26)),
+    'ytd_2026_n': len(s26),
+    'h2_levert': round(sum(r['revenue_ex_vat'] or 0 for r in h2s)),
+    'h2_n': len(h2s),
+    'rabatterte_2026_n': len(rab),
+    'tapt_provisjon_2026_inkl_mva': round(sum(max(0.06 * r['sale_amount'], 45000) - r['commission'] for r in rab)),
+}
+
+# ---------- 5. Faste blokker (fasit/beslutning — oppdater ved ny måling) ----------
+FASIT12 = {  # oppgjørslistene, solgt-dato 27.08.2025–26.08.2026, ex charter (Forutsetninger 26.08)
+    'vindu': '27.08.2025–26.08.2026', 'omsetning_ex_mva': 4378153, 'boats': 75,
+    'per_boat': fx('Inntekt per solgt båt', 58375), 'median_per_boat': 50400,
+    'snitt_salgssum': fx('Snittbåtverdi', 1260458), 'median_salgssum': 1065000,
+    'eff_provisjon_inkl_mva': fx('Provisjonsgrad 2', 0.0579),
+    'salgstid_median_dg': 89,  # signert → solgt. IKKE cash-lag.
+    'oppdrag_inn': 67, 'kohort_oppdrag_per_salg': 1.38,
+    'kreditert': {'Henrik': 1838820, 'Sindre': 1491253, 'Daniel': 882480, 'Jeanette': 165600},
+    'resultat_motor_dagens_bemanning': -313631,
+}
+CASHLAG = {'def': 'solgt → faktura, deal-for-deal (n=92)', 'median': 14, 'snitt': 24, 'p75': 32, 'p90': 61, 'maks': 116,
+           'betalt_innen_7_14_30_60': [0.23, 0.51, 0.75, 0.89]}
+REGNSKAP = {'2025_resultat_for_skatt': 736978, '2025_omsetning_ex_mva': 4860000, '2025_utbytte': 1000000,
+            '2025_utbytte_ubetalt_inn_2026': 850000, 'kommentar': 'Reelt 2025 ≈ break-even; rapportert løftet av engangsposter.'}
+BESLUTNING = {'dato': '2026-08-28', 'tekst': 'Ikke full ramp. Maks 1 megler Q1 2027, utsett utbytte.',
+              'maks_ansettelser_q1': 1, 'utbytte': 'utsatt', 'buffer_normal': 500000, 'buffer_unntak': 300000,
+              'gate_frist': '2026-12-15', 'liq_scenario_for_ansettelse': 'Plan (P75 32d)'}
+NORTH_STAR = {'2027': 1500000, '2029': 3000000, '2031': 5000000}
+BEMANNING_PLAN = {  # rampede stoler ved årets start + nyansettelser per kvartal (Økonomimotor)
+    '2027': {'start': 2, 'q': [1, 1, 1, 0]}, '2029': {'start': 6, 'q': [1, 1, 0, 0]}, '2031': {'start': 9, 'q': [1, 1, 0, 0]}}
+SPAKER = {  # måleverdier bak spak-statusene
+    'provisjon': {'maal_pct': 0.06, 'min_nok': 45000, 'maalt_eff_pct': fx('Provisjonsgrad 2', 0.0579),
+                  'h1_rabatterte': 13, 'h1_salg': 38, 'h1_tapt': 266000},
+    'premium': {'snittbaat_maal': 1600000, 'snittbaat_maalt': fx('Snittbåtverdi', 1260458), 'per_boat_maal': 76800},
+    'markedskost': {'tak_per_oppdrag': 15000, 'maal_per_oppdrag': 4552, 'maalt_per_oppdrag': fx('Markedskost per signert', 6600)},
+    'g71': {'tak': fx('Sindres lønnstak', 969498), 'sindre_omsetning_plan': fx('Sindre-stolens omsetning', 2300000), 'knekk': 2154440},
+    'oppgjor': {'cashlag_median': 14, 'cashlag_p75': 32, 'salgstid_median': 89},
+    'stol': {'plan': fx('Omsetning per producing', 1500000), 'spak': 1800000},
+}
+
+state = {
+    'version': 1,
+    'generated_at': datetime.datetime.now().strftime('%Y-%m-%d %H:%M'),
+    'sources': {
+        'po_snapshot_date': po.get('snapshot_date') if po else None,
+        'po_computed_at': po.get('computed_at') if po else None,
+        'xlsx': os.path.basename(XLSX), 'xlsx_modified': xlsx_mtime,
+        'fasit_per': h2_per or '2026-08-26',
+        'settlements_rows': len(settl),
+    },
+    'cash': {
+        'hb1920': hb1920, 'avstemmingsdiff': diff, 'bank_reell': bank_reell,
+        'skattetrekk_bundet': skt, 'disponibel': disponibel, 'bro_sep_des': bro,
+        'opening_2027': disponibel + bro,
+        'buffer': lq('Minimumsbuffer', 500000), 'kassekreditt': lq('Tilgjengelig kassekreditt', 200000),
+        'kundefordringer': round(po['kundefordringer_openitems'] or po['kundefordringer']) if po else None,
+        'mva_gjeld': round(po['mva_posisjon']) if po else None,
+        'leverandorgjeld': round(po['leverandorgjeld']) if po else None,
+        'betalbar_skatt': round(po['betalbar_skatt']) if po else None,
+        'driftskost_aar_u_lonn': round((po['runrate_6000'] + po['runrate_7000']) / rr_m * 12) if po else None,
+        'lonn_5xxx_i_vindu': round(po['runrate_5000_lonn']) if po else None, 'runrate_months': rr_m,
+    },
+    'motor': {
+        'INNT': fx('Inntekt per solgt båt', 58375), 'STOL': fx('Omsetning per producing', 1500000),
+        'SINDRE': fx('Sindre-stolens omsetning', 2300000), 'MKOST': fx('Meglerkost', 0.55),
+        'G71': fx('Sindres lønnstak', 969498), 'SATS': fx('Sindres provisjonssats', 0.45), 'LOAD': fx('Lønns-loading', 1.165),
+        'GRUNN': fx('Grunnkostbase', 1880000), 'TRINN': fx('Løpende tilleggskost', 60000), 'REKR': fx('Engangs rekrutterings', 75000),
+        'KONTOR': fx('Kontorutvidelse', 300000), 'LEDER': fx('Salgsleder', 900000), 'BACK': fx('Ekstra backoffice', 500000),
+        'MK': fx('Markedskost per signert', 6600), 'RATIO': fx('Signerte oppdrag inn per solgt', 1.3),
+        'r1': fx('Produksjon måned 1–3', 0.4), 'r2': fx('Produksjon måned 4–6', 0.75), 'r3': fx('Produksjon måned 7–12', 1.0),
+        'VINN': fx('Vinnrate Pipeline A', 0.68), 'PB': fx('Prospect → befaring', 0.5), 'UKER': fx('Arbeidsuker', 46),
+        'bemannet_i_dag': fx('Megler-stoler bemannet i dag', 1),
+    },
+    'spaker_input': {'INNT': 76800, 'MK': 4552, 'STOL': 1800000},
+    'north_star': NORTH_STAR, 'bemanning_plan': BEMANNING_PLAN,
+    'fasit12': FASIT12, 'cashlag': CASHLAG, 'regnskap': REGNSKAP,
+    'h2_2026': {'maal': fx('H2-2026-mål', 2900000), 'levert': fx('H2 levert', 626060), 'per': h2_per or '2026-08-26',
+                'uker_igjen': fx('Hele uker igjen', 17)},
+    'spaker': SPAKER, 'beslutning': BESLUTNING, 'kontroll_supabase': kontroll,
+}
+
+js = json.dumps(state, ensure_ascii=False, indent=1)
+open(OUT, 'w', encoding='utf-8').write(js)
+print('[ok] skrev', OUT, '— PO', state['sources']['po_snapshot_date'], '· fasit per', state['h2_2026']['per'],
+      '· bank reell', bank_reell, '· H2 levert', state['h2_2026']['levert'])
+
+if '--embed' in sys.argv:
+    pat = re.compile(r'(<script id="company-state" type="application/json">)(.*?)(</script>)', re.S)
+    for f in EMBED_FILES:
+        p = os.path.join(HERE, f)
+        if not os.path.exists(p): print('[embed] mangler', f); continue
+        html = open(p, encoding='utf-8').read()
+        if not pat.search(html): print('[embed] fant ikke company-state-blokk i', f); continue
+        html2 = pat.sub(lambda m: m.group(1) + '\n' + js.replace('</', '<\\/') + '\n' + m.group(3), html)
+        open(p, 'w', encoding='utf-8').write(html2); print('[embed] oppdatert', f)

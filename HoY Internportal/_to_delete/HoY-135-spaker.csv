@@ -1,0 +1,22 @@
+﻿SPAKER — samme resultatmål, bedre driftsøkonomi (samme motor, andre parametre);;;;
+Scenario: provisjonsdisiplin ≥6 %/45k håndhevet, snittbåtverdi mot 1,6M, markedskost-tak, sterkere stoler.;;;;
+Scenario-parametre (blå = juster):;;;;
+Inntekt per båt ex mva (1,6M snittbåt × 6 % ÷ 1,25);76800;;;
+Markedskost per signert oppdrag (CFO-mål);4552;;;
+Omsetning per producing megler-stol (produksjonsmål);1800000;;;
+;;År 1 (2027);År 3 (2029);År 5 (2031)
+Resultatmål (fra Økonomimotor);;1500000;3000000;5000000
+Nødvendig megler-omsetning — MED spakene;;6196955;10125317;15363133
+Total omsetning som trengs — MED spakene;;8496955;12425317;17663133
+Total omsetning — baseline (Økonomimotor);;9784531;14308173;20339695
+Differanse (mindre omsetning nødvendig);;1287576;1882855;2676561
+Båter per år — med spakene;;110.6374;161.788;229.9887
+Båter per år — baseline;;152.6448;223.2164;317.3119
+Producing megler-stoler som trengs — med spakene;(kapasitetsbehov, desimal);3.4428;5.6252;8.5351
+Megler-stoler å bemanne — med spakene;(rundet opp + buffer);5;7;10
+Megler-stoler å bemanne — baseline;;6;10;14
+DE FIRE SPAKENE (CFO-analysen jul 2026) — verdt å hente FØR man rekrutterer flere stoler:;;;;
+A. Provisjonsdisiplin: 13 av 38 H1-salg under 6 %/45k = ~266k tapt provisjon. Rabatt krever Sindres godkjenning. Verdi ~200k+/år.;;;;
+B. Marte-tripwire (18. okt): Henrik må vise 1,9M+ årstakt og bedre befaring-rate. Svinger resultatet 500–700k. Status aug: behold.;;;;
+"C. Markedskost-tak: 15k-tak håndheves; frys markedsføring over taket til pris justeres. Mål 4 552/oppdrag (målt 6 600).";;;;
+D. Sindres 7,1G-uttak: alt Sindre omsetter over ~2,15M koster ikke mer lønn — hans marginale omsetning er firmaets mest lønnsomme.;;;;
