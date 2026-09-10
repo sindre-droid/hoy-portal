@@ -473,7 +473,10 @@ async function syncPayroll(sb) {
     // 3. Arbeidsforhold + gjeldende lønn + faste lønnslinjer per arbeidsforhold
     // Hvert steg som får 403 (manglende rettighet i GO) hoppes over og rapporteres — resten synkes likevel.
     out.mangler_rettighet = [];
-    const emp = await poFetchAll('/Employees/Employments');
+    // Employments/SalaryLines krever privilegier integrasjonen ikke har (låst i utviklerportalen, ikke i GO) — hoppes over (Sindre 10. sep).
+    // Fastlønn (Marte, Philip) ligger som parametere i cashbro; ansatte + lønnsarter hentes fortsatt.
+    const HENT_ARBEIDSFORHOLD = false;
+    const emp = HENT_ARBEIDSFORHOLD ? await poFetchAll('/Employees/Employments') : { ok: true, data: [], skipped: true };
     if (!emp.ok) { out.mangler_rettighet.push(`Employments (${emp.status})`); emp.data = []; }
     const empRows = [];
     for (const m of emp.data) {
@@ -485,7 +488,7 @@ async function syncPayroll(sb) {
     out.employments = empRows.length;
 
     // 4. Lønnslinjer (alle — små volumer; det er disse som gir brutto per person per måned)
-    const sl = await poFetchAll('/SalaryLines', { pageSize: 1000, maxPages: 50 });
+    const sl = HENT_ARBEIDSFORHOLD ? await poFetchAll('/SalaryLines', { pageSize: 1000, maxPages: 50 }) : { ok: true, data: [], skipped: true };
     if (!sl.ok) { out.mangler_rettighet.push(`SalaryLines (${sl.status})`); sl.data = []; }
     const rows = sl.data.map(mapSalaryLine);
     for (let i = 0; i < rows.length; i += 500) {
