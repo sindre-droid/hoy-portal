@@ -471,8 +471,10 @@ async function syncPayroll(sb) {
     out.employees = em.data.length;
 
     // 3. Arbeidsforhold + gjeldende lønn + faste lønnslinjer per arbeidsforhold
+    // Hvert steg som får 403 (manglende rettighet i GO) hoppes over og rapporteres — resten synkes likevel.
+    out.mangler_rettighet = [];
     const emp = await poFetchAll('/Employees/Employments');
-    if (!emp.ok) { await setSyncError(sb, 'payroll', `Employments: ${emp.status} ${JSON.stringify(emp.error).slice(0,200)}`); return { ok: false, step: 'employments', error: emp }; }
+    if (!emp.ok) { out.mangler_rettighet.push(`Employments (${emp.status})`); emp.data = []; }
     const empRows = [];
     for (const m of emp.data) {
       const sal = await poFetchAll(`/Employees/Employments/${m.Id}/Salaries`);
@@ -484,7 +486,7 @@ async function syncPayroll(sb) {
 
     // 4. Lønnslinjer (alle — små volumer; det er disse som gir brutto per person per måned)
     const sl = await poFetchAll('/SalaryLines', { pageSize: 1000, maxPages: 50 });
-    if (!sl.ok) { await setSyncError(sb, 'payroll', `SalaryLines: ${sl.status} ${JSON.stringify(sl.error).slice(0,200)}`); return { ok: false, step: 'salarylines', error: sl }; }
+    if (!sl.ok) { out.mangler_rettighet.push(`SalaryLines (${sl.status})`); sl.data = []; }
     const rows = sl.data.map(mapSalaryLine);
     for (let i = 0; i < rows.length; i += 500) {
       const { error } = await sb.from('po_salary_lines').upsert(rows.slice(i, i + 500), { onConflict: 'id' });
@@ -492,7 +494,9 @@ async function syncPayroll(sb) {
     }
     out.salary_lines = rows.length;
 
-    await setSyncState(sb, 'payroll', { last_changed_offset: maxLastChanged(sl.data), rows_synced_total: rows.length, last_error: null });
+    const err = out.mangler_rettighet.length ? 'Mangler rettighet i PowerOffice GO for: ' + out.mangler_rettighet.join(', ') : null;
+    await setSyncState(sb, 'payroll', { last_changed_offset: maxLastChanged(sl.data), rows_synced_total: rows.length, last_error: err, last_error_at: err ? new Date().toISOString() : null });
+    if (err) out.warning = err;
     return out;
   } catch (e) {
     await setSyncError(sb, 'payroll', e.message);
