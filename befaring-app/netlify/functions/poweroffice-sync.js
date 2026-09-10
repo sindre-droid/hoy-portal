@@ -110,7 +110,7 @@ async function poFetchAll(basePath, opts = {}) {
     if (!r.ok) {
       return { ok: false, status: r.status, error: r.data, fetched: all.length, pageReached: pageNumber };
     }
-    const items = Array.isArray(r.data) ? r.data : (r.data ? [r.data] : []);
+    const items = Array.isArray(r.data) ? r.data : (r.data && r.data.Id !== undefined ? [r.data] : []);   // tom/ugyldig body → ingen rader
     if (!items.length) break;
     all.push(...items);
     if (items.length < pageSize) break;
