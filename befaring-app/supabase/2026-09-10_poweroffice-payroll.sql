@@ -7,9 +7,12 @@
 -- Kjør i Supabase SQL editor. Krever at PO-integrasjonen har rettighetene
 -- Employee, Employment, EmploymentSalary, EmploymentFixedSalary, SalaryLine, PayItem.
 -- ─────────────────────────────────────────────────────────────────────────────
+-- PowerOffice bruker GUID som Id på flere av disse objektene → alle id-kolonner er text.
+drop table if exists public.po_pay_items; drop table if exists public.po_employees;
+drop table if exists public.po_employments; drop table if exists public.po_salary_lines;
 
 create table if not exists public.po_pay_items (
-  id            bigint primary key,
+  id            text   primary key,
   code          text,
   name          text,
   description   text,
@@ -19,7 +22,7 @@ create table if not exists public.po_pay_items (
 );
 
 create table if not exists public.po_employees (
-  id                   bigint primary key,
+  id                   text   primary key,
   number               integer,
   first_name           text,
   last_name            text,
@@ -34,8 +37,8 @@ create table if not exists public.po_employees (
 );
 
 create table if not exists public.po_employments (
-  id                   bigint primary key,
-  employee_id          bigint,
+  id                   text   primary key,
+  employee_id          text  ,
   employment_form      text,
   employment_type      text,
   start_date           date,
@@ -54,10 +57,10 @@ create table if not exists public.po_employments (
 create index if not exists idx_po_employments_employee on public.po_employments(employee_id);
 
 create table if not exists public.po_salary_lines (
-  id                   bigint primary key,
-  employee_id          bigint,
-  employment_id        bigint,
-  pay_item_id          bigint,
+  id                   text   primary key,
+  employee_id          text  ,
+  employment_id        text  ,
+  pay_item_id          text  ,
   amount               numeric,
   rate                 numeric,
   quantity             numeric,

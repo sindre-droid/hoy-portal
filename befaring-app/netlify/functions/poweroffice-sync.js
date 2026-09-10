@@ -424,7 +424,7 @@ async function syncOpenItems(sb) {
 // Mangler rettighet → 403 lagres i po_sync_state.last_error for 'payroll'.
 function mapEmployee(e) {
   return {
-    id: e.Id, number: e.Number, first_name: e.FirstName, last_name: e.LastName,
+    id: String(e.Id), number: e.Number, first_name: e.FirstName, last_name: e.LastName,
     email: e.EmailAddress, job_title: e.JobTitle, start_date: e.StartDate || e.HiredDate || null,
     end_date: e.EndDate || null, is_archived: !!e.IsArchived,
     last_changed_offset: e.LastChangedDateTimeOffset, raw_data: e, synced_at: new Date().toISOString(),
@@ -433,7 +433,7 @@ function mapEmployee(e) {
 function mapEmployment(m, salaries, fixed) {
   const cur = (salaries || []).slice().sort((a, b) => String(b.FromDate || '').localeCompare(String(a.FromDate || '')))[0] || null;
   return {
-    id: m.Id, employee_id: m.EmployeeId, employment_form: m.EmploymentForm, employment_type: m.EmploymentType,
+    id: String(m.Id), employee_id: String(m.EmployeeId), employment_form: m.EmploymentForm, employment_type: m.EmploymentType,
     start_date: m.StartDate || null, end_date: m.EndDate || null, profession_title: m.ProfessionTitle,
     annual_salary: cur ? cur.AnnualSalary : null, hourly_rate: cur ? cur.HourlyRate : null,
     remuneration_type: cur ? cur.RemunerationType : null, salary_from_date: cur ? cur.FromDate : null,
@@ -443,7 +443,7 @@ function mapEmployment(m, salaries, fixed) {
 }
 function mapSalaryLine(l) {
   return {
-    id: l.Id, employee_id: l.EmployeeId, employment_id: l.EmploymentId, pay_item_id: l.PayItemId,
+    id: String(l.Id), employee_id: l.EmployeeId == null ? null : String(l.EmployeeId), employment_id: l.EmploymentId == null ? null : String(l.EmploymentId), pay_item_id: l.PayItemId == null ? null : String(l.PayItemId),
     amount: l.Amount, rate: l.Rate, quantity: l.Quantity, from_date: l.FromDate || null, to_date: l.ToDate || null,
     income_year: l.IncomeYear, project_id: l.ProjectId, account_id: l.AccountId, department_id: l.DepartmentId,
     deduction_type: l.DeductionType, comment: l.Comment, is_locked: !!l.IsLocked, is_deleted: !!l.IsDeletedByUser,
@@ -452,7 +452,7 @@ function mapSalaryLine(l) {
   };
 }
 function mapPayItem(p) {
-  return { id: p.Id, code: p.Code, name: p.Name, description: p.Description, is_active: p.IsActive !== false, raw_data: p, synced_at: new Date().toISOString() };
+  return { id: String(p.Id), code: p.Code, name: p.Name, description: p.Description, is_active: p.IsActive !== false, raw_data: p, synced_at: new Date().toISOString() };
 }
 
 async function syncPayroll(sb) {
@@ -496,7 +496,7 @@ async function syncPayroll(sb) {
     return out;
   } catch (e) {
     await setSyncError(sb, 'payroll', e.message);
-    return { ok: false, error: e.message, ...out };
+    return { ...out, ok: false, error: e.message };
   }
 }
 
