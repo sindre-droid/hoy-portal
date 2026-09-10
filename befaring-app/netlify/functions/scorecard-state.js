@@ -43,6 +43,7 @@ const P = {
   // Close-rate-kurver (fase 1, signert 2024+, kohort 365 d): andel solgt innen 90/180/365 dager
   CLOSE: { '<1M': [0.60, 0.85, 0.91], '1-2M': [0.53, 0.77, 0.89], '2-5M': [0.32, 0.40, 0.65], '>5M': [0.00, 0.33, 0.50], ukjent: [0.46, 0.69, 0.83] },
 };
+const { buildCashbro } = require('./cashbro.js');
 const OWNERS = { '633479117': 'Sindre', '77221549': 'Henrik', '33931214': 'Marte', '29136352': 'Daniel', '78018793': 'Philip' };
 const EMAILS = { 'sindre@h-y.no': 'Sindre', 'henrik@h-y.no': 'Henrik', 'marte@h-y.no': 'Marte', 'daniel@h-y.no': 'Daniel', 'philip@h-y.no': 'Philip' };
 const UNIT = { Sindre: 'Sindre', Henrik: 'Henrik', Marte: 'Henrik', Daniel: 'Daniel', Philip: 'Philip' };
@@ -146,7 +147,7 @@ async function buildScorecardState(sb) {
       const dn = r[col['Solgt dato']]; if (typeof dn !== 'number') continue;
       const d = excelDate(dn), inn = (r[col['Oppdrag inn']] || '').toString().trim(), av = (r[col['Solgt av']] || '').toString().trim();
       const oms = Number(r[col['Omsetning ex.mva']] || 0), sum = Number(r[col['Salgssum']] || 0);
-      sales.push({ nr: r[col['Oppdragsnr']] ?? null, bat: r[col['Båttype']] || '', dato: iso(d), inn, av, salgssum: sum, oms, kilde: col['Oppdragskilde'] ? (r[col['Oppdragskilde']] || '').toString().trim() || null : null });
+      sales.push({ nr: r[col['Oppdragsnr']] ?? null, bat: r[col['Båttype']] || '', dato: iso(d), inn, av, salgssum: sum, oms, prov: col['Provisjon'] ? Number(r[col['Provisjon']] || 0) : 0, kilde: col['Oppdragskilde'] ? (r[col['Oppdragskilde']] || '').toString().trim() || null : null });
       if (d < FRA) continue;
       add(d, unitOf(av), 'solgt', 1);
       const fulltTilSelger = inn === 'Daniel' && av !== 'Daniel' && iso(d) >= P.DANIEL_SLUTT;
@@ -168,11 +169,12 @@ async function buildScorecardState(sb) {
   } catch (e) { state.meta.sources.hubspot = { ok: false, error: e.message }; }
 
   // 3. Oneflow: signert + åpne avtaler ──────────────────────────────────────
-  const signed = [];
+  const signed = []; let ofAll = [];
   try {
     const first = await of('/contracts?limit=100&offset=0'); const total = first.count || 0; const all = [...(first.data || [])];
     const pages = []; for (let o = 100; o < total; o += 100) pages.push(of(`/contracts?limit=100&offset=${o}`));
     for (const j of await Promise.all(pages)) all.push(...(j.data || []));
+    ofAll = all;
     const tid = (c) => Number(c._private_ownerside?.template_id || 0), nm = (c) => c._private?.name || c.name || '';
     // Oneflow: bedrifts-parter har participants[]; privatpersoner (selgere) har ett participant-objekt
     const parts = (p) => (p.participants && p.participants.length) ? p.participants : (p.participant ? [p.participant] : []);
@@ -483,6 +485,20 @@ async function buildScorecardState(sb) {
       ansettelse: lav >= buffer ? 'ja' : 'nei', status: lav >= buffer ? 'GRØNT' : 'RØDT', regel: 'laveste forventet bank (plan, P75) ≥ 500k-buffer ETTER ny stol — under buffer = rød for ansettelse', gate_frist: '2026-12-15', kilde_bygget: data.built_at };
     state.meta.sources.likviditet = { ok: true, bygget: data.built_at };
   } catch (e) { state.meta.sources.likviditet = { ok: false, error: e.message }; }
+
+  // 12. CASHBRO: deal-basert cash-kalender (sikker/sannsynlig/plan/kost) → kurver + gate ─────
+  try {
+    state.cashbro = await buildCashbro({ sb, of, contracts: ofAll, sales, items: state.portefolje?.oppdrag || [], pSalgInnen, klasseAv, today: now, bank: state.likviditet.reell_bank, bankKilde: state.likviditet.bank_kilde });
+    const cb = state.cashbro, buffer = P.BUFFER;
+    const lavB = cb.laveste.base, lavD = cb.laveste.downside, lavP = cb.laveste.plan;
+    const brudd = (k) => cb.kurve.find(c => c[k] < buffer)?.mnd || null;
+    state.likviditet = { ...state.likviditet, kilde: 'cashbro', buffer,
+      laveste_downside: lavD.saldo_downside, laveste_downside_mnd: lavD.mnd, laveste_base: lavB.saldo_base, laveste_base_mnd: lavB.mnd, laveste_plan: lavP.saldo_plan, laveste_plan_mnd: lavP.mnd,
+      buffer_brudd: { downside: brudd('saldo_downside'), base: brudd('saldo_base'), plan: brudd('saldo_plan') },
+      mangler: Math.max(0, buffer - lavB.saldo_base), ansettelse: lavB.saldo_base >= buffer ? 'ja' : 'nei', status: lavB.saldo_base >= buffer ? 'GRØNT' : 'RØDT',
+      regel: 'Gate = laveste Base-saldo (sikker + portefølje − alle kjente kostnader) i horisonten ≥ 500k-buffer. Downside og Base+Plan vises ved siden av. Trekk på spillbrettet endrer kurven.' };
+    state.meta.sources.cashbro = { ok: true, rader: cb.rader.length, sikker: cb.sikker_kommende.length, varsler: cb.varsler.length };
+  } catch (e) { state.meta.sources.cashbro = { ok: false, error: e.message }; }
 
   const row = { id: 1, state, built_at: now.toISOString() };
   const { error } = await sb.from('scorecard_state').upsert(row, { onConflict: 'id' });

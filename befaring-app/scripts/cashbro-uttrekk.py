@@ -34,9 +34,15 @@ PAR = {
     {'navn': 'Philip', 'brutto_mnd': 13000,       'fp_sats': 0.0,   'note': '13 000/mnd (Sindre) — fakturerer i tillegg per oppdrag (ligger i 4500 → direkte oppdragskost)'},
   ],
   'marte_bonus_av_henrik_provisjon': 0.10,   # 10 % av Henriks provisjon (= 4 % av Henriks omsetning), utbetales samtidig med provisjonen
-  'sindre_brutto_mnd': 969498 / 12,          # 7,1 G, flatt fremover (2026-uttak hittil er lavt — «henger bak»; etterslep ikke lagt inn)
-  'sindre_uttak_2026_brutto': None,          # brutto lønn Sindre har tatt ut i 2026 hittil (feriepengegrunnlag). None = ukjent → 0 til lønnsdata er synket (po_salary_lines)
-  'feriepenger_2940_bruk_saldo': False,      # Sindre 10. sep: saldo 2940 er feil (gamle ansatte, Philip). False = beregn grunnlag selv: Henrik/Daniel 40 % × oms 2026, Marte, Sindre
+  # Sindre: GO Lønnsdetaljer 1.1–30.9.2026 = brutto 767 187 (provisjon 556 835 + fastlønn 210 352 16.6) + feriepenger 85 562. 7,1 G = 969 498 → gjenstår 202 311 for okt–des.
+  'sindre_modell': 'provisjon',              # 'provisjon' = 45 % av egen omsetning, ut 1. i mnd etter oppgjør (slik det faktisk kjøres) · 'flat' = sindre_brutto_mnd hver måned · 'ingen' = 0
+  'sindre_provisjonssats': 0.45,
+  'sindre_tak_aar': 969498,                  # Sindres selvpålagte tak: 7,1 G per kalenderår — provisjon over taket utbetales ikke (Sindre 10. sep)
+  'sindre_utbetalt_2026': 767187,            # GO Lønnsdetaljer 1.1–30.9.2026 (brutto ekskl. feriepenger)
+  'sindre_brutto_mnd': 969498 / 12,          # brukes bare ved sindre_modell = 'flat'
+  # Feriepenger til gode for 2026-opptjening per 10.9 (GO-rapport «Feriepenger»): Sindre 12 %, Henrik/Daniel/Marte 10,2 %. Gamle ansatte (Johannes, John, Benjamin ≈ 7,8k) og saldo 2940 (290 600) ses bort fra.
+  'feriepenger_til_gode_2026': {'Sindre': 92062, 'Henrik': 58384, 'Daniel': 25449, 'Marte': 17580},
+  'fp_sats_person': {'Sindre': 0.12, 'Henrik': 0.102, 'Marte': 0.102},
   'lonn_dag': 1,                             # PO: lønn «September 2026» utbetalt 02.09 → lønn for mnd m ut 1. i m
   'aga_sats': 0.141, 'feriepenger_sats': 0.12,
   'feriepenger_utbetaling': '2027-06-01',    # opptjent 2026 (saldo 2940 + påløp sep–des) utbetales juni 2027 (PO 2025: «Feriepenger 2025» ut i juli)
@@ -141,23 +147,16 @@ def lonn(dato, linje, brutto, note='', fp_sats=None):
     if dato.year == 2026: FP_ACC += brutto * (PAR['feriepenger_sats'] if fp_sats is None else fp_sats)
 def henrik_prov(dato, linje, brutto, note=''):
     """Henriks provisjon + Martes bonus (10 % av provisjonen), begge 1. i måneden etter oppgjør."""
-    lonn(dato, linje, brutto, note)
-    lonn(dato, 'UT · Marte bonus (10 % av Henriks provisjon)', brutto * PAR['marte_bonus_av_henrik_provisjon'], note, fp_sats=0.102)
-# feriepengegrunnlag 2026 hittil (Sindre: saldo 2940 er feil — kun Henrik, Sindre, Marte, Daniel har krav)
-def prov_base(navn):
-    b = 0.0
-    for nr, s in SHEET.items():
-        if s['solgt'].year != 2026: continue
-        inn, av = s['inn'], s['av']
-        if av == navn: b += s['oms'] * (1.0 if inn == av or (inn == 'Daniel' and s['solgt'].isoformat() >= '2026-08-16') else 0.5)
-        elif inn == navn and av != navn and not (navn == 'Daniel' and s['solgt'].isoformat() >= '2026-08-16'): b += s['oms'] * 0.5
-    return b
-FP_HITTIL = {
-    'Henrik': prov_base('Henrik') * PAR['megler_provisjonssats'] * PAR['feriepenger_sats'],
-    'Daniel': prov_base('Daniel') * PAR['megler_provisjonssats'] * PAR['feriepenger_sats'],
-    'Marte':  (prov_base('Henrik') * PAR['megler_provisjonssats'] * PAR['marte_bonus_av_henrik_provisjon'] + 450000 / 12 * max(0, (TODAY.year - 2026) * 12 + TODAY.month - 5)) * 0.102,   # fast fra mai + bonus
-    'Sindre': (PAR['sindre_uttak_2026_brutto'] or 0) * PAR['feriepenger_sats'],
-}
+    lonn(dato, linje, brutto, note, fp_sats=PAR['fp_sats_person']['Henrik'])
+    lonn(dato, 'UT · Marte bonus (10 % av Henriks provisjon)', brutto * PAR['marte_bonus_av_henrik_provisjon'], note, fp_sats=PAR['fp_sats_person']['Marte'])
+SINDRE_AKK = collections.defaultdict(float); SINDRE_AKK[2026] = PAR['sindre_utbetalt_2026']; SINDRE_KUTT = collections.defaultdict(float)
+def sindre_prov(dato, oms_eks, note='', lag=''):
+    """45 % provisjon, men aldri over 7,1 G akkumulert per kalenderår (opptjent over taket blir stående i selskapet)."""
+    if PAR['sindre_modell'] != 'provisjon' or dato < TODAY: return
+    brutto = oms_eks * PAR['sindre_provisjonssats']; rom = max(0.0, PAR['sindre_tak_aar'] - SINDRE_AKK[dato.year]); ut_ = min(brutto, rom)
+    SINDRE_AKK[dato.year] += ut_; SINDRE_KUTT[dato.year] += brutto - ut_
+    if ut_ > 0: lonn(dato, 'UT · Sindre provisjon' + (f' {lag}' if lag else '') + ' (45 %, tak 7,1 G)', ut_, note, fp_sats=PAR['fp_sats_person']['Sindre'])
+FP_HITTIL = dict(PAR['feriepenger_til_gode_2026'])   # GO-rapport 10.9.2026
 
 # ── 3. Oneflow: kjøpekontrakter signert 2026 → overtakelsesdato + salgssum ───
 first = of('/contracts?limit=100&offset=0'); total = first['count']; contracts = list(first['data'])
@@ -196,6 +195,8 @@ for c in KK:
     if (row['solgt_av'] or '').lower().startswith('henrik'):
         pay = (cash.replace(day=1) + dt.timedelta(days=32)).replace(day=1)
         henrik_prov(pay, 'UT · meglerprovisjon (Henrik 40 %)', oms * PAR['megler_provisjonssats'], f"{nr}")
+    elif (row['solgt_av'] or '').lower().startswith('sindre'):
+        pay = (cash.replace(day=1) + dt.timedelta(days=32)).replace(day=1); sindre_prov(pay, oms, f"{nr}")
     # utgående mva på provisjonen → termin
     post(cash, '_mva_ut', -(prov - oms))
 
@@ -224,6 +225,8 @@ for o in st['portefolje']['oppdrag']:
         if o['megler'] == 'Henrik':
             pay = (cash.replace(day=1) + dt.timedelta(days=32)).replace(day=1)
             henrik_prov(pay, 'UT · meglerprovisjon sannsynlig (Henrik)', oms * p * PAR['megler_provisjonssats'], o['nr'])
+        elif o['megler'] == 'Sindre':
+            pay = (cash.replace(day=1) + dt.timedelta(days=32)).replace(day=1); sindre_prov(pay, oms * p, o['nr'], 'sannsynlig')
         post(cash, '_mva_ut_sann', -(prov - oms) * p)
     SANN.append({'nr': o['nr'], 'navn': o['navn'], 'megler': o['megler'], 'pris': o['pris'], 'p_i_ar': o['p_salg_i_ar']})
 
@@ -247,6 +250,7 @@ for m in months:
     post(cash, '_mva_ut_plan', -fyll * 0.25)
     pay = (cash.replace(day=1) + dt.timedelta(days=32)).replace(day=1)
     henrik_prov(pay, 'UT · meglerprovisjon plan (Henrik-andel)', fyll * PAR['plan_henrik_andel'] * PAR['megler_provisjonssats'], m)
+    sindre_prov(pay, fyll * (1 - PAR['plan_henrik_andel']), m, 'plan')
     post(dt.date.fromisoformat(m + '-01'), 'UT · markedskost nye oppdrag (plan)', -fyll / PAR['inntekt_per_bat'] * PAR['oppdrag_per_salg'] * PAR['markedskost_per_oppdrag'], m)
 
 # ── 5. Kjente kostnader ───────────────────────────────────────────────────────
@@ -267,7 +271,7 @@ for m in months:
     ut(d1.replace(day=21), 'UT · billån DNB (avdrag + renter)', PAR['billan_termin'], 'konto 2242/8151, termin 21. hver mnd')
     # lønn 1. i måneden: Sindre + faste
     ld = d1.replace(day=PAR['lonn_dag'])
-    lonn(ld, 'UT · Sindre lønn 7,1 G', PAR['sindre_brutto_mnd'], 'param')
+    if PAR['sindre_modell'] == 'flat': lonn(ld, 'UT · Sindre lønn 7,1 G (flat)', PAR['sindre_brutto_mnd'], 'param', fp_sats=PAR['fp_sats_person']['Sindre'])
     for f in PAR['fastlonn']: lonn(ld, f'UT · fastlønn {f["navn"]}', f['brutto_mnd'], f['note'], fp_sats=f['fp_sats'])
 # AGA: skyldig i dag (2770) = forrige termin (ubetalt til 15. i termin-start-mnd) + påløpt i inneværende termin
 aga_prev = -TB.get(2770, 0) - sep_aga
@@ -280,9 +284,8 @@ for (y, mo) in sorted({(int(m[:4]), int(m[5:])) for m in months}):
         pm = mo + 1; py = y + (1 if pm > 12 else 0); pm = 1 if pm > 12 else pm
         if v > 0: ut(dt.date(py, pm, 15), 'UT · AGA termin', v, f'termin {mo//2}/{y} (lønn {mo-1}–{mo})')
 # feriepenger: opptjent 2026 = saldo 2940 i dag + 12 % av lønn utbetalt resten av året → ut juni 2027 (AGA på feriepenger til termin 3/2027 = 15.7, utenfor horisont)
-fp_hittil = -TB.get(2940, 0) if PAR['feriepenger_2940_bruk_saldo'] else sum(FP_HITTIL.values())
-fp = fp_hittil + FP_ACC
-ut(dt.date.fromisoformat(PAR['feriepenger_utbetaling']), 'UT · feriepenger (opptjent 2026)', fp, ('saldo 2940' if PAR['feriepenger_2940_bruk_saldo'] else 'beregnet: ' + ', '.join(f'{k} {v:,.0f}' for k, v in FP_HITTIL.items())) + f' + påløp resten av året {FP_ACC:,.0f}')
+fp = sum(FP_HITTIL.values()) + FP_ACC
+ut(dt.date.fromisoformat(PAR['feriepenger_utbetaling']), 'UT · feriepenger (opptjent 2026)', fp, 'GO-rapport 10.9: ' + ', '.join(f'{k} {v:,.0f}' for k, v in FP_HITTIL.items()) + f' + påløp resten av året {FP_ACC:,.0f}')
 # leverandørgjeld i dag (2400) → 50/50
 lg = -TB.get(2400, 0)
 for dd in PAR['leverandorgjeld_dager']: ut(TODAY + dt.timedelta(days=dd), 'UT · leverandørgjeld (saldo 2400)', lg / len(PAR['leverandorgjeld_dager']), f'saldo {lg:,.0f}')
@@ -309,8 +312,8 @@ for m in months:
 # ── 6. Bank og saldo-kurve ────────────────────────────────────────────────────
 bank = st.get('likviditet', {}).get('reell_bank'); kilde = st.get('likviditet', {}).get('bank_kilde')
 LINES = sorted({k for m in months for k in CAL[m]})
-SIK = [k for k in LINES if k.startswith('SIKKER')]; SAN = [k for k in LINES if k.startswith('SANNSYNLIG') or k.startswith('UT · meglerprovisjon sannsynlig')]
-PL = [k for k in LINES if k.startswith('PLAN') or k.startswith('UT · meglerprovisjon plan') or k.startswith('UT · markedskost nye')]
+SIK = [k for k in LINES if k.startswith('SIKKER')]; SAN = [k for k in LINES if k.startswith('SANNSYNLIG') or k.startswith('UT · meglerprovisjon sannsynlig') or k.startswith('UT · Sindre provisjon sannsynlig')]
+PL = [k for k in LINES if k.startswith('PLAN') or k.startswith('UT · meglerprovisjon plan') or k.startswith('UT · Sindre provisjon plan') or k.startswith('UT · markedskost nye')]
 UT = [k for k in LINES if k.startswith('UT') and k not in SAN and k not in PL]
 run_d, run_b, run_p = bank, bank, bank; curve = []
 for m in months:
@@ -320,7 +323,8 @@ for m in months:
 
 print(f'Bank i dag ({kilde}): {bank:,.0f}   · bokført 1920 i saldobalansen {TB_DATO}: {TB.get(1920,0):,.0f}')
 print(f'SALDOBALANSE → cash: kundefordringer 1500 {TB.get(1500,0):,.0f} · leverandørgjeld 2400 {TB.get(2400,0):,.0f} · skyldig AGA 2770 {TB.get(2770,0):,.0f} · mva-posisjon 27xx {MVA_POS:,.0f} (herav inneværende termin {sep_mva:,.0f})')
-print(f'  feriepenger 2026 beregnet hittil: ' + ', '.join(f'{k} {v:,.0f}' for k, v in FP_HITTIL.items()) + f' = {sum(FP_HITTIL.values()):,.0f} (saldo 2940 sier {-TB.get(2940,0):,.0f} — Sindre: feil, inkluderer gamle ansatte/Philip)')
+print(f'  Sindre: utbetalt 2026 {PAR["sindre_utbetalt_2026"]:,.0f} → modell {PAR["sindre_modell"]}, akk. ved årsslutt 2026 {SINDRE_AKK[2026]:,.0f} (tak {PAR["sindre_tak_aar"]:,.0f}, holdt tilbake over taket {SINDRE_KUTT[2026]:,.0f}) · 2027 t.o.m. juni {SINDRE_AKK[2027]:,.0f}')
+print(f'  feriepenger til gode 2026 (GO-rapport 10.9): ' + ', '.join(f'{k} {v:,.0f}' for k, v in FP_HITTIL.items()) + f' = {sum(FP_HITTIL.values()):,.0f} + påløp {FP_ACC:,.0f} (saldo 2940 {-TB.get(2940,0):,.0f} inkl. gamle ansatte — ses bort fra) · Sindre-modell: {PAR["sindre_modell"]}')
 print(f'  skyldige feriepenger 2940 {TB.get(2940,0):,.0f} (+AGA 2785 {TB.get(2785,0):,.0f}) · avsatt utbytte 2800 {TB.get(2800,0):,.0f} · annen kortsiktig gjeld 2990 {TB.get(2990,0):,.0f} · billån 2242 {TB.get(2242,0):,.0f} · betalbar skatt 2500 {TB.get(2500,0):,.0f}')
 print(f'  drift 6xxx+7xxx YTD {drift_ytd:,.0f} → {DRIFT_MND:,.0f}/mnd · direkte netto {DIREKTE_MND:,.0f}/mnd · personal annet {PERSONAL_ANNET_MND:,.0f}/mnd · lønn 5000 YTD {TB.get(5000,0):,.0f}')
 if not PAR['utbytte_avsatt']['dato']: print(f'  ⚠ AVSATT UTBYTTE {PAR["utbytte_avsatt"]["belop"]:,.0f} (konto 2800) er IKKE lagt inn — sett dato i PAR["utbytte_avsatt"] når det skal betales')
