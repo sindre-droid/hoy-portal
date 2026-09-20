@@ -120,6 +120,11 @@
   schedule = "40 * * * *"
   timeout = 26
 
+# Buy-sort-sync: timesvis — setter publisert_dato / prisreduksjon_dato på båtkort («Nyeste»-sortering + «Ny pris»-merke på /buy)
+[functions."buy-sort-sync"]
+  schedule = "30 * * * *"
+  timeout = 26
+
 # Galleri-synk: bildeopplasteren (Supabase) -> HubSpot Files (nettsidens galleri).
 # Tetter gapet som ga "bilder ikke tilgjengelig" pa nye annonser (aug 2026).
 [functions."gallery-sync"]
