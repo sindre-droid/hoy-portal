@@ -23,6 +23,7 @@ const kk = require('./klientkonto.js');
 
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' };
 const J = (status, body) => ({ statusCode: status, headers: { ...CORS, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+const KUN_ADMIN = true;   // åpnes for meglerne når modulen er verifisert (settes til false)
 const DRIFT_KONTO = process.env.DRIFT_KONTO || '1503.86.49814';
 const MEGLER = { 'sindre@h-y.no': 'Sindre', 'henrik@h-y.no': 'Henrik', 'daniel@h-y.no': 'Daniel', 'marte@h-y.no': 'Henrik', 'jeanette@h-y.no': 'Jeanette' };
 
@@ -32,6 +33,7 @@ function bruker(event) {
   const j = parseJwt(a); if (!j) return { ok: false, status: 401, error: 'Ugyldig token' };
   const email = String(j.email || '').toLowerCase(); if (!email.endsWith('@h-y.no')) return { ok: false, status: 403, error: 'Kun @h-y.no' };
   const admin = ((j.app_metadata?.roles) || []).includes('admin');
+  if (KUN_ADMIN && !admin) return { ok: false, status: 403, error: 'Modulen er foreløpig kun åpen for admin' };
   return { ok: true, email, admin, megler: MEGLER[email] || null };
 }
 const today = () => new Date().toISOString().slice(0, 10);

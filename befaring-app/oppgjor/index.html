@@ -253,7 +253,8 @@ function tegn(){
   const idx=REKKE.indexOf(r.status);
   const stegDato={kontrakt:r.kk_signert,forskudd:T.find(t=>['forskudd','innbetaling'].includes(t.koblet_type))?.bokfort_dato,innbetalt:r.innbetalt_dato,overtatt:r.op_signert,klar:r.heftelser_sjekket,fakturert:r.po_invoice_dato,utbetalt:r.selger_utbetalt_dato||r.drift_overfort_dato,oppgjort:r.status==='oppgjort'?r.status_dato:null};
   const melding=`Oppgjør ${r.navn} ${r.oppdragsnr}`;
-  const fakturaTekst=`Fakturaen er trukket i oppgjøret. Nettoprovenyet er utbetalt selger.\n\nSalgssum: kr ${nok(r.salgssum)}\nHonorar og utlegg: kr ${nok((r.provisjon_inkl||0)+jP+utleggInkl)}\nNettoproveny: kr ${nok(r.nettoproveny)}\nSelgers kontonr: ${r.selger_konto||'________'}`;
+  const kr=(n)=>Number(n||0).toLocaleString('nb-NO',{minimumFractionDigits:0,maximumFractionDigits:2}).replace(/\u00a0| /g,'.')+',-';   // samme format som fakturaene i PO: 2.600.000,-
+  const fakturaTekst=`Fakturaen er trukket i oppgjøret. Nettoprovenyet er utbetalt selger.\n\n${r.oppdragsnr} - ${r.navn}\nSalgssum: ${kr(r.salgssum)}\n\nHonorar og utlegg: ${kr((r.provisjon_inkl||0)+jP+utleggInkl)}\n\nUtbetalt nettoproveny: ${kr(r.nettoproveny)}\nSelgers kontonr: ${r.selger_konto||'________'}`;
   const heftTekst=`Båt: ${r.navn}\nOppdragsnr: ${r.oppdragsnr}\nKjenningssignal: ${r.kjenningssignal||'—'}\nHIN/CIN: ${r.hin||'—'}\nÅrsmodell: ${r.arsmodell||'—'}\nSelger: ${r.selger_navn||'—'}`;
   const driftBelop=r.po_invoice_belop||((r.provisjon_inkl||0)+jP+utleggInkl);
   let h=`<div class="ph"><div><h2>${esc(r.navn)} <span style="font-weight:500;opacity:.7">${r.oppdragsnr}</span></h2><div class="pid">${esc(r.selger_navn||'—')} → ${esc(r.kjoper_navn||'—')} · ${esc(meglerTxt(r))}${r.fordeling==='50/50'?' (50/50)':''} · <span class="pill ${r.status}" style="background:rgba(255,255,255,.15);color:#fff">${STATUS_NAVN[r.status]}</span></div></div><button onclick="lukk()">Lukk ✕</button></div><div class="pb">`;
