@@ -202,7 +202,7 @@ async function buildOppgjor(sb, opts = {}) {
     const paidTotal = PAID[r.oppdragsnr] || 0; const oms = Number(r.oms_eks || 0) + jP / 1.25;
     const meglere = Object.keys(shares).filter(m => P.SATS[m]);
     const marteBonus = meglere.includes('Henrik') && solgtDato >= P.MARTE_FRA;
-    const oppt = {}; for (const m of meglere) oppt[m] = Math.round(oms * shares[m] * P.SATS[m]);
+    const oppt = {}; for (const m of meglere) oppt[m] = status === 'annullert' ? 0 : Math.round(oms * shares[m] * P.SATS[m]);   // annullert salg gir ingen provisjon
     if (marteBonus) oppt.Marte = Math.round(oppt.Henrik * P.MARTE_BONUS);
     const sumOppt = Object.values(oppt).reduce((a, b) => a + b, 0);
     // utbetalt (hovedbok 5000 på prosjektet) fordeles i rekkefølgen Henrik/Daniel/Marte/Jeanette først, Sindre sist —
