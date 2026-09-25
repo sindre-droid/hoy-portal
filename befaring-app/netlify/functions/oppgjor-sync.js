@@ -71,8 +71,9 @@ async function buildOppgjor(sb, opts = {}) {
       kk_contract_id: c.id, kk_signert: (c.state_updated_time || '').slice(0, 10),
       salgssum: Number(String(f['Deal_Salgssum'] || '0').replace(/\D/g, '')) || null,
       overtakelse_avtalt: parseNoDate(f['Deal_Dato for overtakelse']),
-      selger_navn: f['Contact Fullname 1'] || [f['Contact Firstname 1'], f['Contact Lastname 1']].filter(Boolean).join(' ') || null, selger_epost: f['Contact Email 1'] || null,
-      kjoper_navn: f['Contact Fullname 2'] || [f['Contact Firstname 2'], f['Contact Lastname 2']].filter(Boolean).join(' ') || null, kjoper_epost: f['Contact Email 2'] || null,
+      // Kontakt 1 = selger, kontakt 2 = kjøper. «Fullname»-feltene er upålitelige i malen (Fullname 2 kan inneholde selger) → fornavn+etternavn først
+      selger_navn: [f['Contact Firstname 1'], f['Contact Lastname 1']].filter(Boolean).join(' ') || f['Contact Fullname 1'] || null, selger_epost: f['Contact Email 1'] || null,
+      kjoper_navn: [f['Contact Firstname 2'], f['Contact Lastname 2']].filter(Boolean).join(' ') || f['Contact Fullname 2'] || null, kjoper_epost: f['Contact Email 2'] || null,
       solgt_av: P.MEGLER[(f['Deal Owner Email'] || '').toLowerCase()] || null,
       kjenningssignal: f['Company_Kjenningssignal'] || null, hin: f['Company_HIN (CIN) nr'] || null, arsmodell: f['Company_Årsmodell'] || null,
       kilde: 'oneflow',
@@ -107,6 +108,15 @@ async function buildOppgjor(sb, opts = {}) {
     log.ark = { ok: true, rader: n };
   } catch (e) { log.ark = { ok: false, error: e.message }; }
 
+  // 3b. Importerte ark (oppgjor_ark, f.eks. 2025) — fyller der Dropbox-arket ikke har raden
+  try {
+    const { data: ark } = await sb.from('oppgjor_ark').select('*'); let n = 0;
+    for (const a of ark || []) { const r = R[a.oppdragsnr] || (R[a.oppdragsnr] = { oppdragsnr: a.oppdragsnr, navn: a.navn, kilde: 'ark' + a.aar }); if (r.ark_solgt) continue;
+      Object.assign(r, { ark_solgt: a.solgt, provisjon_inkl: a.provisjon || r.provisjon_inkl || null, oms_eks: a.oms_eks || r.oms_eks || null, oppdrag_inn: a.oppdrag_inn || r.oppdrag_inn || null, solgt_av: a.solgt_av || r.solgt_av || null, ark_oppgjort: !!a.oppgjort, ark_utbetalt: a.utbetalt || 0, salgssum: r.salgssum || a.salgssum || null });
+      if (!r.selger_navn && a.selger) r.selger_navn = a.selger; if (!r.kjoper_navn && a.kjoper) r.kjoper_navn = a.kjoper; n++; }
+    log.ark_import = { rader: n };
+  } catch (e) { log.ark_import = { error: e.message }; }
+
   // 4. PowerOffice: prosjektkoder, fakturaer, utlegg, utbetalt provisjon (5000)
   const { data: projs } = await sb.from('po_projects').select('id,code'); const codeOf = {}, idOf = {}; for (const p of projs || []) { codeOf[p.id] = p.code; idOf[p.code] = p.id; }
   const { data: inv } = await sb.from('po_outgoing_invoices').select('id,invoice_no,project_id,total_amount,net_amount,balance,voucher_date,is_reversed').gte('voucher_date', P.FRA);
@@ -127,25 +137,28 @@ async function buildOppgjor(sb, opts = {}) {
   }
 
   // 5. Klientkonto: koble innbetalinger og utbetalinger
+  await sb.from('klientkonto_transaksjon').update({ oppdragsnr: null, koblet_type: null, koblet_av: null }).eq('koblet_av', 'auto');   // auto-koblinger regnes på nytt hver gang; manuelle beholdes
   const { data: kkt } = await sb.from('klientkonto_transaksjon').select('id,bokfort_dato,belop,motpart_navn,motpart_konto,tekst,oppdragsnr,koblet_type,koblet_av').eq('konto', kk.KLIENT_BBAN).order('bokfort_dato');
   const T = kkt || []; const updates = [];
-  const norm = (s) => (s || '').toLowerCase().replace(/[^a-zæøå0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+  const norm = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/æ/g, 'ae').replace(/ø/g, 'o').replace(/å/g, 'a').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
   const nameHit = (t, r) => { const h = norm(t.motpart_navn + ' ' + t.tekst); const ln = (n) => norm(n).split(' ').filter(w => w.length > 2); return (t.tekst || '').includes(r.oppdragsnr) || ln(r.kjoper_navn).some(w => h.includes(w)) || ln(r.selger_navn).some(w => h.includes(w)); };
-  const near = (a, b, tol = P.TOLERANSE) => b > 0 && Math.abs(a - b) <= Math.max(500, b * tol);
+  const near = (a, b, tol = 0.005) => b > 0 && Math.abs(a - b) <= Math.max(100, b * tol);   // beløp må stemme nesten eksakt; forskudd (10 %) får 3 %
   for (const r of Object.values(R)) { r.innbetalt = 0; r.innbetalt_dato = null; r.selger_utbetalt = null; r.selger_utbetalt_dato = null; r.drift_overfort = null; r.drift_overfort_dato = null; r.forskudd_forventet = r.salgssum ? Math.round(r.salgssum * P.FORSKUDD_PCT) : null; }
   // allerede koblede (manuelt eller tidligere auto)
   for (const t of T) if (t.oppdragsnr && R[t.oppdragsnr]) apply(t, R[t.oppdragsnr], t.koblet_type);
   // nye koblinger: innbetalinger (+) mot forskudd / rest / fullt; utbetalinger (−) mot nettoproveny / fakturasum
   for (const t of T) {
-    if (t.oppdragsnr) continue; const amt = Number(t.belop); let best = null;
-    for (const r of Object.values(R)) { if (!r.salgssum || !r.kk_signert) continue; const dd = (new Date(t.bokfort_dato) - new Date(r.kk_signert)) / 864e5; if (dd < -30 || dd > 200) continue;
+    if (t.oppdragsnr) continue; const amt = Number(t.belop); let best = null; let kandidater = 0;
+    for (const r of Object.values(R)) { const ref = r.kk_signert || r.ark_solgt; if (!r.salgssum || !ref) continue; const dd = (new Date(t.bokfort_dato) - new Date(ref)) / 864e5; if (dd < -45 || dd > 200) continue;
       let type = null;
-      if (amt > 0) { const rest = r.salgssum - r.innbetalt; if (near(amt, r.salgssum)) type = 'fullt'; else if (near(amt, r.forskudd_forventet)) type = 'forskudd'; else if (rest > 0 && near(amt, rest)) type = 'rest'; }
-      else { const ut = -amt; if (r.po_invoice_belop && near(ut, r.po_invoice_belop, 0.01)) type = 'drift_overforing'; else if (r.nettoproveny_est && near(ut, r.nettoproveny_est, 0.02)) type = 'selger_utbetaling'; else if (r.salgssum && ut > r.salgssum * 0.5 && ut < r.salgssum) type = 'selger_utbetaling'; }
-      if (!type) continue; const score = (nameHit(t, r) ? 2 : 0) + (type === 'fullt' || type === 'drift_overforing' ? 1 : 0);
+      if (amt > 0) { const rest = r.salgssum - r.innbetalt; if (rest <= r.salgssum * 0.005) continue; /* allerede fullt innbetalt */
+        if (r.innbetalt === 0 && near(amt, r.salgssum)) type = 'fullt'; else if (r.innbetalt === 0 && near(amt, r.forskudd_forventet, P.TOLERANSE)) type = 'forskudd'; else if (r.innbetalt > 0 && near(amt, rest)) type = 'rest'; }
+      else { const ut = -amt; if (r.po_invoice_belop && !r.drift_overfort && near(ut, r.po_invoice_belop, 0.01)) type = 'drift_overforing'; else if (!r.selger_utbetalt && r.nettoproveny_est && near(ut, r.nettoproveny_est, 0.02)) type = 'selger_utbetaling'; else if (!r.selger_utbetalt && r.salgssum && ut > r.salgssum * 0.5 && ut < r.salgssum && nameHit(t, r)) type = 'selger_utbetaling'; }
+      if (!type) continue; kandidater++; const score = (nameHit(t, r) ? 2 : 0) + (['fullt', 'rest', 'drift_overforing', 'selger_utbetaling'].includes(type) ? 1 : 0);
       if (!best || score > best.score) best = { r, type, score };
     }
-    if (best && (best.score >= 1 || best.type === 'forskudd')) { apply(t, best.r, best.type); updates.push({ id: t.id, oppdragsnr: best.r.oppdragsnr, koblet_type: best.type, koblet_av: 'auto' }); }
+    // koble når navn/nr treffer, eller når beløpet er entydig (bare én kandidat) — forskudd uten navnetreff krever entydighet
+    if (best && (best.score >= 2 || kandidater === 1)) { apply(t, best.r, best.type); updates.push({ id: t.id, oppdragsnr: best.r.oppdragsnr, koblet_type: best.type, koblet_av: 'auto' }); }
   }
   function apply(t, r, type) { const amt = Number(t.belop);
     if (['forskudd', 'rest', 'fullt', 'innbetaling'].includes(type) && amt > 0) { r.innbetalt = Math.round((r.innbetalt || 0) + amt); if (r.salgssum && r.innbetalt >= r.salgssum * (1 - 0.005)) r.innbetalt_dato = r.innbetalt_dato || t.bokfort_dato; }
@@ -177,8 +190,8 @@ async function buildOppgjor(sb, opts = {}) {
     if (r.op_signert && fullt && ex.heftelser_sjekket) status = 'klar';
     if (r.po_invoice_no) status = 'fakturert';
     if (r.selger_utbetalt || r.drift_overfort) status = 'utbetalt';
-    if (r.po_invoice_betalt && (r.selger_utbetalt || r.ark_oppgjort)) status = 'oppgjort';
-    if (r.ark_oppgjort && r.po_invoice_betalt) status = 'oppgjort';
+    const gammel = r.po_invoice_dato && (new Date(today) - new Date(r.po_invoice_dato)) / 864e5 > 45;
+    if (r.po_invoice_betalt && (r.selger_utbetalt || r.ark_oppgjort || gammel)) status = 'oppgjort';
     if (ex.status === 'annullert') status = 'annullert';
     r.status = status; r.status_dato = { kontrakt: r.kk_signert, forskudd: null, innbetalt: r.innbetalt_dato, overtatt: r.op_signert, klar: ex.heftelser_sjekket, fakturert: r.po_invoice_dato, utbetalt: r.selger_utbetalt_dato || r.drift_overfort_dato, oppgjort: r.selger_utbetalt_dato || r.po_invoice_dato }[status] || null;
     // provisjon per megler
@@ -192,10 +205,14 @@ async function buildOppgjor(sb, opts = {}) {
     const oppt = {}; for (const m of meglere) oppt[m] = Math.round(oms * shares[m] * P.SATS[m]);
     if (marteBonus) oppt.Marte = Math.round(oppt.Henrik * P.MARTE_BONUS);
     const sumOppt = Object.values(oppt).reduce((a, b) => a + b, 0);
+    // utbetalt (hovedbok 5000 på prosjektet) fordeles i rekkefølgen Henrik/Daniel/Marte/Jeanette først, Sindre sist —
+    // de ansatte lønnes alltid måneden etter overtakelse, Sindre tar sitt når kassa tillater (pott). Ark-utbetalt = fallback for historikk uten prosjektbilag.
+    let rest = paidTotal; const alloc = {};
+    for (const m of Object.keys(oppt).sort((a, b) => (a === 'Sindre') - (b === 'Sindre'))) { alloc[m] = Math.min(oppt[m], Math.max(0, rest)); rest -= alloc[m]; }
+    if (rest > 0.5 && oppt.Sindre !== undefined) alloc.Sindre += rest;   // overskytende (f.eks. justeringer) legges på Sindre
     for (const [m, o] of Object.entries(oppt)) {
-      // utbetalt: hovedbok 5000 på prosjektet fordelt etter opptjent-andel (én megler = alt); ark-utbetalt som fallback for historikk
-      let utb = sumOppt > 0 ? Math.round(paidTotal * o / sumOppt) : 0; let kilde = 'hovedbok';
-      if (!paidTotal && r.ark_utbetalt && m === av) { utb = Math.round(r.ark_utbetalt); kilde = 'ark'; }
+      let utb = Math.round(alloc[m] || 0); let kilde = 'hovedbok';
+      if (!paidTotal && r.ark_utbetalt) { utb = m === av ? Math.round(Math.min(o, r.ark_utbetalt)) : (m === inn ? Math.round(Math.max(0, Math.min(o, r.ark_utbetalt - (oppt[av] || 0)))) : 0); kilde = 'ark'; }
       PROV.push({ oppdragsnr: r.oppdragsnr, megler: m, sats: m === 'Marte' ? P.MARTE_BONUS : P.SATS[m] * (shares[m] || 1), grunnlag_eks: Math.round(oms * (shares[m] || 0)), opptjent: o, utbetalt: utb, utbetalt_dato: utb ? PAID_DATO[r.oppdragsnr] || null : null, utbetalt_kilde: kilde });
     }
     // rad ut — manuelle felt fra eksisterende rad beholdes

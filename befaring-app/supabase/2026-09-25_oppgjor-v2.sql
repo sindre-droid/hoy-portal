@@ -128,7 +128,26 @@ create table if not exists public.oppgjor_provisjon (
   primary key (oppdragsnr, megler)
 );
 
-grant all on public.klientkonto_saldo, public.klientkonto_transaksjon, public.oppgjor, public.oppgjor_justering, public.oppgjor_provisjon to authenticated, anon, service_role;
+-- Importerte oppgjørsark (historikk, f.eks. 2025) — fylles av scripts/oppgjor-import-ark.py
+create table if not exists public.oppgjor_ark (
+  oppdragsnr   text primary key,
+  aar          integer,
+  navn         text,
+  selger       text,
+  kjoper       text,
+  solgt        date,
+  salgssum     numeric,
+  provisjon    numeric,
+  oms_eks      numeric,
+  oppdrag_inn  text,
+  solgt_av     text,
+  oppgjort     boolean,
+  utbetalt     numeric,
+  kilde        text,
+  importert    timestamptz default now()
+);
+
+grant all on public.oppgjor_ark, public.klientkonto_saldo, public.klientkonto_transaksjon, public.oppgjor, public.oppgjor_justering, public.oppgjor_provisjon to authenticated, anon, service_role;
 grant usage, select on sequence public.oppgjor_justering_id_seq to authenticated, anon, service_role;
 
 insert into public.po_sync_state (data_type) values ('klientkonto'), ('oppgjor') on conflict (data_type) do nothing;
