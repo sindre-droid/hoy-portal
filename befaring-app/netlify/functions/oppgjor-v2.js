@@ -86,6 +86,7 @@ exports.handler = async (event) => {
       const prov = (pv || []).filter(x => u.admin || x.megler === u.megler || (u.email === 'marte@h-y.no' && x.megler === 'Marte'));
       return J(200, { rad: r, justeringer: just || [], provisjon: prov, transaksjoner: tx || [], kandidater, drift_konto: DRIFT_KONTO, klientkonto: kk.KLIENT_BBAN, admin: u.admin });
     }
+    if (p.action === 'po') { if (!u.admin) return J(403, { error: 'Kun admin' }); const path = String(p.path || body.path || ''); if (!path.startsWith('/')) return J(400, { error: 'path' }); const r = await core.po(path); return J(200, { status: r.status, data: r.data }); }
     if (event.httpMethod !== 'POST') return J(405, { error: 'POST' });
     // ── lagre manuelle felt ──
     if (p.action === 'lagre') {
@@ -139,7 +140,6 @@ exports.handler = async (event) => {
       return J(200, { ok: true, rad });
     }
     if (p.action === 'synk_klientkonto') { if (!u.admin) return J(403, { error: 'Kun admin' }); return J(200, await kk.syncKlientkonto(sb, parseInt(p.days || '30', 10))); }
-    if (p.action === 'po') { if (!u.admin) return J(403, { error: 'Kun admin' }); const path = String(p.path || body.path || ''); if (!path.startsWith('/')) return J(400, { error: 'path' }); const r = await core.po(path); return J(200, { status: r.status, data: r.data }); }
     return J(400, { error: 'Ukjent action' });
   } catch (e) { console.error('oppgjor-v2', e); return J(500, { error: String(e.message || e) }); }
 };

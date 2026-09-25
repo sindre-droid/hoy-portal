@@ -283,7 +283,7 @@ function tegn(){
     <span class="k">− Honorar inkl. mva${r.oms_eks?` (${nok(r.oms_eks)} eks.)`:''}</span><span class="v">− ${nok(r.provisjon_inkl)}</span>
     ${jP?`<span class="k">± Justering av honorar</span><span class="v">${jP>0?'− ':'+ '}${nok(Math.abs(jP))}</span>`:''}
     <span class="k">− Utlegg ${nok(r.utlegg_eks)} eks. + ${paslag} % påslag + mva</span><span class="v">− ${nok(utleggInkl)}</span>
-    ${J.filter(j=>j.pavirker==='selger').map(j=>`<span class="k">${j.belop>0?'+':'−'} ${esc(j.type)}${j.beskrivelse?` · ${esc(j.beskrivelse)}`:''}</span><span class="v">${j.belop>0?'+ ':'− '}${nok(Math.abs(j.belop))}${` <button class="btn small sec" onclick="justSlett(${j.id})" title="Slett">✕</button>`:''}</span>`).join('')}
+    ${J.filter(j=>j.pavirker==='selger').map(j=>`<span class="k">${j.belop>0?'+':'−'} ${esc(j.type)}${j.beskrivelse?` · ${esc(j.beskrivelse)}`:''}</span><span class="v">${j.belop>0?'+ ':'− '}${nok(Math.abs(j.belop))} <button class="btn small sec" onclick="justSlett(${j.id})" title="Slett">✕</button></span>`).join('')}
     ${r.gjeld_bank_belop?`<span class="k">− Gjeld innfris til bank</span><span class="v">− ${nok(r.gjeld_bank_belop)}</span>`:''}
     <span class="k tot">Nettoproveny til selger</span><span class="v tot">${nok(r.nettoproveny)}</span></div>
     <details style="margin-top:10px"><summary style="cursor:pointer;font-size:13px;font-weight:700;color:var(--navy)">Legg til justering</summary><div class="frm">
