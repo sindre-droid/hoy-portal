@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="no"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ny pris-merke – forslag</title>
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;background:#f3f5f2;margin:0;padding:32px 16px;color:#061138}
+.wrap{max-width:1100px;margin:0 auto}
+h1{font-size:22px;color:#0B3B30;margin:0 0 6px}
+.lead{color:#6f7b91;font-size:15px;margin:0 0 28px}
+.hoy-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:30px}
+@media(max-width:900px){.hoy-grid{grid-template-columns:1fr}}
+.label{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#006362;margin:0 0 4px}
+.note{font-size:13px;color:#6f7b91;margin:0 0 12px;min-height:54px;line-height:1.45}
+/* — kopiert fra modulens CSS — */
+.hoy-card{background:#fff;border:1px solid #e0e6ed;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.hoy-card-image{width:100%;height:200px;position:relative;background:linear-gradient(175deg,#b9d3df 0%,#dfeaee 46%,#3f6f80 47%,#1f4a5a 100%)}
+.hoy-card-image:after{content:"";position:absolute;left:18%;right:22%;top:38%;height:16%;background:#fff;border-radius:4px 40px 6px 6px;box-shadow:0 8px 0 -3px #0b3b30}
+.hoy-card-content{padding:20px}
+.hoy-card-name{font-size:20px;font-weight:700;margin:0 0 10px}
+.hoy-card-details{font-size:14px;color:#6f7b91;margin:0 0 15px}
+.hoy-card-details span{display:flex}
+.hoy-card-price{font-size:18px;font-weight:700}
+.hoy-card-actions{display:flex;gap:10px;margin-top:22px}
+.button-2{flex:1;text-align:center;font-size:14px;padding:8px 6px;border-radius:3px;background:#0B3B30;color:#fff;text-decoration:none}
+.button-secondary{background:#fff;color:#0B3B30;border:1px solid #0B3B30}
+.hoy-verified-badge{position:absolute;top:10px;right:10px;background:rgba(255,255,255,.92);color:#15803d;font-size:12px;font-weight:600;line-height:1;padding:5px 8px;border-radius:20px;box-shadow:0 1px 4px rgba(0,0,0,.1);z-index:1}
+/* — NYTT — */
+.hoy-newprice-badge{position:absolute;top:10px;left:10px;background:#E3AF5B;color:#fff;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;line-height:1;padding:6px 10px;border-radius:20px;box-shadow:0 1px 4px rgba(0,0,0,.15);z-index:1}
+.hoy-newprice-badge.dark{background:#0B3B30}
+.hoy-price-old{font-size:14px;font-weight:400;color:#6f7b91;text-decoration:line-through;margin-left:8px}
+.hoy-price-tag{display:inline-block;vertical-align:middle;margin-left:8px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#9a6a17;background:#fbf1de;border-radius:20px;padding:4px 8px;line-height:1}
+</style></head><body><div class="wrap">
+<h1>«Ny pris»-merke på /buy – tre varianter</h1>
+<p class="lead">Kortene bruker nøyaktig samme CSS som dagens modul. Bildet er en plassholder. Merket vises i 14 dager etter prisreduksjonen.</p>
+<div class="hoy-grid">
+
+<div><p class="label">A · Gullmerke på bildet</p>
+<p class="note">Øverst til venstre i HoY-gull, samme form som «Solgt»-merket. «Verifisert inspeksjon» beholder plassen til høyre.</p>
+<div class="hoy-card"><div class="hoy-card-image"><span class="hoy-newprice-badge">Ny pris</span><span class="hoy-verified-badge">&#10003; Verifisert inspeksjon</span></div>
+<div class="hoy-card-content"><h3 class="hoy-card-name">Cormate Sportmate 24</h3>
+<p class="hoy-card-details"><span>Årgang / Lengde: 2015 • 24 (ft)</span><span>Type: Motorbåt</span></p>
+<div class="hoy-card-price">750 000 NOK</div>
+<div class="hoy-card-actions"><a class="button-2">Se annonse</a><a class="button-2 button-secondary">Få verdivurdering</a></div></div></div></div>
+
+<div><p class="label">B · Gullmerke + forrige pris</p>
+<p class="note">Som A, men med forrige pris gjennomstreket. Tydeligst salgssignal. Krever at forrige pris lagres i et eget felt (settes automatisk).</p>
+<div class="hoy-card"><div class="hoy-card-image"><span class="hoy-newprice-badge">Ny pris</span><span class="hoy-verified-badge">&#10003; Verifisert inspeksjon</span></div>
+<div class="hoy-card-content"><h3 class="hoy-card-name">Cormate Sportmate 24</h3>
+<p class="hoy-card-details"><span>Årgang / Lengde: 2015 • 24 (ft)</span><span>Type: Motorbåt</span></p>
+<div class="hoy-card-price">750 000 NOK<span class="hoy-price-old">845 000 NOK</span></div>
+<div class="hoy-card-actions"><a class="button-2">Se annonse</a><a class="button-2 button-secondary">Få verdivurdering</a></div></div></div></div>
+
+<div><p class="label">C · Diskret, ved prisen</p>
+<p class="note">Ingenting på bildet. Liten etikett ved siden av prisen. Roligst uttrykk, men lettere å overse i rutenettet.</p>
+<div class="hoy-card"><div class="hoy-card-image"><span class="hoy-verified-badge">&#10003; Verifisert inspeksjon</span></div>
+<div class="hoy-card-content"><h3 class="hoy-card-name">Cormate Sportmate 24</h3>
+<p class="hoy-card-details"><span>Årgang / Lengde: 2015 • 24 (ft)</span><span>Type: Motorbåt</span></p>
+<div class="hoy-card-price">750 000 NOK<span class="hoy-price-tag">Ny pris</span></div>
+<div class="hoy-card-actions"><a class="button-2">Se annonse</a><a class="button-2 button-secondary">Få verdivurdering</a></div></div></div></div>
+
+</div></div></body></html>

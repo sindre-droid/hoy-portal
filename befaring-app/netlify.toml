@@ -148,3 +148,15 @@
 
 [functions."poweroffice-nightly"]
   schedule = "30 3 * * *"
+
+# Klientkonto (DNB 1503.88.48310) via Enable Banking: saldo + transaksjoner hver time → oppgjørsmodulen viser «penger inn» per båt
+[functions."klientkonto-hourly"]
+  schedule = "5 * * * *"
+  timeout = 26
+
+[functions."klientkonto"]
+  timeout = 26
+
+# Oppgjørsregisteret (v2): bygges i poweroffice-nightly; ?action=rebuild på forespørsel (Oneflow + PO + klientkonto, ~30 s)
+[functions."oppgjor-sync"]
+  timeout = 26

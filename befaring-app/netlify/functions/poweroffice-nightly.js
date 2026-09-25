@@ -11,6 +11,8 @@ const sync = require('./poweroffice-sync.js');
 const liq = require('./poweroffice-liquidity.js');
 const dash = require('./dashboard-state.js');
 const eb = require('./enablebanking.js');
+const kk = require('./klientkonto.js');
+const opg = require('./oppgjor-sync.js');
 
 exports.handler = async () => {
   const started = Date.now();
@@ -25,6 +27,8 @@ exports.handler = async () => {
     out.trial_balance = await liq.syncTrialBalance(sb);
     out.snapshot     = out.trial_balance.ok ? await liq.computeSnapshot(sb) : { ok: false, skipped: true };
     out.bank         = await eb.refreshBalance(sb);
+    out.klientkonto  = await kk.syncKlientkonto(sb, 45);
+    try { out.oppgjor = await opg.buildOppgjor(sb); } catch (e) { out.oppgjor = { ok: false, error: e.message }; }
     out.dashboard    = await dash.buildDashboardState(sb);
   } catch (e) {
     out.fatal = e.message;
