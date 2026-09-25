@@ -3,901 +3,320 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Oppgjør — House of Yachts</title>
+  <title>Oppgjør — HoY Portal</title>
   <style>
-    :root {
-      --navy:#0a2140;--gold:#c9a84c;--white:#fff;--surface:#f5f7fa;
-      --gray:#dde3ec;--gray-dark:#6b7a8d;--text:#12233a;
-      --green:#166534;--green-bg:#dcfce7;
-      --red:#991b1b;--red-bg:#fee2e2;
-      --yellow:#92400e;--yellow-bg:#fef3c7;
-      --blue:#1e40af;--blue-bg:#dbeafe;
-      --radius:12px;--shadow:0 2px 16px rgba(10,33,64,0.10);
-    }
+    :root{--navy:#0a2140;--gold:#c9a84c;--white:#fff;--surface:#f5f7fa;--gray:#dde3ec;--gray-dark:#6b7a8d;--text:#12233a;--green:#166534;--green-bg:#dcfce7;--red:#991b1b;--red-bg:#fee2e2;--amber:#92400e;--amber-bg:#fef3c7;--blue:#1d4ed8;--blue-bg:#e0edff;--radius:12px}
     *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--surface);color:var(--text);margin:0;padding:0;min-height:100vh}
-
-    .loading-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy)}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--surface);color:var(--text);margin:0;min-height:100vh;-webkit-font-smoothing:antialiased}
+    .loading-screen,.login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy)}
     .loading-text{color:rgba(255,255,255,0.5);font-size:15px}
-    .auth-error{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy);display:none}
-    .auth-error-box{background:white;border-radius:16px;padding:40px;text-align:center;max-width:400px}
-    .auth-error-box h2{color:var(--red);margin:0 0 12px}
-    .auth-error-box p{color:var(--gray-dark);margin:0 0 20px}
-
-    .header{background:var(--navy);color:white;padding:14px 20px;position:sticky;top:0;z-index:200;box-shadow:0 2px 16px rgba(0,0,0,0.35)}
-    .header-inner{max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .login-box{background:white;border-radius:20px;padding:40px 36px;max-width:400px;width:calc(100% - 32px);text-align:center;box-shadow:0 8px 40px rgba(0,0,0,0.3)}
+    .login-logo{font-size:22px;font-weight:800;color:var(--navy);margin-bottom:4px}
+    .login-sub{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:28px}
+    .login-form{display:flex;flex-direction:column;gap:12px;text-align:left;margin-bottom:8px}
+    .login-form label{font-size:13px;font-weight:600;color:var(--navy);display:block;margin-bottom:4px}
+    .login-form input{width:100%;padding:13px 15px;border:2px solid var(--gray);border-radius:10px;font-size:16px;font-family:inherit}
+    .btn-login{width:100%;padding:15px;background:var(--navy);color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer}
+    .login-error{color:var(--red);font-size:13px;font-weight:600;margin-top:10px;display:none}
+    .header{background:var(--navy);color:white;padding:14px 20px;position:sticky;top:0;z-index:200}
+    .header-inner{max-width:1040px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:10px}
     .brand{display:flex;flex-direction:column}
-    .brand-name{font-size:14px;font-weight:800;letter-spacing:0.8px}
-    .brand-sub{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--gold)}
-    .header-title{font-size:16px;font-weight:700;color:rgba(255,255,255,0.9)}
-    .header-right{display:flex;align-items:center;gap:12px}
-    .btn-nav{background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.18);border-radius:20px;color:rgba(255,255,255,0.85);padding:6px 14px;font-size:12px;font-family:inherit;cursor:pointer;text-decoration:none}
-    .btn-nav:hover{background:rgba(255,255,255,0.2)}
-
-    .main{max-width:1100px;margin:0 auto;padding:24px 16px 80px}
-
-    /* ── Summary cards ── */
-    .summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:24px}
-    .summary-card{background:white;border-radius:14px;padding:20px;box-shadow:var(--shadow)}
-    .summary-label{font-size:12px;font-weight:600;color:var(--gray-dark);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
-    .summary-value{font-size:24px;font-weight:800;color:var(--navy)}
-    .summary-sub{font-size:12px;color:var(--gray-dark);margin-top:4px}
-
-    /* ── Toolbar ── */
-    .toolbar{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
-    .year-select{background:white;border:2px solid var(--gray);border-radius:10px;padding:10px 16px;font-size:14px;font-weight:600;font-family:inherit;color:var(--navy);cursor:pointer}
-    .btn-primary{background:var(--navy);color:white;border:none;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
-    .btn-primary:hover{opacity:0.88}
-    .btn-secondary{background:white;color:var(--navy);border:2px solid var(--gray);border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
-    .btn-secondary:hover{background:var(--surface)}
-    .toolbar-spacer{flex:1}
-    .search-input{background:white;border:2px solid var(--gray);border-radius:10px;padding:10px 16px;font-size:13px;font-family:inherit;min-width:200px}
-
-    /* ── Table ── */
-    .table-wrap{background:white;border-radius:14px;box-shadow:var(--shadow);overflow-x:auto;overscroll-behavior-x:contain}
-    table{width:100%;border-collapse:collapse;font-size:13px}
-    th{background:var(--surface);font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:0.5px;color:var(--gray-dark);padding:12px 14px;text-align:left;white-space:nowrap;position:sticky;top:0}
-    td{padding:12px 14px;border-top:1px solid var(--gray);vertical-align:middle;white-space:nowrap}
-    tr:hover td{background:rgba(10,33,64,0.02)}
-    tr.row-settled td{opacity:0.6}
-    .text-right{text-align:right}
-    .text-center{text-align:center}
-
-    .badge{display:inline-block;padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700}
-    .badge-green{background:var(--green-bg);color:var(--green)}
-    .badge-yellow{background:var(--yellow-bg);color:var(--yellow)}
-    .badge-blue{background:var(--blue-bg);color:var(--blue)}
-    .badge-red{background:var(--red-bg);color:var(--red)}
-
-    .btn-sm{background:transparent;border:1px solid var(--gray);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--text)}
-    .btn-sm:hover{background:var(--surface)}
-    .btn-expand{background:none;border:none;cursor:pointer;font-size:16px;padding:2px 6px;transition:transform 0.2s}
-    .btn-expand.open{transform:rotate(90deg)}
-
-    /* ── Detail panel (utenfor tabellen) ── */
-    .detail-panel{background:white;border-radius:14px;box-shadow:var(--shadow);padding:24px;margin-top:-4px;margin-bottom:16px;border-top:3px solid var(--gold)}
-    .detail-inner{display:grid;grid-template-columns:1fr 1fr;gap:24px}
-    .detail-section h4{font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:var(--gray-dark);margin:0 0 10px}
-    .detail-field{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--gray)}
-    .detail-field-label{color:var(--gray-dark);font-weight:600}
-    .detail-field-value{font-weight:600;color:var(--text)}
-
-    .payments-list{margin-top:10px}
-    .payment-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:12px;border-bottom:1px solid var(--gray)}
-    .payment-row .amount{font-weight:700}
-    .payment-row .delete-btn{color:var(--red);cursor:pointer;font-size:11px;border:none;background:none;font-weight:600}
-
-    .btn-add-payment{background:var(--green-bg);color:var(--green);border:1px solid var(--green);border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px}
-
-    /* ── Modal ── */
-    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center}
-    .modal-overlay.open{display:flex}
-    .modal{background:white;border-radius:16px;padding:28px;max-width:560px;width:calc(100% - 32px);max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
-    .modal h3{margin:0 0 20px;font-size:18px;color:var(--navy)}
-    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-    .form-group{display:flex;flex-direction:column;gap:4px}
-    .form-group.full{grid-column:1/-1}
-    .form-group label{font-size:12px;font-weight:700;color:var(--gray-dark);text-transform:uppercase;letter-spacing:0.3px}
-    .form-group input,.form-group select,.form-group textarea{border:2px solid var(--gray);border-radius:10px;padding:10px 14px;font-size:14px;font-family:inherit;color:var(--text)}
-    .form-group input:focus,.form-group select:focus{border-color:var(--navy);outline:none}
-    .form-group textarea{resize:vertical;min-height:60px}
-    .modal-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end}
-
-    /* ── Broker summary cards ── */
-    .broker-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:20px}
-    .broker-card{background:white;border-radius:14px;padding:20px;box-shadow:var(--shadow)}
-    .broker-name{font-size:16px;font-weight:800;color:var(--navy);margin-bottom:12px}
-    .broker-stat{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--gray)}
-    .broker-stat-label{color:var(--gray-dark)}
-    .broker-stat-value{font-weight:700}
-
-    /* ── Import panel ── */
-    .import-panel{background:white;border-radius:14px;box-shadow:var(--shadow);padding:24px;margin-bottom:20px;display:none}
-    .import-panel.open{display:block}
-    .import-list{max-height:300px;overflow-y:auto}
-    .import-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--gray)}
-    .import-item-info{display:flex;flex-direction:column;gap:2px}
-    .import-item-name{font-weight:700;font-size:14px}
-    .import-item-meta{font-size:12px;color:var(--gray-dark)}
-    .btn-import-deal{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue);border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
-    .btn-import-deal:disabled{opacity:0.4;cursor:not-allowed}
-
-    /* ── Seller settlement panel ── */
-    .seller-panel{background:white;border-radius:12px;border:2px solid var(--gray);padding:16px}
-    .seller-panel h4{font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:var(--gold);margin:0 0 12px;font-weight:800}
-    .avregning-line{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--gray);gap:12px}
-    .avregning-line.total{border-top:2px solid var(--navy);border-bottom:none;padding-top:10px;margin-top:4px;font-weight:800;font-size:14px;color:var(--navy)}
-    .avregning-line.subtotal{font-weight:700;color:var(--gray-dark)}
-    .avregning-label{color:var(--gray-dark);min-width:0}
-    .avregning-value{font-weight:700;white-space:nowrap;text-align:right}
-    .avregning-value.negative{color:var(--red)}
-    .avregning-value.positive{color:var(--green)}
-
-    .adj-item{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px}
-    .adj-item .adj-desc{color:var(--text);flex:1}
-    .adj-item .adj-amount{font-weight:700;margin:0 8px}
-    .adj-item .adj-cat{font-size:10px;color:var(--gray-dark);margin-right:8px}
-    .adj-item .adj-delete{color:var(--red);cursor:pointer;font-size:11px;border:none;background:none;font-weight:600;padding:2px 4px}
-
-    .btn-add-adj{background:var(--yellow-bg);color:var(--yellow);border:1px solid var(--yellow);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px}
-
-    .payout-status-row{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
-    .payout-status-row .badge{font-size:12px;padding:4px 12px}
-
-    .empty-state{text-align:center;padding:60px 20px;color:var(--gray-dark)}
-    .empty-icon{font-size:40px;margin-bottom:12px}
-
-    @media(max-width:700px){
-      .form-grid{grid-template-columns:1fr}
-      .detail-inner{grid-template-columns:1fr}
-      .summary-grid{grid-template-columns:1fr 1fr}
-    }
+    .brand a{color:rgba(255,255,255,0.55);font-size:11px;text-decoration:none;margin-bottom:2px}
+    .brand-name{font-size:15px;font-weight:800;letter-spacing:0.8px}
+    .btn-logout{background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.18);border-radius:20px;color:rgba(255,255,255,0.85);padding:6px 14px;font-size:12px;font-family:inherit;cursor:pointer}
+    .wrap{max-width:1040px;margin:0 auto;padding:22px 16px 90px}
+    h1{font-size:22px;color:var(--navy);margin:0 0 4px}
+    .sub{font-size:13px;color:var(--gray-dark);margin:0 0 18px}
+    .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:18px}
+    .kpi{background:white;border:2px solid var(--gray);border-radius:14px;padding:12px 14px}
+    .kpi .l{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gray-dark)}
+    .kpi .v{font-size:20px;font-weight:800;color:var(--navy);margin-top:3px}
+    .kpi .s{font-size:12px;color:var(--gray-dark);margin-top:2px}
+    .kpi.warn{border-color:#f5d78e;background:#fffbeb}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+    .toolbar input[type=search]{flex:1;min-width:180px;padding:10px 14px;border:2px solid var(--gray);border-radius:10px;font-size:15px;font-family:inherit;background:white}
+    .seg{display:flex;background:white;border:2px solid var(--gray);border-radius:10px;overflow:hidden}
+    .seg button{border:none;background:none;padding:9px 13px;font-size:13px;font-weight:600;color:var(--gray-dark);cursor:pointer;font-family:inherit}
+    .seg button.on{background:var(--navy);color:white}
+    .section-label{font-size:12px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--gray-dark);margin:18px 0 8px;display:flex;justify-content:space-between;align-items:baseline}
+    .section-label .n{font-weight:600;letter-spacing:0;text-transform:none;font-size:12px}
+    .card{background:white;border:2px solid var(--gray);border-radius:14px;overflow:hidden;margin-bottom:14px}
+    .row{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:12px 16px;border-bottom:1px solid var(--gray);cursor:pointer}
+    .row:last-child{border-bottom:none}
+    .row:hover{background:var(--surface)}
+    .row .navn{font-weight:700;font-size:14px;color:var(--navy)}
+    .row .navn small{font-weight:600;color:var(--gray-dark);margin-left:6px}
+    .row .meta{font-size:12px;color:var(--gray-dark)}
+    .row .neste{font-size:13px;color:var(--text);margin-top:2px}
+    .row .neste b{color:var(--navy)}
+    .row .hoyre{text-align:right;white-space:nowrap}
+    .row .sum{font-size:14px;font-weight:700;color:var(--navy)}
+    .pill{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;border-radius:20px;padding:3px 9px;background:var(--gray);color:var(--text)}
+    .pill.kontrakt{background:var(--gray)} .pill.forskudd{background:var(--blue-bg);color:var(--blue)} .pill.innbetalt{background:var(--blue-bg);color:var(--blue)}
+    .pill.overtatt{background:var(--amber-bg);color:var(--amber)} .pill.klar{background:var(--amber-bg);color:var(--amber)} .pill.fakturert{background:#ede9fe;color:#5b21b6}
+    .pill.utbetalt{background:var(--green-bg);color:var(--green)} .pill.oppgjort{background:var(--green-bg);color:var(--green)} .pill.annullert{background:var(--red-bg);color:var(--red)}
+    .bar{height:5px;background:var(--gray);border-radius:3px;overflow:hidden;margin-top:6px;width:120px;margin-left:auto}
+    .bar i{display:block;height:100%;background:var(--green)}
+    .empty{padding:26px 16px;text-align:center;color:var(--gray-dark);font-size:14px}
+    /* panel */
+    .overlay{position:fixed;inset:0;background:rgba(10,33,64,0.55);display:none;align-items:flex-end;justify-content:center;z-index:300}
+    .overlay.open{display:flex}
+    .panel{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:820px;max-height:94vh;overflow-y:auto;padding:0 0 40px}
+    @media(min-width:900px){.overlay{align-items:center}.panel{border-radius:20px;max-height:92vh}}
+    .ph{position:sticky;top:0;background:var(--navy);color:white;padding:16px 20px;z-index:2;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+    .ph h2{font-size:18px;margin:0}
+    .ph .pid{font-size:12px;color:rgba(255,255,255,.7);margin-top:3px}
+    .ph button{background:rgba(255,255,255,.12);border:none;color:white;border-radius:20px;padding:6px 12px;font-family:inherit;font-size:12px;cursor:pointer}
+    .pb{padding:14px 16px}
+    .blk{background:white;border:2px solid var(--gray);border-radius:14px;padding:14px 16px;margin-bottom:12px}
+    .blk h3{font-size:12px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--gray-dark);margin:0 0 10px;display:flex;justify-content:space-between;align-items:center}
+    .blk h3 .st{font-size:11px;letter-spacing:0;text-transform:none;font-weight:600}
+    .kv{display:grid;grid-template-columns:1fr auto;gap:5px 14px;font-size:14px}
+    .kv .k{color:var(--gray-dark)} .kv .v{text-align:right;font-weight:600;color:var(--navy);white-space:nowrap}
+    .kv .tot{border-top:2px solid var(--navy);padding-top:6px;margin-top:4px;font-weight:800;font-size:15px}
+    .steps{display:flex;gap:4px;overflow-x:auto;padding-bottom:4px}
+    .step{flex:1;min-width:88px;text-align:center;font-size:11px;color:var(--gray-dark);padding:8px 4px;border-radius:8px;background:var(--surface);border:1px solid var(--gray)}
+    .step.done{background:var(--green-bg);color:var(--green);border-color:#a7dfb9}
+    .step.now{background:var(--navy);color:white;border-color:var(--navy)}
+    .step b{display:block;font-size:12px}
+    .step span{display:block;font-size:10px;opacity:.8;margin-top:2px}
+    .tx{display:grid;grid-template-columns:70px 1fr auto auto;gap:8px;align-items:center;font-size:13px;padding:7px 0;border-bottom:1px solid var(--gray)}
+    .tx:last-child{border-bottom:none}
+    .tx .d{color:var(--gray-dark);font-size:12px} .tx .a{font-weight:700;text-align:right;white-space:nowrap} .tx .a.inn{color:var(--green)} .tx .a.ut{color:var(--red)}
+    .tx .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .tx .n small{display:block;color:var(--gray-dark);font-size:11px;white-space:normal}
+    .tag{font-size:10px;font-weight:700;border-radius:4px;padding:2px 6px;background:var(--gray);color:var(--text);text-transform:uppercase;letter-spacing:.3px}
+    .btn{border:none;border-radius:9px;padding:9px 14px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;background:var(--navy);color:white}
+    .btn.sec{background:var(--surface);color:var(--navy);border:2px solid var(--gray)}
+    .btn.small{padding:5px 10px;font-size:12px;border-radius:7px}
+    .btn.danger{background:var(--red-bg);color:var(--red)}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .copy{background:var(--surface);border:1px dashed var(--gray);border-radius:10px;padding:10px 12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;white-space:pre-wrap;line-height:1.55;position:relative}
+    .copy button{position:absolute;top:8px;right:8px}
+    .inp{width:100%;padding:9px 11px;border:2px solid var(--gray);border-radius:9px;font-size:14px;font-family:inherit;background:white}
+    .inp:focus,.toolbar input:focus{outline:none;border-color:var(--navy)}
+    textarea.inp{min-height:64px;resize:vertical}
+    .frm{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+    .frm .full{grid-column:1/-1}
+    label.chk{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--navy);cursor:pointer}
+    label.chk input{width:18px;height:18px}
+    .hint{font-size:12px;color:var(--gray-dark);margin-top:6px;line-height:1.45}
+    .warnbox{background:var(--amber-bg);color:var(--amber);border-radius:9px;padding:9px 12px;font-size:13px;margin-top:8px}
+    .okbox{background:var(--green-bg);color:var(--green);border-radius:9px;padding:9px 12px;font-size:13px;margin-top:8px}
+    .pay{border:2px solid var(--gray);border-radius:12px;padding:10px 12px;margin-top:8px}
+    .pay .t{font-size:12px;font-weight:700;color:var(--gray-dark);text-transform:uppercase;letter-spacing:.8px;display:flex;justify-content:space-between}
+    .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--navy);color:white;padding:10px 18px;border-radius:20px;font-size:13px;font-weight:600;z-index:500;display:none}
+    .ukoblet .tx{grid-template-columns:70px 1fr auto}
   </style>
 </head>
 <body>
-  <div class="loading-screen" id="loadingScreen">
-    <div class="loading-text">Laster oppgjør…</div>
-  </div>
-  <div class="auth-error" id="authError">
-    <div class="auth-error-box">
-      <h2>Ingen tilgang</h2>
-      <p>Du må være logget inn for å se oppgjør.</p>
-      <a href="/">← Tilbake til portal</a>
+<div id="loadingScreen" class="loading-screen"><div class="loading-text">Starter…</div></div>
+<div id="loginScreen" class="login-screen" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">House of Yachts</div>
+    <div class="login-sub">Oppgjør</div>
+    <div class="login-form">
+      <div><label>E-post</label><input id="loginEmail" type="email" autocomplete="username" placeholder="deg@h-y.no"></div>
+      <div><label>Passord</label><input id="loginPassword" type="password" autocomplete="current-password"></div>
     </div>
+    <button class="btn-login" id="loginBtn" onclick="doLogin()">🔐 Logg inn</button>
+    <div class="login-error" id="loginError"></div>
   </div>
-
-  <div id="app" style="display:none">
-    <header class="header">
-      <div class="header-inner">
-        <div class="brand">
-          <span class="brand-name">HOUSE OF YACHTS</span>
-          <span class="brand-sub">Internportal</span>
-        </div>
-        <div class="header-title">Oppgjør</div>
-        <div class="header-right">
-          <a href="/budmodul/" class="btn-nav">Budmodul</a>
-          <a href="/oppdragsnummer/" class="btn-nav">Oppdragsnr</a>
-          <a href="/" class="btn-nav">Hjem</a>
-        </div>
+</div>
+<div id="appScreen" style="display:none">
+  <div class="header"><div class="header-inner">
+    <div class="brand"><a href="/">← Portal</a><span class="brand-name">Oppgjør</span></div>
+    <button class="btn-logout" onclick="doLogout()">Logg ut</button>
+  </div></div>
+  <div class="wrap">
+    <h1>Solgte båter — fra kontrakt til oppgjort</h1>
+    <p class="sub">Kjøpekontrakt og protokoll fra Oneflow, kjøpers penger lest rett fra klientkontoen, utlegg og faktura fra PowerOffice. Klikk en båt for avregning og det som mangler.</p>
+    <div class="kpis" id="kpis"></div>
+    <div class="toolbar">
+      <input type="search" id="sok" placeholder="Søk båt, nr, selger, kjøper …" oninput="render()">
+      <div class="seg" id="visning">
+        <button data-v="aktive" class="on" onclick="setVis('aktive')">Aktive</button>
+        <button data-v="oppgjort" onclick="setVis('oppgjort')">Oppgjort</button>
+        <button data-v="alle" onclick="setVis('alle')">Alle</button>
       </div>
-    </header>
-
-    <div class="main">
-      <!-- Summary -->
-      <div class="summary-grid" id="summaryGrid"></div>
-
-      <!-- Toolbar -->
-      <div class="toolbar">
-        <select class="year-select" id="yearSelect" onchange="loadYear()">
-          <option value="2026">2026</option>
-          <option value="2025">2025</option>
-          <option value="2024">2024</option>
-          <option value="2023">2023</option>
-        </select>
-        <input type="text" class="search-input" id="searchInput" placeholder="Søk båt, selger, kjøper…" oninput="filterTable()">
-        <div class="toolbar-spacer"></div>
-        <button class="btn-secondary" onclick="toggleImport()">⬇ Importer fra HubSpot</button>
-        <button class="btn-primary" onclick="openCreateModal()">+ Nytt oppgjør</button>
-      </div>
-
-      <!-- Import panel -->
-      <div class="import-panel" id="importPanel">
-        <h3 style="margin:0 0 14px;font-size:15px;color:var(--navy)">Solgte deals i HubSpot uten oppgjør</h3>
-        <div id="importList" class="import-list">
-          <div style="color:var(--gray-dark);font-size:13px">Laster…</div>
-        </div>
-      </div>
-
-      <!-- Table -->
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th></th>
-              <th>Nr</th>
-              <th>Båttype</th>
-              <th>Solgt dato</th>
-              <th class="text-right">Omsetning</th>
-              <th>Megler</th>
-              <th>Splitt</th>
-              <th class="text-right">Meglerlønn</th>
-              <th class="text-right">Utbetalt</th>
-              <th class="text-right">Utestående</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="tableBody"></tbody>
-        </table>
-      </div>
-
-      <!-- Detail panel (utenfor tabellen) -->
-      <div id="detailPanel" class="detail-panel" style="display:none"></div>
-
-      <!-- Broker summary -->
-      <div class="broker-grid" id="brokerGrid"></div>
+      <div class="seg" id="meglerSeg" style="display:none"></div>
     </div>
+    <div id="liste"></div>
+    <div id="ukoblet"></div>
   </div>
-
-  <!-- Create/Edit modal -->
-  <div class="modal-overlay" id="modal">
-    <div class="modal">
-      <h3 id="modalTitle">Nytt oppgjør</h3>
-      <div class="form-grid">
-        <div class="form-group"><label>Oppdragsnr</label><input id="f_oppdragsnr"></div>
-        <div class="form-group"><label>Båttype</label><input id="f_boat_type" required></div>
-        <div class="form-group"><label>Selger</label><input id="f_seller_name"></div>
-        <div class="form-group"><label>Kjøper</label><input id="f_buyer_name"></div>
-        <div class="form-group"><label>Solgt dato</label><input id="f_sold_date" type="date"></div>
-        <div class="form-group"><label>Salgssum</label><input id="f_sale_amount" type="number"></div>
-        <div class="form-group"><label>Provisjon (inkl. mva)</label><input id="f_commission" type="number" oninput="calcPreview()"></div>
-        <div class="form-group"><label>Omsetning ex. mva</label><input id="f_revenue_ex_vat" type="number" placeholder="Auto: provisjon ÷ 1.25"></div>
-        <div class="form-group"><label>Oppdrag inn</label>
-          <select id="f_assigned_by" onchange="calcPreview()"><option value="">Velg…</option><option>Sindre</option><option>Henrik</option><option>Daniel</option><option>Jeanette</option></select>
-        </div>
-        <div class="form-group"><label>Solgt av</label>
-          <select id="f_sold_by" onchange="calcPreview()"><option value="">Velg…</option><option>Sindre</option><option>Henrik</option><option>Daniel</option><option>Jeanette</option></select>
-        </div>
-        <div class="form-group"><label>Splitt-modell</label>
-          <select id="f_split_model" onchange="calcPreview()">
-            <option value="">Auto (basert på meglere)</option>
-            <option value="solo_45">Sindre alene (45%)</option>
-            <option value="solo_40">Megler alene (40%)</option>
-            <option value="split_50_50">50/50 splitt (2×20%)</option>
-            <option value="vip_10">VIP/Visning (45%+10%)</option>
-          </select>
-        </div>
-        <div class="form-group"><label>Visningsmegler / Splittpartner</label><input id="f_split_broker" placeholder="Kun ved splitt"></div>
-        <div class="form-group"><label>Meglerlønn (beregnet)</label><input id="f_broker_share" type="number" placeholder="Auto"></div>
-        <div class="form-group"><label>Megler 2 lønn</label><input id="f_broker2_share" type="number" placeholder="Auto"></div>
-        <div class="form-group"><label>Prov.fradrag (inkl. mva)</label><input id="f_commission_deduction" type="number" value="0" placeholder="F.eks. retur kjøper" oninput="calcPreview()"></div>
-        <div class="form-group"><label>Prov.fradrag notat</label><input id="f_commission_deduction_note" placeholder="Retur kjøper, etc."></div>
-        <div class="form-group"><label>Ekstra +/-</label><input id="f_extra" type="number" value="0"></div>
-        <div class="form-group"><label>Ekstra notat</label><input id="f_extra_note"></div>
-        <div class="form-group"><label>Oppdragskilde</label><input id="f_source" placeholder="Cold Outreach, Finn.no, etc."></div>
-        <div class="form-group"><label>Status</label>
-          <select id="f_status"><option value="pending">Uoppgjort</option><option value="settled">Oppgjort</option></select>
-        </div>
-        <div class="form-group full"><label>Notater</label><textarea id="f_notes"></textarea></div>
-      </div>
-      <div id="calcPreviewBox" style="margin-top:14px;padding:12px 16px;background:var(--surface);border-radius:10px;font-size:13px;display:none">
-        <strong>Forhåndsvisning:</strong> <span id="calcPreviewText"></span>
-      </div>
-      <input type="hidden" id="f_id">
-      <input type="hidden" id="f_deal_id">
-      <div class="modal-actions">
-        <button class="btn-secondary" onclick="closeModal()">Avbryt</button>
-        <button class="btn-primary" id="modalSaveBtn" onclick="saveSettlement()">Lagre</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Payment modal -->
-  <div class="modal-overlay" id="paymentModal">
-    <div class="modal" style="max-width:400px">
-      <h3>Registrer utbetaling</h3>
-      <div class="form-grid" style="grid-template-columns:1fr">
-        <div class="form-group"><label>Til (megler)</label><input id="p_payee"></div>
-        <div class="form-group"><label>Beløp</label><input id="p_amount" type="number"></div>
-        <div class="form-group"><label>Dato</label><input id="p_paid_at" type="date"></div>
-        <div class="form-group"><label>Notat</label><input id="p_note" placeholder="Valgfritt"></div>
-      </div>
-      <input type="hidden" id="p_settlement_id">
-      <div class="modal-actions">
-        <button class="btn-secondary" onclick="closePaymentModal()">Avbryt</button>
-        <button class="btn-primary" onclick="savePayment()">Registrer</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Adjustment modal -->
-  <div class="modal-overlay" id="adjModal">
-    <div class="modal" style="max-width:440px">
-      <h3>Legg til justeringslinje</h3>
-      <div class="form-grid" style="grid-template-columns:1fr">
-        <div class="form-group"><label>Beskrivelse</label><input id="a_description" placeholder="Arbeid, kjøring, skade, kompensasjon…"></div>
-        <div class="form-group"><label>Beløp (NOK)</label><input id="a_amount" type="number" placeholder="Positivt tall"></div>
-        <div class="form-group"><label>Inkl. mva?</label>
-          <select id="a_includes_vat"><option value="false">Nei</option><option value="true">Ja</option></select>
-        </div>
-        <div class="form-group"><label>Kategori</label>
-          <select id="a_category">
-            <option value="deduction">Fradrag (trekkes fra selger)</option>
-            <option value="addition">Tillegg (tillegg til selger)</option>
-            <option value="withheld">Tilbakeholdt (betales senere)</option>
-            <option value="buyer_return">Retur kjøper</option>
-          </select>
-        </div>
-      </div>
-      <input type="hidden" id="a_settlement_id">
-      <div class="modal-actions">
-        <button class="btn-secondary" onclick="closeAdjModal()">Avbryt</button>
-        <button class="btn-primary" onclick="saveAdjustment()">Legg til</button>
-      </div>
-    </div>
-  </div>
-
+</div>
+<div class="overlay" id="overlay" onclick="if(event.target===this)lukk()"><div class="panel" id="panel"></div></div>
+<div class="toast" id="toast"></div>
 <script>
-const API = '/.netlify/functions/oppgjor';
-let TOKEN = null;
-let settlements = [];
-let currentYear = 2026;
-
-// ── Auth ──
-function getToken() {
-  return localStorage.getItem('hoy_access_token');
+const IDENTITY = location.origin + '/.netlify/identity';
+const API = '/.netlify/functions/oppgjor-v2';
+const $ = (id) => document.getElementById(id);
+let accessToken = null, D = null, vis = 'aktive', megler = 'alle', DET = null;
+function showScreen(id){['loadingScreen','loginScreen','appScreen'].forEach(s=>$(s).style.display='none');$(id).style.display=(id==='appScreen')?'block':'flex';}
+window.addEventListener('DOMContentLoaded', async () => {
+  const tok = localStorage.getItem('hoy_access_token');
+  if (tok) { try { const r = await fetch(`${IDENTITY}/user`, { headers: { Authorization: `Bearer ${tok}` } }); if (!r.ok) throw 0; accessToken = tok; onLogin(); return; } catch { localStorage.removeItem('hoy_access_token'); } }
+  showScreen('loginScreen');
+});
+async function doLogin(){
+  const err=$('loginError');err.style.display='none'; const btn=$('loginBtn');btn.disabled=true;btn.textContent='Logger inn…';
+  try{ const r=await fetch(`${IDENTITY}/token`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:`grant_type=password&username=${encodeURIComponent($('loginEmail').value.trim())}&password=${encodeURIComponent($('loginPassword').value)}`});
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error_description||'Feil passord eller e-post');}
+    accessToken=(await r.json()).access_token; localStorage.setItem('hoy_access_token',accessToken); onLogin();
+  }catch(e){err.textContent=e.message;err.style.display='block';btn.disabled=false;btn.textContent='🔐 Logg inn';}
 }
-
-async function apiFetch(url, opts = {}) {
-  const res = await fetch(url, {
-    ...opts,
-    headers: { ...opts.headers, Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || res.statusText);
-  }
-  return res.json();
+function doLogout(){localStorage.removeItem('hoy_access_token');location.reload();}
+async function api(params, body){
+  const r=await fetch(`${API}?${new URLSearchParams(params)}`,{method:body?'POST':'GET',headers:{Authorization:`Bearer ${accessToken}`,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined});
+  const d=await r.json().catch(()=>({error:'Ugyldig svar'})); if(!r.ok)throw new Error(d.error||`HTTP ${r.status}`); return d;
 }
-
-// ── Format helpers ──
-function nok(n) {
-  if (n == null || isNaN(n)) return '—';
-  return Number(n).toLocaleString('nb-NO', { maximumFractionDigits: 0 });
+const nok=(n)=>n==null||isNaN(n)?'—':Math.round(Number(n)).toLocaleString('nb-NO');
+const dato=(s)=>s?new Date(s).toLocaleDateString('nb-NO',{day:'numeric',month:'short'}):'—';
+const datoL=(s)=>s?new Date(s).toLocaleDateString('nb-NO',{day:'numeric',month:'long',year:'numeric'}):'—';
+const esc=(s)=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(m){const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',2200);}
+async function kopier(txt,btn){try{await navigator.clipboard.writeText(txt);}catch{const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();}if(btn){const o=btn.textContent;btn.textContent='Kopiert ✓';setTimeout(()=>btn.textContent=o,1500);}}
+const STATUS_NAVN={kontrakt:'Kontrakt',forskudd:'Forskudd inne',innbetalt:'Fullt innbetalt',overtatt:'Overtatt',klar:'Klar for oppgjør',fakturert:'Fakturert',utbetalt:'Utbetalt',oppgjort:'Oppgjort',annullert:'Annullert'};
+const REKKE=['kontrakt','forskudd','innbetalt','overtatt','klar','fakturert','utbetalt','oppgjort'];
+const meglerTxt=(r)=>r.oppdrag_inn&&r.solgt_av&&r.oppdrag_inn!==r.solgt_av?`${r.oppdrag_inn} / ${r.solgt_av}`:(r.solgt_av||r.oppdrag_inn||'—');
+// Hva er neste steg for denne båten — det Sindre ellers må finne ut selv
+function neste(r){
+  const rest=(r.salgssum||0)-(r.innbetalt||0);
+  switch(r.status){
+    case 'kontrakt': return `Venter <b>forskudd ${nok(r.forskudd_forventet)}</b> fra kjøper (kontrakt ${dato(r.kk_signert)}${r.overtakelse_avtalt?`, overtakelse avtalt ${dato(r.overtakelse_avtalt)}`:''})`;
+    case 'forskudd': return `Forskudd inne — venter <b>rest ${nok(rest)}</b>${r.overtakelse_avtalt?` før overtakelse ${dato(r.overtakelse_avtalt)}`:''}`;
+    case 'innbetalt': return `Fullt innbetalt — <b>venter overtakelsesprotokoll</b>${r.overtakelse_avtalt?` (avtalt ${dato(r.overtakelse_avtalt)})`:''}`;
+    case 'overtatt': return `Overtatt ${dato(r.op_signert)} — <b>sjekk heftelser</b> i Skipsregisteret`;
+    case 'klar': return `Alt inne — <b>lag faktura</b>, nettoproveny ${nok(r.nettoproveny)} til selger`;
+    case 'fakturert': return `Faktura ${r.po_invoice_no} sendt — <b>betal selger ${nok(r.nettoproveny)}</b> og drift ${nok(r.po_invoice_belop)} fra klientkonto`;
+    case 'utbetalt': return r.po_invoice_betalt?`Utbetalt — venter bekreftelse`:`Selger utbetalt ${dato(r.selger_utbetalt_dato)} — <b>faktura ${r.po_invoice_no||''} ikke registrert betalt</b> i PowerOffice`;
+    case 'oppgjort': return `Oppgjort ${dato(r.status_dato)}`;
+    case 'annullert': return `Annullert`;
+  } return '';
 }
-function fmtDate(d) {
-  if (!d) return '—';
-  return new Date(d).toLocaleDateString('nb-NO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+async function onLogin(){ showScreen('appScreen'); await last(); }
+async function last(){
+  $('liste').innerHTML='<div class="card"><div class="empty">Laster …</div></div>';
+  try{ D=await api({action:'liste'}); }catch(e){ $('liste').innerHTML=`<div class="card"><div class="empty">${esc(e.message)}</div></div>`; return; }
+  if(D.bruker.admin){ const ms=['alle','Sindre','Henrik','Daniel']; $('meglerSeg').style.display='flex'; $('meglerSeg').innerHTML=ms.map(m=>`<button data-m="${m}" class="${m===megler?'on':''}" onclick="setMegler('${m}')">${m==='alle'?'Alle meglere':m}</button>`).join(''); }
+  kpis(); render();
 }
-function splitLabel(model) {
-  const map = { solo_45: '45%', solo_40: '40%', split_50_50: '50/50', vip_10: 'VIP 10%' };
-  return map[model] || model || '—';
+function setVis(v){vis=v;document.querySelectorAll('#visning button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));render();}
+function setMegler(m){megler=m;document.querySelectorAll('#meglerSeg button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));kpis();render();}
+function filtrert(){ const q=($('sok').value||'').toLowerCase(); return D.rader.filter(r=>{
+  if(megler!=='alle'&&r.oppdrag_inn!==megler&&r.solgt_av!==megler)return false;
+  if(vis==='aktive'&&(r.status==='oppgjort'||r.status==='annullert'))return false;
+  if(vis==='oppgjort'&&r.status!=='oppgjort')return false;
+  if(q&&!`${r.navn} ${r.oppdragsnr} ${r.selger_navn||''} ${r.kjoper_navn||''}`.toLowerCase().includes(q))return false; return true; }); }
+function kpis(){
+  const akt=D.rader.filter(r=>!['oppgjort','annullert'].includes(r.status)&&(megler==='alle'||r.oppdrag_inn===megler||r.solgt_av===megler));
+  const paVei=akt.reduce((a,r)=>a+Math.max(0,(r.salgssum||0)-(r.innbetalt||0)),0);
+  const tilSelger=akt.filter(r=>['innbetalt','overtatt','klar','fakturert'].includes(r.status)).reduce((a,r)=>a+(r.nettoproveny||0),0);
+  const honorar=akt.reduce((a,r)=>a+(r.provisjon_inkl||0),0);
+  const prov={}; for(const p of D.provisjon){ if(megler!=='alle'&&p.megler!==megler)continue; const x=(prov[p.megler]??={o:0,u:0}); x.o+=+p.opptjent; x.u+=+p.utbetalt; }
+  const kk=D.klientkonto; const synk=(D.synk||[]).find(s=>s.data_type==='oppgjor');
+  let h=`<div class="kpi"><div class="l">Klientkonto</div><div class="v">${kk?nok(kk.bokfort):'—'}</div><div class="s">${kk?`tilgjengelig ${nok(kk.tilgjengelig)} · synket ${kk.siste_synk?new Date(kk.siste_synk).toLocaleString('nb-NO',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'—'}`:'ikke synket'}${D.bruker.admin?` · <a href="#" onclick="synkKK();return false">synk nå</a>`:''}</div></div>`;
+  h+=`<div class="kpi"><div class="l">Solgt, ikke oppgjort</div><div class="v">${akt.length} båter</div><div class="s">honorar ${nok(honorar)} inkl. mva</div></div>`;
+  h+=`<div class="kpi"><div class="l">På vei inn fra kjøpere</div><div class="v">${nok(paVei)}</div><div class="s">${akt.filter(r=>(r.salgssum||0)-(r.innbetalt||0)>0).length} båter ikke fullt innbetalt</div></div>`;
+  h+=`<div class="kpi"><div class="l">Skal ut til selgere</div><div class="v">${nok(tilSelger)}</div><div class="s">fullt innbetalt, ikke utbetalt</div></div>`;
+  for(const [m,x] of Object.entries(prov)) h+=`<div class="kpi ${x.o-x.u>0?'warn':''}"><div class="l">${m} til gode</div><div class="v">${nok(x.o-x.u)}</div><div class="s">opptjent ${nok(x.o)} · utbetalt ${nok(x.u)}</div></div>`;
+  $('kpis').innerHTML=h+(synk?`<div class="kpi"><div class="l">Registeret</div><div class="v" style="font-size:14px">${synk.last_sync_at?new Date(synk.last_sync_at).toLocaleString('nb-NO',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'—'}</div><div class="s">${synk.last_error?'<span style="color:var(--red)">feil: '+esc(synk.last_error).slice(0,60)+'</span>':'bygges hver natt · klientkonto hver time'}</div></div>`:'');
 }
-
-// ── Load data ──
-async function loadYear() {
-  currentYear = parseInt(document.getElementById('yearSelect').value, 10);
-  try {
-    const data = await apiFetch(`${API}?list=${currentYear}`);
-    settlements = data.settlements || [];
-    renderTable();
-    renderSummary();
-    loadBrokerSummary();
-  } catch (e) {
-    console.error('loadYear error:', e);
-  }
+function render(){
+  const rows=filtrert(); const grupper={};
+  const ord=vis==='oppgjort'?['oppgjort']:['fakturert','klar','overtatt','innbetalt','forskudd','kontrakt','utbetalt','oppgjort','annullert'];
+  for(const r of rows)(grupper[r.status]??=[]).push(r);
+  const TIT={fakturert:'Betal fra klientkonto',klar:'Klar — lag faktura',overtatt:'Overtatt — sjekk heftelser',innbetalt:'Fullt innbetalt — venter overtakelse',forskudd:'Forskudd inne — venter rest',kontrakt:'Kontrakt signert — venter forskudd',utbetalt:'Utbetalt — venter fakturabetaling',oppgjort:'Oppgjort',annullert:'Annullert'};
+  let h='';
+  for(const s of ord){ const g=grupper[s]; if(!g||!g.length)continue;
+    if(s==='oppgjort')g.sort((a,b)=>(b.status_dato||b.kk_signert||'').localeCompare(a.status_dato||a.kk_signert||'')); else g.sort((a,b)=>(a.overtakelse_avtalt||a.kk_signert||'').localeCompare(b.overtakelse_avtalt||b.kk_signert||''));
+    h+=`<div class="section-label"><span>${TIT[s]}</span><span class="n">${g.length} · ${nok(g.reduce((a,r)=>a+(r.salgssum||0),0))}</span></div><div class="card">`;
+    for(const r of g){ const pct=r.salgssum?Math.min(100,Math.round((r.innbetalt||0)/r.salgssum*100)):0;
+      h+=`<div class="row" onclick="apne('${r.oppdragsnr}')"><div><div class="navn">${esc(r.navn)}<small>${r.oppdragsnr}</small></div><div class="meta">${esc(meglerTxt(r))} · selger ${esc(r.selger_navn||'—')} → ${esc(r.kjoper_navn||'—')}</div><div class="neste">${neste(r)}</div></div>
+        <div class="hoyre"><div class="sum">${nok(r.salgssum)}</div><span class="pill ${r.status}">${STATUS_NAVN[r.status]}</span>${s!=='oppgjort'&&s!=='annullert'?`<div class="bar" title="innbetalt ${nok(r.innbetalt)}"><i style="width:${pct}%"></i></div><div class="meta">inn ${nok(r.innbetalt)}</div>`:''}</div></div>`; }
+    h+='</div>'; }
+  $('liste').innerHTML=h||'<div class="card"><div class="empty">Ingen båter</div></div>';
+  // ukoblede klientkonto-transaksjoner (admin)
+  if(D.bruker.admin&&vis==='aktive'&&D.ukoblet.length){ const u=D.ukoblet.slice(0,40);
+    $('ukoblet').innerHTML=`<div class="section-label"><span>Klientkonto — ikke koblet til noen båt</span><span class="n">${D.ukoblet.length} transaksjoner</span></div><div class="card ukoblet" style="padding:4px 16px">${u.map(t=>`<div class="tx"><span class="d">${dato(t.bokfort_dato)}</span><span class="n">${esc(t.motpart_navn||'')}<small>${esc(t.tekst||'')}</small></span><span class="a ${t.belop>0?'inn':'ut'}">${nok(t.belop)}</span></div>`).join('')}</div><p class="hint">Bankfinansiering, returer og småbeløp som ikke matcher noen kontrakt. Koble manuelt fra båtens detaljvisning (Penger inn → Koble transaksjon).</p>`;
+  } else $('ukoblet').innerHTML='';
 }
+async function synkKK(){ toast('Henter klientkontoen …'); try{ const r=await api({action:'synk_klientkonto',days:30},{}); if(!r.ok)throw new Error(r.error); toast(`Klientkonto oppdatert — ${r.transaksjoner} transaksjoner`); await last(); }catch(e){toast('Feil: '+e.message);} }
 
-async function loadBrokerSummary() {
-  try {
-    const data = await apiFetch(`${API}?summary=${currentYear}`);
-    renderBrokerCards(data);
-  } catch (e) {
-    console.error('broker summary error:', e);
-  }
+// ── Detalj ──
+async function apne(nr){ $('overlay').classList.add('open'); $('panel').innerHTML='<div class="pb"><div class="empty">Laster …</div></div>'; try{ DET=await api({action:'detalj',nr}); tegn(); }catch(e){ $('panel').innerHTML=`<div class="pb"><div class="empty">${esc(e.message)}</div></div>`; } }
+function lukk(){ $('overlay').classList.remove('open'); DET=null; }
+function tegn(){
+  const r=DET.rad, A=DET.admin, J=DET.justeringer, T=DET.transaksjoner;
+  const paslag=r.utlegg_paslag_pct??20, utleggInkl=Math.round((r.utlegg_eks||0)*(1+paslag/100)*1.25*100)/100;
+  const jS=J.filter(j=>j.pavirker==='selger').reduce((a,j)=>a+ +j.belop,0), jP=J.filter(j=>j.pavirker==='provisjon').reduce((a,j)=>a+ +j.belop,0);
+  const rest=Math.max(0,(r.salgssum||0)-(r.innbetalt||0)); const fullt=r.salgssum&&(r.innbetalt||0)>=r.salgssum*0.995;
+  const idx=REKKE.indexOf(r.status);
+  const stegDato={kontrakt:r.kk_signert,forskudd:T.find(t=>['forskudd','innbetaling'].includes(t.koblet_type))?.bokfort_dato,innbetalt:r.innbetalt_dato,overtatt:r.op_signert,klar:r.heftelser_sjekket,fakturert:r.po_invoice_dato,utbetalt:r.selger_utbetalt_dato||r.drift_overfort_dato,oppgjort:r.status==='oppgjort'?r.status_dato:null};
+  const melding=`Oppgjør ${r.navn} ${r.oppdragsnr}`;
+  const fakturaTekst=`Fakturaen er trukket i oppgjøret. Nettoprovenyet er utbetalt selger.\n\nSalgssum: kr ${nok(r.salgssum)}\nHonorar og utlegg: kr ${nok((r.provisjon_inkl||0)+jP+utleggInkl)}\nNettoproveny: kr ${nok(r.nettoproveny)}\nSelgers kontonr: ${r.selger_konto||'________'}`;
+  const heftTekst=`Båt: ${r.navn}\nOppdragsnr: ${r.oppdragsnr}\nKjenningssignal: ${r.kjenningssignal||'—'}\nHIN/CIN: ${r.hin||'—'}\nÅrsmodell: ${r.arsmodell||'—'}\nSelger: ${r.selger_navn||'—'}`;
+  const driftBelop=r.po_invoice_belop||((r.provisjon_inkl||0)+jP+utleggInkl);
+  let h=`<div class="ph"><div><h2>${esc(r.navn)} <span style="font-weight:500;opacity:.7">${r.oppdragsnr}</span></h2><div class="pid">${esc(r.selger_navn||'—')} → ${esc(r.kjoper_navn||'—')} · ${esc(meglerTxt(r))}${r.fordeling==='50/50'?' (50/50)':''} · <span class="pill ${r.status}" style="background:rgba(255,255,255,.15);color:#fff">${STATUS_NAVN[r.status]}</span></div></div><button onclick="lukk()">Lukk ✕</button></div><div class="pb">`;
+  // steg
+  h+=`<div class="blk"><div class="steps">${REKKE.map((s,i)=>`<div class="step ${r.status==='annullert'?'':i<idx?'done':i===idx?'now':''}"><b>${STATUS_NAVN[s]}</b><span>${stegDato[s]?dato(stegDato[s]):'·'}</span></div>`).join('')}</div>
+    <div class="hint" style="margin-top:10px;font-size:13px;color:var(--text)">${neste(r)}</div></div>`;
+  // kontrakt
+  h+=`<div class="blk"><h3>Kjøpekontrakt <span class="st">${r.kk_contract_id?`<a href="https://app.oneflow.com/contracts/${r.kk_contract_id}" target="_blank">åpne i Oneflow ↗</a>`:'fra ark'}</span></h3><div class="kv">
+    <span class="k">Signert</span><span class="v">${datoL(r.kk_signert)}</span><span class="k">Salgssum</span><span class="v">${nok(r.salgssum)}</span><span class="k">Overtakelse avtalt</span><span class="v">${datoL(r.overtakelse_avtalt)}</span>
+    <span class="k">Overtakelsesprotokoll</span><span class="v">${r.op_signert?`signert ${datoL(r.op_signert)}${r.op_contract_id?` · <a href="https://app.oneflow.com/contracts/${r.op_contract_id}" target="_blank">↗</a>`:''}`:'ikke signert'}</span></div>
+    ${A?`<label class="chk" style="margin-top:10px"><input type="checkbox" ${r.op_anmerkninger?'checked':''} onchange="lagre({op_anmerkninger:this.checked})"> Protokoll med anmerkninger (vurder tilbakehold)</label>`:''}${r.op_anmerkninger?'<div class="warnbox">Protokoll signert med anmerkninger — legg inn tilbakehold under justeringer før utbetaling til selger.</div>':''}</div>`;
+  // penger inn
+  h+=`<div class="blk"><h3>Penger inn på klientkonto <span class="st">${fullt?'<span style="color:var(--green)">fullt innbetalt</span>':`mangler ${nok(rest)}`}</span></h3><div class="kv"><span class="k">Forventet forskudd (10 %)</span><span class="v">${nok(r.forskudd_forventet)}</span><span class="k">Innbetalt</span><span class="v">${nok(r.innbetalt)} av ${nok(r.salgssum)}</span></div>
+    <div style="margin-top:10px">${T.length?T.map(t=>`<div class="tx"><span class="d">${dato(t.bokfort_dato)}</span><span class="n">${esc(t.motpart_navn||'')}<small>${esc(t.tekst||'')}</small></span><span class="a ${t.belop>0?'inn':'ut'}">${nok(t.belop)}</span><span><span class="tag">${esc(t.koblet_type||'')}</span>${A?` <button class="btn small sec" onclick="koble('koble_slett','${t.id}')" title="Fjern kobling">✕</button>`:''}</span></div>`).join(''):'<div class="hint">Ingen transaksjoner koblet ennå. Klientkontoen leses hver time.</div>'}</div>
+    ${A&&DET.kandidater.length?`<details style="margin-top:10px"><summary style="cursor:pointer;font-size:13px;font-weight:700;color:var(--navy)">Koble transaksjon manuelt (${DET.kandidater.length} ukoblede rundt kontraktsdato)</summary><div style="margin-top:8px">
+      ${DET.kandidater.map(t=>`<div class="tx" style="grid-template-columns:70px 1fr auto auto"><span class="d">${dato(t.bokfort_dato)}</span><span class="n">${esc(t.motpart_navn||'')}<small>${esc(t.tekst||'')}</small></span><span class="a ${t.belop>0?'inn':'ut'}">${nok(t.belop)}</span><span><select class="inp" style="padding:4px 6px;font-size:12px;width:auto" id="ty-${t.id}">${(t.belop>0?['forskudd','rest','fullt','annet']:['selger_utbetaling','drift_overforing','gjeld_bank','annet']).map(x=>`<option>${x}</option>`).join('')}</select> <button class="btn small" onclick="koble('koble','${t.id}',$('ty-${t.id}').value)">Koble</button></span></div>`).join('')}</div></details>`:''}</div>`;
+  // heftelser + gjeld
+  h+=`<div class="blk"><h3>Heftelser (Skipsregisteret) <span class="st">${r.heftelser_sjekket?`<span style="color:var(--green)">sjekket ${dato(r.heftelser_sjekket)} · ${esc((r.heftelser_av||'').split('@')[0])}</span>`:'ikke sjekket'}</span></h3>
+    <div class="copy">${esc(heftTekst)}<button class="btn small sec" onclick="kopier(${JSON.stringify(heftTekst).replace(/"/g,'&quot;')},this)">Kopier</button></div>
+    <div class="hint">Søk på kjenningssignal eller HIN i <a href="https://www.sdir.no/skipsregistrene/" target="_blank">Skipsregistrene ↗</a>. Har båten pant, legg inn beløp og bankens kontonr under — nettoproveny til selger reduseres og en tredje betaling vises.</div>
+    ${A?`<div class="frm"><label class="chk full"><input type="checkbox" ${r.heftelser_sjekket?'checked':''} onchange="lagre({heftelser_sjekket:this.checked})"> Heftelser sjekket</label>
+      <input class="inp" id="f-gjeld" type="number" placeholder="Gjeld innfris til bank (kr)" value="${r.gjeld_bank_belop||''}"><input class="inp" id="f-gjeldkonto" placeholder="Bankens kontonr" value="${esc(r.gjeld_bank_konto||'')}">
+      <input class="inp full" id="f-heftnotat" placeholder="Notat (panthaver, saksnr …)" value="${esc(r.heftelser_notat||'')}"><button class="btn sec full" onclick="lagre({gjeld_bank_belop:$('f-gjeld').value,gjeld_bank_konto:$('f-gjeldkonto').value,heftelser_notat:$('f-heftnotat').value})">Lagre heftelser og gjeld</button></div>`:(r.gjeld_bank_belop?`<div class="warnbox">Gjeld ${nok(r.gjeld_bank_belop)} innfris til ${esc(r.gjeld_bank_konto||'bank')}</div>`:'')}</div>`;
+  // avregning
+  h+=`<div class="blk"><h3>Avregning <span class="st">${r.po_project_id?`PowerOffice-prosjekt ${r.oppdragsnr}`:'ingen PO-prosjekt'}</span></h3><div class="kv">
+    <span class="k">Salgssum</span><span class="v">${nok(r.salgssum)}</span>
+    <span class="k">− Honorar inkl. mva${r.oms_eks?` (${nok(r.oms_eks)} eks.)`:''}</span><span class="v">− ${nok(r.provisjon_inkl)}</span>
+    ${jP?`<span class="k">± Justering av honorar</span><span class="v">${jP>0?'− ':'+ '}${nok(Math.abs(jP))}</span>`:''}
+    <span class="k">− Utlegg ${nok(r.utlegg_eks)} eks. + ${paslag} % påslag + mva</span><span class="v">− ${nok(utleggInkl)}</span>
+    ${J.filter(j=>j.pavirker==='selger').map(j=>`<span class="k">${j.belop>0?'+':'−'} ${esc(j.type)}${j.beskrivelse?` · ${esc(j.beskrivelse)}`:''}</span><span class="v">${j.belop>0?'+ ':'− '}${nok(Math.abs(j.belop))}${` <button class="btn small sec" onclick="justSlett(${j.id})" title="Slett">✕</button>`:''}</span>`).join('')}
+    ${r.gjeld_bank_belop?`<span class="k">− Gjeld innfris til bank</span><span class="v">− ${nok(r.gjeld_bank_belop)}</span>`:''}
+    <span class="k tot">Nettoproveny til selger</span><span class="v tot">${nok(r.nettoproveny)}</span></div>
+    <details style="margin-top:10px"><summary style="cursor:pointer;font-size:13px;font-weight:700;color:var(--navy)">Legg til justering</summary><div class="frm">
+      <select class="inp" id="j-type"><option value="tilbakehold">Tilbakehold (anmerkninger)</option><option value="retur_kjoper">Retur til kjøper</option><option value="rabatt">Rabatt på honorar</option><option value="tillegg">Tillegg</option><option value="annet">Annet</option></select>
+      <input class="inp" id="j-belop" type="number" placeholder="Beløp (− reduserer selgers utbetaling)">
+      <select class="inp" id="j-pav"><option value="selger">Påvirker selgers utbetaling</option><option value="provisjon">Påvirker honoraret</option></select>
+      <input class="inp" id="j-besk" placeholder="Beskrivelse"><button class="btn full" onclick="justLegg()">Legg til</button></div>
+      <div class="hint">Tilbakehold og retur til kjøper legges inn som negative beløp. Rabatt på honorar: velg «påvirker honoraret» og negativt beløp inkl. mva.</div></details>
+    <div class="frm"><input class="inp" id="f-konto" placeholder="Selgers kontonr (fra oppgjørsskjema)" value="${esc(r.selger_konto||'')}"><button class="btn sec" onclick="lagre({selger_konto:$('f-konto').value})">Lagre kontonr</button></div></div>`;
+  // faktura
+  h+=`<div class="blk"><h3>Provisjonsfaktura <span class="st">${r.po_invoice_no?`nr ${r.po_invoice_no} · ${dato(r.po_invoice_dato)} · ${nok(r.po_invoice_belop)} · ${r.po_invoice_betalt?'<span style="color:var(--green)">betalt</span>':'<span style="color:var(--red)">ikke betalt</span>'}`:'ikke laget'}</span></h3>
+    ${r.po_invoice_no?'':`<div class="copy">${esc(fakturaTekst)}<button class="btn small sec" onclick="kopier(${JSON.stringify(fakturaTekst).replace(/"/g,'&quot;')},this)">Kopier</button></div>
+    <div class="hint">Linjer: provisjon ${nok(r.oms_eks)} eks. mva${r.utlegg_eks?` · utlegg ${nok(Math.round((r.utlegg_eks||0)*(1+paslag/100)*100)/100)} eks. mva (${nok(r.utlegg_eks)} + ${paslag} %)`:''}. Lag fakturaen fra prosjektet ${r.oppdragsnr} i PowerOffice med teksten over — «lag utkast automatisk» kommer så snart PO-fakturaflyten er verifisert.</div>`}
+    ${A&&!r.po_invoice_no?`<button class="btn" disabled title="Aktiveres etter verifisering av SalesOrders-API">Lag fakturautkast i PowerOffice</button>`:''}</div>`;
+  // utbetalinger
+  const pay=(tittel,konto,belop,msg,status)=>`<div class="pay"><div class="t"><span>${tittel}</span><span>${status}</span></div><div class="copy" style="margin-top:6px">Til konto: ${esc(konto||'________')}\nBeløp: ${nok(belop)}\nMelding: ${esc(msg)}<button class="btn small sec" onclick="kopier(${JSON.stringify(`${konto||''}\n${Math.round(belop||0)}\n${msg}`).replace(/"/g,'&quot;')},this)">Kopier</button></div></div>`;
+  h+=`<div class="blk"><h3>Utbetalinger fra klientkonto ${DET.klientkonto.replace(/(\d{4})(\d{2})(\d{5})/,'$1.$2.$3')}</h3>
+    ${pay('1 · Nettoproveny til selger',r.selger_konto,r.nettoproveny,melding,r.selger_utbetalt?`<span style="color:var(--green)">utbetalt ${nok(r.selger_utbetalt)} · ${dato(r.selger_utbetalt_dato)}</span>`:(fullt&&r.op_signert?'klar':'ikke klar'))}
+    ${r.gjeld_bank_belop?pay('2 · Innfrielse til bank',r.gjeld_bank_konto,r.gjeld_bank_belop,`${r.navn} ${r.oppdragsnr} innfrielse`,''):''}
+    ${pay(`${r.gjeld_bank_belop?'3':'2'} · Faktura til drift`,D.drift_konto,driftBelop,`Faktura ${r.po_invoice_no||''} ${r.navn} ${r.oppdragsnr}`.replace(/\s+/g,' '),r.drift_overfort?`<span style="color:var(--green)">overført ${nok(r.drift_overfort)} · ${dato(r.drift_overfort_dato)}</span>`:(r.po_invoice_no?'klar':'etter faktura'))}
+    <div class="hint">Når betalingene dukker opp på klientkontoen kobles de automatisk og båten går til «Utbetalt» → «Oppgjort» når fakturaen er registrert betalt i PowerOffice.</div></div>`;
+  // provisjon
+  if(DET.provisjon.length) h+=`<div class="blk"><h3>Meglerprovisjon</h3><div class="kv">${DET.provisjon.map(p=>`<span class="k">${esc(p.megler)} · ${Math.round(p.sats*100)} %${p.utbetalt_kilde?` · ${esc(p.utbetalt_kilde)}`:''}</span><span class="v">${nok(p.opptjent)} opptjent · ${nok(p.utbetalt)} utbetalt${p.opptjent-p.utbetalt>0?` · <span style="color:var(--amber)">${nok(p.opptjent-p.utbetalt)} til gode</span>`:''}</span>`).join('')}</div></div>`;
+  // notat + annuller
+  h+=`<div class="blk"><h3>Notat</h3><textarea class="inp" id="f-notat">${esc(r.notat||'')}</textarea><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn sec" onclick="lagre({notat:$('f-notat').value})">Lagre notat</button>
+    ${A?(r.status==='annullert'?`<button class="btn sec" onclick="lagre({annullert:false})">Gjenopprett salget</button>`:`<button class="btn danger" id="ann1" onclick="this.style.display='none';$('ann2').style.display='inline-block'">Annuller salget</button><button class="btn danger" id="ann2" style="display:none" onclick="lagre({annullert:true})">Bekreft annullering — ingen provisjon</button>`):''}</div></div>`;
+  h+='</div>'; $('panel').innerHTML=h;
 }
-
-// ── Render ──
-function renderSummary() {
-  const total = settlements.length;
-  const salgssum = settlements.reduce((s, r) => s + Number(r.sale_amount || 0), 0);
-  const revenue = settlements.reduce((s, r) => s + Number(r.revenue_ex_vat || 0), 0);
-  const settled = settlements.filter(s => s.settlement_status === 'settled').length;
-  const outstanding = settlements.reduce((s, r) => s + Math.max(0, r.outstanding || 0), 0);
-
-  document.getElementById('summaryGrid').innerHTML = `
-    <div class="summary-card"><div class="summary-label">Solgte båter</div><div class="summary-value">${total}</div></div>
-    <div class="summary-card"><div class="summary-label">Total salgssum</div><div class="summary-value">${nok(salgssum)}</div><div class="summary-sub">NOK</div></div>
-    <div class="summary-card"><div class="summary-label">Omsetning ex. mva</div><div class="summary-value">${nok(revenue)}</div><div class="summary-sub">NOK</div></div>
-    <div class="summary-card"><div class="summary-label">Oppgjort</div><div class="summary-value">${settled} / ${total}</div></div>
-    <div class="summary-card"><div class="summary-label">Utestående meglerlønn</div><div class="summary-value">${nok(outstanding)}</div><div class="summary-sub">NOK</div></div>
-  `;
-}
-
-function renderTable() {
-  const q = (document.getElementById('searchInput').value || '').toLowerCase();
-  const filtered = settlements.filter(s => {
-    if (!q) return true;
-    return [s.boat_type, s.seller_name, s.buyer_name, s.oppdragsnr, s.assigned_by, s.sold_by]
-      .filter(Boolean).some(v => v.toLowerCase().includes(q));
-  });
-
-  if (!filtered.length) {
-    document.getElementById('tableBody').innerHTML = `<tr><td colspan="12" class="empty-state"><div class="empty-icon">📋</div>Ingen oppgjør for ${currentYear}</td></tr>`;
-    return;
-  }
-
-  document.getElementById('tableBody').innerHTML = filtered.map(s => {
-    const statusBadge = s.settlement_status === 'settled'
-      ? '<span class="badge badge-green">Oppgjort</span>'
-      : '<span class="badge badge-yellow">Uoppgjort</span>';
-    const rowClass = s.settlement_status === 'settled' ? 'row-settled' : '';
-    const totalBroker = Number(s.broker_share || 0) + Number(s.broker2_share || 0);
-    const outstandingClass = s.outstanding > 0 ? 'style="color:var(--red);font-weight:700"' : '';
-
-    return `
-      <tr class="${rowClass}" data-id="${s.id}">
-        <td><button class="btn-expand" onclick="toggleDetail('${s.id}',this)">▶</button></td>
-        <td><strong>${s.oppdragsnr || '—'}</strong></td>
-        <td>${s.boat_type || '—'}</td>
-        <td>${fmtDate(s.sold_date)}</td>
-        <td class="text-right">${nok(s.revenue_ex_vat)}</td>
-        <td>${s.sold_by || s.assigned_by || '—'}</td>
-        <td><span class="badge badge-blue">${splitLabel(s.split_model)}</span></td>
-        <td class="text-right">${nok(totalBroker)}</td>
-        <td class="text-right">${nok(s.total_paid)}</td>
-        <td class="text-right" ${outstandingClass}>${nok(s.outstanding)}</td>
-        <td>${statusBadge}</td>
-        <td><button class="btn-sm" onclick="openEditModal('${s.id}')">Rediger</button></td>
-      </tr>
-    `;
-  }).join('');
-  // Skjul detail-panel når tabellen re-rendres
-  document.getElementById('detailPanel').style.display = 'none';
-  document.querySelectorAll('.btn-expand.open').forEach(b => b.classList.remove('open'));
-}
-
-let openDetailId = null;
-function toggleDetail(id, btn) {
-  const panel = document.getElementById('detailPanel');
-  const wasOpen = openDetailId === id;
-
-  // Lukk alle expand-knapper
-  document.querySelectorAll('.btn-expand.open').forEach(b => b.classList.remove('open'));
-
-  if (wasOpen) {
-    panel.style.display = 'none';
-    openDetailId = null;
-    return;
-  }
-
-  openDetailId = id;
-  btn.classList.add('open');
-  renderDetail(id);
-  panel.style.display = 'block';
-
-  // Scroll panelet synlig
-  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-
-function renderDetail(id) {
-  const s = settlements.find(x => x.id === id);
-  if (!s) return;
-  const cell = document.getElementById('detailPanel');
-  const payments = s.payments || [];
-  const adjustments = s.adjustments || [];
-
-  // Kategoriser justeringer
-  const deductions = adjustments.filter(a => a.category === 'deduction');
-  const additions = adjustments.filter(a => a.category === 'addition');
-  const withheld = adjustments.filter(a => a.category === 'withheld');
-  const buyerReturns = adjustments.filter(a => a.category === 'buyer_return');
-  const catLabel = { deduction: 'Fradrag', addition: 'Tillegg', withheld: 'Tilbakeholdt', buyer_return: 'Retur kjøper' };
-
-  const saleAmt = Number(s.sale_amount) || 0;
-  const commAmt = Number(s.commission) || 0;
-  const calcPayout = s.calc_seller_payout != null ? s.calc_seller_payout : (saleAmt - commAmt);
-  const calcWithheld = s.calc_withheld || 0;
-  const calcBuyerReturn = s.calc_buyer_return || 0;
-
-  cell.innerHTML = `
-    <div class="detail-inner">
-      <div class="detail-section">
-        <h4>Detaljer</h4>
-        <div class="detail-field"><span class="detail-field-label">Salgssum</span><span class="detail-field-value">${s.sale_amount ? nok(s.sale_amount) + ' kr' : '—'}</span></div>
-        <div class="detail-field"><span class="detail-field-label">Provisjon inkl. mva</span><span class="detail-field-value">${s.commission ? nok(s.commission) + ' kr' : '—'}</span></div>
-        ${Number(s.commission_deduction) ? `
-          <div class="detail-field"><span class="detail-field-label">Prov.fradrag${s.commission_deduction_note ? ' (' + s.commission_deduction_note + ')' : ''}</span><span class="detail-field-value" style="color:var(--red)">−${nok(s.commission_deduction)} kr</span></div>
-          <div class="detail-field"><span class="detail-field-label">Netto provisjon ex. mva</span><span class="detail-field-value">${nok((Number(s.commission) - Number(s.commission_deduction)) / 1.25)} kr</span></div>
-        ` : ''}
-        <div class="detail-field"><span class="detail-field-label">Selger</span><span class="detail-field-value">${s.seller_name || '—'}</span></div>
-        <div class="detail-field"><span class="detail-field-label">Kjøper</span><span class="detail-field-value">${s.buyer_name || '—'}</span></div>
-        <div class="detail-field"><span class="detail-field-label">Oppdrag inn</span><span class="detail-field-value">${s.assigned_by || '—'}</span></div>
-        <div class="detail-field"><span class="detail-field-label">Solgt av</span><span class="detail-field-value">${s.sold_by || '—'}</span></div>
-        <div class="detail-field"><span class="detail-field-label">Firmaandel</span><span class="detail-field-value">${nok(s.company_share)} kr</span></div>
-        <div class="detail-field"><span class="detail-field-label">Splittpartner</span><span class="detail-field-value">${s.split_broker || '—'}</span></div>
-        <div class="detail-field"><span class="detail-field-label">Megler 2 lønn</span><span class="detail-field-value">${s.broker2_share ? nok(s.broker2_share) + ' kr' : '—'}</span></div>
-        <div class="detail-field"><span class="detail-field-label">Oppdragskilde</span><span class="detail-field-value">${s.source || '—'}</span></div>
-        ${s.notes ? `<div class="detail-field"><span class="detail-field-label">Notater</span><span class="detail-field-value">${s.notes}</span></div>` : ''}
-
-        <h4 style="margin-top:18px">Meglerlønn</h4>
-        <div class="payments-list">
-          ${payments.length ? payments.map(p => `
-            <div class="payment-row">
-              <span>${p.payee} — ${fmtDate(p.paid_at)}${p.note ? ' (' + p.note + ')' : ''}</span>
-              <span><span class="amount">${nok(p.amount)} kr</span> <button class="delete-btn" onclick="deletePayment('${p.id}','${id}')">✕</button></span>
-            </div>
-          `).join('') : '<div style="color:var(--gray-dark);font-size:12px;padding:8px 0">Ingen utbetalinger registrert</div>'}
-        </div>
-        <button class="btn-add-payment" onclick="openPaymentModal('${id}')">+ Registrer utbetaling</button>
-      </div>
-
-      <div class="detail-section">
-        <div class="seller-panel">
-          <h4>Selgeroppgjør</h4>
-          <div class="avregning-line">
-            <span class="avregning-label">Kjøpesum</span>
-            <span class="avregning-value">${nok(saleAmt)} kr</span>
-          </div>
-          <div class="avregning-line">
-            <span class="avregning-label">– Provisjon inkl. mva</span>
-            <span class="avregning-value negative">−${nok(commAmt)} kr</span>
-          </div>
-          ${deductions.map(a => `
-            <div class="adj-item">
-              <span class="adj-desc">– ${a.description}${a.includes_vat ? ' (inkl. mva)' : ''}</span>
-              <span class="adj-amount negative">−${nok(a.amount)} kr</span>
-              <button class="adj-delete" onclick="deleteAdjustment('${a.id}','${id}')">✕</button>
-            </div>
-          `).join('')}
-          ${additions.map(a => `
-            <div class="adj-item">
-              <span class="adj-desc">+ ${a.description}${a.includes_vat ? ' (inkl. mva)' : ''}</span>
-              <span class="adj-amount positive">+${nok(a.amount)} kr</span>
-              <button class="adj-delete" onclick="deleteAdjustment('${a.id}','${id}')">✕</button>
-            </div>
-          `).join('')}
-          ${withheld.length ? `
-            <div class="avregning-line subtotal" style="margin-top:6px">
-              <span class="avregning-label">Tilbakeholdt</span><span></span>
-            </div>
-            ${withheld.map(a => `
-              <div class="adj-item">
-                <span class="adj-desc">– ${a.description}</span>
-                <span class="adj-amount negative">−${nok(a.amount)} kr</span>
-                <button class="adj-delete" onclick="deleteAdjustment('${a.id}','${id}')">✕</button>
-              </div>
-            `).join('')}
-          ` : ''}
-          ${buyerReturns.length ? `
-            <div class="avregning-line subtotal" style="margin-top:6px">
-              <span class="avregning-label">Retur kjøper</span><span></span>
-            </div>
-            ${buyerReturns.map(a => `
-              <div class="adj-item">
-                <span class="adj-desc">– ${a.description}</span>
-                <span class="adj-amount negative">−${nok(a.amount)} kr</span>
-                <button class="adj-delete" onclick="deleteAdjustment('${a.id}','${id}')">✕</button>
-              </div>
-            `).join('')}
-          ` : ''}
-          <div class="avregning-line total">
-            <span>Utbetales selger</span>
-            <span>${nok(calcPayout)} kr</span>
-          </div>
-          ${calcWithheld > 0 ? `<div class="avregning-line" style="font-size:12px;color:var(--yellow)"><span>Tilbakeholdt</span><span>${nok(calcWithheld)} kr</span></div>` : ''}
-          ${calcBuyerReturn > 0 ? `<div class="avregning-line" style="font-size:12px;color:var(--blue)"><span>Retur kjøper</span><span>${nok(calcBuyerReturn)} kr</span></div>` : ''}
-
-          <button class="btn-add-adj" onclick="openAdjModal('${id}')">+ Legg til justering</button>
-
-          <div class="payout-status-row">
-            <span class="badge ${s.payout_status === 'paid' ? 'badge-green' : s.payout_status === 'ready' ? 'badge-blue' : 'badge-yellow'}">
-              ${s.payout_status === 'paid' ? 'Utbetalt' : s.payout_status === 'ready' ? 'Klar for utbetaling' : s.payout_status === 'partial' ? 'Delvis utbetalt' : 'Venter'}
-            </span>
-            ${s.payout_date ? `<span style="font-size:12px;color:var(--gray-dark)">Utbetalt ${fmtDate(s.payout_date)}</span>` : ''}
-            ${s.seller_account ? `<span style="font-size:12px;color:var(--gray-dark)">Konto: ${s.seller_account}</span>` : ''}
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function filterTable() { renderTable(); }
-
-function renderBrokerCards(data) {
-  const grid = document.getElementById('brokerGrid');
-  if (!data.brokers || !Object.keys(data.brokers).length) { grid.innerHTML = ''; return; }
-
-  grid.innerHTML = '<h3 style="grid-column:1/-1;margin:10px 0 0;font-size:16px;color:var(--navy)">Per megler — ' + currentYear + '</h3>' +
-    Object.entries(data.brokers).map(([name, b]) => `
-      <div class="broker-card">
-        <div class="broker-name">${name}</div>
-        <div class="broker-stat"><span class="broker-stat-label">Deals</span><span class="broker-stat-value">${b.deals}</span></div>
-        <div class="broker-stat"><span class="broker-stat-label">Omsetning</span><span class="broker-stat-value">${nok(b.revenue)} kr</span></div>
-        <div class="broker-stat"><span class="broker-stat-label">Meglerlønn</span><span class="broker-stat-value">${nok(b.broker_share)} kr</span></div>
-        <div class="broker-stat"><span class="broker-stat-label">Utbetalt</span><span class="broker-stat-value">${nok(b.paid)} kr</span></div>
-        <div class="broker-stat"><span class="broker-stat-label">Utestående</span><span class="broker-stat-value" style="${b.outstanding > 0 ? 'color:var(--red)' : ''}">${nok(b.outstanding)} kr</span></div>
-      </div>
-    `).join('');
-}
-
-// ── Create / Edit modal ──
-function openCreateModal() {
-  document.getElementById('modalTitle').textContent = 'Nytt oppgjør';
-  document.getElementById('f_id').value = '';
-  document.getElementById('f_deal_id').value = '';
-  ['oppdragsnr','boat_type','seller_name','buyer_name','sold_date','sale_amount','commission',
-   'revenue_ex_vat','split_broker','broker_share','broker2_share','extra_note','source','notes','commission_deduction_note']
-    .forEach(f => document.getElementById('f_' + f).value = '');
-  document.getElementById('f_extra').value = '0';
-  document.getElementById('f_commission_deduction').value = '0';
-  document.getElementById('f_assigned_by').value = '';
-  document.getElementById('f_sold_by').value = '';
-  document.getElementById('f_split_model').value = '';
-  document.getElementById('f_status').value = 'pending';
-  document.getElementById('calcPreviewBox').style.display = 'none';
-  document.getElementById('modal').classList.add('open');
-}
-
-function openEditModal(id) {
-  const s = settlements.find(x => x.id === id);
-  if (!s) return;
-  document.getElementById('modalTitle').textContent = 'Rediger oppgjør';
-  document.getElementById('f_id').value = s.id;
-  document.getElementById('f_deal_id').value = s.deal_id || '';
-  document.getElementById('f_oppdragsnr').value = s.oppdragsnr || '';
-  document.getElementById('f_boat_type').value = s.boat_type || '';
-  document.getElementById('f_seller_name').value = s.seller_name || '';
-  document.getElementById('f_buyer_name').value = s.buyer_name || '';
-  document.getElementById('f_sold_date').value = s.sold_date || '';
-  document.getElementById('f_sale_amount').value = s.sale_amount || '';
-  document.getElementById('f_commission').value = s.commission || '';
-  document.getElementById('f_revenue_ex_vat').value = s.revenue_ex_vat || '';
-  document.getElementById('f_assigned_by').value = s.assigned_by || '';
-  document.getElementById('f_sold_by').value = s.sold_by || '';
-  document.getElementById('f_split_model').value = s.split_model || '';
-  document.getElementById('f_split_broker').value = s.split_broker || '';
-  document.getElementById('f_broker_share').value = s.broker_share || '';
-  document.getElementById('f_broker2_share').value = s.broker2_share || '';
-  document.getElementById('f_commission_deduction').value = s.commission_deduction || 0;
-  document.getElementById('f_commission_deduction_note').value = s.commission_deduction_note || '';
-  document.getElementById('f_extra').value = s.extra || 0;
-  document.getElementById('f_extra_note').value = s.extra_note || '';
-  document.getElementById('f_source').value = s.source || '';
-  document.getElementById('f_status').value = s.settlement_status || 'pending';
-  document.getElementById('f_notes').value = s.notes || '';
-  calcPreview();
-  document.getElementById('modal').classList.add('open');
-}
-
-function closeModal() { document.getElementById('modal').classList.remove('open'); }
-
-function calcPreview() {
-  const commission = Number(document.getElementById('f_commission').value) || 0;
-  if (!commission) { document.getElementById('calcPreviewBox').style.display = 'none'; return; }
-  const commDed = Number(document.getElementById('f_commission_deduction').value) || 0;
-  const rev = commission / 1.25;
-  const dedExVat = commDed / 1.25;
-  const netRev = Math.max(0, rev - dedExVat);
-  const a = document.getElementById('f_assigned_by').value;
-  const s = document.getElementById('f_sold_by').value;
-  let model = document.getElementById('f_split_model').value;
-  if (!model) {
-    if (a && s && a === s) model = a === 'Sindre' ? 'solo_45' : 'solo_40';
-    else if (a === 'Sindre' || s === 'Sindre') model = 'vip_10';
-    else if (a && s) model = 'split_50_50';
-    else model = 'solo_40';
-  }
-  const pct = { solo_45: 0.45, solo_40: 0.40, split_50_50: 0.20, vip_10: 0.45 };
-  const broker = netRev * (pct[model] || 0.40);
-  const broker2 = model === 'split_50_50' ? netRev * 0.20 : model === 'vip_10' ? netRev * 0.10 : 0;
-  const company = netRev - broker - broker2;
-
-  document.getElementById('calcPreviewBox').style.display = 'block';
-  document.getElementById('calcPreviewText').innerHTML =
-    `Omsetning: <strong>${nok(rev)}</strong>` +
-    (commDed ? ` · Prov.fradrag: <strong style="color:var(--red)">−${nok(dedExVat)}</strong> · Netto: <strong>${nok(netRev)}</strong>` : '') +
-    ` · Megler: <strong>${nok(broker)}</strong> (${splitLabel(model)})` +
-    (broker2 ? ` · Megler 2: <strong>${nok(broker2)}</strong>` : '') +
-    ` · Firma: <strong>${nok(company)}</strong>`;
-}
-
-async function saveSettlement() {
-  const id = document.getElementById('f_id').value;
-  const action = id ? 'update' : 'create';
-
-  const body = {
-    boat_type: document.getElementById('f_boat_type').value,
-    seller_name: document.getElementById('f_seller_name').value || null,
-    buyer_name: document.getElementById('f_buyer_name').value || null,
-    sold_date: document.getElementById('f_sold_date').value || null,
-    sale_amount: Number(document.getElementById('f_sale_amount').value) || null,
-    commission: Number(document.getElementById('f_commission').value) || null,
-    assigned_by: document.getElementById('f_assigned_by').value || null,
-    sold_by: document.getElementById('f_sold_by').value || null,
-    split_model: document.getElementById('f_split_model').value || undefined,
-    split_broker: document.getElementById('f_split_broker').value || null,
-    commission_deduction: Number(document.getElementById('f_commission_deduction').value) || 0,
-    commission_deduction_note: document.getElementById('f_commission_deduction_note').value || null,
-    extra: Number(document.getElementById('f_extra').value) || 0,
-    extra_note: document.getElementById('f_extra_note').value || null,
-    source: document.getElementById('f_source').value || null,
-    settlement_status: document.getElementById('f_status').value,
-    notes: document.getElementById('f_notes').value || null,
-  };
-
-  const revOverride = document.getElementById('f_revenue_ex_vat').value;
-  if (revOverride) body.revenue_ex_vat = Number(revOverride);
-  const bs = document.getElementById('f_broker_share').value;
-  if (bs) body.broker_share = Number(bs);
-  const b2s = document.getElementById('f_broker2_share').value;
-  if (b2s) body.broker2_share = Number(b2s);
-
-  if (id) body.id = id;
-  else {
-    body.oppdragsnr = document.getElementById('f_oppdragsnr').value || null;
-    body.deal_id = document.getElementById('f_deal_id').value || null;
-    body.year = currentYear;
-  }
-
-  try {
-    await apiFetch(`${API}?action=${action}`, { method: 'POST', body: JSON.stringify(body) });
-    closeModal();
-    await loadYear();
-  } catch (e) {
-    alert('Feil: ' + e.message);
-  }
-}
-
-// ── Payments ──
-function openPaymentModal(settlementId) {
-  const s = settlements.find(x => x.id === settlementId);
-  document.getElementById('p_settlement_id').value = settlementId;
-  document.getElementById('p_payee').value = s?.sold_by || s?.assigned_by || '';
-  document.getElementById('p_amount').value = '';
-  document.getElementById('p_paid_at').value = new Date().toISOString().split('T')[0];
-  document.getElementById('p_note').value = '';
-  document.getElementById('paymentModal').classList.add('open');
-}
-function closePaymentModal() { document.getElementById('paymentModal').classList.remove('open'); }
-
-async function savePayment() {
-  const body = {
-    action: 'add_payment',
-    settlement_id: document.getElementById('p_settlement_id').value,
-    payee: document.getElementById('p_payee').value,
-    amount: Number(document.getElementById('p_amount').value),
-    paid_at: document.getElementById('p_paid_at').value || null,
-    note: document.getElementById('p_note').value || null,
-  };
-  try {
-    await apiFetch(`${API}?action=add_payment`, { method: 'POST', body: JSON.stringify(body) });
-    closePaymentModal();
-    await loadYear();
-  } catch (e) {
-    alert('Feil: ' + e.message);
-  }
-}
-
-async function deletePayment(paymentId, settlementId) {
-  if (!confirm('Slett utbetaling?')) return;
-  try {
-    await apiFetch(`${API}?action=delete_payment`, { method: 'POST', body: JSON.stringify({ payment_id: paymentId }) });
-    await loadYear();
-    reopenDetail(settlementId);
-  } catch (e) {
-    alert('Feil: ' + e.message);
-  }
-}
-
-// ── Adjustments (justeringslinjer) ──
-function openAdjModal(settlementId) {
-  document.getElementById('a_settlement_id').value = settlementId;
-  document.getElementById('a_description').value = '';
-  document.getElementById('a_amount').value = '';
-  document.getElementById('a_includes_vat').value = 'false';
-  document.getElementById('a_category').value = 'deduction';
-  document.getElementById('adjModal').classList.add('open');
-}
-function closeAdjModal() { document.getElementById('adjModal').classList.remove('open'); }
-
-async function saveAdjustment() {
-  const body = {
-    settlement_id: document.getElementById('a_settlement_id').value,
-    description: document.getElementById('a_description').value,
-    amount: Number(document.getElementById('a_amount').value),
-    includes_vat: document.getElementById('a_includes_vat').value === 'true',
-    category: document.getElementById('a_category').value,
-  };
-  if (!body.description || !body.amount) { alert('Fyll inn beskrivelse og beløp'); return; }
-  try {
-    await apiFetch(`${API}?action=add_adjustment`, { method: 'POST', body: JSON.stringify(body) });
-    closeAdjModal();
-    await loadYear();
-    reopenDetail(body.settlement_id);
-  } catch (e) {
-    alert('Feil: ' + e.message);
-  }
-}
-
-async function deleteAdjustment(adjustmentId, settlementId) {
-  if (!confirm('Slett justeringslinje?')) return;
-  try {
-    await apiFetch(`${API}?action=delete_adjustment`, { method: 'POST', body: JSON.stringify({ adjustment_id: adjustmentId }) });
-    await loadYear();
-    reopenDetail(settlementId);
-  } catch (e) {
-    alert('Feil: ' + e.message);
-  }
-}
-
-// Hjelpefunksjon: gjenåpne detail-panel etter data-reload
-function reopenDetail(settlementId) {
-  openDetailId = settlementId;
-  const btn = document.querySelector(`tr[data-id="${settlementId}"] .btn-expand`);
-  if (btn) btn.classList.add('open');
-  renderDetail(settlementId);
-  document.getElementById('detailPanel').style.display = 'block';
-}
-
-// ── Import from HubSpot ──
-async function toggleImport() {
-  const panel = document.getElementById('importPanel');
-  const isOpen = panel.classList.contains('open');
-  if (isOpen) { panel.classList.remove('open'); return; }
-  panel.classList.add('open');
-  document.getElementById('importList').innerHTML = '<div style="color:var(--gray-dark);font-size:13px">Laster fra HubSpot…</div>';
-  try {
-    const data = await apiFetch(`${API}?hubspot_deals=1`);
-    if (!data.deals?.length) {
-      document.getElementById('importList').innerHTML = '<div style="color:var(--gray-dark);font-size:13px;padding:8px 0">Ingen nye deals å importere</div>';
-      return;
-    }
-    document.getElementById('importList').innerHTML = data.deals.map(d => `
-      <div class="import-item">
-        <div class="import-item-info">
-          <span class="import-item-name">${d.deal_name}</span>
-          <span class="import-item-meta">${fmtDate(d.close_date)} · ${d.sale_price ? nok(d.sale_price) + ' kr' : '—'} · Prov: ${d.amount ? nok(d.amount) + ' kr' : '—'} · ${d.owner || '?'} · <span class="badge ${d.stage === 'In Contract' ? 'badge-yellow' : 'badge-green'}">${d.stage}</span></span>
-        </div>
-        <button class="btn-import-deal" onclick="importDeal('${d.deal_id}', this)">Importer</button>
-      </div>
-    `).join('');
-  } catch (e) {
-    document.getElementById('importList').innerHTML = `<div style="color:var(--red);font-size:13px">${e.message}</div>`;
-  }
-}
-
-async function importDeal(dealId, btn) {
-  btn.disabled = true;
-  btn.textContent = 'Importerer…';
-  try {
-    await apiFetch(`${API}?action=import_from_hubspot`, { method: 'POST', body: JSON.stringify({ deal_id: dealId }) });
-    btn.textContent = '✓ Importert';
-    btn.style.background = 'var(--green-bg)';
-    btn.style.color = 'var(--green)';
-    btn.style.borderColor = 'var(--green)';
-    await loadYear();
-  } catch (e) {
-    btn.textContent = 'Feil';
-    btn.style.color = 'var(--red)';
-    alert('Import feilet: ' + e.message);
-  }
-}
-
-// ── Init ──
-async function init() {
-  TOKEN = getToken();
-  if (!TOKEN) {
-    document.getElementById('loadingScreen').style.display = 'none';
-    document.getElementById('authError').style.display = 'flex';
-    return;
-  }
-  document.getElementById('loadingScreen').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  await loadYear();
-}
-init();
+async function lagre(patch){ try{ const r=await api({action:'lagre',nr:DET.rad.oppdragsnr},patch); toast('Lagret'); await oppdater(); }catch(e){toast('Feil: '+e.message);} }
+async function justLegg(){ const b=Number($('j-belop').value); if(!b){toast('Beløp mangler');return;} try{ await api({action:'justering',nr:DET.rad.oppdragsnr},{type:$('j-type').value,belop:b,pavirker:$('j-pav').value,beskrivelse:$('j-besk').value}); toast('Justering lagt til'); await oppdater(); }catch(e){toast('Feil: '+e.message);} }
+async function justSlett(id){ try{ await api({action:'justering_slett'},{id}); toast('Slettet'); await oppdater(); }catch(e){toast('Feil: '+e.message);} }
+async function koble(action,id,type){ try{ await api({action},{id,nr:DET.rad.oppdragsnr,type}); toast(action==='koble'?'Koblet':'Kobling fjernet'); await oppdater(); }catch(e){toast('Feil: '+e.message);} }
+async function oppdater(){ const nr=DET.rad.oppdragsnr; const y=$('panel').scrollTop; DET=await api({action:'detalj',nr}); tegn(); $('panel').scrollTop=y; D=await api({action:'liste'}); kpis(); render(); }
 </script>
 </body>
 </html>

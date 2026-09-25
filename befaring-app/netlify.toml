@@ -158,5 +158,8 @@
   timeout = 26
 
 # Oppgjørsregisteret (v2): bygges i poweroffice-nightly; ?action=rebuild på forespørsel (Oneflow + PO + klientkonto, ~30 s)
+[functions."oppgjor-v2"]
+  timeout = 26
+
 [functions."oppgjor-sync"]
   timeout = 26

@@ -49,6 +49,36 @@ function readSheet(buf) {
 }
 const excelDate = (n) => new Date(Math.round((n - 25569) * 864e5));
 
+// ── Avregning + status for én rad (brukes av bygget og av oppgjor-v2 ved manuelle endringer) ──
+// r: beregnede felt (salgssum, provisjon_inkl, utlegg_eks, innbetalt, op_signert, po_*, selger_utbetalt, drift_overfort, ark_oppgjort)
+// ex: manuelle felt (utlegg_paslag_pct, gjeld_bank_belop, heftelser_sjekket, status='annullert') · jList: oppgjor_justering-rader
+function avregn(r, ex, jList, today) {
+  const jS = jList.filter(j => j.pavirker === 'selger').reduce((a, j) => a + Number(j.belop), 0);
+  const jP = jList.filter(j => j.pavirker === 'provisjon').reduce((a, j) => a + Number(j.belop), 0);
+  const utleggInkl = Math.round(Number(r.utlegg_eks || 0) * (1 + (ex.utlegg_paslag_pct ?? 20) / 100) * 1.25 * 100) / 100;
+  const gjeld = Number(ex.gjeld_bank_belop || 0);
+  const nettoproveny = r.salgssum ? Math.round((r.salgssum - (Number(r.provisjon_inkl || 0) + jP) - utleggInkl + jS - gjeld) * 100) / 100 : null;
+  const fullt = r.salgssum && r.innbetalt >= r.salgssum * 0.995;
+  let status = 'kontrakt';
+  if (r.innbetalt > 0 && !fullt) status = 'forskudd';
+  if (fullt) status = 'innbetalt';
+  if (r.op_signert) status = fullt ? 'overtatt' : status;
+  if (r.op_signert && fullt && ex.heftelser_sjekket) status = 'klar';
+  if (r.po_invoice_no) status = 'fakturert';
+  if (r.selger_utbetalt || r.drift_overfort) status = 'utbetalt';
+  const gammel = r.po_invoice_dato && (new Date(today) - new Date(r.po_invoice_dato)) / 864e5 > 45;
+  if (r.po_invoice_betalt && (r.selger_utbetalt || r.ark_oppgjort || gammel)) status = 'oppgjort';
+  if (ex.status === 'annullert') status = 'annullert';
+  const status_dato = { kontrakt: r.kk_signert, forskudd: null, innbetalt: r.innbetalt_dato, overtatt: r.op_signert, klar: ex.heftelser_sjekket, fakturert: r.po_invoice_dato, utbetalt: r.selger_utbetalt_dato || r.drift_overfort_dato, oppgjort: r.selger_utbetalt_dato || r.po_invoice_dato }[status] || null;
+  return { nettoproveny, status, status_dato, jP, jS, utleggInkl, gjeld };
+}
+// Summerer koblede klientkonto-transaksjoner inn i raden (innbetalt, selger_utbetalt, drift_overfort)
+function applyTx(t, r, type) { const amt = Number(t.belop);
+  if (['forskudd', 'rest', 'fullt', 'innbetaling'].includes(type) && amt > 0) { r.innbetalt = Math.round((r.innbetalt || 0) + amt); if (r.salgssum && r.innbetalt >= r.salgssum * (1 - 0.005)) r.innbetalt_dato = r.innbetalt_dato || t.bokfort_dato; }
+  if (type === 'selger_utbetaling') { r.selger_utbetalt = Math.round((r.selger_utbetalt || 0) - amt); r.selger_utbetalt_dato = t.bokfort_dato; }
+  if (type === 'drift_overforing') { r.drift_overfort = Math.round((r.drift_overfort || 0) - amt); r.drift_overfort_dato = t.bokfort_dato; }
+  if (type === 'gjeld_bank') { r.gjeld_bank_utbetalt = Math.round((r.gjeld_bank_utbetalt || 0) - amt); } }
+
 // ── Hovedbygg ──
 async function buildOppgjor(sb, opts = {}) {
   const t0 = Date.now(); const log = {}; const today = iso(new Date());
@@ -160,11 +190,7 @@ async function buildOppgjor(sb, opts = {}) {
     // koble når navn/nr treffer, eller når beløpet er entydig (bare én kandidat) — forskudd uten navnetreff krever entydighet
     if (best && (best.score >= 2 || kandidater === 1)) { apply(t, best.r, best.type); updates.push({ id: t.id, oppdragsnr: best.r.oppdragsnr, koblet_type: best.type, koblet_av: 'auto' }); }
   }
-  function apply(t, r, type) { const amt = Number(t.belop);
-    if (['forskudd', 'rest', 'fullt', 'innbetaling'].includes(type) && amt > 0) { r.innbetalt = Math.round((r.innbetalt || 0) + amt); if (r.salgssum && r.innbetalt >= r.salgssum * (1 - 0.005)) r.innbetalt_dato = r.innbetalt_dato || t.bokfort_dato; }
-    if (type === 'selger_utbetaling') { r.selger_utbetalt = Math.round((r.selger_utbetalt || 0) - amt); r.selger_utbetalt_dato = t.bokfort_dato; }
-    if (type === 'drift_overforing') { r.drift_overfort = Math.round((r.drift_overfort || 0) - amt); r.drift_overfort_dato = t.bokfort_dato; }
-    if (type === 'gjeld_bank') { r.gjeld_bank_utbetalt = Math.round((r.gjeld_bank_utbetalt || 0) - amt); } }
+  function apply(t, r, type) { return applyTx(t, r, type); }
   for (let i = 0; i < updates.length; i += 100) for (const u of updates.slice(i, i + 100)) await sb.from('klientkonto_transaksjon').update({ oppdragsnr: u.oppdragsnr, koblet_type: u.koblet_type, koblet_av: u.koblet_av }).eq('id', u.id);
   log.klientkonto = { transaksjoner: T.length, nye_koblinger: updates.length };
 
@@ -176,24 +202,7 @@ async function buildOppgjor(sb, opts = {}) {
     // honorar: ark er fasit; ellers 6 % / min 45k
     if (!r.provisjon_inkl && r.salgssum) r.provisjon_inkl = Math.max(45000, Math.round(r.salgssum * 0.06));
     if (!r.oms_eks && r.provisjon_inkl) r.oms_eks = Math.round(r.provisjon_inkl / 1.25 * 100) / 100;
-    const jS = (J[r.oppdragsnr] || []).filter(j => j.pavirker === 'selger').reduce((a, j) => a + Number(j.belop), 0);
-    const jP = (J[r.oppdragsnr] || []).filter(j => j.pavirker === 'provisjon').reduce((a, j) => a + Number(j.belop), 0);
-    const utleggInkl = Math.round(r.utlegg_eks * (1 + (ex.utlegg_paslag_pct ?? 20) / 100) * 1.25 * 100) / 100;
-    const gjeld = Number(ex.gjeld_bank_belop || 0);
-    r.nettoproveny = r.salgssum ? Math.round((r.salgssum - (r.provisjon_inkl + jP) - utleggInkl + jS - gjeld) * 100) / 100 : null;
-    // status
-    const fullt = r.salgssum && r.innbetalt >= r.salgssum * 0.995;
-    let status = 'kontrakt';
-    if (r.innbetalt > 0 && !fullt) status = 'forskudd';
-    if (fullt) status = 'innbetalt';
-    if (r.op_signert) status = fullt ? 'overtatt' : status;
-    if (r.op_signert && fullt && ex.heftelser_sjekket) status = 'klar';
-    if (r.po_invoice_no) status = 'fakturert';
-    if (r.selger_utbetalt || r.drift_overfort) status = 'utbetalt';
-    const gammel = r.po_invoice_dato && (new Date(today) - new Date(r.po_invoice_dato)) / 864e5 > 45;
-    if (r.po_invoice_betalt && (r.selger_utbetalt || r.ark_oppgjort || gammel)) status = 'oppgjort';
-    if (ex.status === 'annullert') status = 'annullert';
-    r.status = status; r.status_dato = { kontrakt: r.kk_signert, forskudd: null, innbetalt: r.innbetalt_dato, overtatt: r.op_signert, klar: ex.heftelser_sjekket, fakturert: r.po_invoice_dato, utbetalt: r.selger_utbetalt_dato || r.drift_overfort_dato, oppgjort: r.selger_utbetalt_dato || r.po_invoice_dato }[status] || null;
+    const av_ = avregn(r, ex, J[r.oppdragsnr] || [], today); r.nettoproveny = av_.nettoproveny; r.status = av_.status; r.status_dato = av_.status_dato; const jP = av_.jP; const status = av_.status;
     // provisjon per megler
     const inn = r.oppdrag_inn, av = r.solgt_av; const shares = {};
     const solgtDato = r.op_signert || r.ark_solgt || r.kk_signert || today;
@@ -243,3 +252,6 @@ exports.handler = async (event) => {
   } catch (e) { await core.setSyncError(sb, 'oppgjor', String(e.message || e)); return { statusCode: 500, headers: { ...CORS, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: String(e.message || e) }) }; }
 };
 module.exports.buildOppgjor = buildOppgjor;
+module.exports.avregn = avregn;
+module.exports.applyTx = applyTx;
+module.exports.P = P;
