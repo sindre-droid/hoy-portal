@@ -85,6 +85,8 @@ async function syncKlientkonto(sb, days = 60) {
       for (const t of r.transactions || []) rows.push(mapTx(t, KLIENT_BBAN));
       cont = r.continuation_key; if (!cont) break;
     }
+    // bankens entry_reference er ikke alltid unik (eller mangler) → unike id-er innen batchen, ellers feiler upsert
+    const seen = {}; for (const r of rows) { if (seen[r.id]) { seen[r.id]++; r.id = `${r.id}#${seen[r.id]}`; } else seen[r.id] = 1; }
     for (let i = 0; i < rows.length; i += 200) {
       // behold koblinger som er satt (oppdragsnr/koblet_*) — upsert bare bankens felt
       const { error } = await sb.from('klientkonto_transaksjon').upsert(rows.slice(i, i + 200), { onConflict: 'id', ignoreDuplicates: false });
