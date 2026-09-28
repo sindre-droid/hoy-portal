@@ -1076,7 +1076,7 @@ function renderGalleryPageEditor(p, pageIdx) {
     const cropBtn = img ? `<button class="slot-remove" style="right:auto;left:4px;background:rgba(0,0,0,0.6);font-size:10px" onclick="event.stopPropagation();openCropModal(${pi},${si})" title="Juster bildeposisjon">✂</button>` : '';
     const label = img ? '' : `<span class="slot-label">${isWide ? 'Stort bilde' : 'Velg bilde'}</span>`;
     const posStyle = img?.posX !== undefined ? `object-position:${img.posX||50}% ${img.posY||50}%;` : '';
-    const zoomStyle = img?.zoom && img.zoom > 1 ? `transform:scale(${img.zoom});` : '';
+    const zoomStyle = img?.zoom && img.zoom > 1 ? `transform:scale(${img.zoom});transform-origin:${img.posX ?? 50}% ${img.posY ?? 50}%;` : '';
     const imgTagStyled = img ? `<img src="${esc(img.url)}" alt="" style="${posStyle}${zoomStyle}">` : '';
 
     let slotInline = '';
@@ -2278,7 +2278,7 @@ function openGalleryPagePreview(pageIdx) {
   const giHtml = images.map((img, ii) => {
     const wide = (layout === '5up' && ii === 0) ? ' gpp-gi-wide' : '';
     const posStyle = img.posX !== undefined ? `object-position:${img.posX}% ${img.posY}%;` : '';
-    const zoomStyle = img.zoom && img.zoom > 1 ? `transform:scale(${img.zoom});` : '';
+    const zoomStyle = img.zoom && img.zoom > 1 ? `transform:scale(${img.zoom});transform-origin:${img.posX ?? 50}% ${img.posY ?? 50}%;` : '';
     const imgStyle = (posStyle || zoomStyle) ? ` style="${posStyle}${zoomStyle}"` : '';
     const cap = img.caption ? `<div class="gpp-gi-caption">${esc(img.caption)}</div>` : '';
     return `<div class="gpp-gi${wide}"><img src="${esc(img.url)}" alt=""${imgStyle}>${cap}</div>`;
@@ -2435,17 +2435,17 @@ function showCropOverlay(imgUrl) {
   overlay.innerHTML = `
     <div class="crop-modal">
       <div class="crop-modal-header">
-        <h3>Dra bildet for å justere posisjon</h3>
+        <h3>Dra bildet for å justere – scroll eller bruk slideren for zoom</h3>
         <button style="background:none;border:none;font-size:22px;color:var(--gray-dark);cursor:pointer" onclick="closeCropModal()">×</button>
       </div>
       <div class="crop-preview-area" id="cropArea" style="aspect-ratio:${cropState.aspectRatio}">
         <img src="${esc(imgUrl)}" id="cropImg"
-          style="object-position:${cropState.posX}% ${cropState.posY}%;transform:scale(${cropState.zoom})">
+          style="object-position:${cropState.posX}% ${cropState.posY}%;transform:scale(${cropState.zoom});transform-origin:${cropState.posX}% ${cropState.posY}%">
         <div class="crop-frame-hint"></div>
       </div>
       <div class="crop-controls">
         <label>Zoom</label>
-        <input type="range" min="1" max="2.5" step="0.05" value="${cropState.zoom}" oninput="updateCropZoom(this.value)">
+        <input type="range" id="cropZoomRange" min="1" max="3" step="0.05" value="${cropState.zoom}" oninput="updateCropZoom(this.value)">
         <span id="cropZoomLabel" style="font-size:12px;color:var(--gray-dark);min-width:35px">${Math.round(cropState.zoom * 100)}%</span>
       </div>
       <div class="crop-modal-footer">
@@ -2459,6 +2459,12 @@ function showCropOverlay(imgUrl) {
   // Setup drag — moving image within the frame
   const area = document.getElementById('cropArea');
   area.addEventListener('mousedown', startCropDrag);
+  area.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const z = Math.max(1, Math.min(3, cropState.zoom * (e.deltaY < 0 ? 1.06 : 1 / 1.06)));
+    updateCropZoom(z.toFixed(3));
+    const r = document.getElementById('cropZoomRange'); if (r) r.value = cropState.zoom;
+  }, { passive: false });
   document.addEventListener('mousemove', doCropDrag);
   document.addEventListener('mouseup', endCropDrag);
   // Touch
@@ -2482,9 +2488,19 @@ function doCropDrag(e) {
   const area = document.getElementById('cropArea');
   if (!area) return;
   const rect = area.getBoundingClientRect();
-  // Invert direction: dragging right → posX decreases (image moves right = we see more left)
-  const dx = -(e.clientX - cropState.startX) / rect.width * 100;
-  const dy = -(e.clientY - cropState.startY) / rect.height * 100;
+  // Bildet følger musa 1:1. Med object-fit:cover + scale rundt fokuspunktet
+  // (transform-origin = posX/posY) er skjermforskyvningen lineær i pos:
+  //   panoreringsrom R = (zoom-1)*rammebredde + zoom*overheng(cover)
+  // Zoom gir altså rom i BEGGE akser, og bildet kan aldri forlate rammen.
+  const imgEl = document.getElementById('cropImg');
+  const nw = imgEl?.naturalWidth || rect.width, nh = imgEl?.naturalHeight || rect.height;
+  const s = Math.max(rect.width / nw, rect.height / nh);
+  const z = cropState.zoom;
+  const rangeX = (z - 1) * rect.width  + z * Math.max(0, nw * s - rect.width);
+  const rangeY = (z - 1) * rect.height + z * Math.max(0, nh * s - rect.height);
+  // Dra mot høyre → vi ser mer til venstre → pos minker
+  const dx = rangeX > 0.5 ? -(e.clientX - cropState.startX) / rangeX * 100 : 0;
+  const dy = rangeY > 0.5 ? -(e.clientY - cropState.startY) / rangeY * 100 : 0;
   cropState.posX = Math.max(0, Math.min(100, cropState.startPosX + dx));
   cropState.posY = Math.max(0, Math.min(100, cropState.startPosY + dy));
   updateCropPreview();
@@ -2508,13 +2524,14 @@ function updateCropPreview() {
   if (!img) return;
   img.style.objectPosition = `${cropState.posX}% ${cropState.posY}%`;
   img.style.transform = `scale(${cropState.zoom})`;
+  img.style.transformOrigin = `${cropState.posX}% ${cropState.posY}%`;
 }
 
 function resetCrop() {
   cropState.posX = 50;
   cropState.posY = 50;
   cropState.zoom = 1;
-  document.querySelector('.crop-controls input[type=range]').value = 1;
+  const zr = document.getElementById('cropZoomRange'); if (zr) zr.value = 1;
   document.getElementById('cropZoomLabel').textContent = '100%';
   updateCropPreview();
 }
