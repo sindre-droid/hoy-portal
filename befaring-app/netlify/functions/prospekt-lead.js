@@ -99,7 +99,7 @@ function classifyFlyt(boatProps) {
 
 // Lagre interessen varig: akkumulerende kontakt-property + Note i tidslinjen.
 // Feiler aldri hardt — lead-lagring skal ikke knekke kundeflyten.
-async function persistInterest(contact, boatId, boatName, intent, page, flyt) {
+async function persistInterest(contact, boatId, boatName, intent, page, flyt, prospektUrl) {
   const today = new Date().toISOString().slice(0, 10);
   const line = `${today} | ${intent} | ${boatName} (${boatId})`;
 
@@ -108,7 +108,22 @@ async function persistInterest(contact, boatId, boatName, intent, page, flyt) {
     const existing = contact.interesseLog || '';
     // interesse_bat_siste: brukes som {{contact.interesse_bat_siste}} i epostene —
     // settes ALLTID ferskt sammen med flyt-stempelet, i samme PATCH.
-    const props = { prospekt_epost_flyt: flyt, interesse_bat_siste: String(boatName).slice(0, 200) };
+    // interesse_prospekt_url: lenken i «Prospektet er klart»-eposten
+    // ({{ contact.interesse_prospekt_url }}). ALDRI {{custom.*}}-tokens i epostene —
+    // workflow-mappingen er skjult og ryker ved redigering (29. sep 2026: død knapp
+    // hos 14 kunder). Skrives i SAMME PATCH som flyt-stempelet, så eposten aldri
+    // går ut før lenken ligger på kontakten. Tom streng nullstiller gammel lenke.
+    // Sikkerhetsnett: «klart» uten URL er umulig → nedgraderes til under_arbeid.
+    const url = String(prospektUrl || '').trim();
+    if (flyt === 'klart' && !/^https?:\/\//.test(url)) {
+      console.error('[prospekt-lead] VAKT: flyt=klart uten prospekt_url for båt', boatId, '→ under_arbeid');
+      flyt = 'under_arbeid';
+    }
+    const props = {
+      prospekt_epost_flyt: flyt,
+      interesse_bat_siste: String(boatName).slice(0, 200),
+      interesse_prospekt_url: flyt === 'klart' ? url.slice(0, 1000) : '',
+    };
     if (!existing.includes(line)) {
       const updated = existing ? `${existing}\n${line}` : line;
       props.interesse_bater = updated.slice(0, 60000);
@@ -186,7 +201,7 @@ exports.handler = async (event) => {
     const contact = await findOrCreateContact(email);
 
     // 3. Lagre interessen varig + stemple epost-flyt (uavhengig av deal!)
-    await persistInterest(contact, boatId, boatName, intent, page, flyt);
+    await persistInterest(contact, boatId, boatName, intent, page, flyt, boatProps.prospekt_url);
 
     // 4. Deal via boat-assosiasjon
     const deal = await findListingDeal(boatId);
