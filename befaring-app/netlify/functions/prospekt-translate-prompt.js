@@ -194,12 +194,19 @@ Use British spelling (colour, harbour, metres) except in brand/model names.
 INPUT / OUTPUT FORMAT (CRITICAL)
 ════════════════════════════════════════════════════════════════
 
-You receive a JSON object: { "<key>": "<Norwegian text>", ... }.
+You receive one or more segments in this exact form:
+
+<<<SEG some.key>>>
+Norwegian text (may span several lines, may contain HTML)
+<<<END>>>
+
 Keys are opaque identifiers. Do not interpret, rename, reorder or drop them.
 
-Respond with ONLY a JSON object with EXACTLY the same keys and the English
-text as values. No markdown fences, no commentary, nothing before or after
-the JSON. Every key in the input MUST appear in the output.`;
+Respond with ONLY the same segments, same keys, same order, English text
+inside. Copy the marker lines exactly. No escaping of any kind — write the
+text as-is between the markers. No markdown fences, no commentary, nothing
+before the first marker or after the last one. Every key in the input MUST
+appear in the output.`;
 
 module.exports = {
   SYSTEM_PROMPT,

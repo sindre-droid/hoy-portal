@@ -260,7 +260,7 @@ async function callClaude(apiKey, segments) {
         max_tokens: 16000,
         temperature: 0,
         system: P.SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: JSON.stringify(batch, null, 1) }],
+        messages: [{ role: 'user', content: encodeSegments(batch) }],
       }),
     });
     if (!res.ok) {
@@ -268,15 +268,30 @@ async function callClaude(apiKey, segments) {
       throw new Error(`Anthropic ${res.status}: ${t.slice(0, 200)}`);
     }
     const data = await res.json();
-    const raw = (data?.content?.[0]?.text || '').trim().replace(/^```json?\s*/i, '').replace(/\s*```$/, '');
-    let parsed;
-    try { parsed = JSON.parse(raw); }
-    catch (e) { throw new Error(`Kunne ikke tolke oversettelsen (JSON): ${e.message}`); }
+    const raw = data?.content?.[0]?.text || '';
+    const parsed = decodeSegments(raw);
+    const missing = Object.keys(batch).filter(k => !(k in parsed));
+    if (missing.length === Object.keys(batch).length) {
+      throw new Error(`Kunne ikke tolke oversettelsen (ingen segmenter funnet): ${raw.slice(0, 120)}`);
+    }
     for (const k of Object.keys(batch)) {
       if (typeof parsed[k] === 'string' && parsed[k].trim()) out[k] = parsed[k];
       else out[k] = batch[k]; // manglende nøkkel → behold norsk, aldri tomt
     }
   }
+  return out;
+}
+
+// ── Markør-format (ingen escaping — tåler HTML, anførselstegn og linjeskift) ──
+// <<<SEG key>>>\n…tekst…\n<<<END>>>
+function encodeSegments(map) {
+  return Object.keys(map).map(k => `<<<SEG ${k}>>>\n${map[k]}\n<<<END>>>`).join('\n\n');
+}
+function decodeSegments(text) {
+  const out = {};
+  const re = /<<<SEG\s+([^\s>]+)\s*>>>\r?\n?([\s\S]*?)\r?\n?<<<END>>>/g;
+  let m;
+  while ((m = re.exec(text)) !== null) out[m[1]] = m[2];
   return out;
 }
 
