@@ -11,11 +11,20 @@
 // POST action=unpublish          → sett status=draft
 // POST action=refresh-specs      → hent specs+capacities på nytt fra HubSpot
 // POST action=generate-equipment → AI-assistert utstyrsliste (sorterer, dikter ikke)
+//
+// Oversettelse (29. sep 2026 — se prospekt-translate.js):
+// GET  ?public=UUID&lang=en      → offentlig visning på engelsk (kun godkjent oversettelse)
+// GET  ?id=UUID&lang=en          → intern visning på engelsk (også utkast — til forhåndsvisning)
+// GET  ?translation=1&id=UUID    → status per felt (mangler/utdatert/ok), jobb-fremdrift
+// POST action=translate          → start bakgrunnsjobb (alle manglende/utdaterte felt, eller {fields})
+// POST action=update-translation → megler redigerer oversatte felter manuelt
+// POST action=approve-translation→ sett godkjent (=offentlig) / trekk godkjenning ({approved:false})
 // ─────────────────────────────────────────────────────────────────────────────
 
 const { createClient } = require('@supabase/supabase-js');
 const https = require('https');
 const EQUIPMENT_PROMPT = require('./equipment-prompt');
+const TR = require('./prospekt-translate');
 
 const PIPELINE_B = process.env.PIPELINE_B || '3211644128';
 const BOAT_OBJ_TYPE = '2-145214665';
@@ -956,7 +965,13 @@ exports.handler = async (event) => {
       .eq('status', 'published')
       .single();
     if (error || !data) return { statusCode: 404, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'Not found' }) };
-    return ok(data);
+    // Språk: kun GODKJENT oversettelse er offentlig. Utkast → 404 (ikke fall tilbake
+    // til norsk stille — da tror kunden at engelsk finnes). translations-feltet
+    // sendes aldri ut offentlig.
+    const lang = (qs0.lang || 'no').toLowerCase();
+    const view = TR.applyTranslation(data, lang, { requireApproved: true });
+    if (!view) return { statusCode: 404, headers: { ...CORS, ...JSON_H }, body: JSON.stringify({ error: 'Not available in this language' }) };
+    return ok(view);
   }
 
   // Auth
@@ -978,10 +993,27 @@ exports.handler = async (event) => {
       if (qs.list) {
         const { data, error } = await supabase
           .from('prospekter')
-          .select('id, deal_id, deal_name, boat_name, status, updated_at, pdf_url')
+          .select('id, deal_id, deal_name, boat_name, status, updated_at, pdf_url, translations')
           .order('updated_at', { ascending: false });
         if (error) throw error;
-        return ok(data);
+        // Lettvekts-flagg for listevisning; ikke send hele oversettelsen
+        return ok(data.map(({ translations, ...p }) => ({
+          ...p,
+          en_status: translations?.en?.status || null,
+        })));
+      }
+
+      // ── Oversettelsesstatus (felt for felt + jobb-fremdrift) ──
+      if (qs.translation && qs.id) {
+        const { data, error } = await supabase
+          .from('prospekter')
+          .select('*')
+          .eq('id', qs.id)
+          .single();
+        if (error) throw error;
+        const lang = (qs.lang || 'en').toLowerCase();
+        const fields = data.translations?.[lang]?.fields || {};
+        return ok({ ...TR.summary(data, lang), values: fields });
       }
 
       // ── Get one prospekt ──
@@ -992,6 +1024,12 @@ exports.handler = async (event) => {
           .eq('id', qs.id)
           .single();
         if (error) throw error;
+        // ?lang=en → overlay (også utkast, til forhåndsvisning fra editoren)
+        if (qs.lang && qs.lang !== 'no') {
+          const view = TR.applyTranslation(data, qs.lang.toLowerCase(), { requireApproved: false });
+          if (!view) return err(404, 'Ingen oversettelse finnes for dette språket ennå');
+          return ok(view);
+        }
         return ok(data);
       }
 
@@ -1445,6 +1483,107 @@ exports.handler = async (event) => {
           }));
 
         return ok({ categories: aiCategories, source: 'ai' });
+      }
+
+      // ════════════════════════════════════════════════════════════════════
+      // OVERSETTELSE (29. sep 2026) — se prospekt-translate.js
+      // ════════════════════════════════════════════════════════════════════
+
+      // ── Start oversettelsesjobb (bakgrunnsfunksjon, svarer med én gang) ──
+      if (action === 'translate') {
+        const { id, lang = 'en', fields } = body;
+        if (!id) return err(400, 'id required');
+        if (!process.env.ANTHROPIC_API_KEY) return err(500, 'AI not configured');
+
+        const { data: row, error: rErr } = await supabase
+          .from('prospekter').select('*').eq('id', id).single();
+        if (rErr) throw rErr;
+
+        const job = row.translations?.[lang]?.job;
+        if (job?.status === 'running') {
+          // Vern mot dobbeltklikk — men en jobb som har hengt >15 min regnes som død
+          const age = Date.now() - new Date(job.started_at || 0).getTime();
+          if (age < 15 * 60 * 1000) return err(409, 'En oversettelse pågår allerede', { job });
+        }
+
+        const states = TR.fieldStates(row, lang);
+        const wanted = Array.isArray(fields) && fields.length
+          ? fields.filter(f => TR.FIELD_KEYS.includes(f) && states[f] !== 'tom')
+          : TR.FIELD_KEYS.filter(f => states[f] === 'mangler' || states[f] === 'utdatert');
+        if (wanted.length === 0) return ok({ started: false, reason: 'Ingenting å oversette', summary: TR.summary(row, lang) });
+
+        const base = process.env.URL || 'https://silver-puffpuff-8a67de.netlify.app';
+        const bg = await fetch(`${base}/.netlify/functions/prospekt-translate-background`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-internal-key': process.env.SUPABASE_SERVICE_KEY || '' },
+          body: JSON.stringify({ id, lang, fields: wanted, requested_by: jwt.email }),
+        });
+        if (bg.status !== 202 && bg.status !== 200) {
+          return err(502, `Kunne ikke starte oversettelsesjobb (${bg.status})`);
+        }
+        return ok({ started: true, fields: wanted, count: wanted.length });
+      }
+
+      // ── Megler redigerer oversatte felter manuelt ──
+      if (action === 'update-translation') {
+        const { id, lang = 'en', fields } = body;
+        if (!id) return err(400, 'id required');
+        if (!fields || typeof fields !== 'object') return err(400, 'fields required');
+
+        const { data: row, error: rErr } = await supabase
+          .from('prospekter').select('translations').eq('id', id).single();
+        if (rErr) throw rErr;
+
+        const tr = { ...(row.translations?.[lang] || { status: 'utkast', fields: {}, source_hashes: {} }) };
+        tr.fields = { ...(tr.fields || {}) };
+        const changed = [];
+        for (const k of Object.keys(fields)) {
+          if (!TR.FIELD_KEYS.includes(k)) continue;
+          tr.fields[k] = fields[k];
+          changed.push(k);
+        }
+        if (changed.length === 0) return err(400, 'No valid translation fields');
+        tr.edited_at = new Date().toISOString();
+        tr.edited_by = jwt.email;
+
+        const translations = { ...(row.translations || {}), [lang]: tr };
+        const { error: uErr } = await supabase.from('prospekter').update({ translations }).eq('id', id);
+        if (uErr) throw uErr;
+        return ok({ changed });
+      }
+
+      // ── Godkjenn / trekk godkjenning (godkjent = synlig på ?lang=en offentlig) ──
+      if (action === 'approve-translation') {
+        const { id, lang = 'en', approved = true } = body;
+        if (!id) return err(400, 'id required');
+
+        const { data: row, error: rErr } = await supabase
+          .from('prospekter').select('*').eq('id', id).single();
+        if (rErr) throw rErr;
+
+        const tr = row.translations?.[lang];
+        if (!tr || !tr.fields || Object.keys(tr.fields).length === 0) return err(400, 'Ingen oversettelse å godkjenne');
+
+        if (approved) {
+          // Utdaterte felter kan ikke godkjennes — norsk har endret seg siden
+          const s = TR.summary(row, lang);
+          const stale = Object.entries(s.fields).filter(([, v]) => v === 'utdatert').map(([k]) => s.labels[k]);
+          if (stale.length) return err(409, `Oversettelsen er utdatert for: ${stale.join(', ')}. Oppdater først.`, { stale });
+          if (tr.job?.status === 'running') return err(409, 'Oversettelse pågår — vent til den er ferdig');
+        }
+
+        const next = {
+          ...tr,
+          status: approved ? 'godkjent' : 'utkast',
+          approved_at: approved ? new Date().toISOString() : null,
+          approved_by: approved ? jwt.email : null,
+        };
+        const translations = { ...(row.translations || {}), [lang]: next };
+        const { error: uErr } = await supabase.from('prospekter').update({ translations }).eq('id', id);
+        if (uErr) throw uErr;
+
+        const siteUrl = process.env.URL || 'https://silver-puffpuff-8a67de.netlify.app';
+        return ok({ status: next.status, public_url: approved ? `${siteUrl}/prospekt/public.html?id=${id}&lang=${lang}` : null });
       }
 
       // ── Get signed upload URL (bilder lagres per deal_id) ──

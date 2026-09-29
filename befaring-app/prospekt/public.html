@@ -860,6 +860,14 @@
     margin-top: 2px;
   }
 
+  /* ── Oversettelse (EN) ── */
+  .declaration-translation-banner {
+    margin-top: 8px; font-size: 9.5px; letter-spacing: 0.5px; text-transform: uppercase;
+    color: #C4983E; font-weight: 500;
+  }
+  .decl-comment-original { color: #9A9590; font-style: italic; }
+  .decl-orig-label { font-style: normal; font-size: 8.5px; letter-spacing: 0.5px; text-transform: uppercase; color: #9A9590; }
+
   .declaration-notice {
     margin: auto 7% 0;
     padding: 14px 16px;
@@ -1514,14 +1522,14 @@
 <!-- Loading state -->
 <div class="render-loading" id="loadingState">
   <div class="spinner"></div>
-  <p>Henter prospektet&hellip;</p>
+  <p data-i18n="loading">Henter prospektet&hellip;</p>
 </div>
 
 <!-- Error state -->
 <div class="render-error" id="errorState" style="display:none">
-  <h2>Prospektet er ikke tilgjengelig</h2>
-  <p id="errorMsg">Dette prospektet finnes ikke eller er ikke publisert ennå.</p>
-  <p style="font-size:13px;color:#9A9590;margin-top:8px">Kontakt oss på <a href="mailto:post@h-y.no" style="color:#C4983E">post@h-y.no</a> for spørsmål.</p>
+  <h2 data-i18n="errTitle">Prospektet er ikke tilgjengelig</h2>
+  <p id="errorMsg" data-i18n="errBody">Dette prospektet finnes ikke eller er ikke publisert ennå.</p>
+  <p style="font-size:13px;color:#9A9590;margin-top:8px"><span data-i18n="errContact">Kontakt oss på</span> <a href="mailto:post@h-y.no" style="color:#C4983E">post@h-y.no</a> <span data-i18n="errContactTail">for spørsmål.</span></p>
 </div>
 
 <!-- Prospekt pages rendered here -->
@@ -1529,15 +1537,19 @@
 
 <!-- Toolbar: kun Last ned PDF (skjules automatisk i print) -->
 <div class="render-toolbar" id="publicToolbar" style="display:none">
-  <button class="btn-pdf" onclick="exportPdf()">Last ned PDF</button>
+  <button class="btn-pdf" onclick="exportPdf()" data-i18n="downloadPdf">Last ned PDF</button>
 </div>
 
+<script src="/prospekt/i18n.js"></script>
 <script>
 // ════════════════════════════════════════════════════════════════════════════════
 // RENDER ENGINE — fetches prospekt data and builds all pages
 // ════════════════════════════════════════════════════════════════════════════════
 
 const API = '/.netlify/functions/prospekt';
+
+// Statisk UI-tekst (loading/feil/knapp) på valgt språk
+document.querySelectorAll('[data-i18n]').forEach(el => { el.innerHTML = t(el.getAttribute('data-i18n')); });
 const OFFICE_ADDRESS = 'Dicks vei 12, 1366 Lysaker';
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
@@ -1555,6 +1567,13 @@ function getInitials(name) {
   return name.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
 }
 
+// Meglerrolle: standardverdiene «Båtmegler»/«Megler» oversettes; egendefinerte beholdes
+function brokerRole(role, fallback) {
+  if (!role) return fallback;
+  if (PROSPEKT_LANG === 'en' && (role === 'Båtmegler' || role === 'Megler')) return fallback;
+  return role;
+}
+
 function spaceYear(y) {
   if (!y) return '';
   return String(y).split('').join(' &nbsp;');
@@ -1563,7 +1582,7 @@ function spaceYear(y) {
 // ── Public API (ingen auth) ──────────────────────────────────────────────────
 async function api(params) {
   // Bruk ?public=UUID i stedet for ?id=UUID
-  const publicParams = { public: params.id };
+  const publicParams = { public: params.id, ...(params.lang ? { lang: params.lang } : {}) };
   const qs = new URLSearchParams(publicParams).toString();
   const r = await fetch(`${API}?${qs}`);
   const text = await r.text();
@@ -1582,7 +1601,7 @@ async function api(params) {
 function cobrandPartnerHtml(p, variant) {
   const cb = p.cobrand || {};
   const cls = variant === 'light' ? 'light' : 'dark';
-  const label = cb.relationship_text || 'i samarbeid med';
+  const label = (PROSPEKT_LANG === 'en') ? t('cobrandWith') : (cb.relationship_text || t('cobrandWith'));
   return `
     <div class="cobrand-partner">
       <span>${esc(label)}</span>
@@ -1609,23 +1628,23 @@ function buildCobrandCoverPage(p) {
   // Meta rows from specs
   const year = p.model_year || '';
   const price = formatPrice(p.asking_price);
-  const lengde = (p.specs || []).find(s => (s.label||'').toLowerCase().includes('lengde'));
-  const timer = (p.specs || []).find(s => (s.label||'').toLowerCase().includes('timer'));
+  const lengde = (p.specs || []).find(s => /lengde|length/.test((s.label||'').toLowerCase()));
+  const timer = (p.specs || []).find(s => /timer|hours/.test((s.label||'').toLowerCase()));
 
   const metaRows = [
-    year ? { l: 'Modellår', v: year } : null,
-    timer ? { l: 'Timer', v: timer.value } : null,
-    lengde ? { l: 'Lengde', v: lengde.value } : null,
-    price ? { l: 'Pris', v: price } : null,
+    year ? { l: t('metaYear'), v: year } : null,
+    timer ? { l: t('metaHours'), v: timer.value } : null,
+    lengde ? { l: t('metaLength'), v: lengde.value } : null,
+    price ? { l: t('metaPrice'), v: price } : null,
   ].filter(Boolean).map(r =>
     `<div class="row"><span class="l">${esc(r.l)}</span><span class="v">${esc(String(r.v))}</span></div>`
   ).join('');
 
   const nr = p.prospekt_nr || '';
-  const tagText = nr ? `Salgsoppgave · ${esc(nr)} · ${year}` : '';
+  const tagText = nr ? `${t('salesDoc')} · ${esc(nr)} · ${year}` : '';
 
   return `
-    <div class="page-label">Forside</div>
+    <div class="page-label">${t('lblCover')}</div>
     <div class="page">
       <div class="cover-cobrand">
         <div class="photo-bg">${coverImg}</div>
@@ -1656,7 +1675,7 @@ function buildCobrandContactPage(p) {
   }
 
   return `
-    <div class="page-label">Kontakt</div>
+    <div class="page-label">${t('lblContact')}</div>
     <div class="page">
       <div class="contact-cobrand">
         <div class="photo-bg">${contactImg}</div>
@@ -1665,21 +1684,21 @@ function buildCobrandContactPage(p) {
           ${cobrandPartnerHtml(p, 'light')}
         </div>
         <div class="contact-stage">
-          <div class="contact-eyebrow">Visning og kontakt</div>
-          <h2>Bestill <em>privat visning</em></h2>
+          <div class="contact-eyebrow">${t('viewingAndContact')}</div>
+          <h2>${t('bookViewingHtml')}</h2>
           <div class="contact-broker">
             <div class="col">
               <div class="broker-card">
                 ${avatarHtml}
                 <div class="broker-meta">
                   <div class="broker-name">${esc(p.broker_name)}</div>
-                  <div class="broker-role">${esc(p.broker_role || 'Båtmegler')}</div>
+                  <div class="broker-role">${esc(brokerRole(p.broker_role, t('brokerRole')))}</div>
                   <div class="broker-detail">${esc(p.broker_phone || '')}<br>${esc(p.broker_email || '')}</div>
                 </div>
               </div>
             </div>
             <div class="col">
-              <div class="l">Kontor</div>
+              <div class="l">${t('office')}</div>
               <div class="v"><strong>House of Yachts</strong><br>${esc(OFFICE_ADDRESS)}</div>
             </div>
           </div>
@@ -1702,7 +1721,7 @@ function buildCoverPage(p) {
     : '';
 
   return `
-    <div class="page-label">Forside</div>
+    <div class="page-label">${t('lblCover')}</div>
     <div class="page">
       <div class="cover">
         <div class="cover-image-area">
@@ -1716,7 +1735,7 @@ function buildCoverPage(p) {
         <div class="cover-bottom">
           <div class="cover-year">${spaceYear(p.model_year)}</div>
           <h1 class="cover-title">${esc(p.boat_name)}</h1>
-          <div class="cover-price">NOK ${formatPrice(p.asking_price)},-</div>
+          <div class="cover-price">NOK ${formatPrice(p.asking_price)}${t('priceSuffix')}</div>
           <div class="cover-divider"></div>
         </div>
         <div class="cover-footer">
@@ -1747,7 +1766,7 @@ function buildOverviewPage(p) {
   const capsHtml = caps.length > 0 ? `
     <div class="spec-divider"></div>
     <div style="margin-top:10px">
-      <div class="category-label-inline">Kapasiteter</div>
+      <div class="category-label-inline">${t('capacities')}</div>
       ${caps.map(c => `
         <div class="spec-row">
           <span class="spec-label">${esc(c.label)}</span>
@@ -1765,7 +1784,7 @@ function buildOverviewPage(p) {
   const footerHtml = isCobrand ? `
         <div class="page-footer-cobrand">
           <div class="accent"></div>
-          <span>House of Yachts &middot; i samarbeid med Cormate &middot; houseofyachts.no</span>
+          <span>House of Yachts &middot; ${t('cobrandWith')} Cormate &middot; houseofyachts.no</span>
         </div>
   ` : `
         <div class="page-footer-light">
@@ -1775,7 +1794,7 @@ function buildOverviewPage(p) {
   `;
 
   return `
-    <div class="page-label">Oversikt</div>
+    <div class="page-label">${t('lblOverview')}</div>
     <div class="page">
       <div class="overview">
         <div class="overview-hero">
@@ -1785,8 +1804,8 @@ function buildOverviewPage(p) {
         <div class="overview-content">
           <div class="specs-column">
             <h2 class="specs-boat-name">${esc(p.boat_name)}</h2>
-            <div class="specs-price">Prisantydning: NOK ${formatPrice(p.asking_price)},-</div>
-            <div class="category-label-inline">Spesifikasjoner</div>
+            <div class="specs-price">${t('askingPrice')}: NOK ${formatPrice(p.asking_price)}${t('priceSuffix')}</div>
+            <div class="category-label-inline">${t('specifications')}</div>
             ${specs}
             ${capsHtml}
           </div>
@@ -1832,11 +1851,11 @@ function buildGalleryPages(p) {
     }).join('');
 
     return `
-      <div class="page-label">Bildegalleri ${pi + 1}</div>
+      <div class="page-label">${t('lblGallery')} ${pi + 1}</div>
       <div class="page">
         <div class="gallery">
           <div class="gallery-header">
-            <h2>Bildegalleri</h2>
+            <h2>${t('galleryTitle')}</h2>
             <span class="gallery-subtitle">${esc(p.boat_name)} &middot; ${esc(String(p.model_year || ''))}</span>
           </div>
           <div class="${gridClass}">
@@ -1885,12 +1904,12 @@ function buildEquipmentPages(p) {
   }
 
   return `
-    <div class="page-label">Utstyrsliste</div>
+    <div class="page-label">${t('lblEquipment')}</div>
     <div class="page">
       <div class="equipment">
         <div class="equipment-header">
-          <h2>Utstyr og spesifikasjoner</h2>
-          <p class="section-subtitle">Komplett oversikt over utstyr og tilbeh&oslash;r</p>
+          <h2>${t('equipmentTitle')}</h2>
+          <p class="section-subtitle">${t('equipmentSubtitle')}</p>
         </div>
         <div class="equipment-body">
           <div>${renderColumn(leftCats)}</div>
@@ -1960,10 +1979,10 @@ function renderServiceBlock(field, text) {
 
 function buildServicePages(p) {
   const fields = [
-    { key: 'cs', label: 'Tilstandsoppsummering', dbField: 'service_condition_summary' },
-    { key: 'sh', label: 'Servicehistorikk', dbField: 'service_history' },
-    { key: 'ru', label: 'Nylige oppgraderinger', dbField: 'service_recent_upgrades' },
-    { key: 'kn', label: 'Anmerkninger', dbField: 'service_known_notes' },
+    { key: 'cs', label: t('svcCondition'), dbField: 'service_condition_summary' },
+    { key: 'sh', label: t('svcHistory'), dbField: 'service_history' },
+    { key: 'ru', label: t('svcUpgrades'), dbField: 'service_recent_upgrades' },
+    { key: 'kn', label: t('svcNotes'), dbField: 'service_known_notes' },
   ];
 
   const active = fields.filter(f => p[`service_include_${f.key}`] !== false && (p[f.dbField] || '').trim());
@@ -2032,8 +2051,11 @@ function buildServicePages(p) {
   }
   if (currentPage.length > 0) pages.push(currentPage);
 
+  const svcDisclaimer = t('serviceDisclaimer')
+    ? `<div class="declaration-notice" style="margin:auto 0 8px">${t('serviceDisclaimer')}</div>` : '';
   const footer = `
-    <div class="page-footer-light" style="margin-top:auto">
+    ${svcDisclaimer}
+    <div class="page-footer-light"${svcDisclaimer ? '' : ' style="margin-top:auto"'}>
       <div class="page-footer-accent"></div>
       <span>&copy; ${new Date().getFullYear()} House of Yachts &middot; houseofyachts.no</span>
     </div>`;
@@ -2043,17 +2065,17 @@ function buildServicePages(p) {
     const isLast = pi === pages.length - 1;
     const headerHtml = isFirst ? `
       <div class="service-header">
-        <h2>Servicehistorikk</h2>
-        <p class="section-subtitle">Dokumentert vedlikehold og tilstand</p>
+        <h2>${t('serviceTitle')}</h2>
+        <p class="section-subtitle">${t('serviceSubtitle')}</p>
       </div>` : `
       <div class="service-header" style="margin-bottom:2%">
-        <p class="section-subtitle">Servicehistorikk, fortsettelse</p>
+        <p class="section-subtitle">${t('serviceContinued')}</p>
       </div>`;
-    const label = isFirst ? 'Servicehistorikk' : `Servicehistorikk (forts.)`;
+    const label = isFirst ? t('lblService') : t('lblServiceCont');
     const footerHtml = !isLast ? `
       <div class="page-footer-light" style="margin-top:auto">
         <div class="page-footer-accent"></div>
-        <span>Servicehistorikk &middot; Fortsetter neste side</span>
+        <span>${t('lblService')} &middot; ${t('continuesNext')}</span>
       </div>` : footer;
 
     return `
@@ -2089,13 +2111,13 @@ function buildDeclarationPages(p) {
   // Selger anonymiseres (vises ikke) — resten av feltene er faktaopplysninger om båten
   const meta = p.declaration_metadata || {};
   const metaOrder = [
-    ['Merke',                     'Merke'],
-    ['Årsmodell',                 'Årsmodell'],
-    ['Kjøpt år',                  'Kjøpt år'],
-    ['HIN (CIN) nr.',             'HIN / CIN-nr.'],
-    ['Motornummer',               'Motornummer'],
-    ['Båtens registreringsnummer','Registreringsnr.'],
-    ['Oppdragsnummer',            'Oppdragsnr.'],
+    ['Merke',                     t('metaMake')],
+    ['Årsmodell',                 t('metaModelYear')],
+    ['Kjøpt år',                  t('metaBought')],
+    ['HIN (CIN) nr.',             t('metaHin')],
+    ['Motornummer',               t('metaEngineNo')],
+    ['Båtens registreringsnummer',t('metaRegNo')],
+    ['Oppdragsnummer',            t('metaListingNo')],
   ];
   const metaRows = metaOrder
     .filter(([key]) => (meta[key] || '').toString().trim())
@@ -2104,7 +2126,7 @@ function buildDeclarationPages(p) {
     ).join('');
   const metaHtml = metaRows ? `
     <div class="decl-meta">
-      <div class="decl-meta-title">Opplysninger oppgitt av selger</div>
+      <div class="decl-meta-title">${t('declMetaTitle')}</div>
       <div class="decl-meta-grid">${metaRows}</div>
     </div>
   ` : '';
@@ -2114,8 +2136,11 @@ function buildDeclarationPages(p) {
     <div class="decl-section">
       <div class="category-label">${esc(sec.title)}</div>
       ${sec.questions.map(q => {
-        const ansClass = q.answer === 'Ja' ? 'yes' : (q.answer === 'Nei' ? 'no' : '');
-        const commentHtml = q.comment ? `<div class="decl-comment">${esc(q.comment)}</div>` : '';
+        const ansClass = (q.answer === 'Ja' || q.answer === 'Yes') ? 'yes' : ((q.answer === 'Nei' || q.answer === 'No') ? 'no' : '');
+        // Engelsk: vis selgers norske originalkommentar under oversettelsen
+        const origHtml = (PROSPEKT_LANG === 'en' && q.comment_no && q.comment_no !== q.comment)
+          ? `<div class="decl-comment decl-comment-original"><span class="decl-orig-label">${t('declOriginalPrefix')}</span> ${esc(q.comment_no)}</div>` : '';
+        const commentHtml = q.comment ? `<div class="decl-comment">${esc(q.comment)}</div>${origHtml}` : '';
         return `
           <div class="decl-row">
             <span class="decl-question">${esc(q.question)}</span>
@@ -2130,7 +2155,7 @@ function buildDeclarationPages(p) {
   const otherNotes = p.declaration_other_notes;
   const notesHtml = otherNotes ? `
     <div class="decl-section">
-      <div class="category-label">Andre merknader</div>
+      <div class="category-label">${t('declOtherNotes')}</div>
       <div style="font-size:10px;color:var(--hoy-dark-gray);font-weight:300;line-height:1.6;padding:6px 0">${esc(otherNotes)}</div>
     </div>
   ` : '';
@@ -2141,15 +2166,16 @@ function buildDeclarationPages(p) {
 
   const declHeader = `
     <div class="declaration-header-band">
-      <div class="declaration-eyebrow">Dokumentasjon</div>
-      <h2 class="declaration-title">Selgers egenerklæring</h2>
-      <p class="declaration-lede">Utfylt og signert av eier. Opplysningene gis i god tro og etter beste evne.</p>
+      <div class="declaration-eyebrow">${t('declEyebrow')}</div>
+      <h2 class="declaration-title">${t('declTitle')}</h2>
+      <p class="declaration-lede">${t('declLede')}</p>
+      ${t('declTranslationBanner') ? `<p class="declaration-translation-banner">${t('declTranslationBanner')}</p>` : ''}
     </div>
   `;
 
   if (!needsTwoPages) {
     return `
-      <div class="page-label">Egenerklæring</div>
+      <div class="page-label">${t('lblDeclaration')}</div>
       <div class="page">
         <div class="declaration">
           ${declHeader}
@@ -2158,9 +2184,7 @@ function buildDeclarationPages(p) {
             ${sectionBlocks.join('')}
             ${notesHtml}
           </div>
-          <div class="declaration-notice">
-            Egenerklæringen er signert digitalt av selger via Oneflow. Originaldokumentet er tilgjengelig ved forespørsel til ansvarlig megler. Opplysningene erstatter ikke en uavhengig tilstandsvurdering.
-          </div>
+          <div class="declaration-notice">${t('declNotice')}</div>
         </div>
       </div>
     `;
@@ -2172,7 +2196,7 @@ function buildDeclarationPages(p) {
   const page2Blocks = sectionBlocks.slice(midIdx);
 
   return `
-    <div class="page-label">Egenerklæring</div>
+    <div class="page-label">${t('lblDeclaration')}</div>
     <div class="page">
       <div class="declaration">
         ${declHeader}
@@ -2182,23 +2206,21 @@ function buildDeclarationPages(p) {
         </div>
         <div class="page-footer-light">
           <div class="page-footer-accent"></div>
-          <span>Egenerklæring · Fortsetter neste side</span>
+          <span>${t('lblDeclaration')} · ${t('continuesNext')}</span>
         </div>
       </div>
     </div>
-    <div class="page-label">Egenerklæring (forts.)</div>
+    <div class="page-label">${t('lblDeclarationCont')}</div>
     <div class="page">
       <div class="declaration">
         <div class="declaration-header-compact">
-          <p class="section-subtitle">Selgers egenerklæring, fortsettelse</p>
+          <p class="section-subtitle">${t('declContinued')}</p>
         </div>
         <div class="declaration-body">
           ${page2Blocks.join('')}
           ${notesHtml}
         </div>
-        <div class="declaration-notice">
-          Egenerklæringen er signert digitalt av selger via Oneflow. Originaldokumentet er tilgjengelig ved forespørsel til ansvarlig megler. Opplysningene erstatter ikke en uavhengig tilstandsvurdering.
-        </div>
+        <div class="declaration-notice">${t('declNotice')}</div>
       </div>
     </div>
   `;
@@ -2212,7 +2234,7 @@ function buildFreetextPages(p) {
     const subtitleHtml = pg.subtitle
       ? `<p class="section-subtitle">${esc(pg.subtitle)}</p>` : '';
     return `
-      <div class="page-label">${esc(pg.heading || 'Fritekst')}</div>
+      <div class="page-label">${esc(pg.heading || t('lblFreetext'))}</div>
       <div class="page">
         <div class="freetext">
           <div class="freetext-header">
@@ -2249,15 +2271,15 @@ function buildContactPage(p) {
   }
 
   return `
-    <div class="page-label">Kontakt</div>
+    <div class="page-label">${t('lblContact')}</div>
     <div class="page">
       <div class="contact">
         <div class="contact-image-area">
           ${contactImg}
           <div class="contact-image-overlay"></div>
           <div class="contact-image-text">
-            <h2>Interessert?</h2>
-            <p>Ta kontakt for visning eller ytterligere informasjon om dette fart&oslash;yet. Vi er tilgjengelige for sp&oslash;rsm&aring;l og arrangerer gjerne en uforpliktende befaring.</p>
+            <h2>${t('interested')}</h2>
+            <p>${t('contactLede')}</p>
           </div>
         </div>
         <div class="contact-body">
@@ -2265,7 +2287,7 @@ function buildContactPage(p) {
             ${avatarHtml}
             <div class="contact-info">
               <h3>${esc(p.broker_name)}</h3>
-              <div class="contact-role">${esc(p.broker_role || 'Megler')}</div>
+              <div class="contact-role">${esc(brokerRole(p.broker_role, t('brokerRoleShort')))}</div>
               <div class="contact-detail">
                 ${esc(p.broker_phone || '')}<br>
                 ${esc(p.broker_email || '')}
@@ -2274,9 +2296,9 @@ function buildContactPage(p) {
           </div>
 
           <div class="contact-about">
-            <div class="category-label-inline" style="margin-bottom:8px">Om House of Yachts</div>
+            <div class="category-label-inline" style="margin-bottom:8px">${t('aboutTitle')}</div>
             <p style="font-size:10px;line-height:1.6;color:var(--hoy-dark-gray);font-weight:300;margin-bottom:6px">
-              House of Yachts er et b&aring;tmeglerfirma i Oslofjord-regionen som spesialiserer seg p&aring; kj&oslash;p og salg av brukte fritidsb&aring;ter i premium-segmentet. Vi tilbyr full-service megling med profesjonell fotografering, markedsf&oslash;ring, visninger og trygg oppgj&oslash;rsh&aring;ndtering.
+              ${t('aboutText')}
             </p>
             <p style="font-size:10px;line-height:1.6;color:var(--hoy-mid-gray);font-weight:300">
               houseofyachts.no &nbsp;&middot;&nbsp; Instagram: @houseofyachts
@@ -2284,10 +2306,11 @@ function buildContactPage(p) {
           </div>
 
           <div class="contact-cta" style="margin-top:auto">
-            <p>${esc(p.cta_label || 'Besøk oss for visning')}</p>
+            <p>${esc(p.cta_label || t('ctaDefault'))}</p>
             <div class="cta-text">${esc(p.cta_address || OFFICE_ADDRESS)}</div>
           </div>
         </div>
+        ${t('footerDisclaimer') ? `<div class="declaration-notice" style="margin:0 6% 6px">${t('footerDisclaimer')}</div>` : ''}
         <div class="page-footer">
           <span>&copy; ${new Date().getFullYear()} House of Yachts &middot; houseofyachts.no</span>
           <span>${esc(OFFICE_ADDRESS)}</span>
@@ -2333,11 +2356,11 @@ function buildSingleGalleryPage(p, pageIdx) {
   }).join('');
 
   return `
-    <div class="page-label">Bildegalleri ${pageIdx + 1}</div>
+    <div class="page-label">${t('lblGallery')} ${pageIdx + 1}</div>
     <div class="page">
       <div class="gallery">
         <div class="gallery-header">
-          <h2>Bildegalleri</h2>
+          <h2>${t('galleryTitle')}</h2>
           <span class="gallery-subtitle">${esc(p.boat_name)} &middot; ${esc(String(p.model_year || ''))}</span>
         </div>
         <div class="${gridClass}">${imagesHtml}</div>
@@ -2407,16 +2430,16 @@ async function init() {
   const id = params.get('id');
 
   if (!id) {
-    showError('Mangler prospekt-ID i URL');
+    showError(t('errMissingId'));
     return;
   }
 
   try {
-    const data = await api({ id });
+    const data = await api({ id, ...(PROSPEKT_LANG !== 'no' ? { lang: PROSPEKT_LANG } : {}) });
     if (data.error) throw new Error(data.error);
 
     // Update page title
-    document.title = `${data.boat_name || 'Prospekt'} — House of Yachts`;
+    document.title = `${data.boat_name || (PROSPEKT_LANG === 'en' ? 'Prospectus' : 'Prospekt')} — House of Yachts`;
 
     // Render pages
     const wrapper = document.getElementById('pageWrapper');

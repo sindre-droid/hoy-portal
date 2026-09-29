@@ -62,6 +62,46 @@
   .pl-badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
   .pl-badge.draft{background:var(--yellow-bg);color:var(--yellow)}
   .pl-badge.published{background:var(--green-bg);color:var(--green)}
+  .pl-badge.en{background:#e8eef7;color:var(--navy);margin-left:6px;letter-spacing:0.5px}
+  .pl-badge.en.godkjent{background:var(--green-bg);color:var(--green)}
+  .pl-badges{display:flex;align-items:center}
+
+  /* ── Språk (NO/EN) ── */
+  .lang-tabs{display:inline-flex;border:2px solid var(--gray);border-radius:10px;overflow:hidden}
+  .lang-tabs button{background:white;color:var(--gray-dark);border:none;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:1px}
+  .lang-tabs button.active{background:var(--navy);color:white}
+  .en-bar{background:white;border-radius:14px;box-shadow:var(--shadow);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .en-status{font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px;background:#e8eef7;color:var(--navy)}
+  .en-status.godkjent{background:var(--green-bg);color:var(--green)}
+  .en-status.utdatert{background:var(--yellow-bg);color:var(--yellow)}
+  .en-status.running{background:#e8eef7;color:var(--navy)}
+  .en-bar .spacer{flex:1}
+  .en-bar .btn-outline,.en-bar .btn-gold,.en-bar .btn-primary{padding:9px 16px;font-size:13px}
+  .en-url{font-size:12px;color:var(--gray-dark);width:100%;word-break:break-all}
+  .en-url a{color:var(--navy)}
+  .en-chip{font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px;letter-spacing:0.5px;text-transform:uppercase}
+  .en-chip.ok{background:var(--green-bg);color:var(--green)}
+  .en-chip.utdatert{background:var(--yellow-bg);color:var(--yellow)}
+  .en-chip.mangler{background:var(--red-bg);color:var(--red)}
+  .en-chip.tom{background:var(--gray);color:var(--gray-dark)}
+  .en-field{margin-bottom:14px}
+  .en-field label{display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:4px}
+  .en-field input,.en-field textarea{width:100%;padding:9px 11px;border:2px solid var(--gray);border-radius:8px;font-size:14px;font-family:inherit;color:var(--text)}
+  .en-field textarea{resize:vertical;min-height:80px}
+  .en-field textarea.html{font-family:ui-monospace,Menlo,monospace;font-size:12px;min-height:140px}
+  .en-field input:focus,.en-field textarea:focus{outline:none;border-color:var(--navy)}
+  .en-src{font-size:12px;color:var(--gray-dark);margin-top:4px;white-space:pre-wrap;line-height:1.45}
+  .en-src summary{cursor:pointer;font-size:11px;color:var(--gray-dark);user-select:none}
+  .en-src .src-html{font-family:ui-monospace,Menlo,monospace;font-size:11px}
+  .en-row{display:grid;grid-template-columns:180px 1fr;gap:8px;margin-bottom:6px;align-items:center}
+  .en-row .lbl{font-size:12px;color:var(--gray-dark)}
+  .en-row.two{grid-template-columns:1fr 1fr}
+  .en-q{border-top:1px solid var(--gray);padding:10px 0}
+  .en-q .q{font-size:13px;font-weight:600;color:var(--navy);margin-bottom:6px}
+  .en-q .q small{font-weight:400;color:var(--gray-dark);display:block}
+  .en-cat{border-top:1px solid var(--gray);padding:10px 0}
+  .en-empty{font-size:13px;color:var(--gray-dark);padding:12px 0}
+  .en-dirty{border-color:var(--gold)!important}
 
   /* ── Editor layout ── */
   .editor-wrap{max-width:1200px;margin:0 auto;padding:24px 16px 80px}
@@ -349,6 +389,10 @@
         </div>
         <div class="editor-actions">
           <button class="btn-outline" onclick="backToPicker()">← Tilbake</button>
+          <div class="lang-tabs" title="Språkversjon">
+            <button id="langTabNo" class="active" onclick="setEditorLang('no')">NO</button>
+            <button id="langTabEn" onclick="setEditorLang('en')">EN</button>
+          </div>
           <button class="btn-outline" onclick="previewProspekt()">Forhåndsvisning</button>
           <button class="btn-outline" onclick="downloadPdf()">⬇ Last ned PDF</button>
           <button class="btn-gold" id="saveBtn" onclick="saveProspekt()">Lagre</button>
@@ -370,6 +414,12 @@
 
       <div class="section-grid" id="sectionGrid">
         <!-- Sections rendered by JS -->
+      </div>
+
+      <!-- Engelsk versjon (rendres av JS når EN-fanen er aktiv) -->
+      <div id="enView" style="display:none">
+        <div class="en-bar" id="enBar"></div>
+        <div class="section-grid" id="enGrid"></div>
       </div>
 
     </div>
@@ -539,7 +589,10 @@ async function loadPicker() {
         <div class="pl-name">${esc(p.boat_name || p.deal_name)}</div>
         <div class="pl-meta">Sist endret: ${date}</div>
       </div>
-      <span class="pl-badge ${p.status}">${p.status === 'published' ? 'Publisert' : 'Utkast'}</span>
+      <div class="pl-badges">
+        <span class="pl-badge ${p.status}">${p.status === 'published' ? 'Publisert' : 'Utkast'}</span>
+        ${p.en_status ? `<span class="pl-badge en ${p.en_status}" title="Engelsk versjon: ${p.en_status}">EN${p.en_status === 'godkjent' ? ' ✓' : ''}</span>` : ''}
+      </div>
     `;
     list.appendChild(card);
   }
@@ -591,11 +644,15 @@ async function openEditor(id) {
   cbBar.style.display = 'flex';
   $('cobrandSelect').value = currentProspekt.cobrand?.partner || 'none';
 
+  // Alltid norsk ved åpning
+  enReset();
+  setEditorLang('no', true);
   renderSections();
 }
 
 function backToPicker() {
   if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  enReset();
   currentProspekt = null;
   $('editorView').style.display = 'none';
   $('pickerView').style.display = 'block';
@@ -2788,6 +2845,337 @@ function downloadPdf() {
     // Open render page — print dialog opens automatically when ?print=1
     window.open(`/prospekt/render.html?id=${currentProspekt.id}&print=1`, '_blank');
   });
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// ENGELSK VERSJON (29. sep 2026)
+// Norsk er sannhetskilden. EN-fanen viser oversatte felter (fra Claude via
+// bakgrunnsjobb) som megler kan redigere og godkjenne. Kun godkjent EN er
+// offentlig (public.html?id=…&lang=en). Backend: prospekt-translate.js.
+// ════════════════════════════════════════════════════════════════════════════════
+
+let editorLang = 'no';
+let enData = null;            // GET ?translation=1 → { status, job, fields(states), labels, values, … }
+let enValues = {};            // arbeidskopi av oversatte felter
+let enDirty = new Set();      // felter endret av megler, ikke lagret
+let enPollTimer = null;
+
+const EN_FIELD_ORDER = [
+  'description_intro', 'description_body', 'visning_text', 'cta_label',
+  'specs', 'capacities', 'equipment_categories',
+  'service_condition_summary', 'service_history', 'service_recent_upgrades', 'service_known_notes',
+  'declaration_sections', 'declaration_other_notes', 'freetext_pages', 'gallery_captions',
+];
+const EN_STATE_LABEL = { ok: 'Oversatt', utdatert: 'Utdatert', mangler: 'Ikke oversatt', tom: 'Tom på norsk' };
+
+function enReset() {
+  if (enPollTimer) { clearInterval(enPollTimer); enPollTimer = null; }
+  enData = null; enValues = {}; enDirty = new Set();
+  $('enBar').innerHTML = ''; $('enGrid').innerHTML = '';
+}
+
+async function setEditorLang(lang, silent = false) {
+  if (lang === editorLang && !silent) return;
+  if (editorLang === 'en' && lang === 'no' && enDirty.size > 0) {
+    if (!confirm('Du har ulagrede endringer i den engelske versjonen. Forkaste dem?')) return;
+    enDirty = new Set();
+  }
+  editorLang = lang;
+  $('langTabNo').classList.toggle('active', lang === 'no');
+  $('langTabEn').classList.toggle('active', lang === 'en');
+  $('sectionGrid').style.display = lang === 'no' ? '' : 'none';
+  $('cobrandBar').style.display = lang === 'no' ? 'flex' : 'none';
+  $('enView').style.display = lang === 'en' ? '' : 'none';
+  // Lagre/Publiser-knappene gjelder norsk; skjul dem i EN-modus
+  $('saveBtn').style.display = lang === 'no' ? '' : 'none';
+  $('publishBtn').style.display = lang === 'no' ? '' : 'none';
+  if (lang === 'en' && !silent) {
+    // Lagre norsk først så staleness-sjekken (hash) er mot siste versjon
+    await saveProspekt(true);
+    await enLoad();
+  }
+}
+
+async function enLoad() {
+  if (!currentProspekt?.id) return;
+  try {
+    enData = await api({ translation: 1, id: currentProspekt.id, lang: 'en' });
+    if (enDirty.size === 0) enValues = JSON.parse(JSON.stringify(enData.values || {}));
+    enRender();
+    // Poll mens jobb kjører
+    if (enData.job?.status === 'running' && !enPollTimer) {
+      enPollTimer = setInterval(enPoll, 2500);
+    }
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function enPoll() {
+  if (!currentProspekt?.id || editorLang !== 'en') { clearInterval(enPollTimer); enPollTimer = null; return; }
+  try {
+    const d = await api({ translation: 1, id: currentProspekt.id, lang: 'en' });
+    const wasRunning = enData?.job?.status === 'running';
+    enData = d;
+    if (d.job?.status !== 'running') {
+      clearInterval(enPollTimer); enPollTimer = null;
+      // Hent ferske verdier for felter som ikke er redigert lokalt
+      const fresh = d.values || {};
+      for (const k of Object.keys(fresh)) if (!enDirty.has(k)) enValues[k] = JSON.parse(JSON.stringify(fresh[k]));
+      if (wasRunning) {
+        const failed = (d.job?.failed || []).length;
+        toast(failed ? `Oversettelse ferdig, men ${failed} felt feilet` : 'Oversettelse ferdig ✓', failed ? 'error' : 'success');
+      }
+      enRender();
+    } else {
+      enRenderBar();
+    }
+  } catch (e) { console.error('enPoll', e); }
+}
+
+function enRender() {
+  enRenderBar();
+  enRenderGrid();
+}
+
+function enRenderBar() {
+  const bar = $('enBar');
+  if (!enData) { bar.innerHTML = '<span class="en-status">Laster…</span>'; return; }
+  const d = enData;
+  const c = d.counts || {};
+  const running = d.job?.status === 'running';
+  const isPublished = currentProspekt.status === 'published';
+
+  let statusCls = 'utkast', statusTxt = 'Ikke oversatt';
+  if (running) { statusCls = 'running'; statusTxt = `Oversetter… ${(d.job.done || []).length} av ${d.job.total || '?'}`; }
+  else if (!d.exists || (c.ok + c.utdatert) === 0) { statusTxt = 'Ikke oversatt'; }
+  else if (c.utdatert > 0) { statusCls = 'utdatert'; statusTxt = `Utdatert (${c.utdatert} felt)`; }
+  else if (c.mangler > 0) { statusTxt = `Utkast — ${c.mangler} felt mangler`; }
+  else if (d.status === 'godkjent') { statusCls = 'godkjent'; statusTxt = 'Godkjent'; }
+  else { statusTxt = 'Utkast — klar til godkjenning'; }
+
+  const needs = (c.mangler || 0) + (c.utdatert || 0);
+  const canApprove = d.exists && !running && needs === 0 && d.status !== 'godkjent' && (c.ok || 0) > 0;
+  const publicUrl = `${window.location.origin}/prospekt/public.html?id=${currentProspekt.id}&lang=en`;
+
+  bar.innerHTML = `
+    <span class="en-status ${statusCls}">${statusTxt}</span>
+    ${d.generated_at ? `<span style="font-size:12px;color:var(--gray-dark)">Sist oversatt ${new Date(d.generated_at).toLocaleString('nb-NO', { dateStyle: 'short', timeStyle: 'short' })}</span>` : ''}
+    <span class="spacer"></span>
+    ${needs > 0 && !running ? `<button class="btn-gold" onclick="enTranslate()">${c.ok > 0 ? `Oversett ${needs} felt` : 'Oversett til engelsk'}</button>` : ''}
+    ${d.exists && !running ? `<button class="btn-outline" onclick="enTranslate(null, true)" title="Oversett alle felter på nytt (overskriver manuelle endringer)">Oversett alt på nytt</button>` : ''}
+    <button class="btn-outline" onclick="enPreview()" ${!d.exists || running ? 'disabled' : ''}>Forhåndsvis EN</button>
+    <button class="btn-gold" id="enSaveBtn" onclick="enSave()" ${enDirty.size ? '' : 'disabled'}>Lagre EN${enDirty.size ? ` (${enDirty.size})` : ''}</button>
+    ${d.status === 'godkjent'
+      ? `<button class="btn-outline" onclick="enApprove(false)">Trekk godkjenning</button>`
+      : `<button class="btn-primary" onclick="enApprove(true)" ${canApprove ? '' : 'disabled'} title="${canApprove ? 'Gjør engelsk versjon offentlig' : 'Alle felter må være oversatt og oppdatert først'}">Godkjenn EN</button>`}
+    ${d.status === 'godkjent' ? `<div class="en-url">${isPublished ? 'Offentlig engelsk URL:' : 'Engelsk URL (prospektet må publiseres først):'} <a href="${publicUrl}" target="_blank">${publicUrl}</a></div>` : ''}
+    ${d.job?.status === 'done_with_errors' ? `<div class="en-url" style="color:var(--red)">Feilet: ${esc((d.job.failed || []).map(f => `${d.labels?.[f.field] || f.field} (${f.error})`).join('; '))}</div>` : ''}
+    ${d.job?.status === 'failed' ? `<div class="en-url" style="color:var(--red)">Oversettelse feilet: ${esc(d.job.error || '')}</div>` : ''}
+  `;
+}
+
+function enRenderGrid() {
+  const grid = $('enGrid');
+  if (!enData) { grid.innerHTML = ''; return; }
+  grid.innerHTML = '';
+  for (const key of EN_FIELD_ORDER) {
+    const state = enData.fields?.[key] || 'tom';
+    if (state === 'tom') continue;
+    const label = enData.labels?.[key] || key;
+    const running = enData.job?.status === 'running';
+    const isCurrent = enData.job?.current === key;
+    const card = document.createElement('div');
+    card.className = 'sec-card';
+    card.innerHTML = `
+      <div class="sec-card-header" onclick="toggleSection(this)">
+        <div class="sec-card-title">
+          <span>${esc(label)}</span>
+          <span class="en-chip ${state}">${isCurrent ? 'Oversetter…' : EN_STATE_LABEL[state]}</span>
+          ${enDirty.has(key) ? '<span class="en-chip" data-dirty style="background:var(--gold);color:var(--navy)">Ulagret</span>' : ''}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${!running ? `<button class="btn-outline" style="font-size:11px;padding:5px 10px" onclick="event.stopPropagation();enTranslate(['${key}'], true)">Oversett feltet på nytt</button>` : ''}
+          <span class="sec-toggle">▾</span>
+        </div>
+      </div>
+      <div class="sec-card-body${state === 'utdatert' || state === 'mangler' ? ' open' : ''}" id="en-${key}">${enFieldBody(key, state)}</div>
+    `;
+    grid.appendChild(card);
+  }
+  if (!grid.children.length) grid.innerHTML = '<div class="en-empty">Ingenting å oversette — prospektet har ikke innhold ennå.</div>';
+}
+
+// ── Feltredigering ───────────────────────────────────────────────────────────
+const enSrc = (txt, html = false) => txt ? `<details class="en-src"><summary>Vis norsk</summary><div class="${html ? 'src-html' : ''}">${esc(txt)}</div></details>` : '';
+const enInputAttr = (key, path) => `data-key="${key}" data-path="${esc(path)}" oninput="enInput(this)"`;
+
+function enFieldBody(key, state) {
+  const v = enValues[key];
+  const src = currentProspekt;
+  if (state === 'mangler' && v === undefined) return '<div class="en-empty">Ikke oversatt ennå. Trykk «Oversett».</div>';
+
+  switch (key) {
+    case 'description_intro':
+    case 'visning_text':
+    case 'cta_label':
+    case 'service_condition_summary':
+    case 'service_history':
+    case 'service_recent_upgrades':
+    case 'service_known_notes':
+    case 'declaration_other_notes': {
+      const single = key === 'cta_label';
+      const rows = key === 'service_history' ? 10 : 5;
+      return `<div class="en-field">
+        ${single ? `<input type="text" value="${esc(v || '')}" ${enInputAttr(key, '')}>`
+                 : `<textarea rows="${rows}" ${enInputAttr(key, '')}>${esc(v || '')}</textarea>`}
+        ${key === 'service_history' ? '<div class="field-hint">Behold formatet «MM.YYYY — Leverandør: beskrivelse (kr 12 345)» per linje.</div>' : ''}
+        ${enSrc(src[key])}
+      </div>`;
+    }
+    case 'description_body':
+      return `<div class="en-field">
+        <textarea class="html" ${enInputAttr(key, '')}>${esc(v || '')}</textarea>
+        <div class="field-hint">HTML — samme tagger som den norske teksten.</div>
+        ${enSrc(src.description_body, true)}
+      </div>`;
+
+    case 'specs':
+    case 'capacities': {
+      const list = Array.isArray(v) ? v : [];
+      const srcList = Array.isArray(src[key]) ? src[key] : [];
+      return list.map((s, i) => s.divider ? '<hr style="border:none;border-top:1px solid var(--gray);margin:8px 0">' : `
+        <div class="en-row two">
+          <div><input type="text" value="${esc(s.label || '')}" ${enInputAttr(key, `${i}.label`)}><div class="en-src">${esc(srcList[i]?.label || '')}</div></div>
+          <div><input type="text" value="${esc(s.value || '')}" ${enInputAttr(key, `${i}.value`)}><div class="en-src">${esc(srcList[i]?.value || '')}</div></div>
+        </div>`).join('') || '<div class="en-empty">Tom</div>';
+    }
+
+    case 'equipment_categories': {
+      const cats = Array.isArray(v) ? v : [];
+      const srcCats = Array.isArray(src.equipment_categories) ? src.equipment_categories : [];
+      return cats.map((cat, ci) => `
+        <div class="en-cat">
+          <div class="en-row"><span class="lbl">${esc(srcCats[ci]?.name || 'Kategori')}</span><input type="text" value="${esc(cat.name || '')}" ${enInputAttr(key, `${ci}.name`)}></div>
+          ${(cat.items || []).map((it, ii) => {
+            const srcIt = srcCats[ci]?.items?.[ii];
+            const srcTxt = typeof srcIt === 'string' ? srcIt : (srcIt?.text || '');
+            const subs = Array.isArray(it.subs) ? it.subs : [];
+            return `<div class="en-row"><span class="lbl">${esc(srcTxt)}</span><input type="text" value="${esc(it.text || '')}" ${enInputAttr(key, `${ci}.items.${ii}.text`)}></div>
+              ${subs.map((s, si) => `<div class="en-row" style="padding-left:24px"><span class="lbl">↳ ${esc((Array.isArray(srcIt?.subs) ? srcIt.subs[si] : srcIt?.sub) || '')}</span><input type="text" value="${esc(s || '')}" ${enInputAttr(key, `${ci}.items.${ii}.subs.${si}`)}></div>`).join('')}`;
+          }).join('')}
+        </div>`).join('') || '<div class="en-empty">Tom</div>';
+    }
+
+    case 'declaration_sections': {
+      const secs = Array.isArray(v) ? v : [];
+      const srcSecs = Array.isArray(src.declaration_sections) ? src.declaration_sections : [];
+      return `<div class="field-hint" style="margin-bottom:10px">Spørsmålene er faste og oversatt én gang. Ja/Nei mappes automatisk. Bare selgers frikommentarer og fritekst-svar er AI-oversatt — les dem nøye. Den norske originalen vises under hver kommentar i prospektet.</div>` +
+        secs.map((sec, si) => `
+        <div class="en-cat">
+          <div class="en-row"><span class="lbl">${esc(srcSecs[si]?.title || '')}</span><input type="text" value="${esc(sec.title || '')}" ${enInputAttr(key, `${si}.title`)}></div>
+          ${(sec.questions || []).map((q, qi) => {
+            const sq = srcSecs[si]?.questions?.[qi] || {};
+            if (!sq.answer && !q.answer) return '';
+            return `<div class="en-q">
+              <div class="q">${esc(q.question || '')}<small>${esc(sq.question || '')}</small></div>
+              <div class="en-row"><span class="lbl">Svar: ${esc(sq.answer || '')}</span><input type="text" value="${esc(q.answer || '')}" ${enInputAttr(key, `${si}.questions.${qi}.answer`)}></div>
+              ${(sq.comment || q.comment) ? `<div class="en-row" style="align-items:start"><span class="lbl">Kommentar:<br><span style="white-space:pre-wrap">${esc(sq.comment || '')}</span></span><textarea rows="2" ${enInputAttr(key, `${si}.questions.${qi}.comment`)}>${esc(q.comment || '')}</textarea></div>` : ''}
+            </div>`;
+          }).join('')}
+        </div>`).join('') || '<div class="en-empty">Tom</div>';
+    }
+
+    case 'freetext_pages': {
+      const pages = Array.isArray(v) ? v : [];
+      const srcPages = Array.isArray(src.freetext_pages) ? src.freetext_pages : [];
+      return pages.map((pg, i) => `
+        <div class="en-cat">
+          <div class="en-row"><span class="lbl">${esc(srcPages[i]?.heading || 'Overskrift')}</span><input type="text" value="${esc(pg.heading || '')}" ${enInputAttr(key, `${i}.heading`)}></div>
+          <div class="en-row"><span class="lbl">${esc(srcPages[i]?.subtitle || 'Undertittel')}</span><input type="text" value="${esc(pg.subtitle || '')}" ${enInputAttr(key, `${i}.subtitle`)}></div>
+          <div class="en-field"><textarea class="html" ${enInputAttr(key, `${i}.content`)}>${esc(pg.content || '')}</textarea>${enSrc(srcPages[i]?.content, true)}</div>
+        </div>`).join('') || '<div class="en-empty">Tom</div>';
+    }
+
+    case 'gallery_captions': {
+      const caps = v && typeof v === 'object' ? v : {};
+      const rows = [];
+      (src.gallery_pages || []).forEach((pg, pi) => (pg.images || []).forEach((img, ii) => {
+        if (!img.caption) return;
+        const k = `${pi}:${ii}`;
+        rows.push(`<div class="en-row"><span class="lbl">Side ${pi + 1}, bilde ${ii + 1}: ${esc(img.caption)}</span><input type="text" value="${esc(caps[k] || '')}" ${enInputAttr(key, k)}></div>`);
+      }));
+      return rows.join('') || '<div class="en-empty">Ingen bildetekster</div>';
+    }
+  }
+  return '';
+}
+
+// Generisk setter: data-path "0.items.2.text" → enValues[key][0].items[2].text
+function enInput(el) {
+  const key = el.dataset.key;
+  const path = el.dataset.path;
+  if (!path) { enValues[key] = el.value; }
+  else if (key === 'gallery_captions') { enValues[key] = enValues[key] || {}; enValues[key][path] = el.value; }
+  else {
+    const parts = path.split('.');
+    let o = enValues[key];
+    for (let i = 0; i < parts.length - 1; i++) { const p = /^\d+$/.test(parts[i]) ? +parts[i] : parts[i]; if (o[p] === undefined) o[p] = /^\d+$/.test(parts[i + 1]) ? [] : {}; o = o[p]; }
+    const last = parts[parts.length - 1];
+    o[/^\d+$/.test(last) ? +last : last] = el.value;
+  }
+  el.classList.add('en-dirty');
+  if (!enDirty.has(key)) { enDirty.add(key); enRenderBar(); }
+  const chipHost = el.closest('.sec-card')?.querySelector('.sec-card-title');
+  if (chipHost && !chipHost.querySelector('.en-chip[data-dirty]')) chipHost.insertAdjacentHTML('beforeend', '<span class="en-chip" data-dirty style="background:var(--gold);color:var(--navy)">Ulagret</span>');
+}
+
+async function enSave() {
+  if (!enDirty.size) return;
+  const btn = $('enSaveBtn'); if (btn) { btn.disabled = true; btn.textContent = 'Lagrer…'; }
+  try {
+    const fields = {};
+    for (const k of enDirty) fields[k] = enValues[k];
+    await api({ action: 'update-translation' }, 'POST', { id: currentProspekt.id, lang: 'en', fields });
+    enDirty = new Set();
+    toast('Engelsk versjon lagret');
+    await enLoad();
+  } catch (e) { toast(e.message, 'error'); enRenderBar(); }
+}
+
+async function enTranslate(fields = null, force = false) {
+  if (enDirty.size) {
+    if (!confirm('Du har ulagrede endringer i EN. Lagre dem først?')) return;
+    await enSave();
+  }
+  if (force && !fields && !confirm('Oversette alle felter på nytt? Manuelle endringer i den engelske versjonen overskrives.')) return;
+  if (force && fields && enData?.fields?.[fields[0]] === 'ok' && !confirm(`Oversette «${enData.labels?.[fields[0]] || fields[0]}» på nytt? Manuelle endringer i feltet overskrives.`)) return;
+  try {
+    // Lagre norsk først så oversettelsen bygger på siste tekst
+    await saveProspekt(true);
+    const body = { id: currentProspekt.id, lang: 'en' };
+    if (fields) body.fields = fields;
+    else if (force) body.fields = EN_FIELD_ORDER;
+    const res = await api({ action: 'translate' }, 'POST', body);
+    if (!res.started) { toast(res.reason || 'Ingenting å oversette'); return; }
+    toast(`Oversetter ${res.count} felt i bakgrunnen…`);
+    await enLoad();
+    if (!enPollTimer) enPollTimer = setInterval(enPoll, 2500);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function enApprove(approved) {
+  if (approved && enDirty.size) { toast('Lagre EN før godkjenning', 'error'); return; }
+  if (approved && !confirm('Godkjenne den engelske versjonen? Den blir da synlig for kunder på ?lang=en når prospektet er publisert.')) return;
+  try {
+    const res = await api({ action: 'approve-translation' }, 'POST', { id: currentProspekt.id, lang: 'en', approved });
+    toast(approved ? 'Engelsk versjon godkjent ✓' : 'Godkjenning trukket');
+    await enLoad();
+    if (approved && res.public_url && currentProspekt.status !== 'published') toast('Husk: prospektet må publiseres (NO) før EN-lenken virker', 'error');
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+function enPreview() {
+  const open = () => window.open(`/prospekt/render.html?id=${currentProspekt.id}&lang=en`, '_blank');
+  if (enDirty.size) enSave().then(open); else open();
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
