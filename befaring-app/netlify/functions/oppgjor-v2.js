@@ -94,7 +94,11 @@ exports.handler = async (event) => {
       // ukoblede klientkonto-transaksjoner (admin) — det som må ses på
       let ukoblet = [];
       if (u.admin) { const { data } = await sb.from('klientkonto_transaksjon').select('id,bokfort_dato,belop,motpart_navn,tekst').eq('konto', kk.KLIENT_BBAN).is('oppdragsnr', null).order('bokfort_dato', { ascending: false }).limit(200); ukoblet = data || []; }
-      return J(200, { bruker: { email: u.email, admin: u.admin, megler: u.megler }, rader: mine, provisjon: prov, klientkonto: saldo && saldo[0] || null, synk: st || [], ukoblet, drift_konto: DRIFT_KONTO, varsler: varsler(mine, prov, u), frist: LONN.FRIST_DAG });
+      const V = varsler(mine, prov, u); const R2 = {}; for (const r of mine) R2[r.oppdragsnr] = r;
+      const { data: bef } = await sb.from('oppgjor_bef').select('oppdragsnr,megler,bat_tekst,belop,dato').eq('status', 'forslag'); const befPer = {};
+      for (const b of bef || []) { const r = R2[b.oppdragsnr]; if (!r || !(u.admin || b.megler === u.megler)) continue; (befPer[b.oppdragsnr] ??= { r, sum: 0, n: 0, megler: b.megler, tekst: b.bat_tekst }).sum += Number(b.belop); befPer[b.oppdragsnr].n++; }
+      for (const [nr, x] of Object.entries(befPer)) V.push({ type: 'bef', oppdragsnr: nr, navn: x.r.navn, megler: x.megler, tekst: `${x.r.navn} ${nr}: ${x.n} befaringskostnad(er) på BEF-prosjektet (${Math.round(x.sum)} kr) ser ut til å høre til denne båten — bekreft i steg 4` });
+      return J(200, { bruker: { email: u.email, admin: u.admin, megler: u.megler }, rader: mine, provisjon: prov, klientkonto: saldo && saldo[0] || null, synk: st || [], ukoblet, drift_konto: DRIFT_KONTO, varsler: V, frist: LONN.FRIST_DAG });
     }
     // ── detalj ──
     if (p.action === 'detalj') {
@@ -106,12 +110,13 @@ exports.handler = async (event) => {
         sb.from('klientkonto_transaksjon').select('id,bokfort_dato,belop,motpart_navn,motpart_konto,tekst,koblet_type,koblet_av,koblet_grunn').eq('oppdragsnr', nr).order('bokfort_dato'),
         sb.from('oppgjor_utlegg').select('*').eq('oppdragsnr', nr).order('dato'),
       ]);
+      const { data: bef } = await sb.from('oppgjor_bef').select('*').eq('oppdragsnr', nr).eq('status', 'forslag').order('dato');
       // kandidater: ukoblede transaksjoner i et vindu rundt kontraktsdato (for manuell kobling)
       let kandidater = [];
       if (u.admin) { const ref = r.kk_signert || r.ark_solgt; if (ref) { const fra = new Date(new Date(ref) - 45 * 864e5).toISOString().slice(0, 10);
         const { data } = await sb.from('klientkonto_transaksjon').select('id,bokfort_dato,belop,motpart_navn,tekst').eq('konto', kk.KLIENT_BBAN).is('oppdragsnr', null).gte('bokfort_dato', fra).order('bokfort_dato', { ascending: false }).limit(100); kandidater = data || []; } }
       const prov = (pv || []).filter(x => u.admin || x.megler === u.megler || (u.megler === 'Henrik' && x.megler === 'Marte'));
-      return J(200, { rad: r, justeringer: just || [], provisjon: prov, transaksjoner: tx || [], utlegg: utl || [], kandidater, drift_konto: DRIFT_KONTO, klientkonto: kk.KLIENT_BBAN, admin: u.admin, megler: u.megler, email: u.email, frist: LONN.FRIST_DAG });
+      return J(200, { rad: r, justeringer: just || [], provisjon: prov, transaksjoner: tx || [], utlegg: utl || [], bef_forslag: bef || [], kandidater, drift_konto: DRIFT_KONTO, klientkonto: kk.KLIENT_BBAN, admin: u.admin, megler: u.megler, email: u.email, frist: LONN.FRIST_DAG });
     }
     // ── lønnsgrunnlag (admin): alt opptjent og ikke utbetalt, per megler, med båtens status — grunnlaget for månedens kjøring ──
     if (p.action === 'lonn') {
@@ -134,6 +139,7 @@ exports.handler = async (event) => {
       if ('notat' in body) patch.notat = body.notat || null;
       if ('protokoll_forklaring' in body) patch.protokoll_forklaring = body.protokoll_forklaring || null;
       if ('op_anmerkninger' in body) patch.op_anmerkninger = body.op_anmerkninger == null ? null : !!body.op_anmerkninger;
+      if ('reiseregning_ok' in body) { if (body.reiseregning_ok) { if (!r.reiseregning_ok) { patch.reiseregning_ok = today(); patch.reiseregning_av = u.email; } } else { patch.reiseregning_ok = null; patch.reiseregning_av = null; } }
       if ('heftelser_megler' in body) { if (body.heftelser_megler) { if (!r.heftelser_megler) { patch.heftelser_megler = today(); patch.heftelser_megler_av = u.email; } } else { patch.heftelser_megler = null; patch.heftelser_megler_av = null; } }
       if ('gjeld_bank_belop' in body) patch.gjeld_bank_belop = Number(body.gjeld_bank_belop || 0);
       if ('gjeld_bank_konto' in body) patch.gjeld_bank_konto = body.gjeld_bank_konto || null;
@@ -145,6 +151,7 @@ exports.handler = async (event) => {
           if (!(f.salgssum && (f.innbetalt || 0) >= f.salgssum * 0.995)) mangler.push('kjøpers penger er ikke fullt inne');
           if (!f.op_signert && !f.protokoll_forklaring) mangler.push('overtakelsesprotokoll mangler — signer den eller forklar hvorfor');
           if (!f.heftelser_megler) mangler.push('heftelser ikke sjekket');
+          if (!f.reiseregning_ok) mangler.push('bekreft at alle reiseregninger for båten er levert og godkjent');
           if (!f.selger_konto) mangler.push('selgers kontonr mangler');
           if (f.gjeld_bank_belop > 0 && !f.gjeld_bank_konto) mangler.push('bankens kontonr mangler');
           if (f.op_anmerkninger) { const { data: jj } = await sb.from('oppgjor_justering').select('id').eq('oppdragsnr', nr).eq('type', 'tilbakehold'); if (!(jj || []).length) mangler.push('protokoll med anmerkninger — legg inn tilbakehold eller fjern haken'); }
@@ -188,6 +195,16 @@ exports.handler = async (event) => {
       const valg = ['viderefaktureres', 'hoy', 'megler'].includes(body.valg) ? body.valg : 'viderefaktureres';
       await sb.from('oppgjor_utlegg').update({ valg, valgt_av: u.email, valgt_at: new Date().toISOString() }).eq('id', ul.id);
       return J(200, { ok: true, rad: await regnOm(sb, ul.oppdragsnr) });
+    }
+    // ── befaring fra BEF-prosjektet: godta (legges som utlegg på båten, kilde bef) eller avvis ──
+    if (p.action === 'bef_avgjor') {
+      const { data: br } = await sb.from('oppgjor_bef').select('*').eq('id', String(body.id)).limit(1); const b = br && br[0]; if (!b) return J(404, { error: 'Finnes ikke' });
+      const { data: rows } = await sb.from('oppgjor').select('oppdragsnr,oppdrag_inn,solgt_av').eq('oppdragsnr', b.oppdragsnr).limit(1); if (!rows || !rows[0] || !egen(u, rows[0])) return J(403, { error: 'Ikke din båt' });
+      const godta = !!body.godta;
+      await sb.from('oppgjor_bef').update({ status: godta ? 'godtatt' : 'avvist', avgjort_av: u.email, avgjort_at: new Date().toISOString() }).eq('id', b.id);
+      if (godta) { const { error } = await sb.from('oppgjor_utlegg').upsert({ id: b.id, oppdragsnr: b.oppdragsnr, dato: b.dato, konto: b.konto, belop: b.belop, beskrivelse: ('Befaring (fra BEF-prosjektet, må omposteres i PO): ' + (b.bat_tekst || b.beskrivelse || '')).slice(0, 200), valg: 'viderefaktureres', kilde: 'bef', valgt_av: u.email, valgt_at: new Date().toISOString(), synced_at: new Date().toISOString() }, { onConflict: 'id' }); if (error) throw new Error(error.message); }
+      else await sb.from('oppgjor_utlegg').delete().eq('id', b.id).eq('kilde', 'bef');
+      return J(200, { ok: true, rad: await regnOm(sb, b.oppdragsnr) });
     }
     // ── lønnsvalg: megleren velger måned for egen provisjon (frist den 25.); Marte følger Henrik ──
     if (p.action === 'lonn_valg') {

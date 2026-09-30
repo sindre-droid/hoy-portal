@@ -46,7 +46,8 @@ async function lesProtokoll(contractId) {
   const r = await fetch(`https://api.oneflow.com/v1/contracts/${contractId}/files/1?download=true`, { headers: H }); if (!r.ok) throw new Error(`pdf ${r.status}`);
   const pdf = require('pdf-parse'); const t = (await pdf(Buffer.from(await r.arrayBuffer()))).text.replace(/[\u200b\u2060]/g, '');
   const m1 = t.match(/1\.\s*Alt er i orden[^\n]*\n\s*([^\n]*)/); const m2 = t.match(/2\.\s*Følgende må utbedres[^\n]*\n([\s\S]*?)Dette skjema/);
-  const tekst = (m2 ? m2[1] : '').replace(/\s+/g, ' ').trim();
+  let tekst = (m2 ? m2[1] : '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+  if (/^(ok|nei|ingen|ingenting|intet|nothing|none|no|-|\.)\b[.!]?$/i.test(tekst) || /^ingen (kommentar|anmerkning|merknad)/i.test(tekst)) tekst = '';   // «Ok», «Nei», «Ingen kommentarer» = ingen anmerkninger
   return { op_alt_i_orden: m1 ? m1[1].trim().slice(0, 40) : null, op_anmerkning_tekst: tekst || null, op_lest_at: new Date().toISOString() };
 }
 
@@ -175,28 +176,49 @@ async function buildOppgjor(sb, opts = {}) {
   const { data: inv } = await sb.from('po_outgoing_invoices').select('id,invoice_no,project_id,total_amount,net_amount,balance,voucher_date,is_reversed').gte('voucher_date', P.FRA);
   const INV = {}; for (const i of inv || []) { if (i.is_reversed) continue; const nr = codeOf[i.project_id]; if (!nr) continue; if (!INV[nr] || (i.voucher_date > INV[nr].voucher_date)) INV[nr] = i; }
   const tx = []; for (let from = 0; ; from += 1000) { const { data } = await sb.from('po_account_transactions').select('id,project_code,account_no,amount,description,posting_date').not('project_code', 'is', null).eq('is_reversed', false).gte('posting_date', P.FRA).order('id').range(from, from + 999); /* order er påkrevd: uten gir PostgREST ustabile sider og rader faller ut */ tx.push(...(data || [])); if (!data || data.length < 1000) break; }
+  const norm = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/æ/g, 'ae').replace(/ø/g, 'o').replace(/å/g, 'a').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
   const UTL = {}, PAID = {}, PAID_DATO = {}, HON = {}, UTLROWS = [];
-  const { data: utlEx } = await sb.from('oppgjor_utlegg').select('id,valg'); const UVALG = {}; for (const u of utlEx || []) UVALG[u.id] = u.valg;   // meglerens valg beholdes
+  const { data: utlEx } = await sb.from('oppgjor_utlegg').select('id,valg,kilde,oppdragsnr,belop'); const UVALG = {}; for (const u of utlEx || []) UVALG[u.id] = u.valg;   // meglerens valg beholdes
   const tidligst = (r) => { const ref = [r.kk_signert, r.ark_solgt].filter(Boolean).sort()[0]; return ref ? iso(new Date(new Date(ref) - 30 * 864e5)) : null; };   // tidligste av kontrakt/ark-solgt (Axopar 26001: ark 24.2, Oneflow 14.4)   // en provisjonsutbetaling kan ikke ligge før salget (samme oppdragsnr kan ha vært solgt/lønnet før — jf. Carmen 21026)
   const CAR = {}, LONNSKOST = {};   // kjøring: PO fører km-godtgjørelse på 2910 ved godkjenning, kostnaden (7100+5500) kommer først i neste lønnskjøring
   for (const t of tx) { const nr = t.project_code; if (!R[nr]) continue; const a = Number(t.account_no), v = Number(t.amount || 0);
     if (a === 2910 && v > 0 && /^(car|bil):/i.test(t.description || '')) (CAR[nr] ??= []).push(t);
-    if ((a === 7100 || a === 5500) && v > 0) ((LONNSKOST[nr] ??= {})[t.posting_date] ??= { sum: 0 }).sum += v;
+    if (a === 2910 && v < 0 && /^trekk/i.test(t.description || '')) (LONNSKOST[nr] ??= []).push({ dato: t.posting_date, belop: -v });   // «Trekk lønnsforskudd» = lønnskjøringen har bokført kjøringen som kostnad (7100/5500)
     const erKostnad = a >= 4000 && a < 8000 && !P.LONN_KONTOER.includes(a) && a !== 3700;   // alle kostnader på prosjektet vises — ingenting skjules
     if (erKostnad) { const valg = UVALG[t.id] || (P.UTLEGG_HOY.includes(a) ? 'hoy' : 'viderefaktureres'); UTLROWS.push({ id: t.id, oppdragsnr: nr, dato: t.posting_date, konto: a, belop: v, beskrivelse: (t.description || '').slice(0, 200), valg, synced_at: new Date().toISOString() });
       (UTL[nr] ??= { viderefaktureres: 0, hoy: 0, megler: 0 })[valg] += v; }
     if (a === 3700) HON[nr] = (HON[nr] || 0) - v;   // fakturert honorar eks mva (kredit) — fasit når faktura finnes
     if (a === 5000) { const fra = tidligst(R[nr]); if (fra && t.posting_date < fra) continue; PAID[nr] = (PAID[nr] || 0) + v; if (!PAID_DATO[nr] || t.posting_date > PAID_DATO[nr]) PAID_DATO[nr] = t.posting_date; } }
   // kjøring som ennå ikke er lønnskjørt: Car-linje uten en senere 7100+5500-dag med samme sum → vises som utlegg (byttes ut når lønnskjøringen bokfører den)
-  for (const [nr, cars] of Object.entries(CAR)) { const dager = LONNSKOST[nr] || {};
-    for (const c of cars) { const v = Number(c.amount); const d = Object.keys(dager).find(k => k > c.posting_date && !dager[k].brukt && Math.abs(dager[k].sum - v) <= 1);
-      if (d) { dager[d].brukt = true; continue; }
+  for (const [nr, cars] of Object.entries(CAR)) { const trekk = LONNSKOST[nr] || [];
+    for (const c of cars) { const v = Number(c.amount); const d = trekk.find(k => k.dato >= c.posting_date && !k.brukt && Math.abs(k.belop - v) <= 1);
+      if (d) { d.brukt = true; continue; }
       const valg = UVALG[c.id] || 'viderefaktureres'; UTLROWS.push({ id: c.id, oppdragsnr: nr, dato: c.posting_date, konto: 2910, belop: v, beskrivelse: ('Kjøring (reiseregning, ikke lønnskjørt ennå): ' + (c.description || '').replace(/^(car|bil):\s*/i, '')).slice(0, 200), valg, synced_at: new Date().toISOString() });
       (UTL[nr] ??= { viderefaktureres: 0, hoy: 0, megler: 0 })[valg] += v; } }
+  for (const u of utlEx || []) if (u.kilde === 'bef' && R[u.oppdragsnr]) (UTL[u.oppdragsnr] ??= { viderefaktureres: 0, hoy: 0, megler: 0 })[u.valg || 'viderefaktureres'] += Number(u.belop || 0);   // befaringer flyttet fra BEF
   for (const [nr, r] of Object.entries(R)) { const i = INV[nr]; if (i) Object.assign(r, { po_invoice_id: i.id, po_invoice_no: i.invoice_no, po_invoice_dato: i.voucher_date, po_invoice_belop: Number(i.total_amount), po_invoice_betalt: Number(i.balance || 0) === 0 }); if (!r.po_project_id && idOf[nr]) r.po_project_id = idOf[nr]; r.utlegg_eks = Math.round((UTL[nr]?.viderefaktureres || 0) * 100) / 100; r.utlegg_megler_eks = Math.round((UTL[nr]?.megler || 0) * 100) / 100; r.utlegg_hoy_eks = Math.round((UTL[nr]?.hoy || 0) * 100) / 100;
     // fakturert honorar (3700): fyller der arket mangler; avviker det fra arket lagres avviket (arket er fasit for fordeling — fakturaen kan være brutto der refusjon til kjøper er ført utenom, jf. Marex 26053)
     if (HON[nr] > 0) { const hon = Math.round(HON[nr] * 100) / 100; if (!r.oms_eks) { r.oms_eks = hon; r.provisjon_inkl = Math.round(hon * 1.25); } r.honorar_fakturert_eks = hon; r.honorar_avvik = Math.round((hon - Number(r.oms_eks || 0)) * 100) / 100; } }
-  for (let i = 0; i < UTLROWS.length; i += 200) { const { error } = await sb.from('oppgjor_utlegg').upsert(UTLROWS.slice(i, i + 200), { onConflict: 'id' }); if (error) log.utlegg_error = error.message; }   // valg = eksisterende valg (lest først) eller default — meglerens valg overskrives aldri
+  const utlStart = new Date().toISOString();
+  for (let i = 0; i < UTLROWS.length; i += 200) { const { error } = await sb.from('oppgjor_utlegg').upsert(UTLROWS.slice(i, i + 200).map(u => ({ ...u, synced_at: utlStart })), { onConflict: 'id' }); if (error) log.utlegg_error = error.message; }
+  if (!log.utlegg_error) await sb.from('oppgjor_utlegg').delete().lt('synced_at', utlStart).neq('kilde', 'bef');
+  // 4c. Befaringskostnader på BEF-prosjektet: motposten bærer båtnavnet («Befaring hanse 388») → match mot oppdragslisten, foreslå flytting
+  try {
+    const { data: befTx } = await sb.from('po_account_transactions').select('id,project_code,account_no,amount,description,posting_date,voucher_no').ilike('project_code', 'BEF%').eq('is_reversed', false).gte('posting_date', P.FRA);
+    const { data: alleOppdrag } = await sb.from('assignment_numbers').select('number,vessel_name,broker_email,assigned_at');
+    const { data: befEx } = await sb.from('oppgjor_bef').select('id,status'); const BEX = {}; for (const b of befEx || []) BEX[b.id] = b.status;
+    const tok = (s) => norm(s).split(' ').filter(w => w.length >= 3 && !['befaring', 'eiermote', 'visning', 'mote', 'car', 'bil', 'the', 'med', 'hos'].includes(w));
+    const bilag = {}; for (const t of befTx || []) (bilag[t.voucher_no || t.id] ??= []).push(t);
+    const BEF = [];
+    for (const linjer of Object.values(bilag)) { const mot = linjer.find(t => Number(t.amount) < 0 && !/^(car|bil):/i.test(t.description || '')); if (!mot) continue;
+      const bt = tok(mot.description); if (!bt.length) continue; const megler = P.MEGLER[(linjer[0].project_code.match(/BEF-(\w+)/) || [])[1] === 'HB' ? 'henrik@h-y.no' : 'sindre@h-y.no'];
+      let best = null; for (const a of alleOppdrag || []) { const vt = tok(a.vessel_name); const hits = bt.filter(w => vt.includes(w)); const sc = hits.length + (hits.some(w => /\d/.test(w)) ? 1 : 0); if (sc >= 2 && (!best || sc > best.sc)) best = { a, sc }; }
+      if (!best) continue;
+      for (const t of linjer) { if (Number(t.amount) <= 0 || Number(t.account_no) === 2910 && !/^(car|bil):/i.test(t.description || '')) continue;
+        BEF.push({ id: t.id, oppdragsnr: best.a.number, megler, dato: t.posting_date, konto: Number(t.account_no), belop: Number(t.amount), beskrivelse: (t.description || '').slice(0, 200), bat_tekst: (mot.description || '').slice(0, 120), status: BEX[t.id] || 'forslag', synced_at: new Date().toISOString() }); } }
+    if (BEF.length) { const { error } = await sb.from('oppgjor_bef').upsert(BEF, { onConflict: 'id' }); if (error) log.bef_error = error.message; }
+    log.bef = { forslag: BEF.filter(b => b.status === 'forslag').length, totalt: BEF.length };
+  } catch (e) { log.bef_error = e.message; }   // rader som ikke lenger finnes i PO (reversert, eller kjøring som nå er lønnskjørt) fjernes   // valg = eksisterende valg (lest først) eller default — meglerens valg overskrives aldri
   log.po = { fakturaer: Object.keys(INV).length, prosjekt_tx: tx.length, utlegg: UTLROWS.length };
 
   // 4b. Honorar + foreløpig nettoproveny (til matching av utbetalinger)
@@ -210,7 +232,6 @@ async function buildOppgjor(sb, opts = {}) {
   await sb.from('klientkonto_transaksjon').update({ oppdragsnr: null, koblet_type: null, koblet_av: null, koblet_grunn: null }).eq('koblet_av', 'auto');   // auto-koblinger regnes på nytt hver gang; manuelle beholdes
   const { data: kkt } = await sb.from('klientkonto_transaksjon').select('id,bokfort_dato,belop,motpart_navn,motpart_konto,tekst,oppdragsnr,koblet_type,koblet_av').eq('konto', kk.KLIENT_BBAN).order('bokfort_dato');
   const T = kkt || []; const updates = [];
-  const norm = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/æ/g, 'ae').replace(/ø/g, 'o').replace(/å/g, 'a').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
   const ln2 = (n) => norm(n).split(' ').filter(w => w.length > 2);
   const nameHit = (t, r) => { const h = norm(t.motpart_navn + ' ' + t.tekst); const ln = (n) => norm(n).split(' ').filter(w => w.length > 2); return (t.tekst || '').includes(r.oppdragsnr) || ln(r.kjoper_navn).some(w => h.includes(w)) || ln(r.selger_navn).some(w => h.includes(w)); };
   const near = (a, b, tol = 0.005) => b > 0 && Math.abs(a - b) <= Math.max(100, b * tol);   // beløp må stemme nesten eksakt; forskudd (10 %) får 3 %
@@ -273,7 +294,7 @@ async function buildOppgjor(sb, opts = {}) {
     const row = {}; for (const c of COLS) if (r[c] !== undefined) row[c] = r[c];
     OUT.push({ ...row,
       selger_konto: ex.selger_konto || null, heftelser_sjekket: ex.heftelser_sjekket || null, heftelser_av: ex.heftelser_av || null, heftelser_notat: ex.heftelser_notat || null,
-      gjeld_bank_belop: ex.gjeld_bank_belop || 0, gjeld_bank_konto: ex.gjeld_bank_konto || null, utlegg_paslag_pct: ex.utlegg_paslag_pct ?? 20, notat: ex.notat || null, op_anmerkninger: r.op_lest_at ? (!!r.op_anmerkning_tekst || (r.op_alt_i_orden && !/^ja/i.test(r.op_alt_i_orden))) : (ex.op_anmerkninger ?? null),   // lest fra PDF → automatisk; ellers meglerens kryss oppgjort_manuelt: ex.oppgjort_manuelt || null, oppgjort_av: ex.oppgjort_av || null, sendt_at: ex.sendt_at || null, sendt_av: ex.sendt_av || null, selger_konto_navn: ex.selger_konto_navn || null, gjeld_bank_navn: ex.gjeld_bank_navn || null, gjeld_saldo_dato: ex.gjeld_saldo_dato || null, gjeld_referanse: ex.gjeld_referanse || null, protokoll_forklaring: ex.protokoll_forklaring || null, heftelser_megler: ex.heftelser_megler || null, heftelser_megler_av: ex.heftelser_megler_av || null,
+      gjeld_bank_belop: ex.gjeld_bank_belop || 0, gjeld_bank_konto: ex.gjeld_bank_konto || null, utlegg_paslag_pct: ex.utlegg_paslag_pct ?? 20, notat: ex.notat || null, op_anmerkninger: r.op_lest_at ? (!!r.op_anmerkning_tekst || (r.op_alt_i_orden && !/^ja/i.test(r.op_alt_i_orden))) : (ex.op_anmerkninger ?? null),   // lest fra PDF → automatisk; ellers meglerens kryss oppgjort_manuelt: ex.oppgjort_manuelt || null, oppgjort_av: ex.oppgjort_av || null, sendt_at: ex.sendt_at || null, sendt_av: ex.sendt_av || null, reiseregning_ok: ex.reiseregning_ok || null, reiseregning_av: ex.reiseregning_av || null, selger_konto_navn: ex.selger_konto_navn || null, gjeld_bank_navn: ex.gjeld_bank_navn || null, gjeld_saldo_dato: ex.gjeld_saldo_dato || null, gjeld_referanse: ex.gjeld_referanse || null, protokoll_forklaring: ex.protokoll_forklaring || null, heftelser_megler: ex.heftelser_megler || null, heftelser_megler_av: ex.heftelser_megler_av || null,
       kilde: r.kilde || ex.kilde || 'oneflow', oppdatert: new Date().toISOString(), bygget_at: new Date().toISOString() });
   }
   for (let i = 0; i < OUT.length; i += 200) { const { error } = await sb.from('oppgjor').upsert(OUT.slice(i, i + 200), { onConflict: 'oppdragsnr' }); if (error) throw new Error('oppgjor upsert: ' + error.message); }
