@@ -40,6 +40,18 @@ function parseNoDate(s) {
 }
 async function of(path) { const r = await fetch('https://api.oneflow.com/v1' + path, { headers: { 'x-oneflow-api-token': process.env.ONEFLOW_API_TOKEN, 'x-oneflow-user-email': process.env.ONEFLOW_USER_EMAIL } }); if (!r.ok) throw new Error(`Oneflow ${path} ${r.status}`); return r.json(); }
 
+// Leser kjøpekontraktens PDF: hvem er «som Selger» og hvem er «som Kjøper». Kontaktfeltene i Oneflow følger rekkefølgen de ble lagt til, ikke rollen (26078: kjøper var kontakt 1).
+// Fødselsnummer o.l. står i samme tekst — bare navnene tas ut.
+async function lesKjopekontrakt(contractId) {
+  const H = { 'x-oneflow-api-token': process.env.ONEFLOW_API_TOKEN, 'x-oneflow-user-email': process.env.ONEFLOW_USER_EMAIL };
+  const r = await fetch(`https://api.oneflow.com/v1/contracts/${contractId}/files/1?download=true`, { headers: H }); if (!r.ok) throw new Error(`pdf ${r.status}`);
+  const pdf = require('pdf-parse'); const t = (await pdf(Buffer.from(await r.arrayBuffer()))).text.replace(/[\u200b\u2060]/g, '');
+  // Malen kan ha «… som Selger, og: … som Kjøper» eller motsatt: hvert rollemerke tilhører nærmeste foregående «Navn:»
+  const ut = { selger: null, kjoper: null }; let sist = null;
+  for (const m of t.slice(0, t.search(/§\s*1/) > 0 ? t.search(/§\s*1/) : 4000).matchAll(/Navn:\s*\n?\s*([^\n]+)|som (Selger|Kjøper)/gi)) { if (m[1]) sist = m[1].trim(); else if (m[2] && sist) { ut[m[2].toLowerCase() === 'selger' ? 'selger' : 'kjoper'] ??= sist; } }
+  if (!ut.selger || !ut.kjoper) return null;
+  return { ...ut, kk_lest_at: new Date().toISOString() };
+}
 // Leser den signerte protokoll-PDF-en fra Oneflow og plukker svarene på punkt 1 og 2
 async function lesProtokoll(contractId) {
   const H = { 'x-oneflow-api-token': process.env.ONEFLOW_API_TOKEN, 'x-oneflow-user-email': process.env.ONEFLOW_USER_EMAIL };
@@ -129,6 +141,17 @@ async function buildOppgjor(sb, opts = {}) {
     });
     // NB: fødselsnummer o.l. i kontraktsfeltene lagres bevisst ikke.
   }));
+  // Selger/kjøper fra kjøpekontraktens PDF (én gang per kontrakt); e-poster følger navnet
+  let kkLest = 0; const MAKS_KK = opts.maksPdf ?? 15;
+  for (const r of Object.values(R)) { const ex = EX[r.oppdragsnr] || {}; if (!r.kk_contract_id) continue;
+    if (ex.kk_lest_at && String(ex.kk_contract_id) === String(r.kk_contract_id)) { r.kk_lest_at = ex.kk_lest_at; if (ex.selger_navn && ex.kjoper_navn && ex.selger_navn !== r.selger_navn) { [r.selger_navn, r.kjoper_navn, r.selger_epost, r.kjoper_epost] = [ex.selger_navn, ex.kjoper_navn, ex.selger_epost, ex.kjoper_epost]; } continue; }
+    if (kkLest >= MAKS_KK) continue;
+    try { const p = await lesKjopekontrakt(r.kk_contract_id); kkLest++; if (!p || !p.selger || !p.kjoper) continue; r.kk_lest_at = p.kk_lest_at;
+      const same = (a, b) => a && b && a.toLowerCase().replace(/\s+/g, ' ').trim() === b.toLowerCase().replace(/\s+/g, ' ').trim();
+      if (same(p.selger, r.kjoper_navn) || same(p.kjoper, r.selger_navn)) { [r.selger_navn, r.kjoper_navn, r.selger_epost, r.kjoper_epost] = [r.kjoper_navn, r.selger_navn, r.kjoper_epost, r.selger_epost]; log.kk_byttet = (log.kk_byttet || []).concat(r.oppdragsnr); }
+      else { r.selger_navn = p.selger; r.kjoper_navn = p.kjoper; }
+    } catch (e) { log.kk_feil = (log.kk_feil || []).concat(`${r.oppdragsnr}: ${e.message}`).slice(0, 10); } }
+  log.kontrakter_lest = kkLest;
   for (const [nr, o] of Object.entries(OP)) if (R[nr]) { R[nr].op_contract_id = o.id; R[nr].op_signert = o.dato; }
   // Protokollsvarene (1. alt i orden? 2. hva må utbedres) finnes bare i den signerte PDF-en — leses én gang per protokoll og lagres
   let lest = 0; const MAKS_PDF = opts.maksPdf ?? 15;
@@ -290,7 +313,7 @@ async function buildOppgjor(sb, opts = {}) {
       PROV.push({ oppdragsnr: r.oppdragsnr, megler: m, sats: m === 'Marte' ? P.MARTE_BONUS : P.SATS[m] * (shares[m] || 1), grunnlag_eks: Math.round(oms * (shares[m] || 0)), opptjent: o, utbetalt: utb, utbetalt_dato: utb ? PAID_DATO[r.oppdragsnr] || null : null, utbetalt_kilde: kilde });
     }
     // rad ut — manuelle felt fra eksisterende rad beholdes
-    const COLS = ['oppdragsnr','navn','kk_contract_id','kk_signert','salgssum','overtakelse_avtalt','selger_navn','selger_epost','kjoper_navn','kjoper_epost','kjenningssignal','hin','arsmodell','op_contract_id','op_signert','forskudd_forventet','innbetalt','innbetalt_dato','provisjon_inkl','oms_eks','oppdrag_inn','solgt_av','fordeling','utlegg_eks','nettoproveny','po_project_id','po_customer_id','po_invoice_id','po_invoice_no','po_invoice_dato','po_invoice_belop','po_invoice_betalt','selger_utbetalt','selger_utbetalt_dato','drift_overfort','drift_overfort_dato','status','status_dato','ark_oppgjort','ark_solgt','ark_utbetalt','honorar_fakturert_eks','honorar_avvik','utlegg_megler_eks','utlegg_hoy_eks','op_alt_i_orden','op_anmerkning_tekst','op_lest_at'];
+    const COLS = ['oppdragsnr','navn','kk_contract_id','kk_signert','salgssum','overtakelse_avtalt','selger_navn','selger_epost','kjoper_navn','kjoper_epost','kjenningssignal','hin','arsmodell','op_contract_id','op_signert','forskudd_forventet','innbetalt','innbetalt_dato','provisjon_inkl','oms_eks','oppdrag_inn','solgt_av','fordeling','utlegg_eks','nettoproveny','po_project_id','po_customer_id','po_invoice_id','po_invoice_no','po_invoice_dato','po_invoice_belop','po_invoice_betalt','selger_utbetalt','selger_utbetalt_dato','drift_overfort','drift_overfort_dato','status','status_dato','ark_oppgjort','ark_solgt','ark_utbetalt','honorar_fakturert_eks','honorar_avvik','utlegg_megler_eks','utlegg_hoy_eks','op_alt_i_orden','op_anmerkning_tekst','op_lest_at','kk_lest_at'];
     const row = {}; for (const c of COLS) if (r[c] !== undefined) row[c] = r[c];
     OUT.push({ ...row,
       selger_konto: ex.selger_konto || null, heftelser_sjekket: ex.heftelser_sjekket || null, heftelser_av: ex.heftelser_av || null, heftelser_notat: ex.heftelser_notat || null,
