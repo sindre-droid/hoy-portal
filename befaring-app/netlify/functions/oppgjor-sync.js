@@ -45,7 +45,7 @@ async function of(path) { const r = await fetch('https://api.oneflow.com/v1' + p
 async function lesKjopekontrakt(contractId) {
   const H = { 'x-oneflow-api-token': process.env.ONEFLOW_API_TOKEN, 'x-oneflow-user-email': process.env.ONEFLOW_USER_EMAIL };
   const r = await fetch(`https://api.oneflow.com/v1/contracts/${contractId}/files/1?download=true`, { headers: H }); if (!r.ok) throw new Error(`pdf ${r.status}`);
-  const pdf = require('pdf-parse'); const t = (await pdf(Buffer.from(await r.arrayBuffer()))).text.replace(/[\u200b\u2060]/g, '');
+  const pdf = require('pdf-parse'); const t = (await pdf(Buffer.from(await r.arrayBuffer()), { max: 1 })).text.replace(/[\u200b\u2060]/g, '');
   // Malen kan ha «… som Selger, og: … som Kjøper» eller motsatt: hvert rollemerke tilhører nærmeste foregående «Navn:»
   const ut = { selger: null, kjoper: null }; let sist = null;
   for (const m of t.slice(0, t.search(/§\s*1/) > 0 ? t.search(/§\s*1/) : 4000).matchAll(/Navn:\s*\n?\s*([^\n]+)|som (Selger|Kjøper)/gi)) { if (m[1]) sist = m[1].trim(); else if (m[2] && sist) { ut[m[2].toLowerCase() === 'selger' ? 'selger' : 'kjoper'] ??= sist; } }
@@ -56,7 +56,7 @@ async function lesKjopekontrakt(contractId) {
 async function lesProtokoll(contractId) {
   const H = { 'x-oneflow-api-token': process.env.ONEFLOW_API_TOKEN, 'x-oneflow-user-email': process.env.ONEFLOW_USER_EMAIL };
   const r = await fetch(`https://api.oneflow.com/v1/contracts/${contractId}/files/1?download=true`, { headers: H }); if (!r.ok) throw new Error(`pdf ${r.status}`);
-  const pdf = require('pdf-parse'); const t = (await pdf(Buffer.from(await r.arrayBuffer()))).text.replace(/[\u200b\u2060]/g, '');
+  const pdf = require('pdf-parse'); const t = (await pdf(Buffer.from(await r.arrayBuffer()), { max: 1 })).text.replace(/[\u200b\u2060]/g, '');
   const m1 = t.match(/1\.\s*Alt er i orden[^\n]*\n\s*([^\n]*)/); const m2 = t.match(/2\.\s*Følgende må utbedres[^\n]*\n([\s\S]*?)Dette skjema/);
   let tekst = (m2 ? m2[1] : '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
   if (/^(ok|nei|ingen|ingenting|intet|nothing|none|no|-|\.)\b[.!]?$/i.test(tekst) || /^ingen (kommentar|anmerkning|merknad)/i.test(tekst)) tekst = '';   // «Ok», «Nei», «Ingen kommentarer» = ingen anmerkninger
@@ -221,7 +221,8 @@ async function buildOppgjor(sb, opts = {}) {
   for (const u of utlEx || []) if (u.kilde === 'bef' && R[u.oppdragsnr]) (UTL[u.oppdragsnr] ??= { viderefaktureres: 0, hoy: 0, megler: 0 })[u.valg || 'viderefaktureres'] += Number(u.belop || 0);   // befaringer flyttet fra BEF
   for (const [nr, r] of Object.entries(R)) { const i = INV[nr]; if (i) Object.assign(r, { po_invoice_id: i.id, po_invoice_no: i.invoice_no, po_invoice_dato: i.voucher_date, po_invoice_belop: Number(i.total_amount), po_invoice_betalt: Number(i.balance || 0) === 0 }); if (!r.po_project_id && idOf[nr]) r.po_project_id = idOf[nr]; r.utlegg_eks = Math.round((UTL[nr]?.viderefaktureres || 0) * 100) / 100; r.utlegg_megler_eks = Math.round((UTL[nr]?.megler || 0) * 100) / 100; r.utlegg_hoy_eks = Math.round((UTL[nr]?.hoy || 0) * 100) / 100;
     // fakturert honorar (3700): fyller der arket mangler; avviker det fra arket lagres avviket (arket er fasit for fordeling — fakturaen kan være brutto der refusjon til kjøper er ført utenom, jf. Marex 26053)
-    if (HON[nr] > 0) { const hon = Math.round(HON[nr] * 100) / 100; if (!r.oms_eks) { r.oms_eks = hon; r.provisjon_inkl = Math.round(hon * 1.25); } r.honorar_fakturert_eks = hon; r.honorar_avvik = Math.round((hon - Number(r.oms_eks || 0)) * 100) / 100; } }
+    // fakturert honorar (3700) er fasit når faktura finnes (Sindre 30.9): arket brukes bare der faktura mangler. Avvik mot arket lagres for visning.
+    if (HON[nr] > 0) { const hon = Math.round(HON[nr] * 100) / 100; r.honorar_fakturert_eks = hon; r.honorar_avvik = Math.round((hon - Number(r.oms_eks || 0)) * 100) / 100; r.oms_eks = hon; r.provisjon_inkl = Math.round(hon * 1.25); } }
   const utlStart = new Date().toISOString();
   for (let i = 0; i < UTLROWS.length; i += 200) { const { error } = await sb.from('oppgjor_utlegg').upsert(UTLROWS.slice(i, i + 200).map(u => ({ ...u, synced_at: utlStart })), { onConflict: 'id' }); if (error) log.utlegg_error = error.message; }
   if (!log.utlegg_error) await sb.from('oppgjor_utlegg').delete().lt('synced_at', utlStart).neq('kilde', 'bef');
