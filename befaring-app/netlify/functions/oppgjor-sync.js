@@ -22,7 +22,9 @@ const P = {
   SATS: { Sindre: 0.45, Henrik: 0.40, Daniel: 0.40, Jeanette: 0.40 },
   MARTE_BONUS: 0.10, MARTE_FRA: '2026-06-01',           // 10 % av Henriks provisjon på båter oppgjort fra juni 2026
   DANIEL_SLUTT: '2026-08-16',                            // Daniels oppdrag solgt av andre etter dette: 100 % til selger
-  UTLEGG_KONTOER: [5500, 7100, 7140, 7150, 7000],        // viderefaktureres m/ påslag (PO-regelen). 7300 FINN og 4500 foto holdes utenfor
+  UTLEGG_KONTOER: [5500, 7100, 7140, 7150, 7000],        // viderefaktureres m/ påslag som standard (PO-regelen)
+  UTLEGG_HOY: [7300, 4500],                               // FINN og foto: vises, men standard «HoY tar»
+  LONN_KONTOER: [5000, 5092, 5400, 5405, 5010, 5090, 5420],// lønn/AGA/pensjon — aldri utlegg
   UTLEGG_PASLAG: 0.20,
   FORSKUDD_PCT: 0.10, TOLERANSE: 0.03,
   MEGLER: { 'sindre@h-y.no': 'Sindre', 'henrik@h-y.no': 'Henrik', 'daniel@h-y.no': 'Daniel', 'marte@h-y.no': 'Marte', 'jeanette@h-y.no': 'Jeanette', 'philip@h-y.no': 'Philip' },
@@ -59,9 +61,10 @@ function avregn(r, ex, jList, today) {
   const jP = jList.filter(j => ['hoy', 'delt'].includes(baerer(j))).reduce((a, j) => a + Number(j.belop), 0);   // reduserer honoraret (inkl. mva)
   const jD = jList.filter(j => baerer(j) === 'delt').reduce((a, j) => a + Number(j.belop), 0);                   // reduserer meglerens grunnlag
   const holdt = jList.some(j => j.type === 'tilbakehold' && (j.tilbakehold_status || 'holdt') === 'holdt');
+  const jK = jList.filter(j => j.type === 'retur_kjoper' && baerer(j) !== 'selger').reduce((a, j) => a + Math.abs(Number(j.belop)), 0);   // retur til kjøper tatt av honoraret: honoraret ned, men selger får ikke mer (Marex 26053)
   const utleggInkl = Math.round(Number(r.utlegg_eks || 0) * (1 + (ex.utlegg_paslag_pct ?? 20) / 100) * 1.25 * 100) / 100;
   const gjeld = Number(ex.gjeld_bank_belop || 0);
-  const nettoproveny = r.salgssum ? Math.round((r.salgssum - (Number(r.provisjon_inkl || 0) + jP) - utleggInkl + jS - gjeld) * 100) / 100 : null;
+  const nettoproveny = r.salgssum ? Math.round((r.salgssum - (Number(r.provisjon_inkl || 0) + jP) - utleggInkl + jS - gjeld - jK) * 100) / 100 : null;
   const fullt = r.salgssum && r.innbetalt >= r.salgssum * 0.995;
   let status = 'kontrakt';
   if (r.innbetalt > 0 && !fullt) status = 'forskudd';
@@ -161,7 +164,8 @@ async function buildOppgjor(sb, opts = {}) {
   const { data: utlEx } = await sb.from('oppgjor_utlegg').select('id,valg'); const UVALG = {}; for (const u of utlEx || []) UVALG[u.id] = u.valg;   // meglerens valg beholdes
   const tidligst = (r) => { const ref = [r.kk_signert, r.ark_solgt].filter(Boolean).sort()[0]; return ref ? iso(new Date(new Date(ref) - 30 * 864e5)) : null; };   // tidligste av kontrakt/ark-solgt (Axopar 26001: ark 24.2, Oneflow 14.4)   // en provisjonsutbetaling kan ikke ligge før salget (samme oppdragsnr kan ha vært solgt/lønnet før — jf. Carmen 21026)
   for (const t of tx) { const nr = t.project_code; if (!R[nr]) continue; const a = Number(t.account_no), v = Number(t.amount || 0);
-    if (P.UTLEGG_KONTOER.includes(a)) { const valg = UVALG[t.id] || 'viderefaktureres'; UTLROWS.push({ id: t.id, oppdragsnr: nr, dato: t.posting_date, konto: a, belop: v, beskrivelse: (t.description || '').slice(0, 200), valg, synced_at: new Date().toISOString() });
+    const erKostnad = a >= 4000 && a < 8000 && !P.LONN_KONTOER.includes(a) && a !== 3700;   // alle kostnader på prosjektet vises — ingenting skjules
+    if (erKostnad) { const valg = UVALG[t.id] || (P.UTLEGG_HOY.includes(a) ? 'hoy' : 'viderefaktureres'); UTLROWS.push({ id: t.id, oppdragsnr: nr, dato: t.posting_date, konto: a, belop: v, beskrivelse: (t.description || '').slice(0, 200), valg, synced_at: new Date().toISOString() });
       (UTL[nr] ??= { viderefaktureres: 0, hoy: 0, megler: 0 })[valg] += v; }
     if (a === 3700) HON[nr] = (HON[nr] || 0) - v;   // fakturert honorar eks mva (kredit) — fasit når faktura finnes
     if (a === 5000) { const fra = tidligst(R[nr]); if (fra && t.posting_date < fra) continue; PAID[nr] = (PAID[nr] || 0) + v; if (!PAID_DATO[nr] || t.posting_date > PAID_DATO[nr]) PAID_DATO[nr] = t.posting_date; } }
@@ -179,10 +183,11 @@ async function buildOppgjor(sb, opts = {}) {
   }
 
   // 5. Klientkonto: koble innbetalinger og utbetalinger
-  await sb.from('klientkonto_transaksjon').update({ oppdragsnr: null, koblet_type: null, koblet_av: null }).eq('koblet_av', 'auto');   // auto-koblinger regnes på nytt hver gang; manuelle beholdes
+  await sb.from('klientkonto_transaksjon').update({ oppdragsnr: null, koblet_type: null, koblet_av: null, koblet_grunn: null }).eq('koblet_av', 'auto');   // auto-koblinger regnes på nytt hver gang; manuelle beholdes
   const { data: kkt } = await sb.from('klientkonto_transaksjon').select('id,bokfort_dato,belop,motpart_navn,motpart_konto,tekst,oppdragsnr,koblet_type,koblet_av').eq('konto', kk.KLIENT_BBAN).order('bokfort_dato');
   const T = kkt || []; const updates = [];
   const norm = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/æ/g, 'ae').replace(/ø/g, 'o').replace(/å/g, 'a').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+  const ln2 = (n) => norm(n).split(' ').filter(w => w.length > 2);
   const nameHit = (t, r) => { const h = norm(t.motpart_navn + ' ' + t.tekst); const ln = (n) => norm(n).split(' ').filter(w => w.length > 2); return (t.tekst || '').includes(r.oppdragsnr) || ln(r.kjoper_navn).some(w => h.includes(w)) || ln(r.selger_navn).some(w => h.includes(w)); };
   const near = (a, b, tol = 0.005) => b > 0 && Math.abs(a - b) <= Math.max(100, b * tol);   // beløp må stemme nesten eksakt; forskudd (10 %) får 3 %
   for (const r of Object.values(R)) { r.innbetalt = 0; r.innbetalt_dato = null; r.selger_utbetalt = null; r.selger_utbetalt_dato = null; r.drift_overfort = null; r.drift_overfort_dato = null; r.forskudd_forventet = r.salgssum ? Math.round(r.salgssum * P.FORSKUDD_PCT) : null; }
@@ -201,10 +206,12 @@ async function buildOppgjor(sb, opts = {}) {
       if (!best || score > best.score || (score === best.score && Math.abs(dd) < Math.abs(best.dd))) best = { r, type, score, dd };   // likt: nærmeste kontraktsdato
     }
     // koble når navn/nr treffer, eller når beløpet er entydig (bare én kandidat) — forskudd uten navnetreff krever entydighet
-    if (best && (best.score >= 2 || kandidater === 1)) { apply(t, best.r, best.type); updates.push({ id: t.id, oppdragsnr: best.r.oppdragsnr, koblet_type: best.type, koblet_av: 'auto' }); }
+    if (best && (best.score >= 2 || kandidater === 1)) { apply(t, best.r, best.type);
+      const grunn = `automatisk: ${nameHit(t, best.r) ? 'innbetaler/mottaker matcher ' + (ln2(best.r.kjoper_navn).some(w => norm(t.motpart_navn + ' ' + t.tekst).includes(w)) ? 'kjøper' : 'selger/oppdragsnr') : 'eneste båt som passer'}, beløp = ${{ fullt: 'salgssum', forskudd: '10 % forskudd', rest: 'restbeløp', drift_overforing: 'fakturasum', selger_utbetaling: 'nettoproveny' }[best.type] || best.type}, ${Math.round(best.dd)} dg etter kontrakt`;
+      updates.push({ id: t.id, oppdragsnr: best.r.oppdragsnr, koblet_type: best.type, koblet_av: 'auto', koblet_grunn: grunn }); }
   }
   function apply(t, r, type) { return applyTx(t, r, type); }
-  for (let i = 0; i < updates.length; i += 100) for (const u of updates.slice(i, i + 100)) await sb.from('klientkonto_transaksjon').update({ oppdragsnr: u.oppdragsnr, koblet_type: u.koblet_type, koblet_av: u.koblet_av }).eq('id', u.id);
+  for (let i = 0; i < updates.length; i += 100) for (const u of updates.slice(i, i + 100)) await sb.from('klientkonto_transaksjon').update({ oppdragsnr: u.oppdragsnr, koblet_type: u.koblet_type, koblet_av: u.koblet_av, koblet_grunn: u.koblet_grunn }).eq('id', u.id);
   log.klientkonto = { transaksjoner: T.length, nye_koblinger: updates.length };
 
   // 6. Avregning, status, provisjon
@@ -242,7 +249,7 @@ async function buildOppgjor(sb, opts = {}) {
     const row = {}; for (const c of COLS) if (r[c] !== undefined) row[c] = r[c];
     OUT.push({ ...row,
       selger_konto: ex.selger_konto || null, heftelser_sjekket: ex.heftelser_sjekket || null, heftelser_av: ex.heftelser_av || null, heftelser_notat: ex.heftelser_notat || null,
-      gjeld_bank_belop: ex.gjeld_bank_belop || 0, gjeld_bank_konto: ex.gjeld_bank_konto || null, utlegg_paslag_pct: ex.utlegg_paslag_pct ?? 20, notat: ex.notat || null, op_anmerkninger: ex.op_anmerkninger ?? null, oppgjort_manuelt: ex.oppgjort_manuelt || null, oppgjort_av: ex.oppgjort_av || null, sendt_at: ex.sendt_at || null, sendt_av: ex.sendt_av || null, protokoll_forklaring: ex.protokoll_forklaring || null, heftelser_megler: ex.heftelser_megler || null, heftelser_megler_av: ex.heftelser_megler_av || null,
+      gjeld_bank_belop: ex.gjeld_bank_belop || 0, gjeld_bank_konto: ex.gjeld_bank_konto || null, utlegg_paslag_pct: ex.utlegg_paslag_pct ?? 20, notat: ex.notat || null, op_anmerkninger: ex.op_anmerkninger ?? null, oppgjort_manuelt: ex.oppgjort_manuelt || null, oppgjort_av: ex.oppgjort_av || null, sendt_at: ex.sendt_at || null, sendt_av: ex.sendt_av || null, selger_konto_navn: ex.selger_konto_navn || null, gjeld_bank_navn: ex.gjeld_bank_navn || null, gjeld_saldo_dato: ex.gjeld_saldo_dato || null, gjeld_referanse: ex.gjeld_referanse || null, protokoll_forklaring: ex.protokoll_forklaring || null, heftelser_megler: ex.heftelser_megler || null, heftelser_megler_av: ex.heftelser_megler_av || null,
       kilde: r.kilde || ex.kilde || 'oneflow', oppdatert: new Date().toISOString(), bygget_at: new Date().toISOString() });
   }
   for (let i = 0; i < OUT.length; i += 200) { const { error } = await sb.from('oppgjor').upsert(OUT.slice(i, i + 200), { onConflict: 'oppdragsnr' }); if (error) throw new Error('oppgjor upsert: ' + error.message); }

@@ -103,7 +103,7 @@ exports.handler = async (event) => {
       const [{ data: just }, { data: pv }, { data: tx }, { data: utl }] = await Promise.all([
         sb.from('oppgjor_justering').select('*').eq('oppdragsnr', nr).order('opprettet'),
         sb.from('oppgjor_provisjon').select('*').eq('oppdragsnr', nr),
-        sb.from('klientkonto_transaksjon').select('id,bokfort_dato,belop,motpart_navn,motpart_konto,tekst,koblet_type,koblet_av').eq('oppdragsnr', nr).order('bokfort_dato'),
+        sb.from('klientkonto_transaksjon').select('id,bokfort_dato,belop,motpart_navn,motpart_konto,tekst,koblet_type,koblet_av,koblet_grunn').eq('oppdragsnr', nr).order('bokfort_dato'),
         sb.from('oppgjor_utlegg').select('*').eq('oppdragsnr', nr).order('dato'),
       ]);
       // kandidater: ukoblede transaksjoner i et vindu rundt kontraktsdato (for manuell kobling)
@@ -137,6 +137,8 @@ exports.handler = async (event) => {
       if ('heftelser_megler' in body) { if (body.heftelser_megler) { if (!r.heftelser_megler) { patch.heftelser_megler = today(); patch.heftelser_megler_av = u.email; } } else { patch.heftelser_megler = null; patch.heftelser_megler_av = null; } }
       if ('gjeld_bank_belop' in body) patch.gjeld_bank_belop = Number(body.gjeld_bank_belop || 0);
       if ('gjeld_bank_konto' in body) patch.gjeld_bank_konto = body.gjeld_bank_konto || null;
+      for (const k of ['gjeld_bank_navn', 'gjeld_referanse', 'selger_konto_navn']) if (k in body) patch[k] = body[k] || null;
+      if ('gjeld_saldo_dato' in body) patch.gjeld_saldo_dato = body.gjeld_saldo_dato || null;
       // send til oppgjør: skjemaet må være komplett — det er meglerens ansvar at alt er avklart før back-office tar over
       if ('sendt' in body) {
         if (body.sendt) { const f = { ...r, ...patch }; const mangler = [];
@@ -165,8 +167,10 @@ exports.handler = async (event) => {
     if (p.action === 'justering') {
       const nr = String(p.nr || ''); const { data: rows } = await sb.from('oppgjor').select('oppdragsnr,oppdrag_inn,solgt_av').eq('oppdragsnr', nr).limit(1); const r = rows && rows[0];
       if (!r) return J(404, { error: 'Finnes ikke' }); if (!egen(u, r)) return J(403, { error: 'Ikke din båt' });
-      const belop = Number(body.belop); if (!belop || !body.type) return J(400, { error: 'type og beløp må settes' });
-      const baerer = ['selger', 'hoy', 'delt'].includes(body.baerer) ? body.baerer : (body.pavirker === 'provisjon' ? 'delt' : 'selger');
+      const abs = Math.abs(Number(body.belop)); if (!abs || !body.type) return J(400, { error: 'type og beløp må settes' });
+      // fortegn og hvem som bærer følger typen — skjemaet skal ikke kunne legge et tilbakehold TIL selgers proveny
+      const T = { tilbakehold: { s: -1, b: 'selger', til: null }, retur_kjoper: { s: -1, b: body.av === 'honorar' ? 'delt' : 'selger', til: 'kjoper' }, rabatt: { s: -1, b: 'delt', til: null }, tap: { s: -1, b: body.delt ? 'delt' : 'hoy', til: body.til || null }, tillegg: { s: 1, b: 'selger', til: 'selger' }, annet: { s: Number(body.belop) < 0 ? -1 : 1, b: ['selger', 'hoy', 'delt'].includes(body.baerer) ? body.baerer : 'selger', til: body.til || null } };
+      const t = T[body.type] || T.annet; const belop = t.s * abs; const baerer = t.b; body.til = t.til;
       const { error } = await sb.from('oppgjor_justering').insert({ oppdragsnr: nr, type: body.type, belop, pavirker: baerer === 'selger' ? 'selger' : 'provisjon', baerer, til: body.til || null, til_konto: body.til_konto || null, tilbakehold_status: body.type === 'tilbakehold' ? 'holdt' : null, beskrivelse: body.beskrivelse || null, opprettet_av: u.email }); if (error) throw new Error(error.message);
       return J(200, { ok: true, rad: await regnOm(sb, nr) });
     }
@@ -208,7 +212,7 @@ exports.handler = async (event) => {
       if (p.action === 'koble') {
         const TYPER = ['forskudd', 'rest', 'fullt', 'selger_utbetaling', 'drift_overforing', 'gjeld_bank', 'annet'];
         const type = TYPER.includes(body.type) ? body.type : (Number(t.belop) > 0 ? 'innbetaling' : 'annet');
-        const { error } = await sb.from('klientkonto_transaksjon').update({ oppdragsnr: String(body.nr), koblet_type: type, koblet_av: u.email }).eq('id', t.id); if (error) throw new Error(error.message);
+        const { error } = await sb.from('klientkonto_transaksjon').update({ oppdragsnr: String(body.nr), koblet_type: type, koblet_av: u.email, koblet_grunn: `manuelt av ${u.email.split('@')[0]} ${today()}` }).eq('id', t.id); if (error) throw new Error(error.message);
       } else {
         // «manuelt frakoblet» — settes til koblet_av=e-post uten oppdragsnr så auto-koblingen ikke tar den igjen
         const { error } = await sb.from('klientkonto_transaksjon').update({ oppdragsnr: null, koblet_type: 'ignorert', koblet_av: u.email }).eq('id', t.id); if (error) throw new Error(error.message);
