@@ -68,8 +68,9 @@ function avregn(r, ex, jList, today) {
   if (r.selger_utbetalt || r.drift_overfort) status = 'utbetalt';
   const gammel = r.po_invoice_dato && (new Date(today) - new Date(r.po_invoice_dato)) / 864e5 > 45;
   if (r.po_invoice_betalt && (r.selger_utbetalt || r.ark_oppgjort || gammel)) status = 'oppgjort';
+  if (ex.oppgjort_manuelt) status = 'oppgjort';   // admin har markert oppgjort (historikk før klientkonto/PO-speil)
   if (ex.status === 'annullert') status = 'annullert';
-  const status_dato = { kontrakt: r.kk_signert, forskudd: null, innbetalt: r.innbetalt_dato, overtatt: r.op_signert, klar: ex.heftelser_sjekket, fakturert: r.po_invoice_dato, utbetalt: r.selger_utbetalt_dato || r.drift_overfort_dato, oppgjort: r.selger_utbetalt_dato || r.po_invoice_dato }[status] || null;
+  const status_dato = { kontrakt: r.kk_signert, forskudd: null, innbetalt: r.innbetalt_dato, overtatt: r.op_signert, klar: ex.heftelser_sjekket, fakturert: r.po_invoice_dato, utbetalt: r.selger_utbetalt_dato || r.drift_overfort_dato, oppgjort: ex.oppgjort_manuelt || r.selger_utbetalt_dato || r.po_invoice_dato }[status] || null;
   return { nettoproveny, status, status_dato, jP, jS, utleggInkl, gjeld };
 }
 // Summerer koblede klientkonto-transaksjoner inn i raden (innbetalt, selger_utbetalt, drift_overfort)
@@ -151,12 +152,16 @@ async function buildOppgjor(sb, opts = {}) {
   const { data: projs } = await sb.from('po_projects').select('id,code'); const codeOf = {}, idOf = {}; for (const p of projs || []) { codeOf[p.id] = p.code; idOf[p.code] = p.id; }
   const { data: inv } = await sb.from('po_outgoing_invoices').select('id,invoice_no,project_id,total_amount,net_amount,balance,voucher_date,is_reversed').gte('voucher_date', P.FRA);
   const INV = {}; for (const i of inv || []) { if (i.is_reversed) continue; const nr = codeOf[i.project_id]; if (!nr) continue; if (!INV[nr] || (i.voucher_date > INV[nr].voucher_date)) INV[nr] = i; }
-  const tx = []; for (let from = 0; ; from += 1000) { const { data } = await sb.from('po_account_transactions').select('project_code,account_no,amount,description,posting_date').not('project_code', 'is', null).eq('is_reversed', false).gte('posting_date', P.FRA).range(from, from + 999); tx.push(...(data || [])); if (!data || data.length < 1000) break; }
-  const UTL = {}, PAID = {}, PAID_DATO = {};
+  const tx = []; for (let from = 0; ; from += 1000) { const { data } = await sb.from('po_account_transactions').select('project_code,account_no,amount,description,posting_date').not('project_code', 'is', null).eq('is_reversed', false).gte('posting_date', P.FRA).order('id').range(from, from + 999); /* order er påkrevd: uten gir PostgREST ustabile sider og rader faller ut */ tx.push(...(data || [])); if (!data || data.length < 1000) break; }
+  const UTL = {}, PAID = {}, PAID_DATO = {}, HON = {};
+  const tidligst = (r) => { const ref = [r.kk_signert, r.ark_solgt].filter(Boolean).sort()[0]; return ref ? iso(new Date(new Date(ref) - 30 * 864e5)) : null; };   // tidligste av kontrakt/ark-solgt (Axopar 26001: ark 24.2, Oneflow 14.4)   // en provisjonsutbetaling kan ikke ligge før salget (samme oppdragsnr kan ha vært solgt/lønnet før — jf. Carmen 21026)
   for (const t of tx) { const nr = t.project_code; if (!R[nr]) continue; const a = Number(t.account_no), v = Number(t.amount || 0);
     if (P.UTLEGG_KONTOER.includes(a)) UTL[nr] = (UTL[nr] || 0) + v;
-    if (a === 5000) { PAID[nr] = (PAID[nr] || 0) + v; if (!PAID_DATO[nr] || t.posting_date > PAID_DATO[nr]) PAID_DATO[nr] = t.posting_date; } }
-  for (const [nr, r] of Object.entries(R)) { const i = INV[nr]; if (i) Object.assign(r, { po_invoice_id: i.id, po_invoice_no: i.invoice_no, po_invoice_dato: i.voucher_date, po_invoice_belop: Number(i.total_amount), po_invoice_betalt: Number(i.balance || 0) === 0 }); if (!r.po_project_id && idOf[nr]) r.po_project_id = idOf[nr]; r.utlegg_eks = Math.round((UTL[nr] || 0) * 100) / 100; }
+    if (a === 3700) HON[nr] = (HON[nr] || 0) - v;   // fakturert honorar eks mva (kredit) — fasit når faktura finnes
+    if (a === 5000) { const fra = tidligst(R[nr]); if (fra && t.posting_date < fra) continue; PAID[nr] = (PAID[nr] || 0) + v; if (!PAID_DATO[nr] || t.posting_date > PAID_DATO[nr]) PAID_DATO[nr] = t.posting_date; } }
+  for (const [nr, r] of Object.entries(R)) { const i = INV[nr]; if (i) Object.assign(r, { po_invoice_id: i.id, po_invoice_no: i.invoice_no, po_invoice_dato: i.voucher_date, po_invoice_belop: Number(i.total_amount), po_invoice_betalt: Number(i.balance || 0) === 0 }); if (!r.po_project_id && idOf[nr]) r.po_project_id = idOf[nr]; r.utlegg_eks = Math.round((UTL[nr] || 0) * 100) / 100;
+    // fakturert honorar (3700): fyller der arket mangler; avviker det fra arket lagres avviket (arket er fasit for fordeling — fakturaen kan være brutto der refusjon til kjøper er ført utenom, jf. Marex 26053)
+    if (HON[nr] > 0) { const hon = Math.round(HON[nr] * 100) / 100; if (!r.oms_eks) { r.oms_eks = hon; r.provisjon_inkl = Math.round(hon * 1.25); } r.honorar_fakturert_eks = hon; r.honorar_avvik = Math.round((hon - Number(r.oms_eks || 0)) * 100) / 100; } }
   log.po = { fakturaer: Object.keys(INV).length, prosjekt_tx: tx.length };
 
   // 4b. Honorar + foreløpig nettoproveny (til matching av utbetalinger)
@@ -182,10 +187,11 @@ async function buildOppgjor(sb, opts = {}) {
     for (const r of Object.values(R)) { const ref = r.kk_signert || r.ark_solgt; if (!r.salgssum || !ref) continue; const dd = (new Date(t.bokfort_dato) - new Date(ref)) / 864e5; if (dd < -45 || dd > 200) continue;
       let type = null;
       if (amt > 0) { const rest = r.salgssum - r.innbetalt; if (rest <= r.salgssum * 0.005) continue; /* allerede fullt innbetalt */
+        if (r.op_signert && (new Date(t.bokfort_dato) - new Date(r.op_signert)) / 864e5 > 30) continue;   /* overtakelse skjer aldri før pengene er inne: innbetaling >30 dg etter protokoll er ikke kjøpesummen (pengene kom før historikken) */
         if (r.innbetalt === 0 && near(amt, r.salgssum)) type = 'fullt'; else if (r.innbetalt === 0 && near(amt, r.forskudd_forventet, P.TOLERANSE)) type = 'forskudd'; else if (r.innbetalt > 0 && near(amt, rest)) type = 'rest'; }
       else { const ut = -amt; if (r.po_invoice_belop && !r.drift_overfort && near(ut, r.po_invoice_belop, 0.01)) type = 'drift_overforing'; else if (!r.selger_utbetalt && r.nettoproveny_est && near(ut, r.nettoproveny_est, 0.02)) type = 'selger_utbetaling'; else if (!r.selger_utbetalt && r.salgssum && ut > r.salgssum * 0.5 && ut < r.salgssum && nameHit(t, r)) type = 'selger_utbetaling'; }
       if (!type) continue; kandidater++; const score = (nameHit(t, r) ? 2 : 0) + (['fullt', 'rest', 'drift_overforing', 'selger_utbetaling'].includes(type) ? 1 : 0);
-      if (!best || score > best.score) best = { r, type, score };
+      if (!best || score > best.score || (score === best.score && Math.abs(dd) < Math.abs(best.dd))) best = { r, type, score, dd };   // likt: nærmeste kontraktsdato
     }
     // koble når navn/nr treffer, eller når beløpet er entydig (bare én kandidat) — forskudd uten navnetreff krever entydighet
     if (best && (best.score >= 2 || kandidater === 1)) { apply(t, best.r, best.type); updates.push({ id: t.id, oppdragsnr: best.r.oppdragsnr, koblet_type: best.type, koblet_av: 'auto' }); }
@@ -225,11 +231,11 @@ async function buildOppgjor(sb, opts = {}) {
       PROV.push({ oppdragsnr: r.oppdragsnr, megler: m, sats: m === 'Marte' ? P.MARTE_BONUS : P.SATS[m] * (shares[m] || 1), grunnlag_eks: Math.round(oms * (shares[m] || 0)), opptjent: o, utbetalt: utb, utbetalt_dato: utb ? PAID_DATO[r.oppdragsnr] || null : null, utbetalt_kilde: kilde });
     }
     // rad ut — manuelle felt fra eksisterende rad beholdes
-    const COLS = ['oppdragsnr','navn','kk_contract_id','kk_signert','salgssum','overtakelse_avtalt','selger_navn','selger_epost','kjoper_navn','kjoper_epost','kjenningssignal','hin','arsmodell','op_contract_id','op_signert','forskudd_forventet','innbetalt','innbetalt_dato','provisjon_inkl','oms_eks','oppdrag_inn','solgt_av','fordeling','utlegg_eks','nettoproveny','po_project_id','po_customer_id','po_invoice_id','po_invoice_no','po_invoice_dato','po_invoice_belop','po_invoice_betalt','selger_utbetalt','selger_utbetalt_dato','drift_overfort','drift_overfort_dato','status','status_dato','ark_oppgjort','ark_solgt','ark_utbetalt'];
+    const COLS = ['oppdragsnr','navn','kk_contract_id','kk_signert','salgssum','overtakelse_avtalt','selger_navn','selger_epost','kjoper_navn','kjoper_epost','kjenningssignal','hin','arsmodell','op_contract_id','op_signert','forskudd_forventet','innbetalt','innbetalt_dato','provisjon_inkl','oms_eks','oppdrag_inn','solgt_av','fordeling','utlegg_eks','nettoproveny','po_project_id','po_customer_id','po_invoice_id','po_invoice_no','po_invoice_dato','po_invoice_belop','po_invoice_betalt','selger_utbetalt','selger_utbetalt_dato','drift_overfort','drift_overfort_dato','status','status_dato','ark_oppgjort','ark_solgt','ark_utbetalt','honorar_fakturert_eks','honorar_avvik'];
     const row = {}; for (const c of COLS) if (r[c] !== undefined) row[c] = r[c];
     OUT.push({ ...row,
       selger_konto: ex.selger_konto || null, heftelser_sjekket: ex.heftelser_sjekket || null, heftelser_av: ex.heftelser_av || null, heftelser_notat: ex.heftelser_notat || null,
-      gjeld_bank_belop: ex.gjeld_bank_belop || 0, gjeld_bank_konto: ex.gjeld_bank_konto || null, utlegg_paslag_pct: ex.utlegg_paslag_pct ?? 20, notat: ex.notat || null, op_anmerkninger: ex.op_anmerkninger ?? null,
+      gjeld_bank_belop: ex.gjeld_bank_belop || 0, gjeld_bank_konto: ex.gjeld_bank_konto || null, utlegg_paslag_pct: ex.utlegg_paslag_pct ?? 20, notat: ex.notat || null, op_anmerkninger: ex.op_anmerkninger ?? null, oppgjort_manuelt: ex.oppgjort_manuelt || null, oppgjort_av: ex.oppgjort_av || null,
       kilde: r.kilde || ex.kilde || 'oneflow', oppdatert: new Date().toISOString(), bygget_at: new Date().toISOString() });
   }
   for (let i = 0; i < OUT.length; i += 200) { const { error } = await sb.from('oppgjor').upsert(OUT.slice(i, i + 200), { onConflict: 'oppdragsnr' }); if (error) throw new Error('oppgjor upsert: ' + error.message); }

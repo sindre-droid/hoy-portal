@@ -26,6 +26,15 @@ const J = (status, body) => ({ statusCode: status, headers: { ...CORS, 'Content-
 const KUN_ADMIN = true;   // åpnes for meglerne når modulen er verifisert (settes til false)
 const DRIFT_KONTO = process.env.DRIFT_KONTO || '1503.86.49814';
 const MEGLER = { 'sindre@h-y.no': 'Sindre', 'henrik@h-y.no': 'Henrik', 'daniel@h-y.no': 'Daniel', 'marte@h-y.no': 'Henrik', 'jeanette@h-y.no': 'Jeanette' };
+// Lønn (Fase 2): PowerOffice-ansatt-id per megler (po_employees), lønnsarter og 7,1 G-taket for Sindre
+const LONN = { ANSATT: { Sindre: 49201149, Henrik: 144184031, Daniel: 146826015, Marte: 182336517, Jeanette: 49205223 }, ART: { provisjon: '200', bonus: '205' }, G: 136549, G_TAK: 7.1, SINDRE_FAST_MND: 15366 };
+// PowerOffice skriv (POST/PATCH) — core.po er kun GET
+async function poWrite(path, method, body) {
+  const token = await core.poToken();
+  const res = await fetch(`${process.env.POWEROFFICE_BASE_URL}${path}`, { method, headers: { Authorization: `Bearer ${token}`, 'Ocp-Apim-Subscription-Key': process.env.POWEROFFICE_SUBSCRIPTION_KEY, Accept: 'application/json', 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  const text = await res.text(); let data; try { data = JSON.parse(text); } catch { data = { raw: text.slice(0, 800) }; }
+  return { ok: res.ok, status: res.status, data };
+}
 
 function parseJwt(t) { try { const b = t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'); return JSON.parse(Buffer.from(b, 'base64').toString('utf8')); } catch { return null; } }
 function bruker(event) {
@@ -49,6 +58,10 @@ async function regnOm(sb, nr) {
   const a = opg.avregn({ ...r, ...agg }, r, just || [], today());
   const patch = { ...agg, nettoproveny: a.nettoproveny, status: a.status, status_dato: a.status_dato, oppdatert: new Date().toISOString() }; delete patch.salgssum;
   const { error } = await sb.from('oppgjor').update(patch).eq('oppdragsnr', nr); if (error) throw new Error(error.message);
+  // provisjon per megler regnes også om (justeringer på honoraret og annullering slår rett inn i «til gode» — nattbygget gjør det samme)
+  const oms = Number(r.oms_eks || 0) + a.jP / 1.25; const { data: pv } = await sb.from('oppgjor_provisjon').select('megler,sats,opptjent').eq('oppdragsnr', nr);
+  const oppt = {}; for (const x of pv || []) if (x.megler !== 'Marte') oppt[x.megler] = a.status === 'annullert' ? 0 : Math.round(oms * Number(x.sats));
+  for (const x of pv || []) { const o = x.megler === 'Marte' ? Math.round((oppt.Henrik || 0) * 0.1) : oppt[x.megler]; if (o !== undefined && o !== Number(x.opptjent)) await sb.from('oppgjor_provisjon').update({ opptjent: o, grunnlag_eks: x.megler === 'Marte' ? undefined : Math.round(oms * (Number(x.sats) / (opg.P.SATS[x.megler] || 1))) }).eq('oppdragsnr', nr).eq('megler', x.megler); }
   return { ...r, ...patch };
 }
 
@@ -88,6 +101,16 @@ exports.handler = async (event) => {
       const prov = (pv || []).filter(x => u.admin || x.megler === u.megler || (u.email === 'marte@h-y.no' && x.megler === 'Marte'));
       return J(200, { rad: r, justeringer: just || [], provisjon: prov, transaksjoner: tx || [], kandidater, drift_konto: DRIFT_KONTO, klientkonto: kk.KLIENT_BBAN, admin: u.admin });
     }
+    // ── lønnsgrunnlag (admin): alt opptjent og ikke utbetalt, per megler, med båtens status — grunnlaget for månedens kjøring ──
+    if (p.action === 'lonn') {
+      if (!u.admin) return J(403, { error: 'Kun admin' });
+      const [{ data: pv }, { data: rows }] = await Promise.all([sb.from('oppgjor_provisjon').select('*'), sb.from('oppgjor').select('oppdragsnr,navn,status,kk_signert,op_signert,ark_solgt,salgssum,provisjon_inkl,oms_eks,po_project_id,honorar_avvik,honorar_fakturert_eks,fordeling,oppdrag_inn,solgt_av')]);
+      const R = {}; for (const r of rows || []) R[r.oppdragsnr] = r;
+      const linjer = (pv || []).filter(x => Number(x.opptjent) - Number(x.utbetalt) > 0.5 && R[x.oppdragsnr] && R[x.oppdragsnr].status !== 'annullert')
+        .map(x => ({ ...x, til_gode: Math.round((Number(x.opptjent) - Number(x.utbetalt)) * 100) / 100, bat: R[x.oppdragsnr] }))
+        .sort((a, b) => (b.bat.op_signert || b.bat.kk_signert || '').localeCompare(a.bat.op_signert || a.bat.kk_signert || ''));
+      return J(200, { linjer, lonn: LONN, i_dag: today() });
+    }
     if (p.action === 'po') { if (!u.admin) return J(403, { error: 'Kun admin' }); const path = String(p.path || body.path || ''); if (!path.startsWith('/')) return J(400, { error: 'path' }); const r = await core.po(path); return J(200, { status: r.status, data: r.data }); }
     if (event.httpMethod !== 'POST') return J(405, { error: 'POST' });
     // ── lagre manuelle felt ──
@@ -105,10 +128,10 @@ exports.handler = async (event) => {
         if ('op_anmerkninger' in body) patch.op_anmerkninger = body.op_anmerkninger == null ? null : !!body.op_anmerkninger;
         if ('heftelser_sjekket' in body) { if (body.heftelser_sjekket) { if (!r.heftelser_sjekket) { patch.heftelser_sjekket = today(); patch.heftelser_av = u.email; } } else { patch.heftelser_sjekket = null; patch.heftelser_av = null; } }
         if ('annullert' in body) patch.status = body.annullert ? 'annullert' : (r.status === 'annullert' ? 'kontrakt' : r.status);
+        if ('oppgjort_manuelt' in body) { patch.oppgjort_manuelt = body.oppgjort_manuelt ? today() : null; patch.oppgjort_av = body.oppgjort_manuelt ? u.email : null; }
       }
       if (Object.keys(patch).length) { const { error } = await sb.from('oppgjor').update(patch).eq('oppdragsnr', nr); if (error) throw new Error(error.message); }
       const rad = await regnOm(sb, nr);
-      if (u.admin && body.annullert) await sb.from('oppgjor_provisjon').update({ opptjent: 0 }).eq('oppdragsnr', nr);   // annullert salg gir ingen provisjon (nattbygget gjør det samme)
       return J(200, { ok: true, rad });
     }
     // ── justeringer ──
@@ -141,6 +164,18 @@ exports.handler = async (event) => {
       const rad = p.action === 'koble' ? await regnOm(sb, String(body.nr)) : null; if (forrige && forrige !== String(body.nr || '')) await regnOm(sb, forrige);
       return J(200, { ok: true, rad });
     }
+    // ── lønnsgrunnlag → PowerOffice (admin): én SalaryLine per båt per megler. Lager kun grunnlag — kjøringen/godkjenning skjer i GO ──
+    if (p.action === 'lonn_po') {
+      if (!u.admin) return J(403, { error: 'Kun admin' });
+      const ut = []; const linjer = Array.isArray(body.linjer) ? body.linjer : [];
+      for (const l of linjer) {
+        const emp = LONN.ANSATT[l.megler]; if (!emp || !(Number(l.belop) > 0)) { ut.push({ ...l, ok: false, error: 'mangler ansatt eller beløp' }); continue; }
+        const payload = { EmployeeId: emp, PayItemCode: l.lonnsart || (l.megler === 'Marte' ? LONN.ART.bonus : LONN.ART.provisjon), Quantity: 1, Rate: Number(l.belop), Amount: Number(l.belop), Description: l.kommentar || `${l.oppdragsnr} - ${l.navn || ''}`.trim(), ProjectId: l.po_project_id || undefined, ProjectCode: l.oppdragsnr, Date: body.dato || today() };
+        const r = await poWrite('/SalaryLines', 'POST', payload); ut.push({ megler: l.megler, oppdragsnr: l.oppdragsnr, belop: l.belop, ok: r.ok, status: r.status, svar: r.ok ? (r.data.Id || r.data.id || r.data) : r.data });
+      }
+      return J(200, { ok: ut.every(x => x.ok), linjer: ut });
+    }
+    if (p.action === 'po_write') { if (!u.admin) return J(403, { error: 'Kun admin' }); const path = String(body.path || ''); if (!path.startsWith('/')) return J(400, { error: 'path' }); const r = await poWrite(path, body.method || 'POST', body.body); return J(200, { status: r.status, ok: r.ok, data: r.data }); }
     if (p.action === 'synk_klientkonto') { if (!u.admin) return J(403, { error: 'Kun admin' }); return J(200, await kk.syncKlientkonto(sb, parseInt(p.days || '30', 10))); }
     return J(400, { error: 'Ukjent action' });
   } catch (e) { console.error('oppgjor-v2', e); return J(500, { error: String(e.message || e) }); }

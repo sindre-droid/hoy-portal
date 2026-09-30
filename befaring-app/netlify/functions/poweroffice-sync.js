@@ -580,6 +580,7 @@ exports.handler = async (event) => {
 // ── exports for likviditets-/nattlig-moduler (poweroffice-liquidity.js, poweroffice-nightly.js) ──
 module.exports.supabase = supabase;
 module.exports.po = po;
+module.exports.poToken = poToken;
 module.exports.poFetchAll = poFetchAll;
 module.exports.getSyncState = getSyncState;
 module.exports.setSyncState = setSyncState;

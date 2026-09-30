@@ -106,6 +106,11 @@
     .pay .t{font-size:12px;font-weight:700;color:var(--gray-dark);text-transform:uppercase;letter-spacing:.8px;display:flex;justify-content:space-between}
     .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--navy);color:white;padding:10px 18px;border-radius:20px;font-size:13px;font-weight:600;z-index:500;display:none}
     .ukoblet .tx{grid-template-columns:70px 1fr auto}
+    .ln{display:grid;grid-template-columns:24px 1fr 110px auto;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--gray);font-size:13px}
+    .ln:last-child{border-bottom:none} .ln input[type=number]{width:110px;padding:5px 8px;border:2px solid var(--gray);border-radius:7px;font-size:13px;font-family:inherit;text-align:right}
+    .ln .b{font-weight:700;color:var(--navy)} .ln .b small{font-weight:600;color:var(--gray-dark);margin-left:6px} .ln .m{font-size:11px;color:var(--gray-dark)}
+    .ln.off{opacity:.55}
+    .sumrow{display:flex;justify-content:space-between;font-weight:800;color:var(--navy);padding-top:8px;margin-top:4px;border-top:2px solid var(--navy)}
   </style>
 </head>
 <body>
@@ -136,7 +141,7 @@
       <div class="seg" id="visning">
         <button data-v="aktive" class="on" onclick="setVis('aktive')">Aktive</button>
         <button data-v="oppgjort" onclick="setVis('oppgjort')">Oppgjort</button>
-        <button data-v="alle" onclick="setVis('alle')">Alle</button>
+        <button data-v="alle" onclick="setVis('alle')">Alle</button><button data-v="lonn" id="lonnBtn" style="display:none" onclick="setVis('lonn')">Lønn</button>
       </div>
       <div class="seg" id="meglerSeg" style="display:none"></div>
     </div>
@@ -197,7 +202,7 @@ async function onLogin(){ showScreen('appScreen'); await last(); }
 async function last(){
   $('liste').innerHTML='<div class="card"><div class="empty">Laster …</div></div>';
   try{ D=await api({action:'liste'}); }catch(e){ $('liste').innerHTML=`<div class="card"><div class="empty">${esc(e.message)}</div></div>`; return; }
-  if(D.bruker.admin){ const ms=['alle','Sindre','Henrik','Daniel']; $('meglerSeg').style.display='flex'; $('meglerSeg').innerHTML=ms.map(m=>`<button data-m="${m}" class="${m===megler?'on':''}" onclick="setMegler('${m}')">${m==='alle'?'Alle meglere':m}</button>`).join(''); }
+  if(D.bruker.admin){ $('lonnBtn').style.display='block'; const ms=['alle','Sindre','Henrik','Daniel']; $('meglerSeg').style.display='flex'; $('meglerSeg').innerHTML=ms.map(m=>`<button data-m="${m}" class="${m===megler?'on':''}" onclick="setMegler('${m}')">${m==='alle'?'Alle meglere':m}</button>`).join(''); }
   kpis(); render();
 }
 function setVis(v){vis=v;document.querySelectorAll('#visning button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));render();}
@@ -219,9 +224,10 @@ function kpis(){
   h+=`<div class="kpi"><div class="l">På vei inn fra kjøpere</div><div class="v">${nok(paVei)}</div><div class="s">${akt.filter(r=>(r.salgssum||0)-(r.innbetalt||0)>0).length} båter ikke fullt innbetalt</div></div>`;
   h+=`<div class="kpi"><div class="l">Skal ut til selgere</div><div class="v">${nok(tilSelger)}</div><div class="s">fullt innbetalt, ikke utbetalt</div></div>`;
   for(const [m,x] of Object.entries(prov)) h+=`<div class="kpi ${x.o-x.u>0?'warn':''}"><div class="l">${m} til gode</div><div class="v">${nok(x.o-x.u)}</div><div class="s">opptjent ${nok(x.o)} · utbetalt ${nok(x.u)}</div></div>`;
-  $('kpis').innerHTML=h+(synk?`<div class="kpi"><div class="l">Registeret</div><div class="v" style="font-size:14px">${synk.last_sync_at?new Date(synk.last_sync_at).toLocaleString('nb-NO',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'—'}</div><div class="s">${synk.last_error?'<span style="color:var(--red)">feil: '+esc(synk.last_error).slice(0,60)+'</span>':'bygges hver natt · klientkonto hver time'}</div></div>`:'');
+  $('kpis').innerHTML=h+(synk?`<div class="kpi"><div class="l">Registeret</div><div class="v" style="font-size:14px">${synk.last_sync_at?new Date(synk.last_sync_at).toLocaleString('nb-NO',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'—'}</div><div class="s">${synk.last_error?'<span style="color:var(--red)">feil: '+esc(synk.last_error).slice(0,60)+'</span>':'bygges hver natt · klientkonto 3× daglig'}</div></div>`:'');
 }
 function render(){
+  if(vis==='lonn'){ $('ukoblet').innerHTML=''; $('kpis').style.display='none'; renderLonn(); return; } $('kpis').style.display='';
   const rows=filtrert(); const grupper={};
   const ord=vis==='oppgjort'?['oppgjort']:['fakturert','klar','overtatt','innbetalt','forskudd','kontrakt','utbetalt','oppgjort','annullert'];
   for(const r of rows)(grupper[r.status]??=[]).push(r);
@@ -240,6 +246,50 @@ function render(){
     $('ukoblet').innerHTML=`<div class="section-label"><span>Klientkonto — ikke koblet til noen båt</span><span class="n">${D.ukoblet.length} transaksjoner</span></div><div class="card ukoblet" style="padding:4px 16px">${u.map(t=>`<div class="tx"><span class="d">${dato(t.bokfort_dato)}</span><span class="n">${esc(t.motpart_navn||'')}<small>${esc(t.tekst||'')}</small></span><span class="a ${t.belop>0?'inn':'ut'}">${nok(t.belop)}</span></div>`).join('')}</div><p class="hint">Bankfinansiering, returer og småbeløp som ikke matcher noen kontrakt. Koble manuelt fra båtens detaljvisning (Penger inn → Koble transaksjon).</p>`;
   } else $('ukoblet').innerHTML='';
 }
+// ── Lønn (admin): månedens lønnsgrunnlag fra registeret ──
+let L=null, LV={};   // LV: valg per linje (nøkkel megler|nr → {med, belop})
+const MND_NAVN=['','januar','februar','mars','april','mai','juni','juli','august','september','oktober','november','desember'];
+async function renderLonn(){
+  if(!L){ $('liste').innerHTML='<div class="card"><div class="empty">Laster …</div></div>'; try{ L=await api({action:'lonn'}); }catch(e){ $('liste').innerHTML=`<div class="card"><div class="empty">${esc(e.message)}</div></div>`; return; } }
+  const mnd=+(localStorage.getItem('hoy_lonn_mnd')||((new Date().getMonth()+1)%12+1)); const brutto=+(localStorage.getItem('hoy_lonn_brutto')||870677);
+  const tak=Math.round(L.lonn.G*L.lonn.G_TAK), fasteRest=L.lonn.SINDRE_FAST_MND*(13-mnd), rom=tak-brutto-fasteRest;
+  const key=(l)=>`${l.megler}|${l.oppdragsnr}`; const overtatt=(l)=>!!l.bat.op_signert||['klar','fakturert','utbetalt','oppgjort'].includes(l.bat.status);
+  for(const l of L.linjer) if(!LV[key(l)]) LV[key(l)]={med:l.megler!=='Sindre'&&l.megler!=='Marte'&&overtatt(l),belop:Math.round(l.til_gode)};
+  const by={}; for(const l of L.linjer)(by[l.megler]??=[]).push(l);
+  const henrikMed=new Set((by.Henrik||[]).filter(l=>LV[key(l)].med).map(l=>l.oppdragsnr));
+  const linje=(l,fast)=>{ const v=LV[key(l)]; const med=fast?henrikMed.has(l.oppdragsnr):v.med; const belop=fast?Math.round(((by.Henrik||[]).find(h=>h.oppdragsnr===l.oppdragsnr)?LV[`Henrik|${l.oppdragsnr}`].belop:0)*0.1):v.belop;
+    return `<div class="ln ${med?'':'off'}"><input type="checkbox" ${med?'checked':''} ${fast?'disabled':`onchange="lonnMed('${key(l)}',this.checked)"`}><div><div class="b">${esc(l.bat.navn)}<small>${l.oppdragsnr}</small></div><div class="m">${STATUS_NAVN[l.bat.status]}${l.bat.op_signert?` · overtatt ${dato(l.bat.op_signert)}`:''} · opptjent ${nok(l.opptjent)}${+l.utbetalt?` · utbetalt ${nok(l.utbetalt)}`:''}${l.bat.fordeling==='50/50'?' · 50/50':''}${l.bat.honorar_avvik?` · <span style="color:var(--amber)">⚠ honorar-avvik ${nok(l.bat.honorar_avvik)} eks.</span>`:''}</div></div>
+      ${fast?`<span style="text-align:right;font-weight:700">${nok(belop)}</span>`:`<input type="number" value="${belop}" onchange="lonnBelop('${key(l)}',this.value)">`}<span class="m">${fast?'205':'200'} · ${l.oppdragsnr}</span></div>`; };
+  const sum=(m,fast)=>(by[m]||[]).reduce((a,l)=>a+(fast?(henrikMed.has(l.oppdragsnr)?Math.round(LV[`Henrik|${l.oppdragsnr}`].belop*0.1):0):(LV[key(l)].med?LV[key(l)].belop:0)),0);
+  let h=`<div class="section-label"><span>Lønnsgrunnlag ${MND_NAVN[mnd]} — provisjon per båt</span><span class="n"><select class="inp" style="padding:3px 6px;width:auto;font-size:12px" onchange="localStorage.setItem('hoy_lonn_mnd',this.value);render()">${MND_NAVN.map((n,i)=>i?`<option value="${i}" ${i===mnd?'selected':''}>${n}</option>`:'').join('')}</select></span></div>`;
+  h+=`<p class="hint" style="margin:0 0 12px">Avkrysset = båten er overtatt (protokoll signert) og provisjonen ikke utbetalt. Beløp kan justeres. Lønnsart 200 «Provisjonslønn», Marte 205 «Bonus» (10 % av Henriks linjer), prosjekt = oppdragsnr. Utbetalt leses fra konto 5000 med prosjektkode i PowerOffice.</p>`;
+  for(const m of ['Henrik','Daniel','Jeanette']){ if(!(by[m]||[]).length)continue; h+=`<div class="blk"><h3>${m} <span class="st">lønnsart 200</span></h3>${by[m].map(l=>linje(l,false)).join('')}<div class="sumrow"><span>Sum ${m}</span><span>${nok(sum(m))}</span></div></div>`; }
+  if((by.Marte||[]).length) h+=`<div class="blk"><h3>Marte <span class="st">lønnsart 205 · 10 % av Henriks linjer</span></h3>${by.Marte.filter(l=>(by.Henrik||[]).some(x=>x.oppdragsnr===l.oppdragsnr)).map(l=>linje(l,true)).join('')}<div class="sumrow"><span>Sum Marte</span><span>${nok(sum('Marte',true))}</span></div></div>`;
+  // Sindre: pott og 7,1 G
+  const sSum=sum('Sindre'); const pott=(by.Sindre||[]).reduce((a,l)=>a+l.til_gode,0);
+  h+=`<div class="blk"><h3>Sindre — pott og 7,1 G <span class="st">til gode ${nok(pott)}</span></h3>
+    <div class="kv"><span class="k">Brutto lønn hittil i år (fra GO → Lønnsdetaljer)</span><span class="v"><input type="number" class="inp" style="width:130px;text-align:right;padding:4px 8px" value="${brutto}" onchange="localStorage.setItem('hoy_lonn_brutto',this.value);render()"></span>
+    <span class="k">Tak 7,1 G (G = ${nok(L.lonn.G)})</span><span class="v">${nok(tak)}</span><span class="k">Fastlønn + el.komm. ${MND_NAVN[mnd]}–desember (${13-mnd} × ${nok(L.lonn.SINDRE_FAST_MND)})</span><span class="v">− ${nok(fasteRest)}</span>
+    <span class="k tot">Rom for provisjon resten av året</span><span class="v tot" style="color:${rom<0?'var(--red)':'var(--green)'}">${nok(rom)}</span></div>
+    <div style="margin-top:10px">${(by.Sindre||[]).map(l=>linje(l,false)).join('')}</div><div class="sumrow"><span>Tas ut denne måneden</span><span style="color:${sSum>rom?'var(--red)':'inherit'}">${nok(sSum)}${sSum>rom?' — over rommet':''}</span></div>
+    <div class="hint">Velg linjer (eller delbeløp) slik at året ender på nøyaktig 7,1 G. Resten står i potten til januar.</div></div>`;
+  // grunnlag-tekst + PO
+  const linjer=lonnLinjer(); const txt=lonnTekst(linjer);
+  h+=`<div class="blk"><h3>Lønnsgrunnlag — ${linjer.length} linjer · ${nok(linjer.reduce((a,l)=>a+l.belop,0))}</h3><div class="copy">${esc(txt)}<button class="btn small sec" onclick="kopier(${JSON.stringify(txt).replace(/"/g,'&quot;')},this)">Kopier</button></div>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn" onclick="lonnPO()" ${linjer.length?'':'disabled'}>Legg inn i PowerOffice (${linjer.length} lønnslinjer)</button><button class="btn sec" onclick="L=null;LV={};render()">Last på nytt</button></div>
+    <div class="hint">Legger linjene som lønnsgrunnlag på hver ansatt i GO (SalaryLines). Selve lønnskjøringen, ferietrekk, fastlønn (Philip) og godkjenning gjør du i GO som før. Feiler API-et, bruk «Kopier» og tast som i dag.</div><div id="lonnResultat"></div></div>`;
+  $('liste').innerHTML=h;
+}
+function lonnMed(k,v){LV[k].med=v;render();} function lonnBelop(k,v){LV[k].belop=Math.round(+v||0);render();}
+function lonnLinjer(){ const out=[]; const by={}; for(const l of L.linjer)(by[l.megler]??=[]).push(l);
+  for(const l of L.linjer){ if(l.megler==='Marte')continue; const v=LV[`${l.megler}|${l.oppdragsnr}`]; if(!v.med||!(v.belop>0))continue; out.push({megler:l.megler,oppdragsnr:l.oppdragsnr,navn:l.bat.navn,belop:v.belop,lonnsart:'200',po_project_id:l.bat.po_project_id,kommentar:`${l.oppdragsnr} - ${l.bat.navn}`}); }
+  for(const l of (by.Marte||[])){ const hv=LV[`Henrik|${l.oppdragsnr}`]; if(!hv||!hv.med)continue; const b=Math.round(hv.belop*0.1); if(b>0)out.push({megler:'Marte',oppdragsnr:l.oppdragsnr,navn:l.bat.navn,belop:b,lonnsart:'205',po_project_id:l.bat.po_project_id,kommentar:`${l.oppdragsnr} - ${l.bat.navn} Bonus`}); }
+  return out; }
+function lonnTekst(linjer){ const by={}; for(const l of linjer)(by[l.megler]??=[]).push(l); let t='';
+  for(const [m,ls] of Object.entries(by)){ t+=`${m} — lønnsart ${ls[0].lonnsart}\n`; for(const l of ls)t+=`  ${l.kommentar.padEnd(40)} ${nok(l.belop).padStart(9)}   prosjekt ${l.oppdragsnr}\n`; t+=`  Sum ${m.padEnd(36)} ${nok(ls.reduce((a,l)=>a+l.belop,0)).padStart(9)}\n\n`; } return t.trim(); }
+async function lonnPO(){ const linjer=lonnLinjer(); if(!confirm(`Legge ${linjer.length} lønnslinjer (${nok(linjer.reduce((a,l)=>a+l.belop,0))}) inn som lønnsgrunnlag i PowerOffice?`))return; const el=$('lonnResultat'); el.innerHTML='<div class="hint">Sender …</div>';
+  try{ const r=await api({action:'lonn_po'},{linjer}); el.innerHTML=`<div class="${r.ok?'okbox':'warnbox'}">${r.ok?'Alle linjer lagt inn i PowerOffice.':'Noen linjer feilet — bruk «Kopier» for resten.'}</div><div style="margin-top:6px">${r.linjer.map(x=>`<div class="tx" style="grid-template-columns:1fr auto auto"><span>${esc(x.megler)} ${esc(x.oppdragsnr)}</span><span class="a">${nok(x.belop)}</span><span class="tag" style="background:${x.ok?'var(--green-bg)':'var(--red-bg)'}">${x.ok?'OK':'HTTP '+x.status}</span></div>${x.ok?'':`<div class="hint" style="font-family:monospace;font-size:11px">${esc(JSON.stringify(x.svar)).slice(0,400)}</div>`}`).join('')}</div>`; }
+  catch(e){ el.innerHTML=`<div class="warnbox">Feil: ${esc(e.message)}</div>`; } }
 async function synkKK(){ toast('Henter klientkontoen …'); try{ const r=await api({action:'synk_klientkonto',days:30},{}); if(!r.ok)throw new Error(r.error); toast(`Klientkonto oppdatert — ${r.transaksjoner} transaksjoner`); await last(); }catch(e){toast('Feil: '+e.message);} }
 
 // ── Detalj ──
@@ -268,7 +318,7 @@ function tegn(){
     ${A?`<label class="chk" style="margin-top:10px"><input type="checkbox" ${r.op_anmerkninger?'checked':''} onchange="lagre({op_anmerkninger:this.checked})"> Protokoll med anmerkninger (vurder tilbakehold)</label>`:''}${r.op_anmerkninger?'<div class="warnbox">Protokoll signert med anmerkninger — legg inn tilbakehold under justeringer før utbetaling til selger.</div>':''}</div>`;
   // penger inn
   h+=`<div class="blk"><h3>Penger inn på klientkonto <span class="st">${fullt?'<span style="color:var(--green)">fullt innbetalt</span>':`mangler ${nok(rest)}`}</span></h3><div class="kv"><span class="k">Forventet forskudd (10 %)</span><span class="v">${nok(r.forskudd_forventet)}</span><span class="k">Innbetalt</span><span class="v">${nok(r.innbetalt)} av ${nok(r.salgssum)}</span></div>
-    <div style="margin-top:10px">${T.length?T.map(t=>`<div class="tx"><span class="d">${dato(t.bokfort_dato)}</span><span class="n">${esc(t.motpart_navn||'')}<small>${esc(t.tekst||'')}</small></span><span class="a ${t.belop>0?'inn':'ut'}">${nok(t.belop)}</span><span><span class="tag">${esc(t.koblet_type||'')}</span>${A?` <button class="btn small sec" onclick="koble('koble_slett','${t.id}')" title="Fjern kobling">✕</button>`:''}</span></div>`).join(''):'<div class="hint">Ingen transaksjoner koblet ennå. Klientkontoen leses hver time.</div>'}</div>
+    <div style="margin-top:10px">${T.length?T.map(t=>`<div class="tx"><span class="d">${dato(t.bokfort_dato)}</span><span class="n">${esc(t.motpart_navn||'')}<small>${esc(t.tekst||'')}</small></span><span class="a ${t.belop>0?'inn':'ut'}">${nok(t.belop)}</span><span><span class="tag">${esc(t.koblet_type||'')}</span>${A?` <button class="btn small sec" onclick="koble('koble_slett','${t.id}')" title="Fjern kobling">✕</button>`:''}</span></div>`).join(''):'<div class="hint">Ingen transaksjoner koblet ennå. Klientkontoen leses kl. 05, 10 og 14 (bankens grense er 4 oppslag/dag) — «synk nå» er det fjerde.</div>'}</div>
     ${A&&DET.kandidater.length?`<details style="margin-top:10px"><summary style="cursor:pointer;font-size:13px;font-weight:700;color:var(--navy)">Koble transaksjon manuelt (${DET.kandidater.length} ukoblede rundt kontraktsdato)</summary><div style="margin-top:8px">
       ${DET.kandidater.map(t=>`<div class="tx" style="grid-template-columns:70px 1fr auto auto"><span class="d">${dato(t.bokfort_dato)}</span><span class="n">${esc(t.motpart_navn||'')}<small>${esc(t.tekst||'')}</small></span><span class="a ${t.belop>0?'inn':'ut'}">${nok(t.belop)}</span><span><select class="inp" style="padding:4px 6px;font-size:12px;width:auto" id="ty-${t.id}">${(t.belop>0?['forskudd','rest','fullt','annet']:['selger_utbetaling','drift_overforing','gjeld_bank','annet']).map(x=>`<option>${x}</option>`).join('')}</select> <button class="btn small" onclick="koble('koble','${t.id}',$('ty-${t.id}').value)">Koble</button></span></div>`).join('')}</div></details>`:''}</div>`;
   // heftelser + gjeld
@@ -281,7 +331,7 @@ function tegn(){
   // avregning
   h+=`<div class="blk"><h3>Avregning <span class="st">${r.po_project_id?`PowerOffice-prosjekt ${r.oppdragsnr}`:'ingen PO-prosjekt'}</span></h3><div class="kv">
     <span class="k">Salgssum</span><span class="v">${nok(r.salgssum)}</span>
-    <span class="k">− Honorar inkl. mva${r.oms_eks?` (${nok(r.oms_eks)} eks.)`:''}</span><span class="v">− ${nok(r.provisjon_inkl)}</span>
+    <span class="k">− Honorar inkl. mva${r.oms_eks?` (${nok(r.oms_eks)} eks.)`:''}${r.honorar_avvik?` <span style="color:var(--amber)" title="Fakturert (konto 3700) avviker fra arket">⚠ fakturert ${nok(r.honorar_fakturert_eks)} eks.</span>`:''}</span><span class="v">− ${nok(r.provisjon_inkl)}</span>
     ${jP?`<span class="k">± Justering av honorar</span><span class="v">${jP>0?'− ':'+ '}${nok(Math.abs(jP))}</span>`:''}
     <span class="k">− Utlegg ${nok(r.utlegg_eks)} eks. + ${paslag} % påslag + mva</span><span class="v">− ${nok(utleggInkl)}</span>
     ${J.filter(j=>j.pavirker==='selger').map(j=>`<span class="k">${j.belop>0?'+':'−'} ${esc(j.type)}${j.beskrivelse?` · ${esc(j.beskrivelse)}`:''}</span><span class="v">${j.belop>0?'+ ':'− '}${nok(Math.abs(j.belop))} <button class="btn small sec" onclick="justSlett(${j.id})" title="Slett">✕</button></span>`).join('')}
@@ -310,6 +360,7 @@ function tegn(){
   if(DET.provisjon.length) h+=`<div class="blk"><h3>Meglerprovisjon</h3><div class="kv">${DET.provisjon.map(p=>`<span class="k">${esc(p.megler)} · ${Math.round(p.sats*100)} %${p.utbetalt_kilde?` · ${esc(p.utbetalt_kilde)}`:''}</span><span class="v">${nok(p.opptjent)} opptjent · ${nok(p.utbetalt)} utbetalt${p.opptjent-p.utbetalt>0?` · <span style="color:var(--amber)">${nok(p.opptjent-p.utbetalt)} til gode</span>`:''}</span>`).join('')}</div></div>`;
   // notat + annuller
   h+=`<div class="blk"><h3>Notat</h3><textarea class="inp" id="f-notat">${esc(r.notat||'')}</textarea><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn sec" onclick="lagre({notat:$('f-notat').value})">Lagre notat</button>
+    ${A?(r.oppgjort_manuelt?`<button class="btn sec" onclick="lagre({oppgjort_manuelt:false})">Fjern «oppgjort»-markering (${dato(r.oppgjort_manuelt)})</button>`:(r.status!=='oppgjort'&&r.status!=='annullert'?`<button class="btn sec" onclick="lagre({oppgjort_manuelt:true})" title="Bruk når oppgjøret er ferdig men historikken mangler i bank/PowerOffice">Marker som oppgjort</button>`:'')):''}
     ${A?(r.status==='annullert'?`<button class="btn sec" onclick="lagre({annullert:false})">Gjenopprett salget</button>`:`<button class="btn danger" id="ann1" onclick="this.style.display='none';$('ann2').style.display='inline-block'">Annuller salget</button><button class="btn danger" id="ann2" style="display:none" onclick="lagre({annullert:true})">Bekreft annullering — ingen provisjon</button>`):''}</div></div>`;
   h+='</div>'; $('panel').innerHTML=h;
 }

@@ -82,7 +82,7 @@ async function syncKlientkonto(sb, days = 60) {
     const rows = []; let cont = null;
     for (let i = 0; i < 20; i++) {
       const r = await api(sb, `/accounts/${uid}/transactions?date_from=${from}${cont ? `&continuation_key=${encodeURIComponent(cont)}` : ''}`);
-      for (const t of r.transactions || []) rows.push(mapTx(t, KLIENT_BBAN));
+      for (const t of r.transactions || []) { if (!t.booking_date || t.status === 'PDNG') continue; rows.push(mapTx(t, KLIENT_BBAN)); }   // ubokførte (pending) hoppes over — de dukker opp igjen som bokført med egen referanse
       cont = r.continuation_key; if (!cont) break;
     }
     // bankens entry_reference er ikke alltid unik (eller mangler) → unike id-er innen batchen, ellers feiler upsert

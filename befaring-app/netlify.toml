@@ -149,9 +149,9 @@
 [functions."poweroffice-nightly"]
   schedule = "30 3 * * *"
 
-# Klientkonto (DNB 1503.88.48310) via Enable Banking: saldo + transaksjoner hver time → oppgjørsmodulen viser «penger inn» per båt
+# Klientkonto (DNB 1503.88.48310) via Enable Banking: saldo + transaksjoner 3× daglig (PSD2 tillater maks 4 oppslag/dag uten innlogging — 4. er «synk nå»)
 [functions."klientkonto-hourly"]
-  schedule = "5 * * * *"
+  schedule = "5 5,10,14 * * *"
   timeout = 26
 
 [functions."klientkonto"]
