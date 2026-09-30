@@ -88,7 +88,7 @@ exports.handler = async (event) => {
       const mine = (rows || []).filter(r => egen(u, r));
       const { data: pv } = await sb.from('oppgjor_provisjon').select('oppdragsnr,megler,sats,opptjent,utbetalt,utbetalt_dato,utbetalt_kilde,lonn_maned');
       const synlige = new Set(mine.map(r => r.oppdragsnr));
-      const prov = (pv || []).filter(x => synlige.has(x.oppdragsnr) && (u.admin || x.megler === u.megler || (u.email === 'marte@h-y.no' && x.megler === 'Marte')));
+      const prov = (pv || []).filter(x => synlige.has(x.oppdragsnr) && (u.admin || x.megler === u.megler || (u.megler === 'Henrik' && x.megler === 'Marte')));
       const { data: saldo } = await sb.from('klientkonto_saldo').select('*').eq('konto', kk.KLIENT_BBAN).limit(1);
       const { data: st } = await sb.from('po_sync_state').select('data_type,last_sync_at,last_error').in('data_type', ['oppgjor', 'klientkonto']);
       // ukoblede klientkonto-transaksjoner (admin) — det som må ses på
@@ -110,7 +110,7 @@ exports.handler = async (event) => {
       let kandidater = [];
       if (u.admin) { const ref = r.kk_signert || r.ark_solgt; if (ref) { const fra = new Date(new Date(ref) - 45 * 864e5).toISOString().slice(0, 10);
         const { data } = await sb.from('klientkonto_transaksjon').select('id,bokfort_dato,belop,motpart_navn,tekst').eq('konto', kk.KLIENT_BBAN).is('oppdragsnr', null).gte('bokfort_dato', fra).order('bokfort_dato', { ascending: false }).limit(100); kandidater = data || []; } }
-      const prov = (pv || []).filter(x => u.admin || x.megler === u.megler || (u.email === 'marte@h-y.no' && x.megler === 'Marte'));
+      const prov = (pv || []).filter(x => u.admin || x.megler === u.megler || (u.megler === 'Henrik' && x.megler === 'Marte'));
       return J(200, { rad: r, justeringer: just || [], provisjon: prov, transaksjoner: tx || [], utlegg: utl || [], kandidater, drift_konto: DRIFT_KONTO, klientkonto: kk.KLIENT_BBAN, admin: u.admin, megler: u.megler, email: u.email, frist: LONN.FRIST_DAG });
     }
     // ── lønnsgrunnlag (admin): alt opptjent og ikke utbetalt, per megler, med båtens status — grunnlaget for månedens kjøring ──

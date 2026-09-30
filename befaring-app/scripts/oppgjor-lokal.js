@@ -9,7 +9,7 @@ const { createClient } = require('@supabase/supabase-js');
   const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
   if (process.argv.includes('--klientkonto')) { const kk = require('../netlify/functions/klientkonto.js'); console.log('klientkonto:', JSON.stringify(await kk.syncKlientkonto(sb, 90))); }
   const { buildOppgjor } = require('../netlify/functions/oppgjor-sync.js');
-  const r = await buildOppgjor(sb); console.log(JSON.stringify(r, null, 1));
+  const r = await buildOppgjor(sb, { maksPdf: 300 }); console.log(JSON.stringify(r, null, 1));
   const { data: rows } = await sb.from('oppgjor').select('oppdragsnr,navn,status,kk_signert,op_signert,salgssum,innbetalt,provisjon_inkl,utlegg_eks,nettoproveny,po_invoice_no,po_invoice_betalt,oppdrag_inn,solgt_av,fordeling').order('kk_signert', { ascending: false });
   console.log('\nnr     status     kk-sign    overt      salgssum   innbet  prov    utlegg  netto      fakt   betalt inn/av');
   for (const o of rows || []) console.log(`${o.oppdragsnr.padEnd(6)} ${String(o.status).padEnd(10)} ${o.kk_signert || '—'} ${o.op_signert || '—'}`.padEnd(40) + ` ${String(o.salgssum || 0).padStart(9)} ${String(o.innbetalt || 0).padStart(8)} ${String(o.provisjon_inkl || 0).padStart(7)} ${String(o.utlegg_eks || 0).padStart(7)} ${String(o.nettoproveny || 0).padStart(10)} ${String(o.po_invoice_no || '—').padStart(6)} ${o.po_invoice_betalt ? 'ja ' : 'nei'} ${o.oppdrag_inn || '?'}/${o.solgt_av || '?'} ${o.fordeling || ''}  ${(o.navn || '').slice(0, 28)}`);
