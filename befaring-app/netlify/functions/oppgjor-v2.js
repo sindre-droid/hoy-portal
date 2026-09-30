@@ -36,7 +36,7 @@ function varsler(rader, prov, u) {
   for (const p of prov) { const r = R[p.oppdragsnr]; if (!r || p.megler === 'Marte' || p.megler === 'Sindre') continue; if ((r.op_signert || r.kk_signert || '') < nylig) continue; if (Number(p.opptjent) - Number(p.utbetalt) > 0.5 && !p.lonn_maned && (r.op_signert || ['klar', 'fakturert', 'utbetalt', 'oppgjort'].includes(r.status)) && (u.admin || p.megler === u.megler)) ut.push({ type: 'lonn', oppdragsnr: p.oppdragsnr, navn: r.navn, megler: p.megler, tekst: `${r.navn} ${p.oppdragsnr}: velg lønnsmåned (frist ${LONN.FRIST_DAG}. for ${neste})`, haster: dag >= LONN.FRIST_DAG - 3 }); }
   return ut;
 }
-const LONN = { FRIST_DAG: 25, ANSATT: { Sindre: 49201149, Henrik: 144184031, Daniel: 146826015, Marte: 182336517, Jeanette: 49205223 }, ART: { provisjon: '200', bonus: '205' }, G: 136549, G_TAK: 7.1, SINDRE_FAST_MND: 15366 };
+const LONN = { FRIST_DAG: 25, ANSATT: { Sindre: 49201149, Henrik: 144184031, Daniel: 146826015, Marte: 182336517, Jeanette: 49205223 }, ART: { provisjon: '200', bonus: '205' }, PAYITEM: { '200': '649a709a-4a05-4856-b81e-d3b7271a5995', '205': '9355eb6e-691f-4f7b-8572-6e2d3dda578b' }, /* PO PayItem-GUID, verifisert 30.9: 200 = QuantityAndRate, 205 = FixedAmount */ G: 136549, G_TAK: 7.1, SINDRE_FAST_MND: 15366 };
 // PowerOffice skriv (POST/PATCH) — core.po er kun GET
 async function poWrite(path, method, body) {
   const token = await core.poToken();
@@ -222,8 +222,11 @@ exports.handler = async (event) => {
       const ut = []; const linjer = Array.isArray(body.linjer) ? body.linjer : [];
       for (const l of linjer) {
         const emp = LONN.ANSATT[l.megler]; if (!emp || !(Number(l.belop) > 0)) { ut.push({ ...l, ok: false, error: 'mangler ansatt eller beløp' }); continue; }
-        const payload = { EmployeeId: emp, PayItemCode: l.lonnsart || (l.megler === 'Marte' ? LONN.ART.bonus : LONN.ART.provisjon), Quantity: 1, Rate: Number(l.belop), Amount: Number(l.belop), Description: l.kommentar || `${l.oppdragsnr} - ${l.navn || ''}`.trim(), ProjectId: l.po_project_id || undefined, ProjectCode: l.oppdragsnr, Date: body.dato || today() };
-        const r = await poWrite('/SalaryLines', 'POST', payload); ut.push({ megler: l.megler, oppdragsnr: l.oppdragsnr, belop: l.belop, ok: r.ok, status: r.status, svar: r.ok ? (r.data.Id || r.data.id || r.data) : r.data });
+        const art = l.lonnsart || (l.megler === 'Marte' ? LONN.ART.bonus : LONN.ART.provisjon);
+        if (!l.po_project_id) { ut.push({ ...l, ok: false, error: 'mangler PowerOffice-prosjekt' }); continue; }
+        // verifisert mot PO 30.9: POST /SalaryLines { EmployeeId, PayItemId (GUID), Quantity+Rate (200) | Amount (205), Comment, ProjectId } → 201 m/ Id; DELETE /SalaryLines/{id} så lenge den ikke er med i en lønnskjøring
+        const payload = { EmployeeId: emp, PayItemId: LONN.PAYITEM[art], Comment: (l.kommentar || `${l.oppdragsnr} - ${l.navn || ''}`).trim().slice(0, 100), ProjectId: Number(l.po_project_id), ...(art === '205' ? { Amount: Number(l.belop) } : { Quantity: 1, Rate: Number(l.belop) }) };
+        const r = await poWrite('/SalaryLines', 'POST', payload); ut.push({ megler: l.megler, oppdragsnr: l.oppdragsnr, belop: l.belop, ok: r.ok, status: r.status, po_id: r.ok ? r.data.Id : null, svar: r.ok ? r.data.Id : (r.data.detail || r.data) });
       }
       return J(200, { ok: ut.every(x => x.ok), linjer: ut });
     }
