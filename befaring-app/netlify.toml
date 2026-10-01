@@ -162,6 +162,10 @@
 [functions."oppgjor-varsel"]
   schedule = "30 7 * * *"
 
+# Registeret på dagtid: hver time 06–20 (:15, etter klientkonto-synk :05)
+[functions."oppgjor-hourly"]
+  schedule = "15 6-20 * * *"
+
 [functions."oppgjor-rebuild-background"]
   timeout = 900
 

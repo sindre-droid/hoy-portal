@@ -105,7 +105,7 @@ function avregn(r, ex, jList, today) {
 }
 // Summerer koblede klientkonto-transaksjoner inn i raden (innbetalt, selger_utbetalt, drift_overfort)
 function applyTx(t, r, type) { const amt = Number(t.belop);
-  if (['forskudd', 'rest', 'fullt', 'innbetaling'].includes(type) && amt > 0) { r.innbetalt = Math.round((r.innbetalt || 0) + amt); if (r.salgssum && r.innbetalt >= r.salgssum * (1 - 0.005)) r.innbetalt_dato = r.innbetalt_dato || t.bokfort_dato; }
+  if (['forskudd', 'rest', 'fullt', 'innbetaling', 'delbetaling'].includes(type) && amt > 0) { r.innbetalt = Math.round((r.innbetalt || 0) + amt); if (r.salgssum && r.innbetalt >= r.salgssum * (1 - 0.005)) r.innbetalt_dato = r.innbetalt_dato || t.bokfort_dato; }
   if (type === 'selger_utbetaling') { r.selger_utbetalt = Math.round((r.selger_utbetalt || 0) - amt); r.selger_utbetalt_dato = t.bokfort_dato; }
   if (type === 'drift_overforing') { r.drift_overfort = Math.round((r.drift_overfort || 0) - amt); r.drift_overfort_dato = t.bokfort_dato; }
   if (type === 'gjeld_bank') { r.gjeld_bank_utbetalt = Math.round((r.gjeld_bank_utbetalt || 0) - amt); } }
@@ -269,16 +269,23 @@ async function buildOppgjor(sb, opts = {}) {
       let type = null;
       if (amt > 0) { const rest = r.salgssum - r.innbetalt; if (rest <= r.salgssum * 0.005) continue; /* allerede fullt innbetalt */
         if (r.op_signert && (new Date(t.bokfort_dato) - new Date(r.op_signert)) / 864e5 > 30) continue;   /* overtakelse skjer aldri før pengene er inne: innbetaling >30 dg etter protokoll er ikke kjøpesummen (pengene kom før historikken) */
-        if (r.innbetalt === 0 && near(amt, r.salgssum)) type = 'fullt'; else if (r.innbetalt === 0 && near(amt, r.forskudd_forventet, P.TOLERANSE)) type = 'forskudd'; else if (r.innbetalt > 0 && near(amt, rest)) type = 'rest'; }
+        if (r.innbetalt === 0 && near(amt, r.salgssum)) type = 'fullt'; else if (r.innbetalt === 0 && near(amt, r.forskudd_forventet, P.TOLERANSE)) type = 'forskudd'; else if (r.innbetalt > 0 && near(amt, rest)) type = 'rest'; else if (amt < rest && nameHit(t, r) && ln2(r.kjoper_navn).some(w => norm(t.motpart_navn + ' ' + t.tekst).includes(w))) type = 'delbetaling'; /* kjøper betaler i flere omganger */ }
       else { const ut = -amt; if (r.po_invoice_belop && !r.drift_overfort && near(ut, r.po_invoice_belop, 0.01)) type = 'drift_overforing'; else if (!r.selger_utbetalt && r.nettoproveny_est && near(ut, r.nettoproveny_est, 0.02)) type = 'selger_utbetaling'; else if (!r.selger_utbetalt && r.salgssum && ut > r.salgssum * 0.5 && ut < r.salgssum && nameHit(t, r)) type = 'selger_utbetaling'; }
       if (!type) continue; kandidater++; const score = (nameHit(t, r) ? 2 : 0) + (['fullt', 'rest', 'drift_overforing', 'selger_utbetaling'].includes(type) ? 1 : 0);
       if (!best || score > best.score || (score === best.score && Math.abs(dd) < Math.abs(best.dd))) best = { r, type, score, dd };   // likt: nærmeste kontraktsdato
     }
     // koble når navn/nr treffer, eller når beløpet er entydig (bare én kandidat) — forskudd uten navnetreff krever entydighet
     if (best && (best.score >= 2 || kandidater === 1)) { apply(t, best.r, best.type);
-      const grunn = `automatisk: ${nameHit(t, best.r) ? 'innbetaler/mottaker matcher ' + (ln2(best.r.kjoper_navn).some(w => norm(t.motpart_navn + ' ' + t.tekst).includes(w)) ? 'kjøper' : 'selger/oppdragsnr') : 'eneste båt som passer'}, beløp = ${{ fullt: 'salgssum', forskudd: '10 % forskudd', rest: 'restbeløp', drift_overforing: 'fakturasum', selger_utbetaling: 'nettoproveny' }[best.type] || best.type}, ${Math.round(best.dd)} dg etter kontrakt`;
+      const grunn = `automatisk: ${nameHit(t, best.r) ? 'innbetaler/mottaker matcher ' + (ln2(best.r.kjoper_navn).some(w => norm(t.motpart_navn + ' ' + t.tekst).includes(w)) ? 'kjøper' : 'selger/oppdragsnr') : 'eneste båt som passer'}, beløp = ${{ fullt: 'salgssum', forskudd: '10 % forskudd', rest: 'restbeløp', delbetaling: 'delbetaling', drift_overforing: 'fakturasum', selger_utbetaling: 'nettoproveny' }[best.type] || best.type}, ${Math.round(best.dd)} dg etter kontrakt`;
       updates.push({ id: t.id, oppdragsnr: best.r.oppdragsnr, koblet_type: best.type, koblet_av: 'auto', koblet_grunn: grunn }); }
   }
+  /* Selgerutbetaling i to overføringer (innfrielse av pant til banken + rest til selger) innen 10 dager som til sammen = nettoproveny */
+  { const brukt = new Set(updates.map(u => u.id)); const ut = T.filter(t => !t.oppdragsnr && !brukt.has(t.id) && Number(t.belop) < 0);
+    for (const r of Object.values(R)) { if (r.selger_utbetalt || !r.nettoproveny_est || !r.innbetalt_dato) continue;
+      const kand = ut.filter(t => !brukt.has(t.id) && t.bokfort_dato >= r.innbetalt_dato && (new Date(t.bokfort_dato) - new Date(r.innbetalt_dato)) / 864e5 <= 45);
+      let hit = null; for (let i = 0; i < kand.length && !hit; i++) for (let j = i + 1; j < kand.length && !hit; j++) { const a = kand[i], b = kand[j]; if (Math.abs(new Date(a.bokfort_dato) - new Date(b.bokfort_dato)) / 864e5 <= 10 && near(-(Number(a.belop) + Number(b.belop)), r.nettoproveny_est, 0.02) && (nameHit(a, r) || nameHit(b, r))) hit = [a, b]; }
+      if (!hit) continue; for (const t of hit) { apply(t, r, 'selger_utbetaling'); brukt.add(t.id); updates.push({ id: t.id, oppdragsnr: r.oppdragsnr, koblet_type: 'selger_utbetaling', koblet_av: 'auto', koblet_grunn: `automatisk: to overføringer (pant/bank + selger) ${nok0(hit[0].belop)} + ${nok0(hit[1].belop)} = nettoproveny, ${nameHit(t, r) ? 'mottaker matcher selger' : 'følger utbetalingen til selger'}` }); } } }
+  function nok0(n) { return Math.round(Math.abs(Number(n))).toLocaleString('nb-NO'); }
   function apply(t, r, type) { return applyTx(t, r, type); }
   for (let i = 0; i < updates.length; i += 100) for (const u of updates.slice(i, i + 100)) await sb.from('klientkonto_transaksjon').update({ oppdragsnr: u.oppdragsnr, koblet_type: u.koblet_type, koblet_av: u.koblet_av, koblet_grunn: u.koblet_grunn }).eq('id', u.id);
   log.klientkonto = { transaksjoner: T.length, nye_koblinger: updates.length };
@@ -322,6 +329,9 @@ async function buildOppgjor(sb, opts = {}) {
       kilde: r.kilde || ex.kilde || 'oneflow', oppdatert: new Date().toISOString(), bygget_at: new Date().toISOString() });
   }
   for (let i = 0; i < OUT.length; i += 200) { const { error } = await sb.from('oppgjor').upsert(OUT.slice(i, i + 200), { onConflict: 'oppdragsnr' }); if (error) throw new Error('oppgjor upsert: ' + error.message); }
+  /* Manuelt avstemte rader (utbetalt før modulen, lønnet via gamle ark/lønnskjøringer) beholdes: utbetalt = opptjent uansett hva hovedboka viser */
+  { const { data: avst } = await sb.from('oppgjor_provisjon').select('oppdragsnr,megler,utbetalt_dato').eq('utbetalt_kilde', 'avstemt'); const A = {}; for (const a of avst || []) A[a.oppdragsnr + '|' + a.megler] = a;
+    for (const p of PROV) { const a = A[p.oppdragsnr + '|' + p.megler]; if (a && p.utbetalt < p.opptjent) { p.utbetalt = p.opptjent; p.utbetalt_kilde = 'avstemt'; p.utbetalt_dato = a.utbetalt_dato || p.utbetalt_dato; } } }
   for (let i = 0; i < PROV.length; i += 200) { const { error } = await sb.from('oppgjor_provisjon').upsert(PROV.slice(i, i + 200), { onConflict: 'oppdragsnr,megler' }); if (error) throw new Error('oppgjor_provisjon upsert: ' + error.message); }
   await core.setSyncState(sb, 'oppgjor', { rows_synced_total: OUT.length, last_error: null });
   const st = {}; for (const r of OUT) st[r.status] = (st[r.status] || 0) + 1;

@@ -86,6 +86,8 @@ exports.handler = async (event) => {
     if (p.action === 'liste') {
       const { data: rows } = await sb.from('oppgjor').select('oppdragsnr,navn,status,status_dato,kk_signert,overtakelse_avtalt,op_signert,op_anmerkninger,salgssum,forskudd_forventet,innbetalt,innbetalt_dato,provisjon_inkl,utlegg_eks,nettoproveny,oppdrag_inn,solgt_av,fordeling,heftelser_sjekket,gjeld_bank_belop,po_invoice_no,po_invoice_dato,po_invoice_belop,po_invoice_betalt,selger_utbetalt,selger_utbetalt_dato,drift_overfort,drift_overfort_dato,selger_konto,ark_solgt,kilde,notat,sendt_at,sendt_av,protokoll_forklaring,heftelser_megler,utlegg_megler_eks,utlegg_hoy_eks').order('kk_signert', { ascending: false, nullsFirst: false });
       const mine = (rows || []).filter(r => egen(u, r));
+      /* åpne tilbakehold holder båten i «utbetalt» — listen må kunne si hvorfor */
+      { const { data: th } = await sb.from('oppgjor_justering').select('oppdragsnr,belop').eq('type', 'tilbakehold').eq('tilbakehold_status', 'holdt'); const H = {}; for (const j of th || []) H[j.oppdragsnr] = (H[j.oppdragsnr] || 0) + Math.abs(Number(j.belop)); for (const r of mine) if (H[r.oppdragsnr]) r.tilbakehold_holdt = H[r.oppdragsnr]; }
       const { data: pv } = await sb.from('oppgjor_provisjon').select('oppdragsnr,megler,sats,opptjent,utbetalt,utbetalt_dato,utbetalt_kilde,lonn_maned');
       const synlige = new Set(mine.map(r => r.oppdragsnr));
       const prov = (pv || []).filter(x => synlige.has(x.oppdragsnr) && (u.admin || x.megler === u.megler || (u.megler === 'Henrik' && x.megler === 'Marte')));
@@ -207,6 +209,15 @@ exports.handler = async (event) => {
       return J(200, { ok: true, rad: await regnOm(sb, b.oppdragsnr) });
     }
     // ── lønnsvalg: megleren velger måned for egen provisjon (frist den 25.); Marte følger Henrik ──
+    /* admin: provisjon lønnet før modulen (gamle ark/lønnskjøringer uten prosjektbilag) — settes utbetalt = opptjent og overlever nattbygg */
+    if (p.action === 'prov_avstem') {
+      if (!u.admin) return J(403, { error: 'Kun admin' });
+      const nr = String(body.oppdragsnr || ''); const m = String(body.megler || ''); const angre = !!body.angre;
+      const { data: pr } = await sb.from('oppgjor_provisjon').select('opptjent,utbetalt').eq('oppdragsnr', nr).eq('megler', m).limit(1); if (!pr || !pr[0]) return J(404, { error: 'Fant ikke provisjonsraden' });
+      const patch = angre ? { utbetalt_kilde: 'hovedbok' } : { utbetalt: pr[0].opptjent, utbetalt_kilde: 'avstemt', utbetalt_dato: today() };
+      const { error } = await sb.from('oppgjor_provisjon').update(patch).eq('oppdragsnr', nr).eq('megler', m); if (error) throw new Error(error.message);
+      return J(200, { ok: true, patch });
+    }
     if (p.action === 'lonn_valg') {
       const nr = String(body.oppdragsnr || ''); const m = String(body.megler || u.megler || ''); if (!u.admin && m !== u.megler) return J(403, { error: 'Kun egen provisjon' });
       const mnd = body.lonn_maned ? String(body.lonn_maned).slice(0, 7) : null; if (mnd && !/^\d{4}-\d{2}$/.test(mnd)) return J(400, { error: 'lonn_maned = YYYY-MM' });
