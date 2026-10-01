@@ -8,8 +8,10 @@ const { supabase } = core;
 const opg = require('./oppgjor-sync.js');
 function parseJwt(t) { try { return JSON.parse(Buffer.from(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8')); } catch { return null; } }
 exports.handler = async (event) => {
+  /* Auth: admin-JWT (knappen) eller intern nøkkel (poweroffice-nightly) */
+  const key = (event.headers || {})['x-internal-key'];
   const j = parseJwt(((event.headers || {}).authorization || '').replace(/^Bearer\s+/i, ''));
-  if (!((j?.app_metadata?.roles) || []).includes('admin')) return { statusCode: 403, body: 'Kun admin' };
+  if (!(key && key === process.env.SUPABASE_SERVICE_KEY) && !((j?.app_metadata?.roles) || []).includes('admin')) return { statusCode: 403, body: 'Kun admin' };
   const sb = supabase();
   await core.setSyncState(sb, 'oppgjor', { last_error: 'bygger …' });
   try {

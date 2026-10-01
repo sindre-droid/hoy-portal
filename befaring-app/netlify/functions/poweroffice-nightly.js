@@ -12,7 +12,7 @@ const liq = require('./poweroffice-liquidity.js');
 const dash = require('./dashboard-state.js');
 const eb = require('./enablebanking.js');
 const kk = require('./klientkonto.js');
-const opg = require('./oppgjor-sync.js');
+/* oppgjor-sync kjøres nå via oppgjor-rebuild-background (se under) */
 
 exports.handler = async () => {
   const started = Date.now();
@@ -28,7 +28,8 @@ exports.handler = async () => {
     out.snapshot     = out.trial_balance.ok ? await liq.computeSnapshot(sb) : { ok: false, skipped: true };
     out.bank         = await eb.refreshBalance(sb);
     out.klientkonto  = await kk.syncKlientkonto(sb, 45);
-    try { out.oppgjor = await opg.buildOppgjor(sb); } catch (e) { out.oppgjor = { ok: false, error: e.message }; }
+    /* Registeret tar 30–90 s (Oneflow-PDF-er) og rakk aldri inne i denne funksjonens 26 s — kjøres i bakgrunnsfunksjonen (15 min) */
+    try { const base = process.env.URL || 'https://silver-puffpuff-8a67de.netlify.app'; const r = await fetch(`${base}/.netlify/functions/oppgjor-rebuild-background`, { method: 'POST', headers: { 'x-internal-key': process.env.SUPABASE_SERVICE_KEY || '' } }); out.oppgjor = { ok: r.status === 202, status: r.status }; } catch (e) { out.oppgjor = { ok: false, error: e.message }; }
     out.dashboard    = await dash.buildDashboardState(sb);
   } catch (e) {
     out.fatal = e.message;
