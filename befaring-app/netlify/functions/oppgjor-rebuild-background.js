@@ -19,6 +19,8 @@ exports.handler = async (event) => {
     try { await core.syncOutgoingInvoices(sb, 3); await core.syncAccountTransactions(sb, 3); } catch (e) { console.error('po-synk før bygg', e.message); }
     const r = await opg.buildOppgjor(sb, { maksPdf: 40 });
     console.log('oppgjor rebuild', JSON.stringify(r).slice(0, 500));
+    // Kostkalender (cashbro leser den): åpne leverandørposter + faste avtaler fra 12 mnd hovedbok
+    try { const kk_ = require('./kostkalender.js'); const a = await kk_.syncSupplierOpenItems(sb); const b = await kk_.buildKostAvtaler(sb); console.log('kostkalender', JSON.stringify({ a, b }).slice(0, 400)); } catch (e) { console.error('kostkalender', e.message); }
   } catch (e) { console.error('oppgjor rebuild', e); await core.setSyncError(sb, 'oppgjor', String(e.message || e)); }
   return { statusCode: 202 };
 };

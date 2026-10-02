@@ -166,6 +166,9 @@
 [functions."oppgjor-hourly"]
   schedule = "15 6-20 * * *"
 
+[functions."kostkalender"]
+  timeout = 26
+
 [functions."oppgjor-rebuild-background"]
   timeout = 900
 

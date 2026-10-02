@@ -115,5 +115,15 @@ exports.handler = async (event) => {
     return respond(false, { error: 'Ukjent action (sync|status|list)' });
   } catch (e) { return respond(false, { error: String(e.message || e) }); }
 };
+// Generisk: transaksjoner på en hvilken som helst HoY-konto i samtykket (brukes av kostkalender for driftskontoen)
+async function hentTransaksjoner(sb, bban, days = 10) {
+  const { data } = await sb.from('enablebanking_session').select('accounts_json,valid_until').eq('id', 1).limit(1); const row = data && data[0]; if (!row) return [];
+  if (row.valid_until && new Date(row.valid_until).getTime() < Date.now()) return [];
+  const acc = (row.accounts_json || []).find(a => JSON.stringify(a.account_id || a).replace(/\D/g, '').includes(String(bban).replace(/\D/g, ''))); if (!acc) return [];
+  const from = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10); const rows = []; let cont = null;
+  for (let i = 0; i < 10; i++) { const r = await api(sb, `/accounts/${acc.uid}/transactions?date_from=${from}${cont ? `&continuation_key=${encodeURIComponent(cont)}` : ''}`); for (const t of r.transactions || []) rows.push(mapTx(t, String(bban))); cont = r.continuation_key; if (!cont) break; }
+  return rows;
+}
 module.exports.syncKlientkonto = syncKlientkonto;
+module.exports.hentTransaksjoner = hentTransaksjoner;
 module.exports.KLIENT_BBAN = KLIENT_BBAN;

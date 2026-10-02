@@ -488,7 +488,17 @@ async function buildScorecardState(sb) {
 
   // 12. CASHBRO: deal-basert cash-kalender (sikker/sannsynlig/plan/kost) → kurver + gate ─────
   try {
+    // Vakt: uten portefølje (HubSpot-feil/429) blir «sannsynlig» null og gaten feilaktig rød. Da beholdes forrige cashbro og feilen vises.
+    const items = state.portefolje?.oppdrag || [];
+    if (!items.length || !state.meta.sources.livslop?.ok || state.likviditet.bank_kilde !== 'live') {
+      const grunn = !items.length ? 'portefølje tom (HubSpot-feil?)' : state.likviditet.bank_kilde !== 'live' ? 'bank ikke live' : 'livsløp feilet';
+      if (prevState?.cashbro) { state.cashbro = { ...prevState.cashbro, varsler: [`IKKE OPPDATERT (${grunn}) — viser forrige bygg ${prevState.cashbro.generert}`, ...(prevState.cashbro.varsler || [])] }; }
+      if (prevState?.likviditet) state.likviditet = { ...prevState.likviditet, status: 'UKJENT', ansettelse: 'ukjent', varsel: `Gate ikke oppdatert: ${grunn}` };   // aldri grønt/rødt på ufullstendige data
+      throw new Error('cashbro hoppet over: ' + grunn);
+    }
     state.cashbro = await buildCashbro({ sb, of, contracts: ofAll, sales, items: state.portefolje?.oppdrag || [], pSalgInnen, klasseAv, today: now, bank: state.likviditet.reell_bank, bankKilde: state.likviditet.bank_kilde });
+    // Frys prognosen (én rad per dag) så forutsagt kan måles mot faktisk ved månedsslutt
+    try { const c = state.cashbro; await sb.from('cashbro_snapshot').upsert({ dato: new Date().toISOString().slice(0, 10), bank: c.bank, kurve: c.kurve, rader: c.rader, laveste: c.laveste }, { onConflict: 'dato' }); } catch (e) { console.error('cashbro_snapshot', e.message); }
     const cb = state.cashbro, buffer = P.BUFFER;
     const lavB = cb.laveste.base, lavD = cb.laveste.downside, lavP = cb.laveste.plan;
     const brudd = (k) => cb.kurve.find(c => c[k] < buffer)?.mnd || null;

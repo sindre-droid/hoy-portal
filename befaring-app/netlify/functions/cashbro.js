@@ -45,6 +45,9 @@ const PAR = {
   mva_inngaende_andel_drift: 0.6,
   plan_h2_2026: 2900000, plan_2027_omsetning: 3800000, plan_henrik_andel: 1500000 / 3800000,
   markedskost_per_oppdrag: 6600, oppdrag_per_salg: 1.3, inntekt_per_bat: 58375,
+  // Foto per oppdrag (Philips trapp, Sindre 02.10.2026) — båtverdi = prisantydning. Fotoleverandører i PO: Philip 20235, vikar/andre 20264, 20209
+  foto_trapp: [[900000, 2500], [1900000, 3000], [2900000, 3500], [3900000, 4000], [4900000, 5000], [Infinity, 6000]],
+  foto_leverandorer: [20235, 20264, 20209, 20214], foto_dager_etter_oppdrag: 14,
   KK_TEMPLATE: 5161707, OP_TEMPLATE: 5137684,
 };
 const SEAS = [0.030, 0.0524, 0.0874, 0.0554, 0.1728, 0.2095, 0.1457, 0.0554, 0.0816, 0.0340, 0.0447, 0.0311];
@@ -140,28 +143,49 @@ async function buildCashbro(ctx) {
   const tid = (c) => Number(c._private_ownerside?.template_id || 0), nm = (c) => c._private?.name || c.name || '';
   const y0 = `${TODAY.getUTCFullYear()}-01-01`;
   const KK = all.filter(c => tid(c) === PAR.KK_TEMPLATE && c.state === 'signed' && (c.state_updated_time || '') >= y0);
+  // Oppgjørsregisteret (oppgjor-sync): annullerte salg, innbetalt på klientkonto, og opptjent/utbetalt provisjon per megler
+  const { data: regRows } = await sb.from('oppgjor').select('oppdragsnr,status,navn,innbetalt,salgssum,solgt_av,oppdrag_inn');
+  const REG = {}; for (const r of regRows || []) REG[r.oppdragsnr] = r;
+  const ANNULLERT = new Set([...PAR.annullert, ...Object.values(REG).filter(r => r.status === 'annullert').map(r => r.oppdragsnr)]);
+  const PROV_POSTET = new Set();   // båter der provisjon ut allerede er lagt i sløyfen under (unngå dobbel mot registeret)
   const SIKKER = [];
   for (let i = 0; i < KK.length; i += 10) await Promise.all(KK.slice(i, i + 10).map(async c => {
     const df = (await of(`/contracts/${c.id}/data_fields`)).data || []; const f = {}; for (const x of df) f[x.custom_id || x.name] = x.value || '';
     const overt = parseNoDate(f['Deal_Dato for overtakelse']); const salgssum = Number(String(f['Deal_Salgssum'] || '0').replace(/\D/g, '') || 0);
     const nr = (nm(c).trim().match(/^(\d{5})/) || [])[1] || null;
     const row = { nr, navn: nm(c), signert_kk: (c.state_updated_time || '').slice(0, 10), overtakelse: overt ? iso(overt) : null, salgssum };
-    if ((nr && PAR.annullert.includes(nr)) || PAR.mottatt_uten_faktura.some(k => nm(c).toLowerCase().includes(k.toLowerCase()))) { row.status = nr && PAR.annullert.includes(nr) ? 'annullert' : 'mottatt uten faktura'; row.provisjon_inkl = 0; SIKKER.push(row); return; }
+    if ((nr && ANNULLERT.has(nr)) || PAR.mottatt_uten_faktura.some(k => nm(c).toLowerCase().includes(k.toLowerCase()))) { row.status = nr && ANNULLERT.has(nr) ? 'annullert' : 'mottatt uten faktura'; row.provisjon_inkl = 0; SIKKER.push(row); return; }
     const sh = nr ? SHEET[nr] : null;
     const prov = sh && sh.prov ? sh.prov : Math.max(45000, salgssum * 0.06); const oms = sh && sh.oms ? sh.oms : prov / 1.25;
     Object.assign(row, { provisjon_inkl: Math.round(prov), oms_eks: Math.round(oms), i_arket: !!sh, solgt_av: sh ? sh.av : null });
     if (nr && paidCodes.has(nr)) { row.status = 'betalt'; SIKKER.push(row); return; }
     if (nr && openCodes.has(nr)) { row.status = 'kundefordring'; SIKKER.push(row); return; }
-    if (!overt) { row.status = 'MANGLER overtakelsesdato'; SIKKER.push(row); return; }
-    let cash = addWorkdays(overt, PAR.oppgjor_arbeidsdager);
-    if (cash < TODAY) { cash = addWorkdays(TODAY, 3); row.status = 'overtatt, ikke fakturert → antatt cash om 3 ad'; } else row.status = 'venter overtakelse';
+    const reg = nr ? REG[nr] : null; const fulltInnbetalt = reg && reg.salgssum && Number(reg.innbetalt || 0) >= reg.salgssum * 0.995;
+    if (!overt && !fulltInnbetalt) { row.status = 'MANGLER overtakelsesdato'; SIKKER.push(row); return; }
+    let cash = overt ? addWorkdays(overt, PAR.oppgjor_arbeidsdager) : addWorkdays(TODAY, 3);
+    if (!overt) row.status = 'fullt innbetalt på klientkonto, overtakelsesdato mangler → antatt cash om 3 ad';
+    if (cash < TODAY) { cash = addWorkdays(TODAY, 3); row.status = 'overtatt, ikke fakturert → antatt cash om 3 ad'; } else if (overt) row.status = 'venter overtakelse';
     row.cash = iso(cash); SIKKER.push(row);
-    post(cash, 'provisjon ved overtakelse', prov, 'sikker', `${nr || ''} ${row.navn.slice(0, 30)} overt. ${iso(overt)}`);
+    post(cash, 'provisjon ved overtakelse', prov, 'sikker', `${nr || ''} ${row.navn.slice(0, 30)} overt. ${overt ? iso(overt) : 'ukjent'}`);
     mvaAcc(cash, prov - oms);
     const av = (row.solgt_av || '').toLowerCase();
     if (av.startsWith('henrik')) henrikProv(payAfter(cash), 'meglerprovisjon Henrik (40 %)', oms * PAR.megler_provisjonssats, 'sikker', nr || '');
     else if (av.startsWith('sindre')) sindreProv(payAfter(cash), oms, 'sikker', nr || '');
+    if (nr) PROV_POSTET.add(nr);
   }));
+  // ── Opptjent, ikke utbetalt provisjon (oppgjørsregisteret) — lønnes 1. i neste måned ──
+  // Dette er halen etter salg som allerede er fakturert og betalt: honoraret står i banken, men meglerlønnen for båten
+  // er ikke kjørt ennå. Uten denne så modellen 1. oktober-lønnen (293k) først dagen etter at den var betalt.
+  const { data: provRows } = await sb.from('oppgjor_provisjon').select('oppdragsnr,megler,opptjent,utbetalt');
+  const nestePay = payAfter(TODAY); const TIL_GODE = {};
+  for (const pr of provRows || []) {
+    const nr = pr.oppdragsnr; const reg = REG[nr]; if (!reg || reg.status === 'annullert' || PROV_POSTET.has(nr)) continue;
+    const diff = Math.round(Number(pr.opptjent || 0) - Number(pr.utbetalt || 0)); if (diff <= 0) continue;
+    TIL_GODE[pr.megler] = (TIL_GODE[pr.megler] || 0) + diff;
+    const note = `${nr} ${(reg.navn || '').slice(0, 24)} — opptjent, ikke lønnet`;
+    if (pr.megler === 'Sindre') post(nestePay, 'Sindre provisjon (45 %, tak 7,1 G)', -0.01, 'sikker', note, { sindre_brutto: diff });
+    else if (PAR.fp_sats_person[pr.megler] !== undefined || ['Henrik', 'Daniel', 'Marte', 'Jeanette'].includes(pr.megler)) lonn(nestePay, `meglerprovisjon ${pr.megler} — til gode`, diff, 'sikker', note, PAR.fp_sats_person[pr.megler] ?? 0.102);
+  }
   const ordered = SIKKER.filter(r => r.status === 'venter overtakelse' || r.status.startsWith('overtatt')).sort((a, b) => (a.cash || '').localeCompare(b.cash || ''));
 
   // ── 4. Sannsynlig: portefølje × P(salg i mnd) ──
@@ -182,6 +206,22 @@ async function buildCashbro(ctx) {
     SANN.push({ nr: o.nr, navn: o.navn, megler: o.megler, pris: o.pris, p_i_ar: o.p_salg_i_ar });
   }
 
+  // Foto per oppdrag: aktive båter uten foto-bilag (4500 fra fotoleverandør på prosjektet) → trapp-pris om 14 dager; nye oppdrag (plan) → snittpris
+  const fotoPris = (pris) => (PAR.foto_trapp.find(([g]) => Number(pris || 0) < g) || PAR.foto_trapp[PAR.foto_trapp.length - 1])[1];
+  // Leverandøren står bare på 2400-linjen i bilaget, kostlinjene (4500) har prosjektkoden → kobles via bilagsnr
+  const { data: fotoLev } = await sb.from('po_account_transactions').select('voucher_no').eq('account_no', 2400).in('supplier_account_no', PAR.foto_leverandorer);
+  const FOTO_BILAG = new Set((fotoLev || []).map(x => x.voucher_no));
+  const { data: fotoTx } = await sb.from('po_account_transactions').select('project_code,amount,voucher_no').eq('account_no', 4500).gt('amount', 0);
+  const FOTO_OK = new Set(); const FOTO_BET = {};
+  for (const t of fotoTx || []) if (t.project_code && FOTO_BILAG.has(t.voucher_no)) { FOTO_OK.add(String(t.project_code)); FOTO_BET[t.project_code] = (FOTO_BET[t.project_code] || 0) + Number(t.amount); }
+  const fotoMangler = []; let fotoSum = 0;
+  for (const o of items) { if (!o.nr || FOTO_OK.has(String(o.nr)) || (o.alder_dager || 0) > 365) continue; /* eldre enn hovedbok-speilet (okt 2025) = fotografert før */ const pr = fotoPris(o.pris); fotoSum += pr; fotoMangler.push({ nr: o.nr, navn: o.navn, pris: o.pris, foto: pr }); }
+  if (fotoSum > 0) ut(addDays(TODAY, PAR.foto_dager_etter_oppdrag), 'foto (Philip) — aktive båter uten foto ennå', fotoSum, 'kost', `${fotoMangler.length} båter × trapp`);
+  const fotoSnitt = items.length ? Math.round(items.reduce((a, o) => a + fotoPris(o.pris), 0) / items.length) : 3000;
+  // Fakturakontroll: betalt foto per prosjekt mot trapp (prisantydning fra porteføljen/registeret)
+  const fotoAvvik = []; for (const o of items) { if (!o.nr || !FOTO_BET[o.nr] || !o.pris) continue; const skal = fotoPris(o.pris); if (Math.abs(FOTO_BET[o.nr] - skal) > 100) fotoAvvik.push({ nr: o.nr, navn: o.navn, pris: o.pris, betalt: Math.round(FOTO_BET[o.nr]), trapp: skal }); }
+  for (const a of fotoAvvik) warn.push(`Foto ${a.nr} ${(a.navn || '').slice(0, 24)}: betalt ${a.betalt}, trapp sier ${a.trapp} (prisantydning ${Math.round(a.pris / 1000)}k)`);
+
   // ── 4b. PLAN: motorens omsetning minus det sikker+sannsynlig dekker ──
   const h2w = SEAS.slice(6).reduce((a, b) => a + b, 0);
   const sumLag = (m, lag, pred) => ROWS.filter(r => r.dato.startsWith(m) && r.lag === lag && pred(r.linje)).reduce((a, r) => a + r.belop, 0);
@@ -198,17 +238,21 @@ async function buildCashbro(ctx) {
     henrikProv(payAfter(cash), 'meglerprovisjon Henrik plan', fyll * PAR.plan_henrik_andel * PAR.megler_provisjonssats, 'plan', m);
     sindreProv(payAfter(cash), fyll * (1 - PAR.plan_henrik_andel), 'plan', m);
     ut(D(m + '-01') < TODAY ? TODAY : D(m + '-01'), 'markedskost nye oppdrag', fyll / PAR.inntekt_per_bat * PAR.oppdrag_per_salg * PAR.markedskost_per_oppdrag, 'plan', m);
+    ut(D(m + '-01') < TODAY ? TODAY : D(m + '-01'), 'foto nye oppdrag (plan)', fyll / PAR.inntekt_per_bat * PAR.oppdrag_per_salg * fotoSnitt, 'plan', m);
   }
 
-  // ── 5. Kjente kostnader ──
+  // ── 5. Kjente kostnader — betalingskalender fra PowerOffice (kostkalender.js), ikke snitt ──
+  //   åpne leverandørposter på forfall · faste avtaler per leverandør (husleie kvartalsvis, lager, forsikring, OTP, FINN, billån …)
+  //   utledet fra 12 mnd hovedbok · uregelmessige leverandører som 12 mnd-snitt (merket). Lønn, AGA, skattetrekk, mva, feriepenger
+  //   og forskuddsskatt ligger under. Snittene DRIFT/DIREKTE/PERSONAL beholdes bare som info i param.
+  const KK_ = require('./kostkalender.js');
+  const kalender = await KK_.kostRader(sb, TODAY, END);
+  // Inngående mva: bare på avtaler/variabelt fram i tid — åpne poster er allerede bokført, og mva-en deres ligger i saldobalansen
+  for (const k of kalender) { ut(k.dato, k.linje, k.belop, 'kost', k.note); if (k.type !== 'apen') mvaAcc(k.dato, -k.belop * PAR.mva_inngaende_andel_drift * 0.2); }
+  for (const b of kalender.betalt_ikke_bokfort || []) warn.push(`Betalt fra bank, ikke bokført i PO ennå: ${b.lev} ${Math.round(b.belop)} — holdt utenfor`);
+  const kalSum = { apen: 0, avtale: 0, variabel: 0 }; for (const k of kalender) kalSum[k.type] = (kalSum[k.type] || 0) + k.belop;
   for (const m of months) {
-    const d1 = D(m + '-01'); const start = d1 < TODAY ? TODAY : d1;
-    const andel = m === ym(TODAY) ? (dim(d1) - TODAY.getUTCDate() + 1) / dim(d1) : 1;
-    const mvaDrift = DRIFT * andel * PAR.mva_inngaende_andel_drift * 0.25;
-    ut(start, 'drift (6xxx+7xxx YTD-snitt, inkl mva)', DRIFT * andel + mvaDrift, 'kost', `saldobalanse ${TB_DATO}: ${Math.round(driftYtd)} ÷ ${mndHia.toFixed(1)} mnd`); mvaAcc(start, -mvaDrift);
-    ut(start, 'direkte oppdragskost netto (4xxx − viderefakt.)', DIREKTE * andel, 'kost', 'saldobalanse YTD');
-    ut(start, 'personalkost annet (OTP, forsikring, kantine)', PERSONAL * andel, 'kost', 'saldobalanse YTD 55xx/59xx');
-    const bl = new Date(Date.UTC(d1.getUTCFullYear(), d1.getUTCMonth(), 21)); if (iso(bl) <= PAR.billan_siste) ut(bl, 'billån DNB (avdrag + renter)', PAR.billan_termin, 'kost', 'konto 2242/8151');
+    const d1 = D(m + '-01');
     const ld = new Date(Date.UTC(d1.getUTCFullYear(), d1.getUTCMonth(), PAR.lonn_dag));
     if (PAR.sindre_modell === 'flat') lonn(ld, 'Sindre lønn (flat)', PAR.sindre_tak_aar / 12, 'kost', 'param', PAR.fp_sats_person.Sindre);
     for (const f of PAR.fastlonn) lonn(ld, `fastlønn ${f.navn}`, f.brutto_mnd, 'kost', f.note, f.fp_sats);
@@ -223,7 +267,6 @@ async function buildCashbro(ctx) {
   const fpBase = Object.values(PAR.feriepenger_til_gode.per).reduce((a, b) => a + b, 0);
   ut(new Date(Date.UTC(PAR.feriepenger_til_gode.aar + 1, PAR.feriepenger_utbetaling_mnd - 1, 1)), `feriepenger (opptjent ${PAR.feriepenger_til_gode.aar})`, fpBase + FP_ACC, 'kost', `${PAR.feriepenger_til_gode.kilde}: ${Math.round(fpBase)} + påløp ${Math.round(FP_ACC)}`);
   // Leverandørgjeld, engangs, kjente innbetalinger, forskuddsskatt
-  const lg = -tb(2400); for (const dd of PAR.leverandorgjeld_dager) ut(addDays(TODAY, dd), 'leverandørgjeld (saldo 2400)', lg / PAR.leverandorgjeld_dager.length, 'kost', `saldo ${Math.round(lg)}`);
   for (const e of PAR.engangs) ut(D(e.dato), 'engangspost', e.belop, 'kost', e.note);
   for (const e of PAR.kjente_innbetalinger) { post(D(e.dato), 'kjent innbetaling', e.belop, 'sikker', e.note); mvaAcc(D(e.dato), e.belop * 0.2); }
   for (const [y, v] of Object.entries(PAR.forskuddsskatt)) { ut(new Date(Date.UTC(+y, 1, 15)), 'forskuddsskatt (ANSLAG)', v / 2, 'kost', '22 % × fjorårsresultat'); ut(new Date(Date.UTC(+y, 3, 15)), 'forskuddsskatt (ANSLAG)', v / 2, 'kost', '22 % × fjorårsresultat'); }
@@ -243,7 +286,10 @@ async function buildCashbro(ctx) {
   return {
     generert: iso(TODAY), bank, bank_kilde: ctx.bankKilde || null, saldobalanse_dato: TB_DATO, maaneder: months,
     param: { ...PAR, drift_mnd: DRIFT, direkte_mnd: DIREKTE, personal_annet_mnd: PERSONAL },
+    kostkalender: { apne_poster: Math.round(kalSum.apen), avtaler: Math.round(kalSum.avtale), variabel: Math.round(kalSum.variabel), rader: kalender.length },
+    foto: { mangler: fotoMangler, avvik: fotoAvvik, snitt_per_nytt_oppdrag: fotoSnitt },
     saldobalanse: { bank_1920: tb(1920), kundefordringer_1500: tb(1500), leverandorgjeld_2400: tb(2400), skyldig_aga_2770: tb(2770), mva_posisjon: MVA_POS, mva_innevarende_termin: curMva, skyldige_feriepenger_2940: tb(2940), avsatt_utbytte_2800: tb(2800), annen_kortsiktig_gjeld_2990: tb(2990), billan_2242: tb(2242), betalbar_skatt_2500: tb(2500), drift_ytd: Math.round(driftYtd), lonn_5000_ytd: tb(5000) },
+    provisjon_til_gode: TIL_GODE,
     sindre: { modell: PAR.sindre_modell, utbetalt_hittil: PAR.sindre_utbetalt[sindreAar] || 0, tak: PAR.sindre_tak_aar, akkumulert_aarsslutt: Math.round(SINDRE_AKK[sindreAar] || 0), holdt_tilbake: Math.round(SINDRE_KUTT[sindreAar] || 0), neste_aar_tom_horisont: Math.round(SINDRE_AKK[sindreAar + 1] || 0) },
     feriepenger: { til_gode: PAR.feriepenger_til_gode, paalop: Math.round(FP_ACC), utbetales: `${PAR.feriepenger_til_gode.aar + 1}-06-01` },
     rader: ROWS.sort((a, b) => a.dato.localeCompare(b.dato)), kurve, plan: PLAN, sikker: SIKKER, sikker_kommende: ordered, sannsynlig_n: SANN.length,
