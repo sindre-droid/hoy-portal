@@ -47,7 +47,8 @@ const PAR = {
   markedskost_per_oppdrag: 6600, oppdrag_per_salg: 1.3, inntekt_per_bat: 58375,
   // Foto per oppdrag (Philips trapp, Sindre 02.10.2026) — båtverdi = prisantydning. Fotoleverandører i PO: Philip 20235, vikar/andre 20264, 20209
   foto_trapp: [[900000, 2500], [1900000, 3000], [2900000, 3500], [3900000, 4000], [4900000, 5000], [Infinity, 6000]],
-  foto_leverandorer: [20235, 20264, 20209, 20214], foto_dager_etter_oppdrag: 14,
+  foto_unntak: ['26014', '26082', '26091', '26089', '26070', '26045', '24033', '24024', '26057', '24042', '25044'],   // Sindre 02.10: disse får ikke foto (hovedregel ellers: alle oppdrag skal ha foto)
+  foto_leverandorer: [20235, 20264, 20214],   // Philip, vikar (Martin Kubove), Norheim (gammel). 20209 Lund Consulting er IKKE foto foto_dager_etter_oppdrag: 14,
   KK_TEMPLATE: 5161707, OP_TEMPLATE: 5137684,
 };
 const SEAS = [0.030, 0.0524, 0.0874, 0.0554, 0.1728, 0.2095, 0.1457, 0.0554, 0.0816, 0.0340, 0.0447, 0.0311];
@@ -211,12 +212,13 @@ async function buildCashbro(ctx) {
   // Leverandøren står bare på 2400-linjen i bilaget, kostlinjene (4500) har prosjektkoden → kobles via bilagsnr
   const { data: fotoLev } = await sb.from('po_account_transactions').select('voucher_no').eq('account_no', 2400).in('supplier_account_no', PAR.foto_leverandorer);
   const FOTO_BILAG = new Set((fotoLev || []).map(x => x.voucher_no));
-  const { data: fotoTx } = await sb.from('po_account_transactions').select('project_code,amount,voucher_no').eq('account_no', 4500).gt('amount', 0);
+  const { data: fotoTx } = await sb.from('po_account_transactions').select('project_code,amount,voucher_no').eq('account_no', 4500).gt('amount', 0).eq('is_reversed', false);
   const FOTO_OK = new Set(); const FOTO_BET = {};
   for (const t of fotoTx || []) if (t.project_code && FOTO_BILAG.has(t.voucher_no)) { FOTO_OK.add(String(t.project_code)); FOTO_BET[t.project_code] = (FOTO_BET[t.project_code] || 0) + Number(t.amount); }
   const fotoMangler = []; let fotoSum = 0;
-  for (const o of items) { if (!o.nr || FOTO_OK.has(String(o.nr)) || (o.alder_dager || 0) > 365) continue; /* eldre enn hovedbok-speilet (okt 2025) = fotografert før */ const pr = fotoPris(o.pris); fotoSum += pr; fotoMangler.push({ nr: o.nr, navn: o.navn, pris: o.pris, foto: pr }); }
-  if (fotoSum > 0) ut(addDays(TODAY, PAR.foto_dager_etter_oppdrag), 'foto (Philip) — aktive båter uten foto ennå', fotoSum, 'kost', `${fotoMangler.length} båter × trapp`);
+  for (const o of items) { if (!o.nr || FOTO_OK.has(String(o.nr)) || PAR.foto_unntak.includes(String(o.nr)) || (o.alder_dager || 0) > 365) continue; /* eldre enn hovedbok-speilet (okt 2025) = fotografert før */ const pr = fotoPris(o.pris); fotoSum += pr; fotoMangler.push({ nr: o.nr, navn: o.navn, pris: o.pris, foto: pr }); }
+  // Trappen er eks mva (faktura 234, 01.10.2026) → cash ×1,25, inngående mva tilbake på terminen
+  if (fotoSum > 0) { const d = addDays(TODAY, PAR.foto_dager_etter_oppdrag); ut(d, 'foto (Philip) — aktive båter uten foto ennå', fotoSum * 1.25, 'kost', `${fotoMangler.length} båter × trapp eks mva ${Math.round(fotoSum)}`); mvaAcc(d, -fotoSum * 0.25); }
   const fotoSnitt = items.length ? Math.round(items.reduce((a, o) => a + fotoPris(o.pris), 0) / items.length) : 3000;
   // Fakturakontroll: betalt foto per prosjekt mot trapp (prisantydning fra porteføljen/registeret)
   const fotoAvvik = []; for (const o of items) { if (!o.nr || !FOTO_BET[o.nr] || !o.pris) continue; const skal = fotoPris(o.pris); if (Math.abs(FOTO_BET[o.nr] - skal) > 100) fotoAvvik.push({ nr: o.nr, navn: o.navn, pris: o.pris, betalt: Math.round(FOTO_BET[o.nr]), trapp: skal }); }
@@ -238,7 +240,7 @@ async function buildCashbro(ctx) {
     henrikProv(payAfter(cash), 'meglerprovisjon Henrik plan', fyll * PAR.plan_henrik_andel * PAR.megler_provisjonssats, 'plan', m);
     sindreProv(payAfter(cash), fyll * (1 - PAR.plan_henrik_andel), 'plan', m);
     ut(D(m + '-01') < TODAY ? TODAY : D(m + '-01'), 'markedskost nye oppdrag', fyll / PAR.inntekt_per_bat * PAR.oppdrag_per_salg * PAR.markedskost_per_oppdrag, 'plan', m);
-    ut(D(m + '-01') < TODAY ? TODAY : D(m + '-01'), 'foto nye oppdrag (plan)', fyll / PAR.inntekt_per_bat * PAR.oppdrag_per_salg * fotoSnitt, 'plan', m);
+    ut(D(m + '-01') < TODAY ? TODAY : D(m + '-01'), 'foto nye oppdrag (plan)', fyll / PAR.inntekt_per_bat * PAR.oppdrag_per_salg * fotoSnitt * 1.25, 'plan', m);
   }
 
   // ── 5. Kjente kostnader — betalingskalender fra PowerOffice (kostkalender.js), ikke snitt ──
