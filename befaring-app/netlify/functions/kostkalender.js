@@ -16,7 +16,7 @@ const { supabase } = core;
 
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' };
 const iso = (d) => d.toISOString().slice(0, 10);
-const D = (s) => new Date(s + 'T00:00:00Z');
+const D = (s) => { const d = new Date(String(s || '').slice(0, 10) + 'T00:00:00Z'); return isNaN(d) ? null : d; };   // PO gir datetime-strenger; ugyldig → null
 const addDays = (d, n) => new Date(d.getTime() + n * 864e5);
 const med = (a) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : 0; };
 const KADENS_DAGER = { 'månedlig': 30.4, 'kvartal': 91.3, 'halvår': 182.6, 'årlig': 365 };
@@ -31,7 +31,7 @@ async function syncSupplierOpenItems(sb) {
     const today = iso(new Date());
     const r = await core.poFetchAll(`/Supplierledger/OpenItems?date=${today}`, { pageSize: 500, maxPages: 20 });
     if (!r.ok) { await core.setSyncError(sb, 'supplier_open_items', `fetch ${r.status}`); return { ok: false, error: r.status }; }
-    const rows = r.data.map(o => ({ id: o.Id, supplier_id: o.SupplierId, supplier_account_no: o.SupplierAccountNo, supplier_name: o.SupplierName, amount: o.Amount, balance: o.Balance, currency_code: o.CurrencyCode, due_date: o.DueDate, posting_date: o.PostingDate, voucher_date: o.VoucherDate, voucher_id: o.VoucherId, voucher_no: o.VoucherNo, voucher_type: o.VoucherType, invoice_no: o.InvoiceNo, project_id: o.ProjectId, project_code: o.ProjectCode, raw_data: o, synced_at: new Date().toISOString() }));
+    const rows = r.data.map(o => ({ id: o.Id, supplier_id: o.SupplierId, supplier_account_no: o.SupplierAccountNo, supplier_name: o.SupplierName, amount: o.Amount, balance: o.Balance, currency_code: o.CurrencyCode, due_date: (o.DueDate || '').slice(0, 10) || null, posting_date: (o.PostingDate || '').slice(0, 10) || null, voucher_date: (o.VoucherDate || '').slice(0, 10) || null, voucher_id: o.VoucherId, voucher_no: o.VoucherNo, voucher_type: o.VoucherType, invoice_no: o.InvoiceNo, project_id: o.ProjectId, project_code: o.ProjectCode, raw_data: o, synced_at: new Date().toISOString() }));
     const { error: delErr } = await sb.from('po_supplier_open_items').delete().not('id', 'is', null); if (delErr) throw new Error(delErr.message);
     for (let i = 0; i < rows.length; i += 500) { const { error } = await sb.from('po_supplier_open_items').insert(rows.slice(i, i + 500)); if (error) throw new Error(error.message); }
     await core.setSyncState(sb, 'supplier_open_items', { rows_synced_total: rows.length, last_error: null });
@@ -64,13 +64,13 @@ async function buildKostAvtaler(sb, today = new Date()) {
   for (const [nrS, x] of Object.entries(L)) {
     const nr = Number(nrS); const P = x.poster.sort((a, b) => a.d.localeCompare(b.d)); const n = P.length; const sum = P.reduce((s, p) => s + p.a, 0);
     let kadens = 'uregelmessig', belop = med(P.slice(-6).map(p => p.a)), dag = med(P.slice(-6).map(p => +p.d.slice(8, 10)));
-    if (n >= 2) { const gaps = []; for (let i = 1; i < n; i++) gaps.push((D(P[i].d) - D(P[i - 1].d)) / 864e5); const g = med(gaps);
+    if (n >= 2) { const gaps = []; for (let i = 1; i < n; i++) gaps.push(((D(P[i].d) || 0) - (D(P[i - 1].d) || 0)) / 864e5); const g = med(gaps);
       kadens = g >= 20 && g <= 45 && n >= 4 ? 'månedlig' : g >= 70 && g <= 115 && n >= 3 ? 'kvartal' : g >= 150 && g <= 215 ? 'halvår' : g >= 300 ? 'årlig' : 'uregelmessig'; }
     else if (n === 1 && sum > ENGANGS_GRENSE) kadens = 'engangs';
     const siste = P[n - 1].d; let neste = null;
-    if (KADENS_MND[kadens]) { let d = plussMnd(D(siste), KADENS_MND[kadens], dag); while (d < TODAY) d = plussMnd(d, KADENS_MND[kadens], dag); neste = iso(d); }
+    if (KADENS_MND[kadens] && D(siste)) { let d = plussMnd(D(siste), KADENS_MND[kadens], dag); while (d < TODAY) d = plussMnd(d, KADENS_MND[kadens], dag); neste = iso(d); }
     // Opphørt? Siste faktura ligger mer enn 2,5 perioder tilbake (f.eks. gammelt billån byttet til ny leverandør) → ikke framskriv
-    const opphort = KADENS_DAGER[kadens] && (TODAY - D(siste)) / 864e5 > 2.5 * KADENS_DAGER[kadens];
+    const opphort = KADENS_DAGER[kadens] && D(siste) && (TODAY - D(siste)) / 864e5 > 2.5 * KADENS_DAGER[kadens];
     if (opphort) { kadens = 'av'; neste = null; }
     const utledet = { kadens, belop: Math.round(belop), dag, neste_dato: neste, opphort: !!opphort };
     const e = EX[nr] || {};
@@ -99,14 +99,14 @@ async function kostRader(sb, TODAY, END) {
   const openByLev = {}; const betaltIkkeBokfort = [];
   for (const o of open || []) { const bal = Number(o.balance || 0); if (bal <= 0) continue;   // negativ = kreditnota/forskudd
     const bi = bankUt.findIndex(b => Math.abs(b - bal) <= 2); if (bi >= 0) { bankUt.splice(bi, 1); betaltIkkeBokfort.push({ lev: o.supplier_name || o.supplier_account_no, belop: bal }); continue; }
-    let d = D(o.due_date || o.voucher_date || iso(TODAY)); if (d < TODAY) d = addDays(TODAY, 3);
+    let d = D(o.due_date) || D(o.voucher_date) || TODAY; if (d < TODAY) d = addDays(TODAY, 3);
     rader.push({ dato: d, linje: `leverandør: ${o.supplier_name || o.supplier_account_no}`, belop: bal, note: `åpen post${o.invoice_no ? ' ' + o.invoice_no : ''} forfall ${o.due_date || '—'}`, leverandor_nr: o.supplier_account_no, type: 'apen' });
     (openByLev[o.supplier_account_no] ??= new Set()).add(iso(d).slice(0, 7)); }
   let variabelSum = 0; const variabelLev = [];
   for (const a of avt || []) {
     if (!a.aktiv || a.kadens === 'av' || a.kadens === 'engangs' || a.viderefaktureres) continue;   // viderefakturert (macBook/drone-leie o.l.) = netto null
     if (KADENS_MND[a.kadens]) {
-      let d = a.neste_dato ? D(a.neste_dato) : null; if (!d) continue;
+      let d = D(a.neste_dato); if (!d) continue;
       for (let i = 0; i < 40 && d < END; i++) {
         if (d >= TODAY && !(openByLev[a.leverandor_nr]?.has(iso(d).slice(0, 7)))) rader.push({ dato: d, linje: `avtale: ${a.navn || a.leverandor_nr}`, belop: Number(a.belop), note: `${a.kadens}${a.manuell ? ' (manuell)' : ' (utledet fra 12 mnd)'} · sist ${a.siste_dato}`, leverandor_nr: a.leverandor_nr, type: 'avtale' });
         d = plussMnd(d, KADENS_MND[a.kadens], a.dag);
