@@ -97,7 +97,12 @@ async function kostRader(sb, TODAY, END) {
   let bankUt = [];
   try { const kk = require('./klientkonto.js'); bankUt = (await kk.hentTransaksjoner(sb, DRIFT_BBAN, 10)).filter(t => Number(t.belop) < 0).map(t => -Number(t.belop)); } catch (e) { console.error('kostkalender bank-match', e.message); }
   const openByLev = {}; const betaltIkkeBokfort = [];
-  for (const o of open || []) { const bal = Number(o.balance || 0); if (bal <= 0) continue;   // negativ = kreditnota/forskudd
+  // Per leverandør: kreditposter (betalt før faktura er matchet, kreditnotaer) trekkes fra de åpne fakturaene — ellers telles en
+  // umatchet betaling som ny gjeld (bilkjøpet i mars lå som +206 553 og −206 553 og ville gitt 206k «forfalt» i dag)
+  const kredit = {}; for (const o of open || []) { const bal = Number(o.balance || 0); if (bal < 0) kredit[o.supplier_account_no] = (kredit[o.supplier_account_no] || 0) - bal; }
+  const sortert = (open || []).filter(o => Number(o.balance || 0) > 0).sort((a, b) => String(a.due_date || '').localeCompare(String(b.due_date || '')));
+  for (const o of sortert) { let bal = Number(o.balance || 0);
+    const k = kredit[o.supplier_account_no] || 0; if (k > 0) { const bruk = Math.min(k, bal); kredit[o.supplier_account_no] = k - bruk; bal -= bruk; } if (bal <= 0.5) continue;
     const bi = bankUt.findIndex(b => Math.abs(b - bal) <= 2); if (bi >= 0) { bankUt.splice(bi, 1); betaltIkkeBokfort.push({ lev: o.supplier_name || o.supplier_account_no, belop: bal }); continue; }
     let d = D(o.due_date) || D(o.voucher_date) || TODAY; if (d < TODAY) d = addDays(TODAY, 3);
     rader.push({ dato: d, linje: `leverandør: ${o.supplier_name || o.supplier_account_no}`, belop: bal, note: `åpen post${o.invoice_no ? ' ' + o.invoice_no : ''} forfall ${o.due_date || '—'}`, leverandor_nr: o.supplier_account_no, type: 'apen' });
