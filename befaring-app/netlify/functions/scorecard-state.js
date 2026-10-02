@@ -508,7 +508,7 @@ async function buildScorecardState(sb) {
       mangler: Math.max(0, buffer - lavB.saldo_base), ansettelse: lavB.saldo_base >= buffer ? 'ja' : 'nei', status: lavB.saldo_base >= buffer ? 'GRØNT' : 'RØDT',
       regel: 'Gate = laveste Base-saldo (sikker + portefølje − alle kjente kostnader) i horisonten ≥ 500k-buffer. Downside og Base+Plan vises ved siden av. Trekk på spillbrettet endrer kurven.' };
     state.meta.sources.cashbro = { ok: true, rader: cb.rader.length, sikker: cb.sikker_kommende.length, varsler: cb.varsler.length };
-  } catch (e) { console.error('cashbro', e); state.meta.sources.cashbro = { ok: false, error: e.message, hvor: String(e.stack || '').split('\n').slice(1, 4).map(l => l.trim().replace(/^at /, '')).join(' ← ') }; }
+  } catch (e) { console.error('cashbro', e); state.meta.sources.cashbro = { ok: false, error: e.message, hvor: String(e.stack || '').split('\n').slice(1, 8).map(l => l.trim().replace(/^at /, '')).join(' ← ') }; }
 
   const row = { id: 1, state, built_at: now.toISOString() };
   const { error } = await sb.from('scorecard_state').upsert(row, { onConflict: 'id' });

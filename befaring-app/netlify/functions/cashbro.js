@@ -48,7 +48,8 @@ const PAR = {
   // Foto per oppdrag (Philips trapp, Sindre 02.10.2026) — båtverdi = prisantydning. Fotoleverandører i PO: Philip 20235, vikar/andre 20264, 20209
   foto_trapp: [[900000, 2500], [1900000, 3000], [2900000, 3500], [3900000, 4000], [4900000, 5000], [Infinity, 6000]],
   foto_unntak: ['26014', '26082', '26091', '26089', '26070', '26045', '24033', '24024', '26057', '24042', '25044'],   // Sindre 02.10: disse får ikke foto (hovedregel ellers: alle oppdrag skal ha foto)
-  foto_leverandorer: [20235, 20264, 20214],   // Philip, vikar (Martin Kubove), Norheim (gammel). 20209 Lund Consulting er IKKE foto foto_dager_etter_oppdrag: 14,
+  foto_leverandorer: [20235, 20264, 20214],   // Philip, vikar (Martin Kubove), Norheim (gammel). 20209 Lund Consulting er IKKE foto
+  foto_dager_etter_oppdrag: 14,
   KK_TEMPLATE: 5161707, OP_TEMPLATE: 5137684,
 };
 const SEAS = [0.030, 0.0524, 0.0874, 0.0554, 0.1728, 0.2095, 0.1457, 0.0554, 0.0816, 0.0340, 0.0447, 0.0311];
@@ -81,13 +82,15 @@ async function buildCashbro(ctx) {
   const months = []; for (let d = START, i = 0; i < PAR.horisont_mnd; i++, d = nextMonth(d)) months.push(ym(d));
   const END = nextMonth(D(months[months.length - 1] + '-01'));
   const ROWS = []; const warn = [];
-  const post = (dato, linje, belop, lag, note = '', extra) => { if (!dato || !isFinite(belop) || (Math.abs(belop) < 0.5 && !extra)) return; if (dato < START || dato >= END) return; ROWS.push({ dato: iso(dato), linje, belop: extra && Math.abs(belop) < 0.5 ? 0 : Math.round(belop), lag, note, ...(extra || {}) }); };
+  const gyldig = (dato, hvor, linje) => { if (dato instanceof Date && !isNaN(dato)) return true; warn.push(`Ugyldig dato i ${hvor}: «${linje}» — raden hoppet over`); return false; };   // aldri krasj på én dårlig dato
+  const post = (dato, linje, belop, lag, note = '', extra) => { if (!gyldig(dato, 'post', linje) || !isFinite(belop) || (Math.abs(belop) < 0.5 && !extra)) return; if (dato < START || dato >= END) return; ROWS.push({ dato: iso(dato), linje, belop: extra && Math.abs(belop) < 0.5 ? 0 : Math.round(belop), lag, note, ...(extra || {}) }); };
   const ut = (dato, linje, belop, lag, note = '') => { if (dato >= TODAY) post(dato, linje, -belop, lag, note); };  // kost før i dag = allerede betalt (i live bank)
-  const MVA = {}; const mvaAcc = (dato, belop) => { if (dato < START || dato >= END) return; const k = ym(dato); MVA[k] = (MVA[k] || 0) + belop; }; // + = utgående (skyldig), − = inngående
+  const MVA = {}; const mvaAcc = (dato, belop) => { if (!gyldig(dato, 'mvaAcc', String(belop)) || dato < START || dato >= END) return; const k = ym(dato); MVA[k] = (MVA[k] || 0) + belop; }; // + = utgående (skyldig), − = inngående
 
   // ── Lønnsmotor: brutto ut på dato, AGA til termin, feriepenger til juni-klumpen ──
   const AGA = {}; let FP_ACC = 0; const SINDRE_AKK = { ...PAR.sindre_utbetalt }; const SINDRE_KUTT = {};
   const lonn = (dato, linje, brutto, lag, note = '', fp = 0.12, extra) => {
+    if (!gyldig(dato, 'lonn', linje)) return;
     if (dato < TODAY || brutto <= 0) return;
     post(dato, linje, -brutto, lag, note, extra); AGA[ym(dato)] = (AGA[ym(dato)] || 0) + brutto * PAR.aga_sats;
     if (dato.getUTCFullYear() === PAR.feriepenger_til_gode.aar) FP_ACC += brutto * fp;
