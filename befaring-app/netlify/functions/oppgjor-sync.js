@@ -99,7 +99,7 @@ function avregn(r, ex, jList, today) {
   const gammel = r.po_invoice_dato && (new Date(today) - new Date(r.po_invoice_dato)) / 864e5 > 45;
   if (r.po_invoice_betalt && (r.selger_utbetalt || r.ark_oppgjort || gammel) && !holdt) status = 'oppgjort';   // tilbakehold som ikke er avgjort holder båten åpen
   if (ex.oppgjort_manuelt) status = 'oppgjort';   // admin har markert oppgjort (historikk før klientkonto/PO-speil)
-  if (ex.status === 'annullert') status = 'annullert';
+  if (ex.status === 'annullert' && (!ex.kk_contract_id || !r.kk_contract_id || String(ex.kk_contract_id) === String(r.kk_contract_id))) status = 'annullert';   // annullering gjelder kontrakten den ble satt på; ny kjøpekontrakt = nytt salg
   const status_dato = { kontrakt: r.kk_signert, forskudd: null, innbetalt: r.innbetalt_dato, overtatt: r.op_signert, klar: (ex.sendt_at || '').slice(0, 10) || null, fakturert: r.po_invoice_dato, utbetalt: r.selger_utbetalt_dato || r.drift_overfort_dato, oppgjort: ex.oppgjort_manuelt || r.selger_utbetalt_dato || r.po_invoice_dato }[status] || null;
   return { nettoproveny, status, status_dato, jP, jS, jD, holdt, utleggInkl, gjeld };
 }
@@ -127,6 +127,8 @@ async function buildOppgjor(sb, opts = {}) {
     const df = (await of(`/contracts/${c.id}/data_fields`)).data || []; const f = {}; for (const x of df) f[x.name || x.custom_id] = x.value || '';
     const nr = (f['Deal_Oppdragsnummer'] || '').trim() || (nm(c).trim().match(/^(\d{5})/) || [])[1]; if (!nr) return;
     const r = R[nr] || (R[nr] = { oppdragsnr: nr });
+    // Flere kjøpekontrakter på samme oppdrag (salg annullert, solgt på nytt — Dufour 26026): nyeste signerte vinner, eldre ignoreres
+    if (r.kk_signert && r.kk_signert > (c.state_updated_time || '').slice(0, 10)) return;
     Object.assign(r, {
       navn: (f['Deal name'] || nm(c)).replace(/^\d{5}\s*-\s*/, '').replace(/\s*-?\s*kjøpekontrakt\s*$/i, '').trim(),
       kk_contract_id: c.id, kk_signert: (c.state_updated_time || '').slice(0, 10),
