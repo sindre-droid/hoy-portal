@@ -46,7 +46,7 @@ const PAR = {
   billan_siste: '2028-12-21',
   leverandorgjeld_dager: [7, 30],
   utbytte_avsatt: { belop: 700000, dato: null, note: 'konto 2800 — vedtatt, ikke utbetalt; holdes som trekk på spillbrettet' },
-  kjente_innbetalinger: [{ belop: 993540, dato: '2027-06-15', note: 'Sargo 45 Fly — nybygg, provisjon inkl mva ved levering juni 2027', oms_eks: 794832, megler: 'Sindre', navn: 'Sargo 45 Fly (nybygg, uten oppdragsnr)' }],
+  kjente_innbetalinger: [{ belop: 993540, dato: '2027-06-15', note: 'Sargo 45 Fly — nybygg, provisjon inkl mva ved levering juni 2027', oms_eks: 794832, megler: 'Sindre', navn: 'Sargo 45 Fly (nybygg, uten oppdragsnr)', solgt: '2026-09-03' }],
   engangs: [{ belop: 125000, dato: '2027-11-15', note: 'motfakturering Oslo Båt' }, { belop: 50000, dato: '2027-10-15', note: 'underleverandør' }],
   forskuddsskatt: { 2027: 162000 },        // ANSLAG: 22 % × 2025-resultat; 15.2 + 15.4
   annullert: ['26035'],
@@ -330,25 +330,27 @@ async function buildCashbro(ctx) {
   let inntektYtd = 0, kostYtd = 0, ekSum = 0; for (const [a, v] of Object.entries(TB)) { const n = +a; if (n >= 3000 && n < 4000) inntektYtd += -v; else if (n >= 4000 && n < 9000) kostYtd += v; else if (n >= 2000 && n < 2100) ekSum += -v; }
   const resultatYtd = inntektYtd - kostYtd;
   const mndIgjen = Math.max(0, 12 - TODAY.getUTCMonth() - (TODAY.getUTCDate() - 1) / 30.44);
-  // Det vi VET utover PO (Sindre 7.10): solgte båter i registeret som ikke er fakturert ennå — inntektsføres når de faktureres (overtakelse), i år eller neste år
+  // Det vi VET utover PO (Sindre 7.10): solgte båter i registeret som ikke er fakturert ennå. Inntekten periodiseres til SALGSÅRET (kjøpekontrakt signert), uansett når fakturaen går (Sargo: solgt sep 2026, fakturert juni 2027 → 2026-resultatet)
   const aarSlutt = `${TODAY.getUTCFullYear()}-12-31`; const IKKE_FAKT = { i_aar: [], neste_aar: [] };
   for (const r of Object.values(REG)) { if (!r || r.po_invoice_no || ['annullert', 'fakturert', 'utbetalt', 'oppgjort'].includes(r.status) || !(r.oms_eks > 0)) continue;
-    const dato = r.overtakelse_avtalt || r.kk_signert || null; const rad = { nr: r.oppdragsnr, navn: r.navn, megler: r.solgt_av || r.oppdrag_inn || 'ukjent', fordeling: r.fordeling || null, oms_eks: Math.round(r.oms_eks), dato, status: r.status };
+    const dato = r.kk_signert || r.overtakelse_avtalt || null; const rad = { nr: r.oppdragsnr, navn: r.navn, megler: r.solgt_av || r.oppdrag_inn || 'ukjent', fordeling: r.fordeling || null, oms_eks: Math.round(r.oms_eks), dato, fakturadato: r.overtakelse_avtalt || null, status: r.status };
     (dato && dato > aarSlutt ? IKKE_FAKT.neste_aar : IKKE_FAKT.i_aar).push(rad); }
-  for (const k of PAR.kjente_innbetalinger || []) if (k.oms_eks) (k.dato > aarSlutt ? IKKE_FAKT.neste_aar : IKKE_FAKT.i_aar).push({ nr: null, navn: k.navn || k.note, megler: k.megler || 'ukjent', oms_eks: k.oms_eks, dato: k.dato, status: 'parameter (kjent innbetaling)' });
+  for (const k of PAR.kjente_innbetalinger || []) if (k.oms_eks) ((k.solgt || k.dato) > aarSlutt ? IKKE_FAKT.neste_aar : IKKE_FAKT.i_aar).push({ nr: null, navn: k.navn || k.note, megler: k.megler || 'ukjent', oms_eks: k.oms_eks, dato: k.solgt || k.dato, fakturadato: k.dato, status: 'parameter (kjent innbetaling)' });
   const pfOms = {}; for (const it of items || []) { const w = it.megler || 'ukjent'; pfOms[w] = (pfOms[w] || 0) + Number(it.forventet || 0); }
   for (const r of IKKE_FAKT.i_aar) { pfOms[r.megler] = (pfOms[r.megler] || 0) + r.oms_eks; }
   const solgtIkkeFakt = IKKE_FAKT.i_aar.reduce((a, r) => a + r.oms_eks, 0), solgtNesteAar = IKKE_FAKT.neste_aar.reduce((a, r) => a + r.oms_eks, 0);
   const sos = (w) => 1 + PAR.aga_sats + (PAR.fp_sats_person[w] ?? 0.102);
   const satsAv = (w) => w === 'Sindre' ? PAR.sindre_provisjonssats : PAR.megler_provisjonssats;
-  let omsRest = 0, meglerkostRest = 0; const perMegler = {}; for (const [w, o] of Object.entries(pfOms)) { const mk = o * satsAv(w) * sos(w); omsRest += o; meglerkostRest += mk; perMegler[w] = { omsetning: Math.round(o), meglerkost: Math.round(mk), sats: satsAv(w) }; }
+  // Sindre: lønnskost = det som faktisk tas ut av potten i år (7,1 G-regelen), ALDRI 45 % av omsetningen — potten er ikke en kostnad før den utbetales (Sindre 7.10)
+  const sindreUttakRest = SINDRE_UTTAK_RADER.filter(u => u.dato <= aarSlutt).reduce((a, u) => a + u.tatt, 0);
+  let omsRest = 0, meglerkostRest = 0; const perMegler = {}; for (const [w, o] of Object.entries(pfOms)) { const mk = w === 'Sindre' ? sindreUttakRest * sos('Sindre') : o * satsAv(w) * sos(w); omsRest += o; meglerkostRest += mk; perMegler[w] = { omsetning: Math.round(o), meglerkost: Math.round(mk), sats: w === 'Sindre' ? null : satsAv(w), regel: w === 'Sindre' ? `uttak fra potten resten av året ${Math.round(sindreUttakRest)} × sosiale kostnader` : null }; }
   let fastRest = 0; for (const f of PAR.fastlonn) { const slutt = f.til ? D(f.til) : null; const m = slutt ? Math.max(0, Math.min(mndIgjen, (slutt - TODAY) / 864e5 / 30.44)) : mndIgjen; fastRest += f.brutto_mnd * (1 + PAR.aga_sats + (f.fp_sats || 0)) * m; }
   const driftRest = (DRIFT + PERSONAL) * mndIgjen;
   const RESULTAT = { per: TB_DATO, ytd: { inntekt: Math.round(inntektYtd), kostnader: Math.round(kostYtd), resultat: Math.round(resultatYtd) }, egenkapital_bokfort: Math.round(ekSum),
     solgt_ikke_fakturert: { i_aar: IKKE_FAKT.i_aar, neste_aar: IKKE_FAKT.neste_aar, sum_i_aar: Math.round(solgtIkkeFakt), sum_neste_aar: Math.round(solgtNesteAar) },
     prognose: { mnd_igjen: +mndIgjen.toFixed(1), omsetning_rest: Math.round(omsRest), portefolje_rest: Math.round(omsRest - solgtIkkeFakt), solgt_ikke_fakturert_i_aar: Math.round(solgtIkkeFakt), per_megler: perMegler, meglerkost_rest: Math.round(meglerkostRest), fastlonn_rest: Math.round(fastRest), drift_rest: Math.round(driftRest), drift_mnd: DRIFT + PERSONAL,
       resultat_aar: Math.round(resultatYtd + omsRest - meglerkostRest - fastRest - driftRest), anslag: true,
-      formel: 'resultat hittil (PO klasse 3–8, alt som er bokført) + solgte båter som ikke er fakturert ennå og faktureres i år (registeret) + portefølje × sannsynlighet − provisjon med AGA og feriepenger − fastlønn − drift (6xxx/7xxx + 55xx/59xx, snitt per måned hittil × måneder igjen). Skatt 22 % kommer i tillegg.' } };
+      formel: 'resultat hittil (PO klasse 3–8, alt som er bokført) + solgte båter som ikke er fakturert ennå (registeret; inntekt periodiseres til salgsåret) + portefølje × sannsynlighet − Henriks provisjon og Sindres faktiske uttak (7,1 G-regelen), begge med AGA og feriepenger − fastlønn − drift (6xxx/7xxx + 55xx/59xx, snitt per måned hittil × måneder igjen). Skatt 22 % kommer i tillegg.' } };
   const sindreAar = TODAY.getUTCFullYear();
   return {
     generert: iso(TODAY), bank, bank_kilde: ctx.bankKilde || null, saldobalanse_dato: TB_DATO, maaneder: months,
