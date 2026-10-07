@@ -18,15 +18,25 @@ const PAR = {
   cash_lag_sannsynlig_dager: 32,
   horisont_mnd: 10,                       // i dag-måneden + 9
   fastlonn: [
-    { navn: 'Marte', brutto_mnd: 450000 / 12, fp_sats: 0.102, note: 'fast 450 000/år (arbeidsavtale); bonus 10 % av Henriks provisjon ligger på Henrik-linjene' },
+    { navn: 'Marte', brutto_mnd: 450000 / 12, fp_sats: 0.102, til: '2026-11-01', note: 'oppsagt i prøvetid (Sindre 7.10), slutt 27.10 — siste fastlønn 1.11 (oktober). Bonus 10 % av Henriks provisjon opphører for salg etter 27.10' },
     { navn: 'Philip', brutto_mnd: 13000, fp_sats: 0.0, note: '13 000/mnd, ingen feriepenger; fakturerer i tillegg per oppdrag (4500)' },
   ],
   marte_bonus_av_henrik_provisjon: 0.10,
   megler_provisjonssats: 0.40,             // Henrik
   sindre_modell: 'provisjon',              // 45 % av egen omsetning, tak 7,1 G per år (Sindre 10. sep)
+  // Sindres provisjon er en POTT (Sindre 23.9 / 7.10): opptjent samles opp, uttak er en beslutning han tar når kassa tillater.
+  // Modellen legger ALDRI ut uttak automatisk. Planlagte uttak settes her (dato → brutto), kappes mot taket og mot potten.
+  // Sindre 7.10: ingen fastlønn-tankegang — 32 547 brutto per måned ut 2026 (= 7,1 G ved årsslutt), tatt fra potten. 2027: ikke besluttet
+  sindre_uttak_plan: [{ dato: '2026-11-01', belop: 32547 }, { dato: '2026-12-01', belop: 32547 }],
+  // REGEL (Sindre 7.10): «Jeg tar alltid opp til 7,1 G fra potten – så lenge det er rom i potten. Potten skal alltid ligge foran uttaket.»
+  // Fra `fra` legges det ut hver lønnsdag: min(7,1 G / 12, rom under taket det året, det som faktisk står i potten per dato − allerede trukket).
+  // Uttaket trekkes lagvis (til gode nå → sikker → sannsynlig → plan) og posteres i samme lag som opptjeningen — da bærer Base bare uttak
+  // som Base-inntektene dekker. Måneder med eksplisitt plan over (2026) bruker planen i stedet for regelen.
+  sindre_uttak_regel: { fra: '2027-01-01', mnd_belop: Math.round(969498 / 12), note: '7,1 G jevnt fordelt, kappet mot pott og tak' },
+  sindre_fast: null,
   sindre_provisjonssats: 0.45,
   sindre_tak_aar: 969498,
-  sindre_utbetalt: { 2026: 767187 },       // GO Lønnsdetaljer 1.1–30.9.2026 (brutto ekskl. feriepenger) — oppdateres ved årsskifte
+  sindre_utbetalt: { 2026: 904404 },       // brutto som teller mot 7,1 G: 969 498 − 2 × 32 547 (nov, des) — Sindre tar 32 547/mnd ut året (7.10). Oppdateres ved årsskifte
   fp_sats_person: { Sindre: 0.12, Henrik: 0.102, Marte: 0.102 },
   feriepenger_til_gode: { aar: 2026, per: { Sindre: 92062, Henrik: 58384, Daniel: 25449, Marte: 17580 }, kilde: 'GO-rapport Feriepenger 10.09.2026' },
   feriepenger_utbetaling_mnd: 6,           // juni året etter opptjening
@@ -95,21 +105,42 @@ async function buildCashbro(ctx) {
     post(dato, linje, -brutto, lag, note, extra); AGA[ym(dato)] = (AGA[ym(dato)] || 0) + brutto * PAR.aga_sats;
     if (dato.getUTCFullYear() === PAR.feriepenger_til_gode.aar) FP_ACC += brutto * fp;
   };
-  const henrikProv = (dato, linje, brutto, lag, note) => { lonn(dato, linje, brutto, lag, note, PAR.fp_sats_person.Henrik); lonn(dato, 'Marte bonus (10 % av Henriks provisjon)', brutto * PAR.marte_bonus_av_henrik_provisjon, lag, note, PAR.fp_sats_person.Marte); };
+  const MARTE_TIL = (PAR.fastlonn.find(f => f.navn === 'Marte') || {}).til || null;   // bonus bare på lønninger t.o.m. siste lønnsdato
+  const henrikProv = (dato, linje, brutto, lag, note) => { lonn(dato, linje, brutto, lag, note, PAR.fp_sats_person.Henrik); if (!MARTE_TIL || iso(dato) <= MARTE_TIL) lonn(dato, 'Marte bonus (10 % av Henriks provisjon)', brutto * PAR.marte_bonus_av_henrik_provisjon, lag, note, PAR.fp_sats_person.Marte); };
   // Sindre: raden bærer ukappet brutto; taket (7,1 G per år) legges på i datorekkefølge i sindreRecap() etterpå —
   // samme algoritme som spillbrettet bruker i nettleseren, så tallene blir like.
+  const POTT = { sikker: 0, sannsynlig: 0, plan: 0, per_mnd: {}, per_mnd_lag: {} };   // Sindres opptjening framover, per lag og måned
   const sindreProv = (dato, omsEks, lag, note) => {
     if (PAR.sindre_modell !== 'provisjon' || dato < TODAY) return;
     const brutto = omsEks * PAR.sindre_provisjonssats; if (brutto <= 0) return;
-    post(dato, 'Sindre provisjon (45 %, tak 7,1 G)', -0.01, lag, note, { sindre_brutto: Math.round(brutto) });
+    POTT[lag] = (POTT[lag] || 0) + brutto; const k = ym(dato); POTT.per_mnd[k] = (POTT.per_mnd[k] || 0) + brutto;
+    (POTT.per_mnd_lag[k] = POTT.per_mnd_lag[k] || {})[lag] = (POTT.per_mnd_lag[k]?.[lag] || 0) + brutto;
+  };
+  // Uttak fra potten: eksplisitt plan (PAR.sindre_uttak_plan) + regelen (PAR.sindre_uttak_regel) — begge kappes mot 7,1 G-taket per år
+  // og mot det som faktisk står i potten per dato. Trekkes lagvis og posteres i opptjeningens lag (sikker/sannsynlig/plan).
+  let POTT_TIL_GODE_NA = 0;   // settes fra oppgjørsregisteret under (= sikker)
+  let SINDRE_UTTAK_SUM = 0; const SINDRE_UTTAK_LAG = { sikker: 0, sannsynlig: 0, plan: 0 }; const SINDRE_UTTAK_RADER = [];
+  const LAG_REKKE = ['sikker', 'sannsynlig', 'plan'];
+  const pottPerLagTil = (d) => { const acc = { sikker: POTT_TIL_GODE_NA, sannsynlig: 0, plan: 0 }; for (const [k, v] of Object.entries(POTT.per_mnd_lag)) if (k <= ym(d)) for (const lag of LAG_REKKE) acc[lag] += v[lag] || 0; return acc; };
+  const sindreUttak = (d, onsket, kilde) => {
+    const y = d.getUTCFullYear(); const rom = Math.max(0, PAR.sindre_tak_aar - (SINDRE_AKK[y] || 0));
+    const tilg = pottPerLagTil(d); let rest = Math.max(0, Math.min(onsket, rom)); let tatt = 0; const deler = [];
+    for (const lag of LAG_REKKE) { if (rest <= 0) break; const kan = Math.max(0, tilg[lag] - SINDRE_UTTAK_LAG[lag]); const u = Math.min(kan, rest); if (u <= 0) continue; SINDRE_UTTAK_LAG[lag] += u; tatt += u; rest -= u; deler.push([lag, u]); }
+    if (tatt <= 0) { warn.push(`Sindre-uttak ${iso(d)} (${kilde}, ${Math.round(onsket)}): ikke rom (tak ${Math.round(rom)} / pott ${Math.round(tilg.sikker + tilg.sannsynlig + tilg.plan - SINDRE_UTTAK_SUM)}) — hoppet over`); return 0; }
+    SINDRE_AKK[y] = (SINDRE_AKK[y] || 0) + tatt; SINDRE_UTTAK_SUM += tatt;
+    for (const [lag, u] of deler) lonn(d, `Sindre uttak fra pott (${kilde})`, u, lag, `${kilde} ${Math.round(onsket)} → ${Math.round(tatt)} (fra ${lag}-opptjening)`, PAR.fp_sats_person.Sindre);
+    SINDRE_UTTAK_RADER.push({ dato: iso(d), kilde, onsket: Math.round(onsket), tatt: Math.round(tatt), lag: Object.fromEntries(deler.map(([l, u]) => [l, Math.round(u)])) });
+    if (tatt < onsket - 0.5) warn.push(`Sindre-uttak ${iso(d)} (${kilde}): ${Math.round(onsket)} ønsket, ${Math.round(tatt)} mulig — ${rom < onsket ? 'taket 7,1 G nådd' : 'potten tom'}`);
+    return tatt;
   };
   const sindreRecap = () => {
-    for (const r of ROWS.filter(r => r.sindre_brutto != null).sort((a, b) => a.dato.localeCompare(b.dato))) {
-      const y = +r.dato.slice(0, 4); const rom = Math.max(0, PAR.sindre_tak_aar - (SINDRE_AKK[y] || 0)); const u = Math.min(r.sindre_brutto, rom);
-      SINDRE_AKK[y] = (SINDRE_AKK[y] || 0) + u; SINDRE_KUTT[y] = (SINDRE_KUTT[y] || 0) + (r.sindre_brutto - u);
-      r.belop = -Math.round(u); if (u <= 0) r.note += ' · over taket';
-      if (u > 0) { AGA[r.dato.slice(0, 7)] = (AGA[r.dato.slice(0, 7)] || 0) + u * PAR.aga_sats; if (y === PAR.feriepenger_til_gode.aar) FP_ACC += u * PAR.fp_sats_person.Sindre; }
+    const ev = []; const planMnd = new Set();
+    for (const u of PAR.sindre_uttak_plan || []) { const d = D(u.dato); if (!gyldig(d, 'sindre_uttak', u.dato) || d < TODAY) continue; planMnd.add(ym(d)); ev.push({ d, belop: Number(u.belop || 0), kilde: 'planlagt' }); }
+    const R = PAR.sindre_uttak_regel; if (R && R.mnd_belop > 0) for (const m of months) {
+      const d1 = D(m + '-01'); const ld = new Date(Date.UTC(d1.getUTCFullYear(), d1.getUTCMonth(), PAR.lonn_dag));
+      if (ld < TODAY || iso(ld) < R.fra || planMnd.has(m)) continue; ev.push({ d: ld, belop: R.mnd_belop, kilde: 'regel 7,1 G' });
     }
+    for (const e of ev.sort((a, b) => a.d - b.d)) sindreUttak(e.d, e.belop, e.kilde);
   };
   const payAfter = (cash) => nextMonth(cash); // 1. i måneden etter oppgjør
 
@@ -187,7 +218,7 @@ async function buildCashbro(ctx) {
     const diff = Math.round(Number(pr.opptjent || 0) - Number(pr.utbetalt || 0)); if (diff <= 0) continue;
     TIL_GODE[pr.megler] = (TIL_GODE[pr.megler] || 0) + diff;
     const note = `${nr} ${(reg.navn || '').slice(0, 24)} — opptjent, ikke lønnet`;
-    if (pr.megler === 'Sindre') post(nestePay, 'Sindre provisjon (45 %, tak 7,1 G)', -0.01, 'sikker', note, { sindre_brutto: diff });
+    if (pr.megler === 'Sindre') { POTT_TIL_GODE_NA += diff; continue; }   // potten — legges ikke ut automatisk
     else if (PAR.fp_sats_person[pr.megler] !== undefined || ['Henrik', 'Daniel', 'Marte', 'Jeanette'].includes(pr.megler)) lonn(nestePay, `meglerprovisjon ${pr.megler} — til gode`, diff, 'sikker', note, PAR.fp_sats_person[pr.megler] ?? 0.102);
   }
   const ordered = SIKKER.filter(r => r.status === 'venter overtakelse' || r.status.startsWith('overtatt')).sort((a, b) => (a.cash || '').localeCompare(b.cash || ''));
@@ -260,16 +291,21 @@ async function buildCashbro(ctx) {
     const d1 = D(m + '-01');
     const ld = new Date(Date.UTC(d1.getUTCFullYear(), d1.getUTCMonth(), PAR.lonn_dag));
     if (PAR.sindre_modell === 'flat') lonn(ld, 'Sindre lønn (flat)', PAR.sindre_tak_aar / 12, 'kost', 'param', PAR.fp_sats_person.Sindre);
-    for (const f of PAR.fastlonn) lonn(ld, `fastlønn ${f.navn}`, f.brutto_mnd, 'kost', f.note, f.fp_sats);
+    if (PAR.sindre_fast && ld >= TODAY && iso(ld) >= PAR.sindre_fast.fra) { lonn(ld, 'fastlønn Sindre', PAR.sindre_fast.brutto_mnd, 'kost', PAR.sindre_fast.note, PAR.fp_sats_person.Sindre); SINDRE_AKK[ld.getUTCFullYear()] = (SINDRE_AKK[ld.getUTCFullYear()] || 0) + PAR.sindre_fast.brutto_mnd; }
+    for (const f of PAR.fastlonn) { if (f.til && iso(ld) > f.til) continue; lonn(ld, `fastlønn ${f.navn}`, f.brutto_mnd, 'kost', f.note, f.fp_sats); }
   }
   sindreRecap();
+  { const pottAlt = POTT_TIL_GODE_NA + POTT.sikker + POTT.sannsynlig + POTT.plan; const rest = pottAlt - SINDRE_UTTAK_SUM; const rom = Math.max(0, PAR.sindre_tak_aar - (SINDRE_AKK[TODAY.getUTCFullYear()] || 0));
+    warn.push(`Sindre-pott: til gode nå ${Math.round(POTT_TIL_GODE_NA)} + opptjenes i horisonten ${Math.round(POTT.sikker + POTT.sannsynlig + POTT.plan)} = ${Math.round(pottAlt)} · lagt ut ${Math.round(SINDRE_UTTAK_SUM)} (${SINDRE_UTTAK_RADER.length} uttak) · igjen i potten ved horisontslutt ${Math.round(rest)} · rom under 7,1 G i år: ${Math.round(rom)}`); }
   // AGA: skyldig i dag (2770) = forrige termin + påløpt i inneværende termin
   const agaPrev = -tb(2770) - curAga; const prevDue = new Date(Date.UTC(START.getUTCFullYear(), T0 - 1, 15));
   if (agaPrev > 0 && prevDue >= TODAY) ut(prevDue, 'AGA termin', agaPrev, 'kost', `forrige termin fra saldo 2770 ${Math.round(tb(2770))} − påløpt inneværende ${Math.round(curAga)}`);
   AGA[ym(T_START)] = (AGA[ym(T_START)] || 0) + curAga;
   for (const m of months) { const y = +m.slice(0, 4), mo = +m.slice(5); if (mo % 2 === 0) { const v = (AGA[`${y}-${String(mo - 1).padStart(2, '0')}`] || 0) + (AGA[m] || 0); const py = mo === 12 ? y + 1 : y, pm = mo === 12 ? 1 : mo + 1; if (v > 0) ut(new Date(Date.UTC(py, pm - 1, 15)), 'AGA termin', v, 'kost', `termin ${mo / 2}/${y}`); } }
   // Feriepenger: til gode (GO-rapport) + påløp resten av opptjeningsåret → juni året etter
-  const fpBase = Object.values(PAR.feriepenger_til_gode.per).reduce((a, b) => a + b, 0);
+  const fpMarte = PAR.feriepenger_til_gode.per.Marte || 0;   // utbetales ved fratreden (siste lønn 1.11), ikke i juni
+  if (MARTE_TIL && fpMarte) ut(D(MARTE_TIL), 'feriepenger Marte ved fratreden', fpMarte + 37500 * 0.102 * 1, 'kost', 'opptjent per GO-rapport + oktober');
+  const fpBase = Object.values(PAR.feriepenger_til_gode.per).reduce((a, b) => a + b, 0) - (MARTE_TIL ? fpMarte : 0);
   ut(new Date(Date.UTC(PAR.feriepenger_til_gode.aar + 1, PAR.feriepenger_utbetaling_mnd - 1, 1)), `feriepenger (opptjent ${PAR.feriepenger_til_gode.aar})`, fpBase + FP_ACC, 'kost', `${PAR.feriepenger_til_gode.kilde}: ${Math.round(fpBase)} + påløp ${Math.round(FP_ACC)}`);
   // Leverandørgjeld, engangs, kjente innbetalinger, forskuddsskatt
   for (const e of PAR.engangs) ut(D(e.dato), 'engangspost', e.belop, 'kost', e.note);
@@ -295,7 +331,11 @@ async function buildCashbro(ctx) {
     foto: { mangler: fotoMangler, avvik: fotoAvvik, snitt_per_nytt_oppdrag: fotoSnitt },
     saldobalanse: { bank_1920: tb(1920), kundefordringer_1500: tb(1500), leverandorgjeld_2400: tb(2400), skyldig_aga_2770: tb(2770), mva_posisjon: MVA_POS, mva_innevarende_termin: curMva, skyldige_feriepenger_2940: tb(2940), avsatt_utbytte_2800: tb(2800), annen_kortsiktig_gjeld_2990: tb(2990), billan_2242: tb(2242), betalbar_skatt_2500: tb(2500), drift_ytd: Math.round(driftYtd), lonn_5000_ytd: tb(5000) },
     provisjon_til_gode: TIL_GODE,
-    sindre: { modell: PAR.sindre_modell, utbetalt_hittil: PAR.sindre_utbetalt[sindreAar] || 0, tak: PAR.sindre_tak_aar, akkumulert_aarsslutt: Math.round(SINDRE_AKK[sindreAar] || 0), holdt_tilbake: Math.round(SINDRE_KUTT[sindreAar] || 0), neste_aar_tom_horisont: Math.round(SINDRE_AKK[sindreAar + 1] || 0) },
+    sindre: { modell: 'pott', utbetalt_hittil: PAR.sindre_utbetalt[sindreAar] || 0, tak: PAR.sindre_tak_aar, rom_under_tak_i_aar: Math.round(Math.max(0, PAR.sindre_tak_aar - (SINDRE_AKK[sindreAar] || 0))),
+      pott_til_gode_na: Math.round(POTT_TIL_GODE_NA), pott_opptjenes_horisont: { sikker: Math.round(POTT.sikker), sannsynlig: Math.round(POTT.sannsynlig), plan: Math.round(POTT.plan), per_mnd: Object.fromEntries(Object.entries(POTT.per_mnd).map(([k, v]) => [k, Math.round(v)])) },
+      uttak_planlagt: PAR.sindre_uttak_plan, uttak_regel: PAR.sindre_uttak_regel, uttak_lagt_i_kurven: Math.round(SINDRE_UTTAK_SUM), uttak_per_lag: SINDRE_UTTAK_LAG, uttak: SINDRE_UTTAK_RADER,
+      pott_igjen_horisontslutt: Math.round(POTT_TIL_GODE_NA + POTT.sikker + POTT.sannsynlig + POTT.plan - SINDRE_UTTAK_SUM),
+      note: 'Regel (7.10): opp til 7,1 G tas jevnt fra potten hver lønnsdag så lenge potten har dekning. Uttak posteres i opptjeningens lag, så Base bærer bare uttak Base-inntektene dekker.' },
     feriepenger: { til_gode: PAR.feriepenger_til_gode, paalop: Math.round(FP_ACC), utbetales: `${PAR.feriepenger_til_gode.aar + 1}-06-01` },
     rader: ROWS.sort((a, b) => a.dato.localeCompare(b.dato)), kurve, plan: PLAN, sikker: SIKKER, sikker_kommende: ordered, sannsynlig_n: SANN.length,
     laveste: { downside: lav('saldo_downside'), base: lav('saldo_base'), plan: lav('saldo_plan') },
