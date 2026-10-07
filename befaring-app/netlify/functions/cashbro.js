@@ -323,12 +323,28 @@ async function buildCashbro(ctx) {
   const bank = Number(ctx.bank || 0);
   const kurve = beregnKurve(ROWS, months, bank, PAR.downside_sannsynlig_faktor);
   const lav = (k) => kurve.reduce((m, c) => c[k] < m[k] ? c : m, kurve[0]);
+  // ── Resultat før skatt: fasit hittil fra saldobalansen (klasse 3–8) + enkel prognose ut året (ANSLAG, vises med formel) ──
+  let inntektYtd = 0, kostYtd = 0, ekSum = 0; for (const [a, v] of Object.entries(TB)) { const n = +a; if (n >= 3000 && n < 4000) inntektYtd += -v; else if (n >= 4000 && n < 9000) kostYtd += v; else if (n >= 2000 && n < 2100) ekSum += -v; }
+  const resultatYtd = inntektYtd - kostYtd;
+  const mndIgjen = Math.max(0, 12 - TODAY.getUTCMonth() - (TODAY.getUTCDate() - 1) / 30.44);
+  const pfOms = {}; for (const it of items || []) { const w = it.megler || 'ukjent'; pfOms[w] = (pfOms[w] || 0) + Number(it.forventet || 0); }
+  for (const r of ordered) { const w = r.solgt_av || 'ukjent'; pfOms[w] = (pfOms[w] || 0) + Number(r.oms_eks || 0); }
+  const sos = (w) => 1 + PAR.aga_sats + (PAR.fp_sats_person[w] ?? 0.102);
+  const satsAv = (w) => w === 'Sindre' ? PAR.sindre_provisjonssats : PAR.megler_provisjonssats;
+  let omsRest = 0, meglerkostRest = 0; const perMegler = {}; for (const [w, o] of Object.entries(pfOms)) { const mk = o * satsAv(w) * sos(w); omsRest += o; meglerkostRest += mk; perMegler[w] = { omsetning: Math.round(o), meglerkost: Math.round(mk), sats: satsAv(w) }; }
+  let fastRest = 0; for (const f of PAR.fastlonn) { const slutt = f.til ? D(f.til) : null; const m = slutt ? Math.max(0, Math.min(mndIgjen, (slutt - TODAY) / 864e5 / 30.44)) : mndIgjen; fastRest += f.brutto_mnd * (1 + PAR.aga_sats + (f.fp_sats || 0)) * m; }
+  const driftRest = (DRIFT + PERSONAL) * mndIgjen;
+  const RESULTAT = { per: TB_DATO, ytd: { inntekt: Math.round(inntektYtd), kostnader: Math.round(kostYtd), resultat: Math.round(resultatYtd) }, egenkapital_bokfort: Math.round(ekSum),
+    prognose: { mnd_igjen: +mndIgjen.toFixed(1), omsetning_rest: Math.round(omsRest), per_megler: perMegler, meglerkost_rest: Math.round(meglerkostRest), fastlonn_rest: Math.round(fastRest), drift_rest: Math.round(driftRest), drift_mnd: DRIFT + PERSONAL,
+      resultat_aar: Math.round(resultatYtd + omsRest - meglerkostRest - fastRest - driftRest), anslag: true,
+      formel: 'resultat hittil (PO klasse 3–8) + forventet omsetning ut året (portefølje × sannsynlighet + signerte kjøpekontrakter) − provisjon med AGA og feriepenger − fastlønn − drift (6xxx/7xxx + 55xx/59xx, snitt per måned hittil × måneder igjen). Skatt 22 % kommer i tillegg.' } };
   const sindreAar = TODAY.getUTCFullYear();
   return {
     generert: iso(TODAY), bank, bank_kilde: ctx.bankKilde || null, saldobalanse_dato: TB_DATO, maaneder: months,
     param: { ...PAR, drift_mnd: DRIFT, direkte_mnd: DIREKTE, personal_annet_mnd: PERSONAL },
     kostkalender: { apne_poster: Math.round(kalSum.apen), avtaler: Math.round(kalSum.avtale), variabel: Math.round(kalSum.variabel), rader: kalender.length },
     foto: { mangler: fotoMangler, avvik: fotoAvvik, snitt_per_nytt_oppdrag: fotoSnitt },
+    resultat: RESULTAT,
     saldobalanse: { bank_1920: tb(1920), kundefordringer_1500: tb(1500), leverandorgjeld_2400: tb(2400), skyldig_aga_2770: tb(2770), mva_posisjon: MVA_POS, mva_innevarende_termin: curMva, skyldige_feriepenger_2940: tb(2940), avsatt_utbytte_2800: tb(2800), annen_kortsiktig_gjeld_2990: tb(2990), billan_2242: tb(2242), betalbar_skatt_2500: tb(2500), drift_ytd: Math.round(driftYtd), lonn_5000_ytd: tb(5000) },
     provisjon_til_gode: TIL_GODE,
     sindre: { modell: 'pott', utbetalt_hittil: PAR.sindre_utbetalt[sindreAar] || 0, tak: PAR.sindre_tak_aar, rom_under_tak_i_aar: Math.round(Math.max(0, PAR.sindre_tak_aar - (SINDRE_AKK[sindreAar] || 0))),
