@@ -154,6 +154,9 @@ async function buildScorecardState(sb) {
       if (inn && av && inn !== av && !fulltTilSelger) { add(d, unitOf(inn), 'omsetning', oms / 2); add(d, unitOf(av), 'omsetning', oms / 2); }
       else add(d, unitOf(av), 'omsetning', oms);
     }
+    // Kilde bak tallene: hver solgt båt med andel per enhet (samme regel som over) — vises i cockpit når et tall klikkes
+    state.salg = sales.map(x => { const fullt = x.inn === 'Daniel' && x.av !== 'Daniel' && x.dato >= P.DANIEL_SLUTT; const andel = {}; if (x.inn && x.av && x.inn !== x.av && !fullt) { andel[unitOf(x.inn)] = (andel[unitOf(x.inn)] || 0) + x.oms / 2; andel[unitOf(x.av)] = (andel[unitOf(x.av)] || 0) + x.oms / 2; } else andel[unitOf(x.av)] = x.oms; return { ...x, andel }; });
+    state.salg_kilde = `Oppgjørsark 2026 (Dropbox, samme ark som oppgjørsmodulen) · 50/50 ved samarbeid · Daniels oppdrag solgt av andre etter ${P.DANIEL_SLUTT} teller 100 % på selger`;
     state.meta.sources.ark = { ok: true, rader: sales.length, siste_solgt: sales.map(s => s.dato).sort().slice(-1)[0], uten_oppdragsnr: sales.filter(s => !s.nr).map(s => s.bat) };
   } catch (e) { state.meta.sources.ark = { ok: false, error: e.message }; }
 
@@ -240,6 +243,7 @@ async function buildScorecardState(sb) {
     perUke[u] = { omsetning: Math.round(oms), solgt: +solgt.toFixed(2), signert: +signert.toFixed(2), leads: +leads.toFixed(1), kontakter: u === 'Henrik' ? P.KONTAKTER_MAL : (u === 'Selskap' ? P.KONTAKTER_MAL : null), publisert_7d_pct: 100, rest };
   }
   state.plan = { periode: 'H2 2026', maal: P.H2.maal, levert: Object.fromEntries(Object.entries(levert).map(([k, v]) => [k, Math.round(v)])), uker_igjen: ukerIgjen, uke_na: curKey, per_uke: perUke,
+    h2_start: P.H2.start, h2_slutt: P.H2.slutt || null,
     konstanter: { inntekt_per_bat: P.INNT, oppdrag_per_salg: P.OPPDRAG_PER_SALG, vinnrate_proxy: P.VINNRATE_PROXY, lead_til_befaring: P.LEAD_TIL_BEFARING, kontakter_mal: P.KONTAKTER_MAL, publisert_mal_dager: P.PUBLISERT_MAL_DAGER },
     note: 'rest-mål = (mål − levert) ÷ hele uker igjen; regnes om hver natt. 2027: kvartalsmål fra Økonomimotor med besluttet bemanning.' };
 

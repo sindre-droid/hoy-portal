@@ -20,6 +20,11 @@
 *{box-sizing:border-box}html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;min-height:100vh;font-feature-settings:"tnum" 1,"cv11" 1}
 h1,h2,h3{margin:0}a{color:var(--brand2)}button{font-family:inherit}
+[data-k]{cursor:pointer;text-decoration:underline dotted;text-decoration-color:var(--ink3);text-underline-offset:4px}[data-k]:hover{text-decoration-color:var(--brand2)}
+.kilde{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:50;padding:24px}.kilde.on{display:flex;align-items:flex-start;justify-content:center}
+.kbox{background:var(--panel);color:var(--ink);border-radius:16px;max-width:1100px;width:100%;max-height:calc(100vh - 48px);display:flex;flex-direction:column;box-shadow:var(--shadow)}
+.khead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:18px 20px 10px;border-bottom:1px solid var(--line)}.khead h2{font-size:16px}
+.kbody{overflow:auto;padding:12px 20px 20px}.kbody table{font-size:12.5px}.kbody .sum td{font-weight:700;border-top:2px solid var(--line2)}.kfoot{font-size:12px;color:var(--ink2);margin-top:10px}
 .screen{min-height:100vh;display:flex;align-items:center;justify-content:center}
 .screen .box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:32px 36px;text-align:center;max-width:420px;box-shadow:var(--shadow)}
 
@@ -124,8 +129,8 @@ svg .b-act{fill:var(--brand2)}svg .b-ly{fill:var(--ink3);opacity:.35}svg .plan{f
     <div class="goal" id="goal"></div>
     <div class="nav" id="nav">
       <button data-tab="na" aria-selected="true">Nå <small>uke for uke</small></button>
-      <button data-tab="aar">Året <small>måned · fjorår · lønnsomhet</small></button>
-      <button data-tab="plan">Planen <small>2027 · 1-3-5 · gate</small></button>
+      <button data-tab="aar">Året <small>kvartal · måned · fjorår</small></button>
+      <button data-tab="plan">Kassa <small>måned for måned</small></button>
     </div>
     <div>
       <div class="k" style="margin-bottom:6px">Vis for</div>
@@ -170,7 +175,7 @@ $('themeBtn').onclick=()=>{const next=document.documentElement.getAttribute('dat
 try{applyTheme(localStorage.getItem('hoy_cockpit_theme')||'light');}catch{applyTheme('light');}
 document.querySelectorAll('#unitSeg button').forEach(b=>b.onclick=()=>{UNIT=b.dataset.u;document.querySelectorAll('#unitSeg button').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));render();});
 document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
-function showTab(t){TAB=['na','aar','plan'].includes(t)?t:'na';document.querySelectorAll('#nav button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===TAB?'true':'false'));['na','aar','plan'].forEach(x=>$('pane-'+x).classList.toggle('on',x===TAB));$('title').textContent={na:'Nå',aar:'Året',plan:'Planen'}[TAB];if(location.hash!=='#'+TAB)history.replaceState(null,'','#'+TAB);}
+function showTab(t){TAB=['na','aar','plan'].includes(t)?t:'na';document.querySelectorAll('#nav button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===TAB?'true':'false'));['na','aar','plan'].forEach(x=>$('pane-'+x).classList.toggle('on',x===TAB));$('title').textContent={na:'Nå',aar:'Året',plan:'Kassa'}[TAB];if(location.hash!=='#'+TAB)history.replaceState(null,'','#'+TAB);}
 window.addEventListener('hashchange',()=>showTab(location.hash.slice(1)));
 
 async function init(){
@@ -199,9 +204,8 @@ function renderGoal(){
     <div class="g sub"><span>levert ${pct(100*S.plan.levert.Selskap/S.plan.maal.Selskap)}</span><span>${nok(S.plan.levert.Selskap)}</span></div>
     <div class="g"><span>Helår 2026</span><b>${mnok(H.maal)}</b></div>
     <div class="g sub"><span>levert ${pct(100*H.levert/H.maal)}</span><span>${nok(H.levert)}</span></div>
-    <div class="g"><span>2027 resultat</span><b>i pluss</b></div>
-    <div class="g sub"><span>North Star 1,5 M → 3 M → 5 M</span></div>
-    <div class="g"><span>Ansette Q1</span><b style="color:${L.status==='GRØNT'?'var(--green)':'var(--red)'}">${L.status==='GRØNT'?'JA':'NEI'}</b></div>`;
+    <div class="g"><span>2027</span><b>1,5 M</b></div>
+    <div class="g sub"><span>resultat før skatt · målet</span></div>`;
 }
 const SRC_LABELS={ark:'Oppgjørsark',hubspot:'HubSpot',oneflow:'Oneflow',finn:'FINN',kurver:'Kurver',livslop:'Livsløp',aar:'Året',lonnsomhet:'PowerOffice',plan2027:'Motor',likviditet:'Likviditet'};
 function renderSources(){const src=S.meta?.sources||{};$('sources').innerHTML=Object.keys(src).map(k=>`<span class="src ${src[k]?.ok?'':'bad'}" title="${esc(src[k]?.error||'')}"><span class="dot"></span>${esc(SRC_LABELS[k]||k)}</span>`).join('');
@@ -209,6 +213,35 @@ function renderSources(){const src=S.meta?.sources||{};$('sources').innerHTML=Ob
 function renderBank(){const L=S.likviditet||{};const d=daysUntil(L.bank_consent_utlop);const live=L.bank_kilde==='live';const exp=d!=null&&d<=0,soon=d!=null&&d>0&&d<=14;
   $('bank').innerHTML=`<span class="src ${exp?'bad':''}"><span class="dot" style="background:${live&&!exp?'var(--green)':'var(--amber)'}"></span>${exp?'banksamtykke utløpt':(live?'DNB live':'bank fallback')} · ${d==null?'ingen kobling':(exp?'utløpt':d+' d')}</span>${(exp||soon||!live)?` <button class="btn ${exp||soon?'warn':''}" id="renewBtn" type="button" style="margin-top:6px">${exp?'Forny banktilgang':(soon?'Forny snart':'Koble bank')}</button>`:''}`;
   const rb=$('renewBtn');if(rb)rb.onclick=async()=>{rb.disabled=true;rb.textContent='Starter…';try{const r=await fetch(`${EB_API}?action=auth_start`,{method:'POST',headers:{Authorization:`Bearer ${token}`}});const j=await r.json();if(!r.ok||!j.url)throw new Error(j.error||'ingen URL');window.open(j.url,'_blank','noopener');rb.textContent='BankID åpnet ↗';}catch(e){alert('Kunne ikke starte bankkobling: '+e.message);rb.disabled=false;}};}
+
+/* ── KILDE · ingen tall uten kilde ──────────────────────────────────────────
+   Hvert klikkbart tall (data-k) åpner et panel med båtene, radene eller regelen bak. */
+const LAGN={sikker:'signert kjøpekontrakt',sannsynlig:'portefølje × sannsynlighet',plan:'budsjett',kost:'kostnad / lønn'};
+const mlab=m=>{if(!m)return '';const [y,mo]=String(m).split('-');return `${MN[+mo-1]} ${String(y).slice(2)}`;};
+function openKilde(title,sub,body){let k=$('kilde');if(!k){k=document.createElement('div');k.id='kilde';k.className='kilde';k.innerHTML='<div class="kbox"><div class="khead"><div><h2 id="ktitle"></h2><div class="sub" id="ksub"></div></div><button class="btn" id="kclose" type="button">Lukk</button></div><div class="kbody" id="kbody"></div></div>';document.body.appendChild(k);k.onclick=e=>{if(e.target===k)k.classList.remove('on');};k.querySelector('#kclose').onclick=()=>k.classList.remove('on');document.addEventListener('keydown',e=>{if(e.key==='Escape')k.classList.remove('on');});}
+  $('ktitle').textContent=title;$('ksub').textContent=sub||'';$('kbody').innerHTML=body;k.classList.add('on');$('kbody').scrollTop=0;}
+const andel=s=>UNIT==='Selskap'?s.oms:(s.andel?.[UNIT]||0);
+function salgListe(title,fra,til,extra){const rows=(S.salg||[]).filter(s=>s.dato>=fra&&s.dato<=til&&(extra?extra(s):true)&&andel(s)>0).sort((a,b)=>b.dato.localeCompare(a.dato));
+  const sumO=rows.reduce((a,s)=>a+andel(s),0),sumS=rows.reduce((a,s)=>a+(s.salgssum||0),0);
+  const body=`<table><thead><tr><th>Solgt</th><th>Nr</th><th>Båt</th><th>Inn</th><th>Solgt av</th><th class="num">Salgssum</th><th class="num">Omsetning eks. mva</th><th class="num">${esc(UNAME[UNIT])}s andel</th><th class="num">Prov. %</th></tr></thead><tbody>
+    ${rows.map(s=>`<tr><td>${dato(s.dato)}</td><td class="muted">${esc(s.nr||'—')}</td><td>${esc(s.bat)}</td><td class="muted">${esc(s.inn)}</td><td>${esc(s.av)}</td><td class="num">${nok(s.salgssum)}</td><td class="num">${nok(s.oms)}</td><td class="num"><b>${nok(andel(s))}</b></td><td class="num muted">${s.salgssum?(100*s.oms*1.25/s.salgssum).toLocaleString('nb-NO',{maximumFractionDigits:2})+' %':'—'}</td></tr>`).join('')||'<tr><td colspan="9" class="empty">ingen salg i perioden</td></tr>'}
+    <tr class="sum"><td colspan="5">${rows.length} båter</td><td class="num">${nok(sumS)}</td><td class="num">${nok(rows.reduce((a,s)=>a+s.oms,0))}</td><td class="num">${nok(sumO)}</td><td class="num">${sumS?(100*rows.reduce((a,s)=>a+s.oms,0)*1.25/sumS).toLocaleString('nb-NO',{maximumFractionDigits:2})+' %':'—'}</td></tr></tbody></table>
+    <div class="kfoot">Kilde: ${esc(S.salg_kilde||'oppgjørsark')}. Prov. % = omsetning × 1,25 ÷ salgssum.</div>`;
+  openKilde(title,`${dato(fra)} – ${dato(til)} · ${UNAME[UNIT]}`,body);}
+function kassaRader(m,retning){const cb=S.cashbro;const rows=cb.rader.filter(r=>r.dato.startsWith(m)&&(retning==='inn'?r.belop>0:r.belop<0)).sort((a,b)=>a.dato.localeCompare(b.dato)||a.belop-b.belop);
+  const sum=rows.reduce((a,r)=>a+r.belop,0);
+  const body=`<table><thead><tr><th>Dato</th><th>Hva</th><th>Lag</th><th class="num">Beløp</th><th>Kilde / note</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${dato(r.dato)}</td><td>${esc(r.linje)}</td><td><span class="chip ${r.lag==='plan'?'blue':r.lag==='sannsynlig'?'amber':r.lag==='sikker'?'green':''}">${esc(LAGN[r.lag]||r.lag)}</span></td><td class="num" style="color:${r.belop<0?'var(--red)':'inherit'}">${nok(r.belop)}</td><td class="muted">${esc(r.note||'')}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">ingen rader</td></tr>'}<tr class="sum"><td colspan="3">${rows.length} rader</td><td class="num">${nok(sum)}</td><td></td></tr></tbody></table>
+    <div class="kfoot">Rader merket «budsjett» ligger bare i kurven «Med budsjett». Bygget ${dato(cb.generert,true)}.</div>`;
+  openKilde(`${retning==='inn'?'Inn':'Ut'} ${mlab(m)}`,`alle kjente ${retning==='inn'?'innbetalinger':'utbetalinger'} i måneden, på betalingsdato`,body);}
+function pottKilde(){const cb=S.cashbro,si=cb.sindre||{};const pm=si.pott_opptjenes_horisont?.per_mnd||{};
+  const body=`<div class="kv"><span class="l">Til gode nå (opptjent, ikke utbetalt)</span><span class="r">${nok(si.pott_til_gode_na)}</span><span class="l">Utbetalt hittil i år (teller mot 7,1 G)</span><span class="r">${nok(si.utbetalt_hittil)}</span><span class="l">Rom under taket i år</span><span class="r">${nok(si.rom_under_tak_i_aar)}</span><span class="l">Opptjenes i horisonten (signert + portefølje + budsjett)</span><span class="r">${nok((si.pott_opptjenes_horisont?.sikker||0)+(si.pott_opptjenes_horisont?.sannsynlig||0)+(si.pott_opptjenes_horisont?.plan||0))}</span><span class="l">Igjen i potten ved horisontslutt</span><span class="r">${nok(si.pott_igjen_horisontslutt)}</span></div>
+    <h3 style="font-size:13px;margin-top:14px">Uttak i kurven</h3><table style="margin-top:6px"><thead><tr><th>Dato</th><th>Regel</th><th class="num">Ønsket</th><th class="num">Lagt ut</th><th>Dekket av</th></tr></thead><tbody>${(si.uttak||[]).map(u=>`<tr><td>${dato(u.dato)}</td><td>${esc(u.kilde)}</td><td class="num">${nok(u.onsket)}</td><td class="num"><b>${nok(u.tatt)}</b></td><td class="muted">${Object.entries(u.lag||{}).map(([l,v])=>`${LAGN[l]||l} ${nok(v)}`).join(' · ')}</td></tr>`).join('')}</tbody></table>
+    <h3 style="font-size:13px;margin-top:14px">Opptjening per måned framover</h3><div class="kv">${Object.entries(pm).sort().map(([m,v])=>`<span class="l">${mlab(m)}</span><span class="r">${nok(v)}</span>`).join('')}</div>
+    <div class="kfoot">${esc(si.note||'')} Regel: ${esc(si.uttak_regel?.note||'')} fra ${dato(si.uttak_regel?.fra)}, ${nok(si.uttak_regel?.mnd_belop)}/mnd.</div>`;
+  openKilde('Sindres pott','45 % av egen omsetning, uttak opp til 7,1 G per år',body);}
+const KILDER={salg:d=>salgListe(d.title||'Solgte båter',d.fra,d.til),mnd:d=>{const y=+d.y,m=+d.m;salgListe(`Solgt ${MN[m-1]} ${y}`,`${y}-${String(m).padStart(2,'0')}-01`,`${y}-${String(m).padStart(2,'0')}-31`);},
+  under6:d=>salgListe('Salg under 6 % (båter ≥ 750 000)',d.fra,d.til,s=>s.salgssum>=750000&&s.oms*1.25/s.salgssum<0.0595),kinn:d=>kassaRader(d.m,'inn'),kut:d=>kassaRader(d.m,'ut'),pott:()=>pottKilde()};
+document.addEventListener('click',e=>{const el=e.target.closest('[data-k]');if(!el)return;const f=KILDER[el.dataset.k];if(f)f(el.dataset);});
 
 /* ── NÅ ─────────────────────────────────────────────────────────────────── */
 const unitPlan=u=>S.plan?.per_uke?.[u]||S.plan?.per_uke?.Selskap||{};
@@ -218,11 +251,11 @@ const rowPlan=w=>(w.plan&&w.plan[UNIT])||unitPlan(UNIT);
 function last4(col){const ws=weeksSorted().filter(w=>!w.paagaar).slice(0,4);return ws.length?ws.reduce((a,w)=>a+(unitRow(w)[col]||0),0)/ws.length:null;}
 function actionFor(u,pf,pu,oppNavn){
   const t=pf.trengs_downside, must=(pf.ma_selge||[]).slice(0,6);
-  if(t) return `<div class="v md">${n1(t.signeringer)} nye signeringer</div><div class="t">≈ ${n1(t.salg)} salg · ${t.leads} leads (proxy) — gap ${nok(pf.gap_downside)} på downside. Må selge: </div><div class="must">${must.map(nr=>`<span title="${esc(oppNavn[nr]||'')}">${esc(nr)} ${esc((oppNavn[nr]||'').slice(0,18))}</span>`).join('')}</div>`;
-  return `<div class="v md">Dekket på downside</div><div class="t">margin ${nok(-pf.gap_downside)} · ikke press utover å selge porteføljen. Må selge: </div><div class="must">${must.map(nr=>`<span title="${esc(oppNavn[nr]||'')}">${esc(nr)} ${esc((oppNavn[nr]||'').slice(0,18))}</span>`).join('')||'<span>ingen</span>'}</div>`;
+  if(t) return `<div class="v md">${n1(t.signeringer)} nye signeringer</div><div class="t">≈ ${n1(t.salg)} salg · ${t.leads} leads (proxy) — gap ${nok(pf.gap_downside)} mot forsiktig anslag. Må selge: </div><div class="must">${must.map(nr=>`<span title="${esc(oppNavn[nr]||'')}">${esc(nr)} ${esc((oppNavn[nr]||'').slice(0,18))}</span>`).join('')}</div>`;
+  return `<div class="v md">Dekket på forsiktig anslag</div><div class="t">margin ${nok(-pf.gap_downside)} · ikke press utover å selge porteføljen. Må selge: </div><div class="must">${must.map(nr=>`<span title="${esc(oppNavn[nr]||'')}">${esc(nr)} ${esc((oppNavn[nr]||'').slice(0,18))}</span>`).join('')||'<span>ingen</span>'}</div>`;
 }
 function actionsAll(){
-  const P=S.portefolje?.per_megler||{}; const rows=['Henrik','Sindre'].map(u=>{const p=P[u]||{};const t=p.trengs_downside;return `<div style="margin-top:6px"><b>${UNAME[u]}:</b> ${t?`${n1(t.signeringer)} nye signeringer (≈ ${t.leads} leads, proxy) — gap ${nok(p.gap_downside)} på downside`:`dekket på downside (margin ${nok(-p.gap_downside)}) — selg porteføljen, ingen ekstra push`}</div>`;});
+  const P=S.portefolje?.per_megler||{}; const rows=['Henrik','Sindre'].map(u=>{const p=P[u]||{};const t=p.trengs_downside;return `<div style="margin-top:6px"><b>${UNAME[u]}:</b> ${t?`${n1(t.signeringer)} nye signeringer (≈ ${t.leads} leads, proxy) — gap ${nok(p.gap_downside)} mot forsiktig anslag`:`dekket på forsiktig anslag (margin ${nok(-p.gap_downside)}) — selg porteføljen, ingen ekstra push`}</div>`;});
   return `<div class="v md">Én person, ett tall</div><div class="t">${rows.join('')}</div>`;
 }
 function renderNa(){
@@ -230,9 +263,9 @@ function renderNa(){
   const sp=pf.spredning||{};const exp=maal?Math.min(100-Math.min(100,p||0),100*(pf.forventet||0)/maal):0;
   const oppNavn=Object.fromEntries((S.portefolje?.oppdrag||[]).map(o=>[o.nr,o.navn]));
   const stmt=`<div class="statement">
-    <div><span class="k">Her er vi</span><div class="v xl">${nok(lev)}</div><div class="t">av ${nok(maal)} i H2 · ${pct(p)} · ${S.plan.uker_igjen} hele uker igjen</div><div class="bar"><i style="width:${Math.min(100,p||0)}%"></i><i class="exp" style="width:${exp}%"></i></div></div>
-    <div><span class="k">Hit skal vi</span><div class="v xl">${nok(maal)}</div><div class="t">porteføljen ventes å gi <b>${nok(pf.bdu?.base)}</b> (Base, P50) · <b style="color:#ffd6cf">Downside ${nok(pf.bdu?.downside)}</b> (P25, kun prisede) · Upside ${nok(pf.bdu?.upside)} (P75, optimistisk kurve) → dekning ${pct(pf.dekning_pct)} base / <b>${pct(pf.dekning_downside_pct)} downside</b></div><div class="t" style="opacity:.7;font-size:12px">prisede ${nok(pf.scenarioer?.priset)} · uprisede (standard) ${nok(pf.scenarioer?.upriset_standard)} · ${pf.uten_pris} uten pris</div></div>
-    <div><span class="k">Slik kommer vi dit · besluttes på Downside</span>${UNIT==='Selskap'?actionsAll():actionFor(UNIT,pf,pu,oppNavn)}</div>
+    <div><span class="k">Her er vi</span><div class="v xl" data-k="salg" data-title="Solgt H2 ${(S.plan.h2_start||'').slice(0,4)}" data-fra="${S.plan.h2_start||'2026-07-01'}" data-til="${S.plan.h2_slutt||'2026-12-31'}">${nok(lev)}</div><div class="t">av ${nok(maal)} i H2 · ${pct(p)} · ${S.plan.uker_igjen} hele uker igjen</div><div class="bar"><i style="width:${Math.min(100,p||0)}%"></i><i class="exp" style="width:${exp}%"></i></div></div>
+    <div><span class="k">Hit skal vi</span><div class="v xl">${nok(maal)}</div><div class="t">porteføljen ventes å gi <b>${nok(pf.bdu?.base)}</b> (forventet) · <b style="color:#ffd6cf">forsiktig ${nok(pf.bdu?.downside)}</b> (kun prisede båter, lav kurve) · optimistisk ${nok(pf.bdu?.upside)} → dekning ${pct(pf.dekning_pct)} forventet / <b>${pct(pf.dekning_downside_pct)} forsiktig</b></div><div class="t" style="opacity:.7;font-size:12px">prisede ${nok(pf.scenarioer?.priset)} · uprisede (standard) ${nok(pf.scenarioer?.upriset_standard)} · ${pf.uten_pris} uten pris</div></div>
+    <div><span class="k">Slik kommer vi dit · besluttes på forsiktig anslag</span>${UNIT==='Selskap'?actionsAll():actionFor(UNIT,pf,pu,oppNavn)}</div>
   </div>`;
   // trakt
   const cur=weeksSorted().find(w=>w.paagaar);const c=cur?unitRow(cur):{};const kontakt=UNIT!=='Sindre';
@@ -268,7 +301,7 @@ function renderNa(){
     <details><summary>Vis oppdragene (${opp.length}) — de som må selge først</summary><div style="overflow-x:auto"><table style="margin-top:8px"><thead><tr><th>Nr</th><th>Båt</th><th>Megler</th><th class="num">Pris</th><th>Klasse</th><th class="num">Alder</th><th class="num">P(salg i år)</th><th class="num">Ventet</th></tr></thead><tbody>
     ${opp.map(o=>`<tr ${must.has(o.nr)?'style="background:var(--brand-soft)"':''}><td class="muted">${esc(o.nr)}${must.has(o.nr)?' <span class="chip green">må</span>':''}</td><td>${esc(o.navn||'')}${o.kilde==='oppdragsmodul'?' <span class="chip blue">ny</span>':''}</td><td class="muted">${esc(o.megler)}${o.omfordelt_fra?` <span class="chip blue" title="fra ${esc(o.omfordelt_fra)}">omf.</span>`:''}</td><td class="num">${o.pris?nok(o.pris):'<span style="color:var(--red)">mangler</span>'}</td><td class="muted">${esc(o.prisklasse)}</td><td class="num">${o.alder_dager} d</td><td class="num">${pct(100*o.p_salg_i_ar)}</td><td class="num"><b>${nok(o.forventet)}</b></td></tr>`).join('')}</tbody></table></div></details></div>`;
   const L=S.likviditet||{};const ok=L.status==='GRØNT';
-  const likv=`<div class="line"><div><span class="k">Reell bank</span><div class="v">${nok(L.reell_bank)}</div></div><div><span class="k">Laveste ventet kasse (Base)</span><div class="v ${isNum(L.laveste_base)&&L.laveste_base<L.buffer?'neg':''}">${nok(L.laveste_base)} <span class="unit">${L.laveste_base_mnd?mlab(L.laveste_base_mnd):esc(L.laveste_label||'')}</span></div></div><div><span class="k">Buffer</span><div class="v">${nok(L.buffer)}</div></div><div><span class="k">Ansettelse Q1 2027</span><div class="st ${ok?'g':'r'}">${ok?'JA — gaten er åpen':'NEI — '+nok(L.mangler)+' under buffer'}</div></div><div class="note" style="margin:0;max-width:34ch">${esc(L.regel||'')} · frist ${dato(L.gate_frist)}</div></div>`;
+  const likv=`<div class="line"><div><span class="k">Bank i dag</span><div class="v">${nok(L.reell_bank)}</div></div><div><span class="k">Laveste forventet kasse</span><div class="v ${isNum(L.laveste_base)&&L.laveste_base<L.buffer?'neg':''}">${nok(L.laveste_base)} <span class="unit">${L.laveste_base_mnd?mlab(L.laveste_base_mnd):esc(L.laveste_label||'')}</span></div></div><div><span class="k">Buffer</span><div class="v">${nok(L.buffer)}</div></div><div><span class="k">Sindre i potten</span><div class="v" data-k="pott">${nok(S.cashbro?.sindre?.pott_til_gode_na)}</div></div><div class="note" style="margin:0;max-width:34ch">Hele kurven og hver inn- og utbetaling ligger under «Kassa».</div></div>`;
   $('pane-na').innerHTML=stmt+chain+table+lists+port+likv;
 }
 
@@ -280,7 +313,7 @@ function renderAar(){
   const levYtd=ytd(act,12),plYtd=UNIT==='Selskap'?H.ytd_plan:ytd(pl,cur),lyYtd=ytd(ly,cur),lyYear=ytd(ly,12);
   const maal=UNIT==='Selskap'?H.maal:(A.h1_fasit[UNIT]||0)+(S.plan.maal[UNIT]||0);
   const head=`<div class="grid g4">
-    <div class="card"><span class="k">Levert ${A.year} hittil</span><div class="v">${nok(levYtd)}</div><div class="note">${UNIT==='Selskap'?`H1 ${nok(A.h1_fasit.Selskap)} + H2 ${nok(S.plan.levert.Selskap)}`:`H1 ${nok(A.h1_fasit[UNIT])} + H2 ${nok(S.plan.levert[UNIT])}`}</div></div>
+    <div class="card"><span class="k">Levert ${A.year} hittil</span><div class="v" data-k="salg" data-title="Solgt ${A.year} hittil" data-fra="${A.year}-01-01" data-til="${A.year}-12-31">${nok(levYtd)}</div><div class="note">${UNIT==='Selskap'?`H1 ${nok(A.h1_fasit.Selskap)} + H2 ${nok(S.plan.levert.Selskap)}`:`H1 ${nok(A.h1_fasit[UNIT])} + H2 ${nok(S.plan.levert[UNIT])}`}</div></div>
     <div class="card"><span class="k">Helårsmål ${A.year}</span><div class="v">${nok(maal)}</div><div class="note">${pct(100*levYtd/maal)} levert · ${UNIT==='Selskap'?'H1 fasit + 2,9 M revidert plan':'H1 fasit + H2-mål'}</div><div class="bar"><i class="${cls(levYtd,plYtd)}" style="width:${Math.min(100,100*levYtd/maal)}%"></i></div></div>
     <div class="card"><span class="k">Mot plan hittil</span><div class="v ${levYtd>=plYtd?'pos':'neg'}">${nok(levYtd-plYtd,{sign:true})}</div><div class="note">plan t.o.m. ${MN[cur-1]}: ${nok(plYtd)}</div></div>
     <div class="card"><span class="k">Mot fjoråret</span><div class="v ${levYtd>=lyYtd?'pos':'neg'}">${lyYtd?pct(100*(levYtd/lyYtd-1)):'—'}</div><div class="note">${A.year-1} samme periode ${nok(lyYtd)} · helår ${nok(lyYear)}</div></div></div>`;
@@ -293,155 +326,58 @@ function renderAar(){
   const chart=`<div class="card" style="margin-top:14px"><h2>Måned for måned · omsetning eks. mva <span class="chip">${UNAME[UNIT]}</span></h2><div class="sub">${esc(A.note)}</div><div class="chartwrap" id="aarChart">${svg}<div class="tip" id="aarTip"></div></div>
     <div class="legend"><span><i class="sw" style="background:var(--brand2)"></i>${A.year}</span><span><i class="sw" style="background:var(--ink3);opacity:.35"></i>${A.year-1}</span><span><i class="sw" style="background:var(--amber);height:3px;border-radius:2px"></i>plan ${A.year}</span></div>
     <details><summary>Vis tallene</summary><div style="overflow-x:auto"><table style="margin-top:8px"><thead><tr><th>Mnd</th><th class="num">${A.year}</th><th class="num">Plan</th><th class="num">Avvik</th><th class="num">${A.year-1}</th><th class="num">Solgt ${A.year}</th></tr></thead><tbody>${Array.from({length:12},(_,i)=>i+1).map(m=>`<tr class="${m===cur?'now':''}"><td>${MN[m-1]}</td><td class="num"><b>${nok(act[m])}</b></td><td class="num muted">${nok(pl[m])}</td><td class="num" style="color:${(act[m]||0)>=(pl[m]||0)?'var(--green)':'var(--red)'}">${m<=cur?nok((act[m]||0)-(pl[m]||0),{sign:true}):''}</td><td class="num muted">${nok(ly[m])}</td><td class="num">${sold[m]||0}</td></tr>`).join('')}<tr class="total"><td>Sum</td><td class="num">${nok(levYtd)}</td><td class="num">${nok(ytd(pl,12))}</td><td class="num">${nok(levYtd-plYtd,{sign:true})}</td><td class="num">${nok(lyYear)}</td><td class="num">${ytd(sold,12)}</td></tr></tbody></table></div></details></div>`;
-  // lønnsomhet
-  const LO=S.lonnsomhet||{};const groups={per_prisklasse:'Prisklasse',per_battype:'Båttype',per_merke:'Merke',per_megler:'Megler',per_kilde:'Oppdragskilde'};const rows=(LO[LON]||[]);
-  const lon=`<div class="card" style="margin-top:14px"><h2>Hva som funker · oppdrag signert 2024→ <span class="tabs2">${Object.entries(groups).map(([k,v])=>`<button data-lon="${k}" aria-pressed="${LON===k}">${v}</button>`).join('')}</span></h2>
-    <div class="sub">Close-rate = solgt av avgjorte. Bidrag = provisjonsinntekt − meglerlønn − direkte kost på PowerOffice-prosjektet (bilag fra mai 2025, kun der prosjektet har bilag). ${esc(LO.note||'')}</div>
-    <div style="overflow-x:auto"><table style="margin-top:8px"><thead><tr><th>${groups[LON]}</th><th class="num">Oppdrag</th><th class="num">Solgt</th><th class="num">Close</th><th class="num">Median oms</th><th class="num">Sum oms</th><th class="num">Median dager</th><th class="num">Median direkte kost</th><th class="num">Median bidrag</th><th class="num">n (PO)</th></tr></thead><tbody>
-    ${rows.length?rows.map(g=>`<tr><td><b>${esc(g.gruppe)}</b></td><td class="num">${g.oppdrag}</td><td class="num">${g.solgt}</td><td class="num">${pct(g.close_rate)}</td><td class="num">${nok(g.median_oms)}</td><td class="num">${nok(g.sum_oms)}</td><td class="num">${g.median_dager??'—'}</td><td class="num">${nok(g.median_direkte)}</td><td class="num" style="color:${(g.median_bidrag||0)<0?'var(--red)':'inherit'}">${nok(g.median_bidrag)}</td><td class="num muted">${g.po_n}</td></tr>`).join(''):'<tr><td colspan="10" class="empty">ingen grupper med ≥3 oppdrag — for kilde: fyll «Oppdragskilde» i arket</td></tr>'}</tbody></table></div></div>`;
-  // spaker
-  const sp=S.spaker||{},ipb=sp.inntekt_per_bat||{},ep=sp.eff_provisjonsgrad||{},u6=sp.under_6pct||{},sb=sp.snittbat||{};const P27=S.plan2027;const eff=P27?P27.scenarioer[1].med_spaker.resultat-P27.scenarioer[1].baseline.resultat:null;
-  const spak=`<div class="card" style="margin-top:14px"><h2>Spakene · bedre økonomi per båt før flere stoler <span class="chip green">verdt ${nok(eff)} på 2027-resultatet</span></h2><div class="sub">status YTD mot spak-målene i 1-3-5-planen. Effekten er forskjellen mellom baseline og «med spakene» i motoren for beslutnings-bemanningen.</div>
-    <div style="overflow-x:auto"><table style="margin-top:8px"><thead><tr><th>Spak</th><th class="num">Nå (YTD)</th><th class="num">H2</th><th class="num">Fasit 12 mnd</th><th class="num">Mål</th><th>Status</th></tr></thead><tbody>
-    <tr><td><b>Inntekt per solgt båt</b><div class="note" style="margin:0">premium-miks + 6 %-disiplin</div></td><td class="num"><b>${nok(ipb.ytd)}</b></td><td class="num">${nok(ipb.h2)}</td><td class="num muted">${nok(ipb.fasit)}</td><td class="num">${nok(ipb.spak_maal)}</td><td>${isNum(ipb.h2)&&ipb.h2>=ipb.spak_maal?'<span class="chip green">over mål i H2</span>':'<span class="chip amber">under mål</span>'}</td></tr>
-    <tr><td><b>Effektiv provisjonsgrad</b><div class="note" style="margin:0">gap til 6 % = rabatter</div></td><td class="num"><b>${isNum(ep.ytd_pct)?ep.ytd_pct.toLocaleString('nb-NO')+' %':'—'}</b></td><td class="num">${isNum(ep.h2_pct)?ep.h2_pct.toLocaleString('nb-NO')+' %':'—'}</td><td class="num muted">5,79 %</td><td class="num">6 %</td><td>${isNum(ep.h2_pct)&&ep.h2_pct>=5.95?'<span class="chip green">holder i H2</span>':'<span class="chip amber">rabatter gis</span>'}</td></tr>
-    <tr><td><b>Salg under 6 %</b><div class="note" style="margin:0">${esc(u6.note||'')}</div></td><td class="num"><b>${u6.antall??'—'} av ${u6.av??'—'}</b></td><td class="num"></td><td class="num muted">13 av 38 (H1)</td><td class="num">0</td><td>${(u6.antall||0)>0?'<span class="chip red">krever godkjenning</span>':'<span class="chip green">ingen</span>'}</td></tr>
-    <tr><td><b>Snitt salgssum</b><div class="note" style="margin:0">premium-miks</div></td><td class="num"><b>${nok(sb.ytd)}</b></td><td class="num"></td><td class="num muted">1 260 458</td><td class="num">${nok(sb.spak_maal)}</td><td>${isNum(sb.ytd)&&sb.ytd>=sb.spak_maal?'<span class="chip green">over</span>':'<span class="chip amber">under</span>'}</td></tr>
-    <tr><td><b>Markedskost per signert oppdrag</b><div class="note" style="margin:0">15k-tak; fra PowerOffice-prosjektene</div></td><td class="num"><b>${nok((LO.per_megler||[]).length?median((LO.oppdrag||[]).filter(o=>o.signert>='2026').map(o=>o.po.direkte)):null)}</b></td><td class="num"></td><td class="num muted">6 600</td><td class="num">4 552</td><td><span class="chip">median direkte kost 2026-oppdrag</span></td></tr>
-    </tbody></table></div></div>`;
-  $('pane-aar').innerHTML=head+chart+lon+spak;
-  document.querySelectorAll('[data-lon]').forEach(b=>b.onclick=()=>{LON=b.dataset.lon;renderAar();});
-  const wrap=$('aarChart'),tip=$('aarTip');if(wrap){wrap.querySelectorAll('rect.hit').forEach(r=>{r.addEventListener('mouseenter',()=>{const m=+r.dataset.m;const b=wrap.getBoundingClientRect(),rb=r.getBoundingClientRect();tip.innerHTML=`<b>${MN[m-1]} ${A.year}</b> ${nok(act[m])} · plan ${nok(pl[m])} · ${A.year-1}: ${nok(ly[m])} · ${sold[m]||0} salg`;tip.style.left=(rb.left-b.left+rb.width/2)+'px';tip.style.top=(rb.top-b.top+10)+'px';tip.style.opacity=1;});r.addEventListener('mouseleave',()=>tip.style.opacity=0);});}
+  // kvartal
+  const q=(o,Q)=>[1,2,3].map(i=>(Q-1)*3+i).reduce((a,m)=>a+(o[m]||0),0);const qs=(Q)=>[1,2,3].map(i=>(Q-1)*3+i).reduce((a,m)=>a+(sold[m]||0),0);
+  const kvart=`<div class="card" style="margin-top:14px"><h2>Kvartal for kvartal · ${A.year} <span class="chip">${UNAME[UNIT]}</span></h2><div class="sub">klikk på et beløp for å se båtene bak. Plan for Q1–Q2 vises ikke: budsjettet fra mai ble forlatt 16.8 og erstattet av H2-planen på 2,9 M; helårsmålet er H1 som levert + 2,9 M.</div><div style="overflow-x:auto"><table style="margin-top:8px"><thead><tr><th>Kvartal</th><th class="num">Levert</th><th class="num">Plan</th><th class="num">Avvik</th><th class="num">${A.year-1}</th><th class="num">Mot fjorår</th><th class="num">Salg</th></tr></thead><tbody>
+    ${[1,2,3,4].map(Q=>{const a=q(act,Q),p=Q>=3?q(pl,Q):null,l=q(ly,Q);const now=Math.ceil(cur/3)===Q;return `<tr class="${now?'now':''}"><td><b>Q${Q}</b>${now?' <span class="chip">nå</span>':''}</td><td class="num"><b data-k="salg" data-title="Solgt Q${Q} ${A.year}" data-fra="${A.year}-${String((Q-1)*3+1).padStart(2,'0')}-01" data-til="${A.year}-${String(Q*3).padStart(2,'0')}-31">${nok(a)}</b></td><td class="num muted">${p==null?'—':nok(p)}</td><td class="num" style="color:${p==null?'inherit':a>=p?'var(--green)':'var(--red)'}">${p?nok(a-p,{sign:true}):'—'}</td><td class="num muted">${nok(l)}</td><td class="num">${l?pct(100*(a/l-1)):'—'}</td><td class="num">${qs(Q)}</td></tr>`;}).join('')}</tbody></table></div></div>`;
+  // nøkkeltall per båt (var «spakene»)
+  const sp=S.spaker||{},ipb=sp.inntekt_per_bat||{},ep=sp.eff_provisjonsgrad||{},u6=sp.under_6pct||{},sbt=sp.snittbat||{};
+  const nokkel=`<div class="grid g4" style="margin-top:14px">
+    <div class="card"><span class="k">Omsetning per solgt båt</span><div class="v sm" data-k="salg" data-title="Alle salg ${A.year}" data-fra="${A.year}-01-01" data-til="${A.year}-12-31">${nok(ipb.ytd)}</div><div class="note">hittil i år · H2 ${nok(ipb.h2)} · i fjor ${nok(ipb.fasit)}</div></div>
+    <div class="card"><span class="k">Provisjonsgrad</span><div class="v sm">${isNum(ep.ytd_pct)?ep.ytd_pct.toLocaleString('nb-NO')+' %':'—'}</div><div class="note">omsetning × 1,25 ÷ salgssum · standard 6 % · gapet er rabatter og minimumshonorar</div></div>
+    <div class="card"><span class="k">Salg under 6 %</span><div class="v sm" data-k="under6" data-fra="${A.year}-01-01" data-til="${A.year}-12-31">${u6.antall??'—'} av ${u6.av??'—'}</div><div class="note">båter ≥ 750 000 solgt under 5,95 %</div></div>
+    <div class="card"><span class="k">Snitt salgssum</span><div class="v sm">${nok(sbt.ytd)}</div><div class="note">hittil i år · selskapet</div></div></div>`;
+  $('pane-aar').innerHTML=head+kvart+chart+nokkel;
+  const wrap=$('aarChart'),tip=$('aarTip');if(wrap){wrap.querySelectorAll('rect.hit').forEach(r=>{r.addEventListener('mouseenter',()=>{const m=+r.dataset.m;const b=wrap.getBoundingClientRect(),rb=r.getBoundingClientRect();tip.innerHTML=`<b>${MN[m-1]} ${A.year}</b> ${nok(act[m])} · plan ${nok(pl[m])} · ${A.year-1}: ${nok(ly[m])} · ${sold[m]||0} salg`;tip.style.left=(rb.left-b.left+rb.width/2)+'px';tip.style.top=(rb.top-b.top+10)+'px';tip.style.opacity=1;});r.addEventListener('mouseleave',()=>tip.style.opacity=0);r.style.cursor='pointer';r.addEventListener('click',()=>KILDER.mnd({y:A.year,m:+r.dataset.m}));});}
 }
 function median(a){a=a.filter(isNum).sort((x,y)=>x-y);return a.length?a[Math.floor(a.length/2)]:null;}
 
-/* ── KASSA · SPILLBRETT ──────────────────────────────────────────────────────
-   Leser S.cashbro (rader + kurver fra nattbygget) og lar deg slå på trekk. Alt regnes i nettleseren:
-   kurven = bank + Σ rader per måned, med trekk lagt til som ekstra rader (lag 'trekk'), Sindre-taket
-   regnet på nytt fra ukappet brutto, og planlaget regenerert ved bytte av 2027-plan. */
-const SB_KEY='hoy_spillbrett_v1';
-const SB_DEF={buffer:500000,utbytte:{on:false,belop:700000,mnd:''},ansett:{on:false,start:'',ramp:3,oms_aar:1181250,fastkost:15000,garanti:0},sindre:{on:false,tak:969498},plan:{on:false,oms2027:4981250},inndriving:{on:false},disiplin:{on:false,lag:15},view:'base'};
-let MOVES=null;
-function sbLoad(){if(MOVES)return MOVES;try{MOVES={...SB_DEF,...JSON.parse(localStorage.getItem(SB_KEY)||'{}')};}catch{MOVES={...SB_DEF};}for(const k of ['utbytte','ansett','sindre','plan','inndriving','disiplin'])MOVES[k]={...SB_DEF[k],...(MOVES[k]||{})};return MOVES;}
-function sbSave(){try{localStorage.setItem(SB_KEY,JSON.stringify(MOVES));}catch{}}
-const sbMonths=()=>S.cashbro.maaneder;
-const sbD=s=>new Date(s+'T00:00:00Z');const sbIso=d=>d.toISOString().slice(0,10);const sbAdd=(d,n)=>new Date(d.getTime()+n*864e5);
-const sbNext=(d,n=1)=>new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+n,1));const sbYm=d=>sbIso(d).slice(0,7);
-const SEAS=[0.030,0.0524,0.0874,0.0554,0.1728,0.2095,0.1457,0.0554,0.0816,0.0340,0.0447,0.0311];
-const TERM={1:[4,10],3:[6,10],5:[8,31],7:[10,10],9:[12,10],11:[2,10]};
-function sbTermDato(d){const y=d.getUTCFullYear(),mo=d.getUTCMonth()+1,t0=mo%2?mo:mo-1;const [pm,pd]=TERM[t0];return new Date(Date.UTC(pm<t0?y+1:y,pm-1,pd));}
-const MNn=['jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov','des'];const mlab=m=>MNn[+m.slice(5)-1]+' '+m.slice(2,4);
-
-/* kurve — samme regel som cashbro.js beregnKurve */
-function sbKurve(rows,bank){const P=S.cashbro.param;let rd=bank,rb=bank,rp=bank;return sbMonths().map(m=>{const rs=rows.filter(r=>r.dato.startsWith(m));const sum=l=>rs.filter(r=>r.lag===l).reduce((a,r)=>a+r.belop,0);const inn=l=>rs.filter(r=>r.lag===l&&r.belop>0).reduce((a,r)=>a+r.belop,0);const sik=sum('sikker'),san=sum('sannsynlig'),pl=sum('plan'),ut=sum('kost')+sum('trekk');rd+=sik+san*P.downside_sannsynlig_faktor+ut;rb+=sik+san+ut;rp+=sik+san+pl+ut;
-  /* visning: inn per lag, kost = alle utbetalinger (drift, lønn, provisjoner i alle lag) unntatt trekk */
-  return {mnd:m,sikker:sik,sannsynlig:san,plan:pl,kost:ut,sikker_inn:inn('sikker'),sannsynlig_inn:inn('sannsynlig'),plan_inn:inn('plan'),ut_alle:(sik-inn('sikker'))+(san-inn('sannsynlig'))+(pl-inn('plan'))+sum('kost'),trekk:sum('trekk'),saldo_downside:Math.round(rd),saldo_base:Math.round(rb),saldo_plan:Math.round(rp)};});}
-
-/* Sindre-taket på nytt: rader med sindre_brutto bærer ukappet beløp; regn akkumulert per år fra utbetalt hittil */
-function sbRecapSindre(rows,tak){/* Sindres provisjon er en POTT (7.10.2026): legges aldri ut automatisk, verken fra server eller spillbrett. Rader med sindre_brutto nulles. */return rows.map(r=>r.sindre_brutto==null?r:{...r,belop:0,note:(r.note||'')+' · pott, ikke uttak'});}
-function sbRecapSindre_gammel(rows,tak){const cb=S.cashbro;const akk={};akk[+cb.generert.slice(0,4)]=cb.sindre.utbetalt_hittil;const out=[];for(const r of [...rows].sort((a,b)=>a.dato.localeCompare(b.dato))){if(r.sindre_brutto==null){out.push(r);continue;}const y=+r.dato.slice(0,4);const rom=Math.max(0,tak-(akk[y]||0));const u=Math.min(r.sindre_brutto,rom);akk[y]=(akk[y]||0)+u;const diff=-(u)-r.belop;/* endring i utbetaling → AGA følger (14,1 %) */out.push({...r,belop:-u});if(Math.abs(diff)>0.5)out.push({dato:r.dato,linje:'AGA-effekt av Sindre-tak',belop:Math.round(diff*0.141),lag:r.lag,note:'trekk'});}return out;}
-
-/* planlaget på nytt med annen 2027-omsetning (2026-månedene uendret) */
-function sbRegenPlan(rows,oms2027){const cb=S.cashbro,P=cb.param;const keep=rows.filter(r=>!(r.lag==='plan'&&r.dato>='2027-01-01'));const out=[...keep];const andelHenrik=1500000/oms2027;const sindreShare=(2300000)/oms2027;const nyShare=Math.max(0,1-andelHenrik-sindreShare);
-  for(const p of cb.plan){if(!p.mnd.startsWith('2027'))continue;const mo=+p.mnd.slice(5);const planOms=oms2027*SEAS[mo-1];const fyll=Math.max(0,planOms-p.dekket_eks);if(fyll<=0)continue;const m1=sbNext(sbD(p.mnd+'-01'));const cash=sbAdd(m1,15);const pay=sbNext(cash);
-    out.push({dato:sbIso(cash),linje:'nye oppdrag (motor − dekket)',belop:Math.round(fyll*1.25),lag:'plan',note:p.mnd});out.push({dato:sbIso(sbTermDato(cash)),linje:'mva plan',belop:-Math.round(fyll*0.25),lag:'plan',note:p.mnd});
-    const hp=fyll*andelHenrik*P.megler_provisjonssats;out.push({dato:sbIso(pay),linje:'meglerprovisjon Henrik plan',belop:-Math.round(hp),lag:'plan',note:p.mnd});out.push({dato:sbIso(pay),linje:'Marte bonus (10 % av Henriks provisjon)',belop:-Math.round(hp*P.marte_bonus_av_henrik_provisjon),lag:'plan',note:p.mnd});
-    if(nyShare>0)out.push({dato:sbIso(pay),linje:'meglerprovisjon ny stol plan (40 %)',belop:-Math.round(fyll*nyShare*0.40),lag:'plan',note:p.mnd});
-    out.push({dato:sbIso(pay),linje:'Sindre provisjon (45 %, tak 7,1 G)',belop:0,lag:'plan',note:p.mnd,sindre_brutto:Math.round(fyll*sindreShare*P.sindre_provisjonssats)});
-    out.push({dato:sbIso(sbD(p.mnd+'-01')),linje:'markedskost nye oppdrag',belop:-Math.round(fyll/P.inntekt_per_bat*P.oppdrag_per_salg*P.markedskost_per_oppdrag),lag:'plan',note:p.mnd});}
-  return out;}
-
-/* bygg radsett med trekk */
-function sbApply(){const cb=S.cashbro,P=cb.param,M=sbLoad();let rows=cb.rader.map(r=>({...r}));const today=cb.generert;const effekter=[];
-  if(M.plan.on)rows=sbRegenPlan(rows,M.plan.oms2027);
-  if(M.utbytte.on&&M.utbytte.mnd&&M.utbytte.belop>0)rows.push({dato:M.utbytte.mnd+'-15',linje:'utbytte (trekk)',belop:-Math.round(M.utbytte.belop),lag:'trekk',note:'avsatt 700 000 på konto 2800'});
-  if(M.ansett.on&&M.ansett.start){const st=sbD(M.ansett.start+'-01');for(const m of sbMonths()){const d1=sbD(m+'-01');if(d1<st)continue;const k=Math.round((d1-st)/864e5/30.44);rows.push({dato:sbIso(d1),linje:'ny stol · fastkost',belop:-Math.round(M.ansett.fastkost),lag:'trekk',note:'utstyr, programvare, forsikring'});if(M.ansett.garanti>0)rows.push({dato:sbIso(d1),linje:'ny stol · garantilønn',belop:-Math.round(M.ansett.garanti*1.141),lag:'trekk',note:'inkl AGA'});
-    if(k>=M.ansett.ramp){const oms=M.ansett.oms_aar*SEAS[d1.getUTCMonth()];const cash=sbAdd(sbNext(d1),15);rows.push({dato:sbIso(cash),linje:'ny stol · omsetning (motor)',belop:Math.round(oms*1.25),lag:'trekk',note:m});rows.push({dato:sbIso(sbTermDato(cash)),linje:'ny stol · mva',belop:-Math.round(oms*0.25),lag:'trekk',note:m});rows.push({dato:sbIso(sbNext(cash)),linje:'ny stol · provisjon 40 % + AGA',belop:-Math.round(oms*0.40*1.141),lag:'trekk',note:m});rows.push({dato:sbIso(d1),linje:'ny stol · markedskost',belop:-Math.round(oms/P.inntekt_per_bat*P.oppdrag_per_salg*P.markedskost_per_oppdrag),lag:'trekk',note:m});}}}
-  if(M.inndriving.on){const t7=sbIso(sbAdd(sbD(today),7));for(const r of rows)if(r.linje.startsWith('kundefordring')&&r.dato>t7)r.dato=t7;}
-  if(M.disiplin.on){const sh=P.cash_lag_sannsynlig_dager-M.disiplin.lag;if(sh>0)for(const r of rows)if(r.lag==='sannsynlig'){const d=sbAdd(sbD(r.dato),-sh);if(d>=sbD(today))r.dato=sbIso(d);}}
-  rows=sbRecapSindre(rows,M.sindre.on?M.sindre.tak:P.sindre_tak_aar);
-  rows=rows.filter(r=>sbMonths().includes(r.dato.slice(0,7)));
-  return rows;}
-
-function sbEffekt(key){/* effekt av hvert trekk alene på laveste i valgt kurve */const M=sbLoad();const base=sbLaveste(sbKurve(S.cashbro.rader,S.cashbro.bank),key);const out=[];for(const k of ['utbytte','ansett','sindre','plan','inndriving','disiplin']){if(!M[k].on)continue;const save=JSON.parse(JSON.stringify(M));for(const j of Object.keys(save))if(j!==k&&save[j]&&typeof save[j]==='object')save[j].on=false;const bak=MOVES;MOVES=save;const l=sbLaveste(sbKurve(sbApply(),S.cashbro.bank),key);MOVES=bak;out.push({k,delta:l.v-base.v});}return out;}
-const sbLaveste=(k,key)=>{const c=k.reduce((m,c)=>c[key]<m[key]?c:m,k[0]);return {mnd:c.mnd,v:c[key]};};
-const sbBrudd=(k,key,buffer)=>{const c=k.find(c=>c[key]<buffer);return c?c.mnd:null;};
-
-function renderSpillbrett(){const cb=S.cashbro;if(!cb)return '<div class="card" style="margin-top:14px"><h2>Kassa</h2><div class="empty">Cashbro mangler i bygget — trykk «Bygg på nytt».</div></div>';
-  const M=sbLoad(),P=cb.param;const rows=sbApply();const K0=sbKurve(cb.rader,cb.bank),K1=sbKurve(rows,cb.bank);const anyMove=['utbytte','ansett','sindre','plan','inndriving','disiplin'].some(k=>M[k].on);
-  const key={downside:'saldo_downside',base:'saldo_base',plan:'saldo_plan'}[M.view]||'saldo_base';const lab={downside:'Downside',base:'Base',plan:'Base + plan'};
-  const l0=sbLaveste(K0,key),l1=sbLaveste(K1,key);const b0=sbBrudd(K0,key,M.buffer),b1=sbBrudd(K1,key,M.buffer);
-  const ok=l1.v>=M.buffer;const mopts=(sel)=>sbMonths().map(m=>`<option value="${m}" ${m===sel?'selected':''}>${mlab(m)}</option>`).join('');
-  /* chart */
-  const W=980,Hh=300,pl0=64,pr=16,pt=16,pb=30;const all=[...K0,...K1].flatMap(c=>[c.saldo_downside,c.saldo_base,c.saldo_plan]).concat([M.buffer,0,cb.bank]);let lo=Math.min(...all),hi=Math.max(...all);const pad=(hi-lo)*0.08||1;lo-=pad;hi+=pad;
-  const n=sbMonths().length;const x=i=>pl0+(W-pl0-pr)*(i+0.5)/n;const y=v=>pt+(Hh-pt-pb)*(1-(v-lo)/(hi-lo));const step=Math.pow(10,Math.floor(Math.log10(hi-lo)))/2;const ticks=[];for(let v=Math.ceil(lo/step)*step;v<=hi;v+=step)ticks.push(v);
-  const path=(k,ky)=>k.map((c,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${y(c[ky]).toFixed(1)}`).join(' ');
+/* ── KASSA · måned for måned ─────────────────────────────────────────────────
+   Tre kurver fra de samme radene (S.cashbro.rader, bygget hver natt):
+     Forventet               = signert + portefølje × sannsynlighet − alle kjente kostnader
+     Hvis ingenting mer selges = bare signerte kjøpekontrakter − alle kjente kostnader
+     Med budsjett            = Forventet + budsjetterte salg utover porteføljen
+   Hvert tall i tabellen åpner radene bak. */
+function kassaKurver(cb){const months=cb.kurve.map(c=>c.mnd);let f=cb.bank,g=cb.bank,b=cb.bank;return months.map(m=>{const rs=cb.rader.filter(r=>r.dato.startsWith(m));const sum=fn=>rs.filter(fn).reduce((a,r)=>a+r.belop,0);
+  const inn=sum(r=>r.belop>0&&r.lag!=='plan'),ut=sum(r=>r.belop<0&&r.lag!=='plan'),innPlan=sum(r=>r.belop>0&&r.lag==='plan'),utPlan=sum(r=>r.belop<0&&r.lag==='plan');
+  const sik=sum(r=>r.lag==='sikker'),san=sum(r=>r.lag==='sannsynlig'),pl=sum(r=>r.lag==='plan'),ko=sum(r=>r.lag==='kost');f+=sik+san+ko;g+=sik+ko;b+=sik+san+pl+ko;return {mnd:m,inn,ut,innPlan,utPlan,forventet:f,gulv:g,budsjett:b};});}
+function laveste(K,key){let v=Infinity,mnd=null;for(const c of K)if(c[key]<v){v=c[key];mnd=c.mnd;}return {v,mnd};}
+function renderPlan(){const cb=S.cashbro;if(!cb){$('pane-plan').innerHTML='<div class="card"><h2>Kassa</h2><div class="empty">Kassa mangler i bygget — trykk «Bygg på nytt».</div></div>';return;}
+  const buffer=S.likviditet?.buffer||500000;const K=kassaKurver(cb);const lf=laveste(K,'forventet'),lg=laveste(K,'gulv');const brudd=K.find(c=>c.forventet<buffer);
+  const top=`<div class="statement" style="grid-template-columns:repeat(4,1fr)">
+    <div><span class="k">Bank i dag</span><div class="v md">${nok(cb.bank)}</div><div class="t">${cb.bank_kilde==='live'?'DNB driftskonto, live':esc(cb.bank_kilde||'')} · ${dato(cb.generert,true)}</div></div>
+    <div><span class="k">Laveste forventet</span><div class="v md" style="color:${lf.v>=buffer?'var(--brand-ink)':'#ffb4a8'}">${nok(lf.v)}</div><div class="t">${mlab(lf.mnd)} · ${lf.v>=buffer?`over bufferen på ${nok(buffer)}`:`${nok(buffer-lf.v)} under bufferen på ${nok(buffer)}`}${brudd?` · under buffer fra ${mlab(brudd.mnd)}`:''}</div></div>
+    <div><span class="k">Hvis ingenting mer selges</span><div class="v md" style="color:${lg.v>=0?'var(--brand-ink)':'#ffb4a8'}">${nok(lg.v)}</div><div class="t">${mlab(lg.mnd)} · bare signerte kjøpekontrakter mot alle kjente kostnader</div></div>
+    <div><span class="k">Sindre i potten</span><div class="v md" data-k="pott" style="text-decoration-color:rgba(255,255,255,.5)">${nok(cb.sindre?.pott_til_gode_na)}</div><div class="t">opptjent, ikke utbetalt · ${nok(cb.sindre?.uttak_lagt_i_kurven)} lagt ut i kurven</div></div></div>`;
+  /* kurve */
+  const W=980,Hh=300,pl0=64,pr=16,pt=16,pb=30;const all=K.flatMap(c=>[c.forventet,c.gulv,c.budsjett]).concat([buffer,0,cb.bank]);let lo=Math.min(...all),hi=Math.max(...all);const pad=(hi-lo)*0.08||1;lo-=pad;hi+=pad;
+  const n=K.length;const x=i=>pl0+(W-pl0-pr)*(i+0.5)/n;const y=v=>pt+(Hh-pt-pb)*(1-(v-lo)/(hi-lo));const step=Math.pow(10,Math.floor(Math.log10(hi-lo)))/2;const ticks=[];for(let v=Math.ceil(lo/step)*step;v<=hi;v+=step)ticks.push(v);
+  const path=ky=>K.map((c,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${y(c[ky]).toFixed(1)}`).join(' ');
   const svg=`<svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="Kassa måned for måned">${ticks.map(v=>`<line class="grid" x1="${pl0}" x2="${W-pr}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text class="axis" x="${pl0-8}" y="${(y(v)+4).toFixed(1)}" text-anchor="end">${(v/1000).toLocaleString('nb-NO')} k</text>`).join('')}
-    <line x1="${pl0}" x2="${W-pr}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}" stroke="var(--ink3)" stroke-width="1"/><line x1="${pl0}" x2="${W-pr}" y1="${y(M.buffer).toFixed(1)}" y2="${y(M.buffer).toFixed(1)}" stroke="var(--amber)" stroke-width="1.5" stroke-dasharray="5 4"/><text class="axis" x="${W-pr}" y="${(y(M.buffer)-5).toFixed(1)}" text-anchor="end" fill="var(--amber)">buffer ${nok(M.buffer)}</text>
-    <path d="${path(K0,'saldo_downside')}" fill="none" stroke="var(--red)" stroke-width="1.5" opacity=".55"/><path d="${path(K0,'saldo_base')}" fill="none" stroke="var(--brand2)" stroke-width="2" opacity="${anyMove?'.35':'1'}"/><path d="${path(K0,'saldo_plan')}" fill="none" stroke="var(--blue)" stroke-width="1.5" opacity=".55" stroke-dasharray="3 3"/>
-    ${anyMove?`<path d="${path(K1,key)}" fill="none" stroke="var(--ink)" stroke-width="2.5"/>`:''}
-    ${sbMonths().map((m,i)=>`<text class="axis" x="${x(i).toFixed(1)}" y="${Hh-8}" text-anchor="middle">${mlab(m)}</text>`).join('')}</svg>`;
-  const chk=(k,l,extra='')=>`<label class="mv ${M[k].on?'on':''}"><input type="checkbox" data-mv="${k}" ${M[k].on?'checked':''}><b>${l}</b>${extra}</label>`;
-  const eff=sbEffekt(key);const effOf=k=>{const e=eff.find(e=>e.k===k);return e?`<span class="eff ${e.delta>=0?'g':'r'}">${nok(e.delta,{sign:true})}</span>`:'';};
-  const moves=`<div class="moves">
-    ${chk('utbytte',`Utbytte ${effOf('utbytte')}`,`<div class="mvp"><input type="number" step="50000" data-mvp="utbytte.belop" value="${M.utbytte.belop}"> kr i <select data-mvp="utbytte.mnd"><option value="">velg måned</option>${mopts(M.utbytte.mnd)}</select><div class="note">avsatt 700 000 på konto 2800 — hele, halve, eller senere</div></div>`)}
-    ${chk('ansett',`Ansett megler ${effOf('ansett')}`,`<div class="mvp">start <select data-mvp="ansett.start"><option value="">velg måned</option>${mopts(M.ansett.start)}</select> · ramp <input type="number" min="0" max="9" data-mvp="ansett.ramp" value="${M.ansett.ramp}"> mnd · <input type="number" step="50000" data-mvp="ansett.oms_aar" value="${M.ansett.oms_aar}"> oms/år · fastkost <input type="number" step="1000" data-mvp="ansett.fastkost" value="${M.ansett.fastkost}">/mnd · garanti <input type="number" step="5000" data-mvp="ansett.garanti" value="${M.ansett.garanti}">/mnd<div class="note">omsetning fra motoren (1+1 − som i dag = 1 181 250/år, sesongfordelt) etter rampen; provisjon 40 % + AGA måneden etter oppgjør; mva terminvis</div></div>`)}
-    ${chk('sindre',`Sindres tak ${effOf('sindre')}`,`<div class="mvp"><input type="number" step="50000" data-mvp="sindre.tak" value="${M.sindre.tak}"> kr/år <span class="note" style="margin:0">(7,1 G = 969 498 · utbetalt i år ${nok(cb.sindre.utbetalt_hittil)})</span></div>`)}
-    ${chk('plan',`Bytt 2027-plan til 1+1 ${effOf('plan')}`,`<div class="mvp"><input type="number" step="100000" data-mvp="plan.oms2027" value="${M.plan.oms2027}"> kr omsetning 2027 <span class="note" style="margin:0">(som i dag 3 800 000 · beslutningen 4 981 250)</span></div>`)}
-    ${chk('inndriving',`Inndriving kundefordringer ${effOf('inndriving')}`,`<div class="note">${nok(cb.saldobalanse.kundefordringer_1500)} utestående betales innen 7 dager</div>`)}
-    ${chk('disiplin',`Oppgjørsdisiplin ${effOf('disiplin')}`,`<div class="mvp">cash <input type="number" min="3" max="32" data-mvp="disiplin.lag" value="${M.disiplin.lag}"> dager etter salg i stedet for ${P.cash_lag_sannsynlig_dager} (portefølje)</div>`)}
-    <div class="mv"><b>Buffer</b><div class="mvp"><select data-mvp="buffer"><option value="500000" ${M.buffer==500000?'selected':''}>500 000 normal</option><option value="300000" ${M.buffer==300000?'selected':''}>300 000 kun styregodkjent</option></select></div></div>
-  </div>`;
-  const tbl=`<div style="overflow-x:auto;margin-top:10px"><table><thead><tr><th>Måned</th><th class="num">Sikker inn</th><th class="num">Portefølje inn</th><th class="num">Plan inn</th><th class="num">Ut (kost + provisjoner)</th>${anyMove?'<th class="num">Trekk</th>':''}<th class="num">Downside</th><th class="num">Base</th><th class="num">Base+plan</th></tr></thead><tbody>${K1.map((c,i)=>`<tr class="${c.mnd===l1.mnd?'now':''}"><td><b>${mlab(c.mnd)}</b></td><td class="num">${nok(c.sikker_inn)}</td><td class="num">${nok(c.sannsynlig_inn)}</td><td class="num muted">${nok(c.plan_inn)}</td><td class="num">${nok(c.ut_alle)}</td>${anyMove?`<td class="num" style="color:${c.trekk<0?'var(--red)':'var(--green)'}">${nok(c.trekk,{sign:true})}</td>`:''}<td class="num" style="color:${c.saldo_downside<M.buffer?'var(--red)':'inherit'}">${nok(c.saldo_downside)}</td><td class="num" style="font-weight:700;color:${c.saldo_base<M.buffer?'var(--red)':'var(--green)'}">${nok(c.saldo_base)}</td><td class="num" style="color:${c.saldo_plan<M.buffer?'var(--red)':'inherit'}">${nok(c.saldo_plan)}</td></tr>`).join('')}</tbody></table></div>`;
-  const sikker=cb.sikker_kommende||[];const sik=`<details><summary>Sikre innbetalinger som ligger i løypa (${sikker.length}) · kjøpekontrakt signert, cash = overtakelse + 3 arbeidsdager</summary><ul class="list">${sikker.map(r=>`<li><span>${esc(r.nr||'—')} ${esc(r.navn.replace(/^\d{5}\s*-\s*/,'').replace(/kjøpekontrakt/i,'').slice(0,40))} <span class="chip">${esc(r.solgt_av||'')}</span></span><span class="n">${dato(r.cash)} · <b style="color:var(--ink)">${nok(r.provisjon_inkl)}</b></span></li>`).join('')}</ul></details>`;
-  const kost={};for(const r of cb.rader)if(r.lag==='kost')kost[r.linje]=(kost[r.linje]||0)+r.belop;const kostL=`<details><summary>Kostnadslinjene i horisonten · fra saldobalansen ${dato(cb.saldobalanse_dato)} og lønn per person</summary><div class="kv">${Object.entries(kost).sort((a,b)=>a[1]-b[1]).map(([k,v])=>`<span class="l">${esc(k)}</span><span class="r">${nok(v)}</span>`).join('')}</div><div class="note">Drift = 6xxx+7xxx hittil i år ÷ måneder (${nok(P.drift_mnd)}/mnd + mva) · Marte ${nok(450000/12)} + bonus · Philip 13 000 · Henrik 40 % + Marte 10 % av det · Sindre 45 % med tak 7,1 G · AGA terminvis · feriepenger ${nok(cb.feriepenger.til_gode&&Object.values(cb.feriepenger.til_gode.per).reduce((a,b)=>a+b,0))} + påløp ut juni 2027 · mva terminvis · billån 14 781/mnd · forskuddsskatt 2027 er anslag.</div></details>`;
-  const varsler=(cb.varsler||[]).length?`<div class="note" style="color:var(--amber)">${cb.varsler.map(v=>'⚠ '+esc(v)).join('<br>')}</div>`:'';
-  return `<div class="card" style="margin-top:14px"><h2>Kassa · spillbrett <span class="tabs2">${['base','downside','plan'].map(v=>`<button data-view="${v}" aria-pressed="${M.view===v}">${lab[v]}</button>`).join('')}</span></h2>
-    <div class="sub">Bank ${nok(cb.bank)} i dag (${esc(cb.bank_kilde||'')}). Kurven er alle kjente inn- og utbetalinger måned for måned: solgte båter med overtakelsesdato, porteføljen × sannsynlighet, motorens plan, og hver kostnad fra saldobalansen. Trekkene under legger seg oppå. Eneste harde regel er bufferen.</div>
-    <div class="statement" style="margin-top:12px;grid-template-columns:repeat(4,1fr)">
-      <div><span class="k">Laveste ${lab[M.view]}${anyMove?' med trekk':''}</span><div class="v md" style="color:${ok?'var(--brand-ink)':'#ffb4a8'}">${nok(l1.v)}</div><div class="t">${mlab(l1.mnd)}${anyMove?` · uten trekk ${nok(l0.v)} i ${mlab(l0.mnd)}`:''}</div></div>
-      <div><span class="k">Bufferen brytes</span><div class="v md">${b1?mlab(b1):'aldri'}</div><div class="t">${b1?`første måned under ${nok(M.buffer)}`:'holder hele horisonten'}${anyMove&&b0!==b1?` · uten trekk ${b0?mlab(b0):'aldri'}`:''}</div></div>
-      <div><span class="k">Gaten · ansettelse</span><div class="v md">${ok?'ÅPEN':'STENGT'}</div><div class="t">${ok?'laveste ≥ buffer med disse trekkene':`mangler ${nok(M.buffer-l1.v)} for å holde bufferen`}</div></div>
-      <div><span class="k">Juni 2027</span><div class="v md">${nok(K1[K1.length-1][key])}</div><div class="t">Sargo 993 540 inn 15. juni · feriepenger ut 1. juni</div></div></div>
-    <div class="chartwrap">${svg}</div><div class="legend"><span><i class="sw" style="background:var(--red)"></i>Downside (77 % av porteføljen)</span><span><i class="sw" style="background:var(--brand2)"></i>Base</span><span><i class="sw" style="background:var(--blue)"></i>Base + plan (motoren)</span>${anyMove?`<span><i class="sw" style="background:var(--ink)"></i>${lab[M.view]} med trekk</span>`:''}<span><i class="sw" style="background:var(--amber)"></i>buffer</span></div>
-    <h3 style="font-size:13px;margin-top:16px">Trekk <span class="note" style="display:inline;margin-left:8px">tallet ved hvert trekk = effekt på laveste ${lab[M.view]} alene</span></h3>${moves}${tbl}${sik}${kostL}${varsler}
-    <div class="note">${esc(cb.definisjoner)} Bygget ${dato(cb.generert)}.</div></div>`;}
-function bindSpillbrett(){const root=$('pane-plan');const M=sbLoad();
-  root.querySelectorAll('input[data-mv]').forEach(el=>el.onchange=()=>{M[el.dataset.mv].on=el.checked;sbSave();renderPlan();});
-  root.querySelectorAll('[data-mvp]').forEach(el=>el.onchange=()=>{const [a,b]=el.dataset.mvp.split('.');const v=el.type==='number'?Number(el.value):el.value;if(b)M[a][b]=v;else M[a]=Number(v);sbSave();renderPlan();});
-  root.querySelectorAll('button[data-view]').forEach(el=>el.onclick=()=>{M.view=el.dataset.view;sbSave();renderPlan();});}
-
-/* ── PLANEN ─────────────────────────────────────────────────────────────── */
-function renderPlan(){
-  const P27=S.plan2027,L=S.likviditet||{},K=S.kurver;if(!P27){$('pane-plan').innerHTML='<div class="empty">Plan mangler.</div>';return;}
-  const ns=P27.north_star;
-  const top=`<div class="statement"><div><span class="k">North Star</span><div class="v xl">1,5 M</div><div class="t">resultat før skatt i 2027 → 3 M i 2029 → 5 M i 2031, etter Sindre-lønn kappet på 7,1 G</div></div>
-    <div><span class="k">Hva 2027 faktisk er</span><div class="v md">Ende i pluss</div><div class="t">Absorbere Daniel · bygge kapasitet · bevise spakene · ende i pluss. Gapet til 1,5 M tas i 2028–29. Det er planen rådgiveren godkjente.</div></div>
-    <div><span class="k">Hva som avgjør neste år</span><div class="v md">${L.status==='GRØNT'?'Gaten er åpen':'Gaten er stengt'}</div><div class="t">Laveste ventet kasse (Base) ${nok(L.laveste_base)} i ${L.laveste_base_mnd?mlab(L.laveste_base_mnd):''} mot buffer ${nok(L.buffer)} → ${L.status==='GRØNT'?'én ansettelse i Q1 kan besluttes':'ingen ansettelse før ' + nok(L.mangler) + ' er lukket'}. Spill trekkene under for å se hva som åpner den.</div></div></div>`;
-  const row=(l,f,cls)=>`<tr><td>${l}</td>${P27.scenarioer.map(s=>`<td class="num ${cls||''}">${f(s)}</td>`).join('')}</tr>`;
-  const scen=`<div class="card" style="margin-top:14px"><h2>2027 med to bemanninger · samme motor som 1-3-5-planen</h2><div class="sub">${esc(P27.note)}</div>
-    <div style="overflow-x:auto"><table style="margin-top:8px"><thead><tr><th>Økonomimotor 2027</th>${P27.scenarioer.map((s,i)=>`<th class="num" style="${i<2?'color:var(--ink)':''}">${esc(s.navn)}<div style="font-weight:500;text-transform:none;letter-spacing:0">${['gjeldende beslutningsstatus','betinget — åpnes hvis gaten passerer','historisk referanse, ikke aktiv','feil forutsetning (Daniel)'][i]||''}</div></th>`).join('')}</tr></thead><tbody>
-    ${row('Rampede stoler ved nyttår + nye',s=>`${s.rampede_ved_start} + ${s.nyansettelser.reduce((a,b)=>a+b,0)}`)}
-    ${row('Producing FTE',s=>n1(s.baseline.fte))}
-    ${row('Omsetning eks. mva',s=>nok(s.baseline.omsetning))}
-    ${row('− meglerkost 55 %',s=>nok(s.baseline.meglerkost),'muted')}
-    ${row('− Sindre 7,1 G',s=>nok(s.baseline.sindre),'muted')}
-    ${row('− markedskost',s=>nok(s.baseline.markedskost),'muted')}
-    ${row('− kostbase',s=>nok(s.baseline.kostbase),'muted')}
-    <tr class="total"><td>Resultat baseline</td>${P27.scenarioer.map(s=>`<td class="num" style="color:${s.baseline.resultat>=0?'var(--green)':'var(--red)'}">${nok(s.baseline.resultat)}</td>`).join('')}</tr>
-    <tr class="total"><td>Resultat med spakene</td>${P27.scenarioer.map(s=>`<td class="num" style="color:${s.med_spaker.resultat>=0?'var(--green)':'var(--red)'}">${nok(s.med_spaker.resultat)}</td>`).join('')}</tr>
-    ${row('Gap til North Star 1,5 M (m/spaker)',s=>nok(s.med_spaker.resultat-ns[2027]))}
-    ${row('Signerte oppdrag inn per år',s=>n1(s.baseline.oppdrag_inn))}
-    ${row('Omsetning per uke (46 uker)',s=>nok(s.baseline.uke_oms))}
-    </tbody></table></div>
-    <div class="note">${P27.scenarioer.map(s=>`<b>${esc(s.navn)}:</b> ${esc(s.note)}`).join('<br>')}</div></div>`;
-  const spill=renderSpillbrett();
-  const gate=`<div class="grid g2" style="margin-top:14px">    <div class="card"><h2>Datagrunnlaget · sannsynlighet for salg</h2><div class="sub">${esc(K?.note||'')} — oppdateres hver natt.</div>
-    <div style="overflow-x:auto"><table style="margin-top:8px"><thead><tr><th>Prisklasse</th><th class="num">n</th><th class="num">solgt ≤90 d</th><th class="num">≤180 d</th><th class="num">≤365 d</th><th>grunnlag</th></tr></thead><tbody>${Object.entries(K?.klasser||{}).map(([k,v])=>`<tr><td><b>${esc(k)}</b></td><td class="num">${v.n}</td><td class="num">${pct(100*v.solgt_innen_90)}</td><td class="num">${pct(100*v.solgt_innen_180)}</td><td class="num">${pct(100*v.solgt_innen_365)}</td><td class="muted">${v.slatt_sammen_med?`slått sammen med ${esc(v.slatt_sammen_med)} (n=${v.n_brukt})`:'egen kurve'}</td></tr>`).join('')}</tbody></table></div>
-    <div class="note">Avsluttede usolgte oppdrag regnes som «selger aldri». Aktive oppdrag teller som usolgt fram til i dag. Kurven blir bedre for hvert salg.</div></div></div>`;
-  const sjekk=`<div class="card"><h2>Gaten · det som må være sant før én ansettelse</h2><div class="sub">beslutning 28.08: maks 1 megler Q1 2027, utbytte utsatt, buffer 500k normal / 300k kun styregodkjent</div><ul class="list"><li><span>Laveste ventet kasse (Base) ≥ buffer <b>etter</b> ny stol — spill «Ansett megler» over</span><span class="n" style="color:${L.status==='GRØNT'?'var(--green)':'var(--red)'}">${nok(L.laveste_base)} nå</span></li><li><span>Utbytte: 700 000 er avsatt (konto 2800), ikke betalt — spill «Utbytte» over</span><span class="n">åpent</span></li><li><span>Bankdatoer deal-for-deal: kjøpekontrakt → overtakelse + 3 arbeidsdager</span><span class="n" style="color:var(--green)">i kurven</span></li><li><span>Signert kandidat med startdato, onboarding og ramp</span><span class="n">ikke bekreftet</span></li></ul><div class="note">Sekvensering: bevis 1 stol, frys 1 kvartal, så vurder neste.</div></div>`;
-  $('pane-plan').innerHTML=top+spill+`<div class="grid g2" style="margin-top:14px">`+sjekk+gate.replace('<div class="grid g2" style="margin-top:14px">','')+scen;
-  bindSpillbrett();
+    <line x1="${pl0}" x2="${W-pr}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}" stroke="var(--ink3)" stroke-width="1"/><line x1="${pl0}" x2="${W-pr}" y1="${y(buffer).toFixed(1)}" y2="${y(buffer).toFixed(1)}" stroke="var(--amber)" stroke-width="1.5" stroke-dasharray="5 4"/><text class="axis" x="${W-pr}" y="${(y(buffer)-5).toFixed(1)}" text-anchor="end" fill="var(--amber)">buffer ${nok(buffer)}</text>
+    <path d="${path('gulv')}" fill="none" stroke="var(--red)" stroke-width="1.5" opacity=".6"/><path d="${path('budsjett')}" fill="none" stroke="var(--blue)" stroke-width="1.5" opacity=".6" stroke-dasharray="3 3"/><path d="${path('forventet')}" fill="none" stroke="var(--brand2)" stroke-width="2.5"/>
+    ${K.map((c,i)=>`<text class="axis" x="${x(i).toFixed(1)}" y="${Hh-8}" text-anchor="middle">${mlab(c.mnd)}</text>`).join('')}</svg>`;
+  const tbl=`<div style="overflow-x:auto;margin-top:10px"><table><thead><tr><th>Måned</th><th class="num">Inn</th><th class="num">Ut</th><th class="num">Forventet</th><th class="num">Hvis ingenting mer selges</th><th class="num">Budsjett utover porteføljen</th><th class="num">Med budsjett</th></tr></thead><tbody>${K.map(c=>`<tr class="${c.mnd===lf.mnd?'now':''}"><td><b>${mlab(c.mnd)}</b></td><td class="num" data-k="kinn" data-m="${c.mnd}">${nok(c.inn)}</td><td class="num" data-k="kut" data-m="${c.mnd}">${nok(c.ut)}</td><td class="num" style="font-weight:700;color:${c.forventet<buffer?'var(--red)':'inherit'}">${nok(c.forventet)}</td><td class="num" style="color:${c.gulv<0?'var(--red)':'var(--ink2)'}">${nok(c.gulv)}</td><td class="num muted">${nok(c.innPlan+c.utPlan,{sign:true})}</td><td class="num muted">${nok(c.budsjett)}</td></tr>`).join('')}</tbody></table></div>
+    <div class="note">Inn = innbetalinger på betalingsdato (kjøpekontrakt → overtakelse + 3 arbeidsdager; portefølje = pris × 6 % ÷ 1,25 × sannsynlighet, 32 dager etter ventet salg). Ut = alle kjente utbetalinger: åpne fakturaer i PowerOffice, faste avtaler på dato, lønn måneden etter overtakelse, mva- og AGA-terminer, feriepenger i juni, forskuddsskatt, foto per båt. Klikk på et tall for radene bak.</div>`;
+  const sikker=cb.sikker_kommende||[];const sik=`<details style="margin-top:10px"><summary>Signerte kjøpekontrakter som venter på overtakelse (${sikker.length})</summary><ul class="list">${sikker.map(r=>`<li><span>${esc(r.nr||'—')} ${esc(r.navn.replace(/^\d{5}\s*-\s*/,'').replace(/kjøpekontrakt/i,'').slice(0,40))} <span class="chip">${esc(r.solgt_av||'')}</span></span><span class="n">${dato(r.cash)} · <b style="color:var(--ink)">${nok(r.provisjon_inkl)}</b></span></li>`).join('')||'<li class="empty">ingen</li>'}</ul></details>`;
+  const kassa=`<div class="card" style="margin-top:14px"><h2>Kassa · ${K.length} måneder fram</h2><div class="sub">Samme rader, tre lesninger: <b>Forventet</b> er den vi styrer etter. <b>Hvis ingenting mer selges</b> er gulvet. <b>Med budsjett</b> legger til salg utover dagens portefølje.</div>
+    <div class="chartwrap">${svg}</div><div class="legend"><span><i class="sw" style="background:var(--brand2)"></i>Forventet</span><span><i class="sw" style="background:var(--red)"></i>Hvis ingenting mer selges</span><span><i class="sw" style="background:var(--blue)"></i>Med budsjett</span><span><i class="sw" style="background:var(--amber)"></i>buffer</span></div>${tbl}${sik}</div>`;
+  /* kostnadene i horisonten per linje — kilde bak «Ut» */
+  const kost={};for(const r of cb.rader)if(r.belop<0&&r.lag!=='plan')kost[r.linje]=(kost[r.linje]||0)+r.belop;
+  const kostL=`<div class="card" style="margin-top:14px"><h2>Utbetalingene samlet · hele horisonten</h2><div class="sub">sum per linje. Klikk «Ut» i en måned over for datoene.</div><div class="kv">${Object.entries(kost).sort((a,b)=>a[1]-b[1]).map(([k,v])=>`<span class="l">${esc(k)}</span><span class="r">${nok(v)}</span>`).join('')}</div>
+    <div class="note">Kostkalender: åpne fakturaer ${nok(cb.kostkalender?.apne_poster)} · avtaler ${nok(cb.kostkalender?.avtaler)} · uregelmessig snitt ${nok(cb.kostkalender?.variabel)}. Saldobalanse ${dato(cb.saldobalanse_dato)}.</div></div>`;
+  const varsler=(cb.varsler||[]).filter(v=>!/^Sindre-pott:/.test(v));const folg=`<div class="card" style="margin-top:14px"><h2>Å følge opp <span class="chip ${varsler.length?'amber':''}">${varsler.length}</span></h2><div class="sub">det modellen ikke kan avgjøre selv. Handling per linje (godkjenn / rett / stryk) bygges i steg 6 — til da svarer du i chatten.</div>${varsler.length?`<ul class="list">${varsler.map(v=>`<li><span>${esc(v)}</span></li>`).join('')}</ul>`:'<div class="empty">ingenting åpent</div>'}</div>`;
+  $('pane-plan').innerHTML=top+kassa+kostL+folg;
 }
 init();
 </script>
