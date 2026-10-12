@@ -6,7 +6,7 @@
 //
 //   GET  ?action=liste                        alle båter (megler ser sine egne) + provisjon til gode + klientkonto-saldo
 //   GET  ?action=detalj&nr=26053              rad + justeringer + provisjon + koblede transaksjoner + kandidater
-//   POST ?action=lagre&nr=…        body: { selger_konto, gjeld_bank_belop, gjeld_bank_konto, heftelser_sjekket (true/false),
+//   POST ?action=lagre&nr=…        body: { selger_konto, mottakere [{navn,konto,andel}] (delt oppgjør, flere selgere), gjeld_bank_belop, gjeld_bank_konto, heftelser_sjekket (true/false),
 //                                          heftelser_notat, notat, utlegg_paslag_pct, annullert (true/false), op_anmerkninger }
 //   POST ?action=justering&nr=…    body: { type, belop, pavirker, beskrivelse }      POST ?action=justering_slett  body: { id }
 //   POST ?action=koble             body: { id, nr, type }                            POST ?action=koble_slett      body: { id }
@@ -23,7 +23,7 @@ const kk = require('./klientkonto.js');
 
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' };
 const J = (status, body) => ({ statusCode: status, headers: { ...CORS, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-const KUN_ADMIN = true;   // åpnes for meglerne når modulen er verifisert (settes til false)
+const KUN_ADMIN = false;   // åpnet for meglerne 12.10.2026 (Sindre) — oppgjørsmailen erstattes av skjemaet
 const DRIFT_KONTO = process.env.DRIFT_KONTO || '1503.86.49814';
 const MEGLER = { 'sindre@h-y.no': 'Sindre', 'henrik@h-y.no': 'Henrik', 'daniel@h-y.no': 'Daniel', 'marte@h-y.no': 'Henrik', 'jeanette@h-y.no': 'Jeanette' };
 // Lønn (Fase 2): PowerOffice-ansatt-id per megler (po_employees), lønnsarter og 7,1 G-taket for Sindre
@@ -138,6 +138,8 @@ exports.handler = async (event) => {
       if (!r) return J(404, { error: 'Finnes ikke' }); if (!egen(u, r)) return J(403, { error: 'Ikke din båt' });
       const patch = {};
       if ('selger_konto' in body) patch.selger_konto = String(body.selger_konto || '').replace(/[^\d.]/g, '') || null;
+      // flere mottakere av nettoprovenyet (to selgere): navn, kontonr og andel (brøkteller — 13 og 4 gir 13/17 og 4/17). Én mottaker = selger_konto som før
+      if ('mottakere' in body) { const M = (Array.isArray(body.mottakere) ? body.mottakere : []).map(m => ({ navn: String(m.navn || '').trim(), konto: String(m.konto || '').replace(/[^\d.]/g, ''), andel: Number(m.andel) || 0 })).filter(m => m.navn || m.konto); patch.mottakere = M.length > 1 ? M : null; }
       if ('notat' in body) patch.notat = body.notat || null;
       if ('protokoll_forklaring' in body) patch.protokoll_forklaring = body.protokoll_forklaring || null;
       if ('op_anmerkninger' in body) patch.op_anmerkninger = body.op_anmerkninger == null ? null : !!body.op_anmerkninger;
@@ -154,7 +156,8 @@ exports.handler = async (event) => {
           if (!f.op_signert && !f.protokoll_forklaring) mangler.push('overtakelsesprotokoll mangler — signer den eller forklar hvorfor');
           if (!f.heftelser_megler) mangler.push('heftelser ikke sjekket');
           if (!f.reiseregning_ok) mangler.push('bekreft at alle reiseregninger for båten er levert og godkjent');
-          if (!f.selger_konto) mangler.push('selgers kontonr mangler');
+          if (!f.selger_konto && !(f.mottakere || []).length) mangler.push('selgers kontonr mangler');
+          if ((f.mottakere || []).some(m => !m.navn || !m.konto || !(m.andel > 0))) mangler.push('delt oppgjør: navn, kontonr og andel må fylles ut for alle mottakere');
           if (f.gjeld_bank_belop > 0 && !f.gjeld_bank_konto) mangler.push('bankens kontonr mangler');
           if (f.op_anmerkninger) { const { data: jj } = await sb.from('oppgjor_justering').select('id').eq('oppdragsnr', nr).eq('type', 'tilbakehold'); if (!(jj || []).length) mangler.push('protokoll med anmerkninger — legg inn tilbakehold eller fjern haken'); }
           if (mangler.length) return J(400, { error: 'Kan ikke sende: ' + mangler.join(' · '), mangler });
@@ -178,7 +181,8 @@ exports.handler = async (event) => {
       if (!r) return J(404, { error: 'Finnes ikke' }); if (!egen(u, r)) return J(403, { error: 'Ikke din båt' });
       const abs = Math.abs(Number(body.belop)); if (!abs || !body.type) return J(400, { error: 'type og beløp må settes' });
       // fortegn og hvem som bærer følger typen — skjemaet skal ikke kunne legge et tilbakehold TIL selgers proveny
-      const T = { tilbakehold: { s: -1, b: 'selger', til: null }, retur_kjoper: { s: -1, b: body.av === 'honorar' ? 'delt' : 'selger', til: 'kjoper' }, rabatt: { s: -1, b: 'delt', til: null }, tap: { s: -1, b: body.delt ? 'delt' : 'hoy', til: body.til || null }, tillegg: { s: 1, b: 'selger', til: 'selger' }, annet: { s: Number(body.belop) < 0 ? -1 : 1, b: ['selger', 'hoy', 'delt'].includes(body.baerer) ? body.baerer : 'selger', til: body.til || null } };
+      // tredjepart: selgers regning betales fra oppgjøret (verksted, marina …) · tjeneste: HoYs egen tjeneste/kostnad fakturert selger (frakt, bruk av vår båtplass) — egen linje på fakturaen, ikke utlegg, ikke provisjonsgrunnlag
+      const T = { tredjepart: { s: -1, b: 'selger', til: body.til || null }, tjeneste: { s: -1, b: 'selger', til: null }, tilbakehold: { s: -1, b: 'selger', til: null }, retur_kjoper: { s: -1, b: body.av === 'honorar' ? 'delt' : 'selger', til: 'kjoper' }, rabatt: { s: -1, b: 'delt', til: null }, tap: { s: -1, b: body.delt ? 'delt' : 'hoy', til: body.til || null }, tillegg: { s: 1, b: 'selger', til: 'selger' }, annet: { s: Number(body.belop) < 0 ? -1 : 1, b: ['selger', 'hoy', 'delt'].includes(body.baerer) ? body.baerer : 'selger', til: body.til || null } };
       const t = T[body.type] || T.annet; const belop = t.s * abs; const baerer = t.b; body.til = t.til;
       const { error } = await sb.from('oppgjor_justering').insert({ oppdragsnr: nr, type: body.type, belop, pavirker: baerer === 'selger' ? 'selger' : 'provisjon', baerer, til: body.til || null, til_konto: body.til_konto || null, tilbakehold_status: body.type === 'tilbakehold' ? 'holdt' : null, beskrivelse: body.beskrivelse || null, opprettet_av: u.email }); if (error) throw new Error(error.message);
       return J(200, { ok: true, rad: await regnOm(sb, nr) });
