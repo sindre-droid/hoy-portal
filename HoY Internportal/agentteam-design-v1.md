@@ -347,6 +347,8 @@ Hvis kriteriene holder: fredagsrapporten bygges på samme hentere. Hvis ikke: ju
 
 ## 9. Teknisk vei og kostnad
 
+**FINN/Vend (status 12.10):** Det HoY fikk 1.7.2026 er FINNs lese-API (`cache.api.finn.no`, orgId 624959513): søk og annonsedetaljer, ingen statistikk, ingen leads. Dealer Hub API (dev-portal.dealerhub.vend.com, åpnet okt 2026) er et annet system: annonsehåndtering, power-ups og leads-webhooks (`lead.message.received`, `lead.call.received`), fortsatt ingen statistikk. Integrasjonsforespørsel sendt 12.10 (Both, Boats, orgId 624959513, spørsmål om statistikk-endepunkt). Inntil webhooken er registrert kommer leads som e-post fra `noreply@dealerhub.vend.com` til sindre@h-y.no med navn, e-post, melding, FINN-kode og lead-id; lead-importen bygges mot disse først. Webhook-endepunkt skal ligge på `api.h-y.no` (CNAME → Netlify) når DNS flyttes.
+
 **Fase 1 (nå):** scheduled tasks i dette Claude-prosjektet. HubSpot- og Gmail-connectorene er koblet. Kjøreloggen skrives via Supabase når det finnes en vei inn fra en scheduled task; inntil da skrives raden av Sindre-økten som leser notatet, eller som fil i prosjektet. Dette avklares dag 1.
 
 **Fase 2:** en liten kjører (VPS eller GitHub Actions, 100–300 kr/mnd). Enkleste form er et Claude Code-prosjekt: regelboken som `CLAUDE.md`, én skill per flyt (`.claude/skills/<flyt>/SKILL.md`), én agent-fil per rolle (`.claude/agents/henter.md`, `kritiker.md` …) med eksplisitt verktøyliste og effort, og deny-regler i `.claude/settings.json` for alt Utfører ikke skal kunne. `max_budget_usd` per flyt, hard timeout i koden. Flytene fra Fase 1 porteres når de har bevist seg; ingenting av Fase 1-logikken trenger skrives om, bare flyttes inn i denne strukturen.
