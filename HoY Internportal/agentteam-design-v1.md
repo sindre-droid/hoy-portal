@@ -343,6 +343,8 @@ Hvis kriteriene holder: fredagsrapporten bygges på samme hentere. Hvis ikke: ju
 | 5 | Scheduled task opprettet (07:00 hverdager). Første uovervåkede kjøring. |
 | 6–7 | To kjøringer vurdert av Sindre i kjøreloggen. Justering. Beskjed til Henrik om FSBO-logging fra uke 42. |
 
+*Status 12.10:* dag 1–5 gjort. Scheduled task `trig_01TcEBDoQihdPUdThz6q2cE2` («HoY CRM-gjennomgang (hverdager 07:00)», cron 06:57 Oslo man–fre, auto-modus, bundet til Sindres Mac) kjører første gang 13.10. Prompten ligger i oppgaven og som *crm-gjennomgang-prompt.md* i HoY Internportal. Kjørelogg og tilbakemeldingsminne leses/skrives via Supabase når Mac-en er på; ellers legges raden i tråden og stabssjefen skriver den inn. `agent_feedback` har 7 rader fra uke 41-vurderingen.
+
 ## 9. Teknisk vei og kostnad
 
 **Fase 1 (nå):** scheduled tasks i dette Claude-prosjektet. HubSpot- og Gmail-connectorene er koblet. Kjøreloggen skrives via Supabase når det finnes en vei inn fra en scheduled task; inntil da skrives raden av Sindre-økten som leser notatet, eller som fil i prosjektet. Dette avklares dag 1.
