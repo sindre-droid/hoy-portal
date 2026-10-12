@@ -102,6 +102,18 @@ Skal opprettes: tabell `agent_runs` i Supabase (public, med GRANT til service_ro
 
 Kjøreloggen er stabssjefens øyne, grunnlaget for tidsregnskapet, og dedup-kilden («dette varslet jeg i går»). Hver flyt skriver én rad per kjøring fra dag én. `sjekk` og `handoff` er det som gjør at en kjøring kan vurderes uten å lese hele notatet, og at neste kjøring kan fortsette der forrige sluttet.
 
+### 4.4 Tilbakemeldingsminne
+
+Tabell `agent_feedback` i Supabase (migrasjon 2026-10-12). Hver gang Sindre svarer på en notatlinje, skrives én rad: objekt (deal/kontakt/båt/signal), vurdering (nyttig/støy/feil/pause), årsak i hans ord, gyldig til, og hva som skal skje når datoen passerer. Kritikeren leser `agent_feedback_aktiv` før hver kjøring: en dempet linje utelates til datoen passerer eller objektet får en ny hendelse; da kommer den tilbake med «fortsatt åpent, [årsak] skulle vært i orden». Stabssjefen skriver radene fra Sindres svar i chat eller e-post; Sindre trenger ikke åpne noe. En vurdering «feil» på et signal (ikke et objekt) betyr at regelen justeres, og noteres i endringsloggen i §8.4.
+
+Grunner som ikke er meglerens forsinkelse (eierskifte, verksted, venter på foto, vinterhvile, ekte off-market) skal også ut av publiseringsstatistikken. Det gjøres **uten nye HubSpot-egenskaper** (besluttet 12.10): megleren setter `market_type = offmarket` på båtkortet, og skriver grunnen som vanlig notat på dealen. `offmarket` betyr «aktivt oppdrag, ute av markedet inntil videre». Konsekvenser:
+
+- Publiseringsklokka regnes fra egenskapshistorikken på `market_type`: dager som `regular` teller, dager som `offmarket` trekkes fra. «Publisert ≤ 7» måles derfor på markedsdager, ikke kalenderdager.
+- «Signert uten annonse» utelater offmarket-båter helt.
+- Stillstand på offmarket-deals varsles først etter 60 dager (ikke 14), som lav linje «fortsatt offmarket, grunn: [siste notat]».
+- finn-sync må ignorere offmarket-båter for `annonse_borte` og `annonse_solgt` (endring i kø, se §8.8).
+- Forbehold: offmarket-båter med pris vises i den passordbeskyttede /off-market-seksjonen på nettsiden. Båter som ikke skal vises der, skal stå uten pris til de er klare.
+
 ## 5. Rollene
 
 Fire roller gjenbrukes på tvers av flytene. Hver har et mandat og en verktøyliste; det som ikke står i listen, kan rollen ikke gjøre.
@@ -156,12 +168,14 @@ Marte slutter 27.10. Fredagsrapport, e-post og lead-kvalifisering tar over henne
 
 ### 8.1 Hva den svarer på
 
-Hver morgen: hva har skjedd på deals Sindre ikke eier, er noe i ferd med å gå galt, er noe i ferd med å gå bra, og ligger meglerne an til ukens aktivitetskrav. I dag bruker Sindre betydelig tid daglig på å lese seg til dette i HubSpot.
+Hver morgen: hva er diskutert med kundene siden sist, på deals Sindre ikke eier; er noe i ferd med å gå galt eller bra; og ligger meglerne an til ukens aktivitetskrav. I dag gjør Sindre dette ved å gå Contacts → siste aktivitet → lese notater og e-poster på kundekortet, kontakt for kontakt. Flyten er kontakt-først av samme grunn: samtalen gir helheten, deal-stage og stillstand er vedlegget. (Revidert 12.10 etter tørrkjøring: e-poster viste seg lesbare og fanget ting notatene ikke gjorde, f.eks. en 5 %-avtale.)
 
 ### 8.2 Sannhetskilder
 
 | Konsept | Sannhet | Ikke |
 | --- | --- | --- |
+| Hva som er diskutert | Notater (`hs_note_body`) og e-poster (`hs_email_text`, begge retninger) logget på kontakt/deal | Innboksen, Vend-meldinger som ikke er logget |
+| Kontaktens rolle | Assosiasjonslabel deal↔kontakt (Seller, Interessent, Budgiver, Final buyer, Co-owner); fallback: pipeline A = selger, B uten A = interessent, merket «(uten label)» | Kontakteier |
 | Hvem eier dealen | HubSpot `hubspot_owner_id` på dealen | Kontakteier |
 | Oppdrag signert | Oneflow signert-dato (speilet til A-deal closed won) | Deal createdate |
 | Publisert | FINN publiseringsdato via `finn_kode` på båtkortet | Boat-record opprettet |
@@ -174,58 +188,94 @@ Hver morgen: hva har skjedd på deals Sindre ikke eier, er noe i ferd med å gå
 
 ### 8.3 Omfang per kjøring
 
-Alle åpne deals i Pipeline A og B der eier ≠ Sindre (633479117), pluss deals eid av Sindre som har fått aktivitet fra andre siste døgn. Historikk: siste 24 timer for hendelser, siste 14 dager for stillstand, siste 90 dager for prisjustering. Uke-så-langt for aktivitetskrav.
+Del 1, samtaler: alle kontakter med notat eller e-post siste 24 timer (mandag: siden fredag 07:00), med tilhørende deals i A og B, båt via boat_id, og megler via deal-eier. Sindres egne deals tas med når en annen enn Sindre har logget på dem. Del 2, deals: alle åpne deals i A og B der eier ≠ Sindre (633479117); 14 dager for stillstand, 90 dager for prisjustering. Uke-så-langt for aktivitetskrav.
+
+Henteren bruker tre–fire kall: kontakter med deal via SQL (`CONTACT` → `DEAL`), notater med deal via SQL, e-poster via søk (tekst, retning, fra/til), calls. Båtkort hentes i batch for deals med funn. Speilede notater (A+B) dedupliseres på notat-id, B-deal foretrekkes. Labels leses via API i Fase 2; i Fase 1 utledes rolle med merking.
 
 ### 8.4 Signaler
 
-**Trenger oppmerksomhet** (sortert etter alvor):
+**Samtaler siden sist** (del 1, hovedinnholdet): per kontakt én blokk med rolle, deal, megler, hva som er diskutert i agentens egne ord, ordrett sitat der ordlyden er poenget (beløp, frist, beslutning, løfte, tone), og hva som er neste steg slik det fremgår. Flagg settes på blokken når samtalen utløser et signal under.
+
+**Trenger oppmerksomhet** (del 2, sortert etter alvor):
 
 | Signal | Regel | Alvor |
 | --- | --- | --- |
-| Signert uten annonse | A closed won > 7 dager, ingen FINN-dato via finn_kode | Høy. Planens Philip-krav. Marker «off-market?» hvis deal har off-market-flagg |
-| Bud uten oppfølging | Bud registrert, ingen note/call/email på dealen innen 2 virkedager | Høy |
-| Selger-signal | Note/e-post siste døgn med formuleringer som tyder på misnøye eller venting («hører ikke noe», «fortsatt ikke», «skuffet», «vurderer å») | Høy. Siter 1 linje, aldri tolk utover det |
-| Pris-avvik | `pris` på båtkort ≠ FINN-pris (fra nattlig synk) | Høy. Regelen: sist oppdaterte vinner |
-| Prisavslag diskutert, ikke registrert | Note nevner ny pris/avslag, `pris` uendret 3 dager | Middels |
-| Stillstand | B-deal uten engagement 14 dager | Middels |
-| Ingen prisjustering | B-deal > 90 dager, ingen prisendring i prishistorikk | Middels. 3 P-er |
-| Under 6 % | Ny signering med provisjon < 6 % / 45 000 for båt ≥ 750k uten godkjenningsnotat fra Sindre | Middels. Planens spak |
-| Uten pris | Båtkort mangler `pris` | Lav. Teller null på Downside |
-| Hygiene | Deal uten eier; closed lost uten årsak; B-deal uten boat_id | Lav |
+| Avtale under 6 % | E-post/notat viser avtalt provisjon < 6 % / 45 000 for båt ≥ 750k uten godkjenningsnotat fra Sindre på dealen | Høy. Planens spak; fanges bare i e-post |
+| Prisavslag diskutert, ikke registrert | Note/e-post nevner avtalt ny pris, `pris` på båtkort uendret neste virkedag | Høy |
+| Bud uten oppfølging | Bud i budmodul/e-post, ingen note/call/email på dealen innen 2 virkedager | Høy |
+| Selger-signal | Formuleringer som tyder på misnøye, venting eller ønske om pause/avslutning | Høy |
+| Signert uten annonse | A closed won > 7 markedsdager (`market_type = regular`), ingen FINN-dato via finn_kode | Høy. Offmarket-båter utelates |
+| Pris-avvik | `pris` på båtkort ≠ FINN-pris (nattlig synk) | Høy |
+| Innkommende uten deal | Selgerhenvendelse (e-post/skjema) uten A-deal innen 1 virkedag | Middels |
+| Stillstand | B-deal uten engagement 14 dager; 60 dager når båten er `offmarket` («fortsatt offmarket, grunn: …», lav) | Middels |
+| Ingen prisjustering | B-deal > 90 dager uten prisendring (Fase 2) | Middels |
+| Uten pris | Båtkort mangler `pris` | Lav |
+| Hygiene | Deal uten eier eller med sluttet eier; kontakt uten label; closed lost uten årsak; B-deal uten boat_id; bud som står Pending på deal i In Contract/Closed Won | Lav |
 
-**Positivt:** nye bud, visninger logget, nye signeringer, salg, positiv selgerkommentar. Alt med deal-lenke så Sindre kan gi ros samme dag.
+Alle signaler dempes av aktive rader i `agent_feedback` (§4.4). Pauser og vinterhvile markeres ikke i agentens tabeller, men på båtkortet (`market_type = offmarket`, §4.4); henteren leser `market_type` sammen med `pris` og `finn_kode`.
 
-**Aktivitet mot plan** (per megler, uke så langt mot ukekrav, lineært fordelt på arbeidsdager):
+*Endringslogg signaler:* 12.10 – Sindres vurdering av uke 41: 2–5 pauset med grunn (eierskifte, verksted, venter foto), 6–14 nyttig, 15–16 skal skrives ut, 17–21 deles i «må håndteres»/«til orientering». Samme dag: ingen nye HubSpot-egenskaper; `market_type = offmarket` er konvensjonen for pause, vinterhvile og off-market.
+
+**Positivt:** nye bud, visninger, signeringer, salg, selger som sier ja, pristiltak gjennomført som avtalt. Med lenke, så ros kan gis samme dag.
+
+**Aktivitet mot plan** (per megler, uke så langt mot ukekrav):
 
 | Megler | FSBO-kontakter | Nye leads (A) | Signert (A vunnet) |
 | --- | --- | --- | --- |
 | Henrik | x / 50 | x / 3 | x / 1 |
-| Ny megler (fra 2027) | x / krav | | |
 
-Sindre vises ikke på FSBO (planen). Sindres muligheter telles som nye A-deals med ham som eier, måned så langt mot 5.
+Sindre vises ikke på FSBO. Sindres muligheter telles som nye A-deals med ham som eier, måned så langt mot 5.
 
 ### 8.5 Notatet
 
-Leveres som melding i den planlagte kjøringens tråd, som e-post til sindre@h-y.no (samme tekst, emne «CRM-gjennomgang [dato]»), og skrives til kjøreloggen. Form:
+Leveres som melding i den planlagte kjøringens tråd, som e-post til sindre@h-y.no (emne «CRM-gjennomgang [dato]»), og skrives til kjøreloggen. Form (eksempel med reelle data 12.10):
 
 ```
-CRM-gjennomgang tirsdag 14.10 (siste døgn: 9 hendelser på 6 deals)
+CRM-gjennomgang mandag 12.10 (siden fredag: 8 e-poster, 6 notater, 7 kontakter)
 
-TRENGER DEG
-1. 26063 Storebro 62 (Henrik) – signert 53 dager, ingen FINN-annonse. Off-market eller mangler finn_kode? → deal
-2. 26071 Nimbus 405 (Henrik) – bud 1 290 000 registrert fredag, ingen oppfølging logget. → deal
-3. 26014 (Henrik) – selger skrev i går: «har fortsatt ikke hørt noe om visningen». → deal
+SAMTALER SIDEN SIST
+Erlend Glømmen (selger, 26085 Archambault A35, Henrik)
+  Dansk interessent strukket til 685 000. Selger: «Dersom vi får noe over 685.000
+  selger vi.» Henrik sender budvarsel til 16 interessenter denne uken. Ingen forbehold
+  fra dansken. Under Offer, pris 740 000.
 
-POSITIVT
-– 26086 Axopar 37: visning logget, interessent ber om ny runde lørdag.
-– Henrik signerte 25099 Grand Banks i går.
+Philip Røer (selger, Hanse 388, Henrik – tilbakevendende kunde)
+  Ba om 3 % opp til 2,1 M + 10 % over. Henrik avslo, tilbød 5 %. Selger: «OK. Kjør på.»
+  Legges ut til 2 300 000; salgsavtale sendt, venter signering og egenerklæring.
+  ⚠ 5 % på 2,3 M er under 6 %-regelen; ingen godkjenningsnotat på dealen.
 
-UKEN SÅ LANGT (tirsdag) – Henrik: FSBO 4/50 · leads 0/3 · signert 1/1
+Stian Nicolaus (selger, 26038 Cormate Chase 34, Sindres deal, Henrik svarer)
+  Spurte om salg i høst eller av markedet. Henrik: motivert kjøper som må selge sin
+  Hydrolift først; annonser til november, så pause. Selger: «Ok – enig.»
 
-HYGIENE (3) – vis
+Dag Erik Andersen (interessent (uten label), 26010 Malö 42, Henrik)
+  «I tenkeboksen», mener prisen er i høyeste laget. Henrik sendte eiers håndbok.
+
+MÅ HÅNDTERES AV SINDRE
+1. Hanse 388 – 5 %-avtale uten godkjenning, se over. → deal
+2. 25044 SO 519 Kroatia – uten pris og FINN-kode siden mars; trenger plan med Henrik. → deal
+3. Swan 38 Swante – 136 dager i Prep, ingen vet status. → deal
+
+TIL ORIENTERING FRA MEGLERNE
+– 26087 Galeon 305 HTS: avtalt −100 000 fredag, båtkort fortsatt 1 390 000 (Henrik). → deal
+– 26026 Dufour GL 385: solgt, bud står som Pending i budmodulen (Henrik). → deal
+– Pauset med grunn (vises ikke før datoen): 26090 eierskifte · 26089 verksted · Cormate Explorer og 26091 venter foto
+
+STILLSTAND (4): 26021 (50 d) · 25056 Hanse 548 (157 d) · 25096/25085/25064 (43 d) · 26018 (17 d) – alle trenger innsats
+
+UKEN (mandag)
+Henrik: FSBO 0/50 (ingen calls logget) · leads 0/3 · signert 0/1. Sist uke: leads 2 (Hanse 388, Trader 535), signert 1 (Oceanis 46).
+Sindre, oktober: 0/5 nye A-deals. Planen sier 5 high-ticket-muligheter per måned.
+
+POSITIVT – fortsett med dette
+– Archambault A35: prisjustering gjennomført 9.10 som avtalt 6.10; nå 16 interessenter og et bud på 685 000.
+– Windy Grand Mistral: selger aksepterte 1 450 000, In Contract.
+– Trader 535: nytt lead via Christian Kleven, befaring samme dag.
+
+HYGIENE (4) – vis
 ```
 
-Regler for notatet: hver linje har deal-lenke; ingen tall uten kilde; selger-sitat maks én linje, ordrett; ingen vurdering av megleren som person, bare av dealen; tom seksjon utelates; «ingenting å melde» er et gyldig notat.
+Regler for notatet: «Må håndteres av Sindre» = saker der Sindre selv må ringe, svare eller beslutte; «Til orientering» = det meglerne eier, der Sindre bare skal vite. Stillstand listes samlet med dager. Uken og Positivt skrives ut, ikke som tall alene. Hver blokk og linje har lenke til kontakt eller deal; ingen tall uten kilde; sammendrag i egne ord så langt saken trenger; sitat ordrett når ordlyden er poenget, aldri hele e-poster; ingen vurdering av personer, bare av saker; tom seksjon utelates; «ingen samtaler siden sist» er et gyldig notat.
 
 ### 8.6 Hva flyten aldri gjør
 
@@ -234,26 +284,30 @@ Skriver ikke i HubSpot. Sender ingenting til Henrik eller kunder. Endrer ikke pr
 ### 8.7 Rollene i denne flyten
 
 - **Orkestrator**: henter deal-listen, deler ut hentere, samler funn, sender til skriver, så kritiker, skriver kjørelogg.
-- **Hentere** (parallelt): én per 10–15 deals med aktivitet; én for aktivitetstelling per megler; én for FINN-dato/pris-avvik. Lav effort, kun lesing.
+- **Hentere** (parallelt): én for kontakter+deals (SQL), én for notater (SQL) og e-poster (søk), én for calls/aktivitetstelling, én for båtkort i batch. Lav effort, kun lesing.
 - **Skriver**: bygger notatet fra funnene. Middels effort.
-- **Kritiker**: sjekker at hver linje har deal-id og kilde, at sitater er ordrette, at ingen linje er varslet siste 14 dager uten ny hendelse, at ingenting bryter regelboken. Les-tilgang til funn og regelbok.
+- **Kritiker**: sjekker at hver blokk/linje har kontakt- eller deal-id og kilde, at sitater er ordrette og ikke hele e-poster, at rolle er label eller merket «(uten label)», at ingen linje er varslet siste 14 dager uten ny hendelse, at ingenting bryter regelboken. Les-tilgang til funn og regelbok.
 - **Utfører**: skriver kjørelogg-raden og leverer notatet.
 
 ### 8.8 Kanter som er kjent
 
-- Henrik og Marte deler HubSpot-ID; etter 27.10 er dette borte.
+- Henrik (77221549) og Marte (33931214) har egne owner-id-er; prosjektinstruksen sa delt. Marte ut 27.10.
+- E-posttekst er lesbar via connectoren etter reautorisering 9.10; forhåndsvisningsfeltet er skjult. Søk på EMAIL, ikke SQL, for teksten.
+- Assosiasjonslabels er satt av budmodul/prospektflyt, ikke på manuelt koblede kontakter (f.eks. selgeren på A35 B-dealen). Manglende label er et hygiene-funn, ikke en feil i agenten.
 - Daniels gamle deals er omfordelt; eier i HubSpot er fasit.
 - HubSpot vasker HTML-kommentarer fra notater; dedup går via kjøreloggen.
 - Token-rotasjon stopper lesing stille; vaktbikkja (hver 4. time) varsler, og flyten skal rapportere `feilet` med årsak, aldri et tomt notat som ser normalt ut.
 - Helg: kjøringen mandag dekker fredag–søndag.
 - FSBO-calls logges ikke konsekvent i dag. Første uke vil vise lave tall; det er riktig, og det er beskjeden til Henrik før uke 42.
+- `market_type = offmarket` brukes i dag kun for ekte off-market-båter. Fra 12.10 brukes den også for pause/vinterhvile (§4.4). Båtene fra uke 41 (26090, 26089, Cormate Explorer, 26091) må settes til offmarket av Henrik før konvensjonen gjelder dem; inntil da ligger de som `pause`-rader i `agent_feedback`.
+- finn-sync (`netlify/functions/finn-sync.js`) leser ikke `market_type` i dag og vil flagge offmarket-båter som `annonse_borte`/`annonse_solgt`. Endring i kø: hent `market_type`, hopp over begge avvik når `offmarket`.
 
 ### 8.9 Testcaser
 
 1. **Normal dag**: 6 deals med aktivitet, 1 bud uten oppfølging, 2 positive. Forventet: 1 høy, 2 positive, aktivitet riktig telt, kjørelogg skrevet.
 2. **Ingenting skjedd**: helg uten engagements. Forventet: kort notat «ingen nye hendelser», stillstands- og hygienelistene likevel vurdert, status `ok`.
 3. **Gjentatt funn**: Storebro 62 uten annonse varslet i går. Forventet: ikke gjentatt i dag med mindre ny hendelse; vises under «fortsatt åpent (3)» én gang i uken (mandag).
-4. **Kant: off-market**: signert deal med off-market-flagg og ingen FINN. Forventet: ikke høy, men lav linje «off-market, bekreft».
+4. **Kant: offmarket**: signert deal, båt med `market_type = offmarket`, ingen FINN, siste notat 20 dager gammelt. Forventet: ingen «signert uten annonse», ingen stillstand (under 60 d), ingen linje i notatet. Samme båt etter 61 dager: lav linje «fortsatt offmarket, grunn: [siste notat]».
 5. **Kant: token nede**: HubSpot 401. Forventet: status `feilet`, notat «kunne ikke lese HubSpot (401), se vaktbikkje», ingen oppfunnede linjer.
 
 ### 8.10 Akseptkriterier per kjøring (kritikerens sjekk)
@@ -261,9 +315,10 @@ Skriver ikke i HubSpot. Sender ingenting til Henrik eller kunder. Endrer ikke pr
 | Krav | Pass når |
 | --- | --- |
 | Sporbarhet | Hver linje har deal-id og kilde (engagement-id, finn_kode eller båtkort-felt) |
-| Ordrett | Selger-sitater er ordrette og maks én linje |
+| Ordrett | Sitater er ordrette, brukt der ordlyden er poenget, aldri hele e-poster |
 | Ingen gjentak | Ingen linje er varslet siste 14 dager uten ny hendelse (sjekket mot kjørelogg) |
-| Komplett omfang | Alle åpne deals med eier ≠ Sindre er vurdert; antall oppgitt i notatets første linje |
+| Komplett omfang | Alle kontakter med aktivitet siden sist og alle åpne deals med eier ≠ Sindre er vurdert; antall oppgitt i notatets første linje |
+| Rolle | Hver samtaleblokk har rolle fra label, eller utledet og merket «(uten label)» |
 | Aktivitet | Tall per megler stemmer med HubSpot-tellingen henteren returnerte |
 | Regelbok | Ingen linje foreslår pris, utsending eller publisering |
 | Kjørelogg | Rad skrevet med status, funn, sjekk, kostnad |

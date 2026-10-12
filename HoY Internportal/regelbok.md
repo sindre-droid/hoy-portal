@@ -46,8 +46,10 @@ Kilde: annonsekonvensjonene (sep 2026) og skillen *hoy-publiser-batannonse*.
 
 - Saklig. Ingen «AI-preg»: ingen overtydelig adressering, ingen formelaktige punchlines, ingen overskrifter som sier hva leseren skal føle. Poenget skrives gjennom fakta. Test: ville en travel norsk bedriftsleder skrevet setningen slik i en e-post? (17. aug 2026)
 - Ingen tall uten kilde. Hvert tall i et notat peker til dealen, bilaget, regelen eller feltet bak. (Cockpit v3, okt 2026)
-- Sitater fra kunder gjengis ordrett og kort, aldri tolket utover ordlyden.
+- Sammendrag av samtaler skrives i agentens egne ord, så langt saken trenger: en forhandling med flere parter får flere linjer, «Ok, enig» får én.
+- Ordrett sitat brukes når ordlyden i seg selv er poenget (beløp, frist, beslutning, løfte, tone). Sitatet skal være nøyaktig; ingen lengdegrense utover det som trengs. Aldri hele e-poster, aldri sitat som bare gjentar sammendraget. Aldri tolkning utover ordlyden.
 - Ingen vurdering av personer; bare av saker.
+- Rolle på kontakt: bruk assosiasjonslabelen (Seller, Interessent, Budgiver, Final buyer, Co-owner) når den finnes. Mangler den: utled fra pipeline (A = selger, B uten A = interessent) og skriv «(uten label)». (12. okt 2026)
 
 ## 6. Data og sannhetskilder
 
@@ -58,6 +60,8 @@ Kilde: annonsekonvensjonene (sep 2026) og skillen *hoy-publiser-batannonse*.
 | Deal-eier / ansvarlig megler | `hubspot_owner_id` på dealen | Kontakteier |
 | Oppdrag signert | Oneflow signert-dato (speilet til A-deal closed won) | Deal createdate |
 | Publisert | FINN publiseringsdato via `finn_kode` på båtkortet | Boat-record opprettet |
+| Pauset / vinterhvile / off-market | `market_type = offmarket` på båtkortet, grunn som vanlig notat på dealen | Egne pause-felt, deal-stage, notat alene |
+| Dager til publisering | Markedsdager: historikk på `market_type`, dager som `offmarket` trekkes fra | Kalenderdager fra signering |
 | Pris | `pris` på HubSpot-båtkortet (styrer også nettsiden) | Deal amount, prospekt |
 | Omsetning / solgt | Oppgjørsregisteret (PowerOffice er fasit for alt bokført) | HubSpot amount |
 | Bud | `offers` i Supabase, speilet som HubSpot-aktivitet | Notater |
@@ -66,7 +70,11 @@ Kilde: annonsekonvensjonene (sep 2026) og skillen *hoy-publiser-batannonse*.
 | Nytt lead | Deal opprettet i Pipeline A | Kontakt opprettet |
 | A↔B-kobling | Deal-property `boat_id` | `boat_id__required_for_automation_` |
 | Allerede varslet | `agent_runs.funn` siste 14 dager | HubSpot-notat |
+| Hva som er diskutert med kunden | Notater + e-poster logget på kontakt/deal (hs_note_body, hs_email_text) | Innboksen, Vend-meldinger som ikke er logget |
+| Kontaktens rolle | Assosiasjonslabel deal↔kontakt; fallback pipeline | Kontakteier |
 
+- **Ingen nye HubSpot-egenskaper for agentenes skyld.** Agentene bruker feltene som finnes; trengs et nytt begrep, er det en konvensjon på et eksisterende felt pluss notat. (12. okt 2026)
+- **`market_type = offmarket`** betyr «aktivt oppdrag, ute av markedet inntil videre» og dekker eierskifte, verksted, venter på foto, vinterhvile og ekte off-market. Megleren setter det selv og skriver grunnen i et notat. Agentene varsler ikke «signert uten annonse» på disse, og stillstand først etter 60 dager. finn-sync skal ignorere dem. Merk: offmarket med pris vises i den passordbeskyttede /off-market-seksjonen på nettsiden. (12. okt 2026)
 - Omsetning deles 50/50 når én megler hentet og en annen solgte. Daniels oppdrag solgt av andre etter 16.8.2026: 100 % på selger.
 - Flere kjøpekontrakter på samme oppdragsnr: nyeste signerte gjelder.
 - Inntekt periodiseres til salgsåret.
@@ -114,3 +122,4 @@ Fra *agentteam-design-v1.md* §10.
 | Dato | Endring |
 | --- | --- |
 | 8. okt 2026 | v1 samlet fra minnenotater, annonsekonvensjoner, planbok v1 og designdokument. Logo-regel presisert (FINN/prospekt har logo, nettsiden ikke). Reklamasjonshåndtering satt som uavklart til etter 29.10. |
+| 12. okt 2026 | Sitatregelen («maks én linje») erstattet med sammendrag etter behov + ordrett sitat når ordlyden er poenget. Rolle via assosiasjonslabel med pipeline-fallback. E-post lagt til som sannhetskilde for hva som er diskutert. Ingen nye HubSpot-egenskaper; `market_type = offmarket` er konvensjonen for pause, vinterhvile og off-market, med markedsdager som publiseringsmål. |

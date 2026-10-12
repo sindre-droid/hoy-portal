@@ -80,7 +80,7 @@ async function boatsWithFinnKode() {
       method: 'POST',
       body: JSON.stringify({
         filterGroups: [{ filters: [{ propertyName: 'finn_kode', operator: 'HAS_PROPERTY' }] }],
-        properties: ['finn_kode', 'pris', 'boat_name', 'status', 'hubspot_owner_id'],
+        properties: ['finn_kode', 'pris', 'boat_name', 'status', 'hubspot_owner_id', 'market_type'],
         limit: 200,
         after,
       }),
@@ -150,14 +150,17 @@ exports.handler = async () => {
       const ad = ads[p.finn_kode];
       const hsPris = p.pris ? Number(p.pris) : null;
 
+      // offmarket = aktivt oppdrag, ute av markedet inntil videre (regelbok §6, 12.10.2026)
+      const offmarket = p.market_type === 'offmarket';
+
       if (!ad) {
-        if (p.status === 'for-sale')
+        if (p.status === 'for-sale' && !offmarket)
           avvik(avvikRows, p.finn_kode, 'annonse_borte', b.id, p.boat_name,
             `Båten er for-sale, men annonsen finnes ikke lenger i FINN-feeden (utløpt/slettet).`);
         continue;
       }
       if (ad.disposed) {
-        if (p.status === 'for-sale')
+        if (p.status === 'for-sale' && !offmarket)
           avvik(avvikRows, p.finn_kode, 'annonse_solgt', b.id, p.boat_name,
             `FINN-annonsen er markert SOLGT, men båten står som for-sale (pris ${hsPris}).`);
         continue; // aldri prissynk fra solgt annonse
