@@ -36,7 +36,7 @@ const TASK_TO_DEAL = 216;
 const JSON_H = { 'Content-Type': 'application/json' };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 async function hs(path, method = 'GET', body = null) {
   const res = await fetch(`https://api.hubapi.com${path}`, {
