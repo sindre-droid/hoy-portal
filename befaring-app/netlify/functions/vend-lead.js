@@ -1,7 +1,7 @@
 // ── vend-lead.js ────────────────────────────────────────────────────────────
 // Tar imot FINN-henvendelser (leads) og legger dem i HubSpot:
 //   kontakt (finn/opprett) → B-deal via boat.finn_kode → label «Interessent»
-//   → notat med meldingen på kontakt + deal → oppgave til megleren.
+//   → notat med meldingen på kontakt + deal. Ingen HubSpot-oppgaver (Sindre 12.10).
 //
 // To innganger, samme behandling:
 //   A) Gmail-skriptet (scripts/vend-lead-gmail.gs) poster varslene fra
@@ -30,8 +30,6 @@ const FALLBACK_OWNER_ID = '633479117'; // Sindre
 const INTERESSENT_TYPE_ID = 9;         // contact→deal USER_DEFINED «Interessent»
 const NOTE_TO_CONTACT = 202;
 const NOTE_TO_DEAL = 214;
-const TASK_TO_CONTACT = 204;
-const TASK_TO_DEAL = 216;
 
 const JSON_H = { 'Content-Type': 'application/json' };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -98,10 +96,16 @@ async function findBoatByFinnKode(finnKode) {
   const r = await hs(`/crm/v3/objects/${BOAT_OBJ_TYPE}/search`, 'POST', {
     filterGroups: [{ filters: [{ propertyName: 'finn_kode', operator: 'EQ', value: finnKode }] }],
     properties: ['boat_name', 'status', 'market_type', 'hubspot_owner_id', 'finn_kode'],
-    limit: 2,
+    limit: 5,
   });
-  const b = r.data?.results?.[0];
-  return b ? { id: b.id, name: b.properties?.boat_name || b.id, status: b.properties?.status || '', ownerId: b.properties?.hubspot_owner_id || '' } : null;
+  const boats = (r.data?.results || []).map(b => ({ id: b.id, name: b.properties?.boat_name || b.id, status: b.properties?.status || '', ownerId: b.properties?.hubspot_owner_id || '' }));
+  if (boats.length <= 1) return boats[0] || null;
+  // Samme finn_kode på flere båtkort (dublett/foreldreløs record): velg den som har deal.
+  for (const b of boats) {
+    const a = await hs(`/crm/v4/objects/${BOAT_OBJ_TYPE}/${b.id}/associations/deals`);
+    if ((a.data?.results || []).length) return b;
+  }
+  return boats[0];
 }
 
 async function findListingDeal(boatId) {
@@ -166,7 +170,7 @@ async function resolve(lead) {
 
 async function apply(plan) {
   const { lead, boat, deal } = plan;
-  const out = { contactId: null, contactCreated: false, dealId: deal?.id || null, boatId: boat?.id || null, noteIds: [], taskId: null, warnings: [...plan.warnings] };
+  const out = { contactId: null, contactCreated: false, dealId: deal?.id || null, boatId: boat?.id || null, noteIds: [], warnings: [...plan.warnings] };
   if (!EMAIL_RE.test(lead.email)) return out; // uten e-post kan vi ikke lage kontakt (telefon-lead uten e-post: kun logg)
 
   const contact = plan.contact || await createContact(lead);
@@ -226,26 +230,6 @@ async function apply(plan) {
   });
   if (note.ok) out.noteIds.push(note.data.id); else out.warnings.push(`notat feilet ${note.status}`);
 
-  // Oppgave til megleren (best effort). Historiske leads (> 14 d) får ingen oppgave.
-  const ageDays = isNaN(when) ? 0 : (Date.now() - when.getTime()) / 86400000;
-  if (ageDays <= 14) {
-    const tAssoc = [{ to: { id: contact.id }, types: [{ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: TASK_TO_CONTACT }] }];
-    if (deal) tAssoc.push({ to: { id: deal.id }, types: [{ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: TASK_TO_DEAL }] });
-    const due = new Date(Date.now() + 24 * 3600 * 1000);
-    const task = await hs('/crm/v3/objects/tasks', 'POST', {
-      properties: {
-        hs_timestamp: due.toISOString(),
-        hs_task_subject: `Svar FINN-henvendelse: ${boat ? boat.name : lead.adTitle || lead.finnKode} – ${lead.name || lead.email}`,
-        hs_task_body: (lead.message || '').slice(0, 1000),
-        hs_task_status: 'NOT_STARTED',
-        hs_task_priority: 'HIGH',
-        hs_task_type: 'TODO',
-        hubspot_owner_id: ownerId,
-      },
-      associations: tAssoc,
-    });
-    if (task.ok) out.taskId = task.data.id; else out.warnings.push(`oppgave feilet ${task.status}`);
-  }
   return out;
 }
 
@@ -292,7 +276,7 @@ exports.handler = async (event) => {
       lead_id: lead.leadId, source: lead.source, kind: lead.kind, finn_kode: lead.finnKode || null,
       name: lead.name || null, email: lead.email || null, phone: lead.phone || null, message: lead.message || null,
       received_at: isNaN(new Date(lead.receivedAt)) ? new Date().toISOString() : new Date(lead.receivedAt).toISOString(),
-      boat_id: res.boatId, deal_id: res.dealId, contact_id: res.contactId, task_id: res.taskId,
+      boat_id: res.boatId, deal_id: res.dealId, contact_id: res.contactId,
       status: res.contactId ? (res.dealId ? 'koblet' : 'kontakt_uten_deal') : 'uten_kontakt',
       warnings: res.warnings.length ? res.warnings : null, gmail_message_id: lead.gmailMessageId || null,
     };
