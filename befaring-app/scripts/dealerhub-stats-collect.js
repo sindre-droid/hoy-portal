@@ -35,20 +35,32 @@
   const list = salgs.map(pick).filter(a => a.adId && ['PUBLISHED', 'SOLD', 'EXPIRED', 'HIDDEN'].includes(a.status));
   if (!list.length) return { error: 'fant ingen annonser – sjekk feltnavn', sample: ads[0] };
 
-  // 2. Innsikt per annonse
+  // 2. Innsikt per annonse (6 parallelt)
   const out = [];
-  for (const a of list) {
-    try {
-      const ts = await j(`/api/v1/insight/ads/${a.adId}/statistics/time-series?period=ENTIRE_PERIOD`);
-      const hist = await j(`/api/v1/insight/ads/${a.adId}/ad-history`);
-      const sum = await j('/api/v1/insight/statistics/ad/get-summary', { method: 'POST', body: JSON.stringify({ adId: a.adId, creationDate: (a.publisert || new Date().toISOString()).slice(0, 10), counters: ['VIEWS', 'FAVOURITES', 'CONTACT_FORM_EMAIL_SENT', 'PHONE_CLICKS', 'PHONE_LEADS', 'PHONE_LEADS_ANSWERED', 'PHONE_LEADS_UNANSWERED', 'HOMEPAGE_WEBPAGE_CLICKS'] }) });
-      const finnKode = a.finnKode || String(hist.adId || '');
-      out.push({ finnKode, adId: a.adId, tittel: a.tittel, publisert: a.publisert, status: a.status, megler: a.megler, series: { views: ts.views?.data || [], favourites: ts.favourites?.data || [] }, events: hist.events || [], summary: sum.result || [] });
-    } catch (e) { out.push({ adId: a.adId, finnKode: a.finnKode, error: e.message }); }
-  }
+  const queue = [...list];
+  const worker = async () => {
+    while (queue.length) {
+      const a = queue.shift();
+      try {
+        const [ts, hist, sum] = await Promise.all([
+          j(`/api/v1/insight/ads/${a.adId}/statistics/time-series?period=ENTIRE_PERIOD`),
+          j(`/api/v1/insight/ads/${a.adId}/ad-history`),
+          j('/api/v1/insight/statistics/ad/get-summary', { method: 'POST', body: JSON.stringify({ adId: a.adId, creationDate: (a.publisert || new Date().toISOString()).slice(0, 10), counters: ['VIEWS', 'FAVOURITES', 'CONTACT_FORM_EMAIL_SENT', 'PHONE_CLICKS', 'PHONE_LEADS', 'PHONE_LEADS_ANSWERED', 'PHONE_LEADS_UNANSWERED', 'HOMEPAGE_WEBPAGE_CLICKS'] }) }),
+        ]);
+        const finnKode = a.finnKode || String(hist.adId || '');
+        out.push({ finnKode, adId: a.adId, tittel: a.tittel, publisert: a.publisert, status: a.status, megler: a.megler, series: { views: ts.views?.data || [], favourites: ts.favourites?.data || [] }, events: hist.events || [], summary: sum.result || [] });
+      } catch (e) { out.push({ adId: a.adId, finnKode: a.finnKode, error: e.message }); }
+    }
+  };
+  await Promise.all([0, 1, 2, 3, 4, 5].map(worker));
 
-  // 3. Post til portalen
-  const res = await fetch(ENDPOINT, { method: 'POST', headers: { 'content-type': 'application/json', 'x-hoy-secret': SECRET }, body: JSON.stringify({ ads: out.filter(x => !x.error) }) });
-  const result = await res.json().catch(() => ({ status: res.status }));
-  return { annonser: list.length, feil: out.filter(x => x.error).map(x => `${x.finnKode || x.adId}: ${x.error}`), result };
+  // 3. Post til portalen i bolker (Netlify-funksjonen har ~10 s på seg per kall)
+  const ok = out.filter(x => !x.error); const results = [];
+  for (let i = 0; i < ok.length; i += 20) {
+    const res = await fetch(ENDPOINT, { method: 'POST', headers: { 'content-type': 'application/json', 'x-hoy-secret': SECRET }, body: JSON.stringify({ ads: ok.slice(i, i + 20) }) });
+    results.push(await res.json().catch(() => ({ status: res.status })));
+  }
+  const sum = results.reduce((acc, r) => ({ ok: acc.ok && !!r.ok, ads: acc.ads + (r.ads || 0), stats: acc.stats + (r.stats || 0), events: acc.events + (r.events || 0), summaries: acc.summaries + (r.summaries || 0), feil: acc.feil.concat(r.ok ? [] : [JSON.stringify(r).slice(0, 120)]) }), { ok: true, ads: 0, stats: 0, events: 0, summaries: 0, feil: [] });
+  window.__collect = out;
+  return { annonser: list.length, feil: out.filter(x => x.error).map(x => `${x.finnKode || x.adId}: ${x.error}`), result: sum };
 })();
