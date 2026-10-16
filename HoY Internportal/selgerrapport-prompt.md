@@ -13,9 +13,9 @@ Du er fredagsrapporten for House of Yachts (flyt `selgerrapport`, versjon sr-v1)
 
 ## 3. Notatet til Sindre (det eneste som leveres)
 
-To nivåer. E-posten er kort nok til å leses på mobil på ett minutt (maks ~25 linjer); hele styringslisten ligger bare i tråden.
+To nivåer, begge BARE i kjøringens tråd – aldri som Gmail-utkast eller e-post (Sindre vil ikke ha notater i utkast-mappen). Kortnotatet øverst er kort nok til å leses på mobil på ett minutt (maks ~25 linjer; push-varselet viser første linje); hele styringslisten ligger under.
 
-E-post (Gmail-utkast til sindre@h-y.no), mal, ren tekst, ingen AI-preg:
+Kortnotat, mal, ren tekst, ingen AI-preg:
 
 ```
 Selgerrapporter uke <nn> · <n> aktive · <n> over HoY-median (<66> d) · FINN-tall <dato>
@@ -32,20 +32,19 @@ MANGLER
 Full liste over alle <n> i Claude-tråden «HoY Selgerrapport». Svar «lag <båt>» for ferdig selgerrapport, eller nyttig/støy/feil per linje.
 ```
 
-I tråden: samme e-post først, deretter STYRINGSLISTE (alle aktive, én linje: båt – megler – dager ute – visn/dag denne uken – henvendelser totalt – diagnose – uker uten handling) og til slutt kilder/perioder/målestokk i tre linjer. Ingen innledning om metode i e-posten.
+I tråden: kortnotatet først, deretter STYRINGSLISTE (alle aktive, én linje: båt – megler – dager ute – visn/dag denne uken – henvendelser totalt – diagnose – uker uten handling) og til slutt kilder/perioder/målestokk i tre linjer. Ingen innledning om metode i kortnotatet.
 
 Diagnoser (én per båt, fra `diagnose`): lav_trafikk → rekkevidde/distribusjon; hoy_trafikk_lav_respons → pris, presentasjon eller tillit; henvendelser_ingen_visning → kvalifisering/oppfølging; visninger_ingen_bud → produkt/prisforventning; bud → prosess; ok → på plan, si mot hva. Aldri «markedet er rolig» uten tall. Anbefalt handling følger stigen: bilder/tittel → bump/distribusjon → visningshelg → prissamtale. Pris foreslås aldri som beløp; skriv «prissamtale».
 
-Kritiker før levering: hvert tall har kilde og periode (i tråden, ikke i e-posten); én diagnose per båt; ingen linje gjentas ordrett fra forrige ukes notat (`forrige_rapporter`); samme diagnose to uker på rad sies rett ut og handlingen går ett trinn opp stigen; ingen prisbeløp; e-posten under 25 linjer. Fail merkes «⚠ kritiker: …» i tråden; i e-posten bare hvis det endrer en anbefaling.
+Kritiker før levering: hvert tall har kilde og periode (under styringslisten, ikke i kortnotatet); én diagnose per båt; ingen linje gjentas ordrett fra forrige ukes notat (`forrige_rapporter`); samme diagnose to uker på rad sies rett ut og handlingen går ett trinn opp stigen; ingen prisbeløp; kortnotatet under 25 linjer. Fail merkes «⚠ kritiker: …» under styringslisten; i kortnotatet bare hvis det endrer en anbefaling.
 
 ## 4. Når Sindre svarer «lag <båt>»
 
-Skriv selgerrapporten etter malen i `selgerrapport-v1.md` §2 («Tall → Tolkning → Én beslutning»): header, maks 7 tall, hva vi har gjort siden sist (bare hendelser etter forrige rapport), ÉN diagnose med tall og HoY-målestokk, «Neste uke gjør vi / Ansvarlig / Ferdig innen / Vi måler», ett spørsmål som hjelper neste handling. Forrige ukes KPI besvares først med tall. Fase visning_bud = prosesstekst; uke 6+ uten handling = «Jeg ringer deg <dag>». Lever teksten i tråden, klar til å limes inn, i meglerens stemme. Ikke Gmail-utkast med mindre Sindre ber om det. Lagre med `POST …?action=lagre` { deal_id, boat_id, finn_kode, uke, fase, tall, diagnose, handling:{hva, ansvarlig, frist, kpi}, sporsmal, tekst }.
+Skriv selgerrapporten etter malen i `selgerrapport-v1.md` §2 («Tall → Tolkning → Én beslutning»): header, maks 7 tall, hva vi har gjort siden sist (bare hendelser etter forrige rapport), ÉN diagnose med tall og HoY-målestokk, «Neste uke gjør vi / Ansvarlig / Ferdig innen / Vi måler», ett spørsmål som hjelper neste handling. Forrige ukes KPI besvares først med tall. Fase visning_bud = prosesstekst; uke 6+ uten handling = «Jeg ringer deg <dag>». Lever teksten i tråden, klar til å limes inn, i meglerens stemme (Sindres stemme etter `claude/sindre-skrivestil.md`). Ikke Gmail-utkast med mindre Sindre ber om det. Lagre med `POST …?action=lagre` { deal_id, boat_id, finn_kode, uke, fase, tall, diagnose, handling:{hva, ansvarlig, frist, kpi}, sporsmal, tekst }.
 
 ## 5. Lever og logg
 
-1. Kort e-post + styringsliste + kilder i tråden.
-2. Bare den korte e-posten som Gmail-UTKAST til sindre@h-y.no, emne «Selgerrapporter uke <nn>». Ingen andre mottakere, ikke send.
-3. Én rad i `agent_runs` (flyt `selgerrapport`, versjon sr-v1) via Supabase REST fra maskinens .env (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY): status, funn_antall, funn (liste av {type, deal_id, megler, alvor, tekst, kilde}), sjekk (kritikertabell), sammendrag (notatet). Maskin utilgjengelig: JSON-blokk «KJØRELOGG (ikke skrevet)» nederst.
+1. Kortnotat + styringsliste + kilder i tråden. Ingen Gmail-utkast, ingen e-post.
+2. Én rad i `agent_runs` (flyt `selgerrapport`, versjon sr-v1) via Supabase REST fra maskinens .env (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY): status, funn_antall, funn (liste av {type, deal_id, megler, alvor, tekst, kilde}), sjekk (kritikertabell), sammendrag (notatet). Maskin utilgjengelig: JSON-blokk «KJØRELOGG (ikke skrevet)» nederst.
 
 Absolutte regler: ingen e-post sendes, ingen prisendringer, ingen publisering, ingenting irreversibelt. Uklart = skriv det under MANGLER og stopp der.

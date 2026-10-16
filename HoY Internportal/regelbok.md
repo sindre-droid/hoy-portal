@@ -104,6 +104,9 @@ Sindre gjør ikke FSBO. Agentene vurderer deals, ikke meglere.
 - HubDB `crm_objects()` returnerer pris som formatert streng; parse med clean_price-mønsteret.
 - Aldri git via device_bash; Sindre pusher selv med kommandoer han får som ferdig tekst.
 - Når noe skal kjøres (SQL, git, terminal): gi det som ferdig tekst å kopiere, i riktig rekkefølge.
+- **Gmail-utkast i Sindres navn** lages alltid slik: `htmlBody` = `<div dir="ltr">…</div>` med `<br>` som linjeskift og INGEN font-, størrelses- eller fargestiler (Gmail setter skriften, identisk med Sindres egne e-poster); signaturen legges inn eksplisitt som HTML nederst (Gmails `includeSignature` virker ikke på API-utkast, og eksterne bilder strippes – derfor tekstsignatur fra Design System «Klubben», se `epost-prompt.md` §3, til visuell profil leverer den offisielle); `bcc: ["26753504@bcc.eu1.hubspot.com"]` på svar til kunder/partnere (HubSpot logger svaret på kontakten); svar i tråden med `replyToMessageId`. (16. okt 2026)
+- **Notater til Sindre går aldri til Gmail.** Agentenes egne notater, lister og rapporter (CRM-notat, fredagsnotat, DL-notat, innboks-notat) leveres bare i kjøringens Claude-tråd, aldri som Gmail-utkast eller e-post. Utkast-mappen er forbeholdt faktiske svar til kunder og partnere, i tråden de hører hjemme i. (16. okt 2026)
+- **Sindres stemme.** Alt som skal sendes i Sindres navn skrives etter `sindre-skrivestil.md` (profil fra 46 av hans egne e-poster, 16. okt 2026): «Hei <fornavn>,» bare i første svar, 2–5 setninger, ingen avslutningsfrase, «-» ikke «–», ett muntlig uttrykk, maks ett utropstegn.
 
 ## 9. Agent-mekanikk
 
@@ -122,4 +125,6 @@ Fra *agentteam-design-v1.md* §10.
 | Dato | Endring |
 | --- | --- |
 | 8. okt 2026 | v1 samlet fra minnenotater, annonsekonvensjoner, planbok v1 og designdokument. Logo-regel presisert (FINN/prospekt har logo, nettsiden ikke). Reklamasjonshåndtering satt som uavklart til etter 29.10. |
+| 16. okt 2026 | Gmail-utkast: standard HTML uten stiler, eksplisitt tekstsignatur (Klubben, midlertidig), HubSpot-bcc på kundesvar. |
+| 16. okt 2026 | Notater aldri som Gmail-utkast (bare i tråden); skrivestilprofil `sindre-skrivestil.md` innført for alle utkast i Sindres navn. |
 | 12. okt 2026 | Sitatregelen («maks én linje») erstattet med sammendrag etter behov + ordrett sitat når ordlyden er poenget. Rolle via assosiasjonslabel med pipeline-fallback. E-post lagt til som sannhetskilde for hva som er diskutert. Ingen nye HubSpot-egenskaper; `market_type = offmarket` er konvensjonen for pause, vinterhvile og off-market, med markedsdager som publiseringsmål. |

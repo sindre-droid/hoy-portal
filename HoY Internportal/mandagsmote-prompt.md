@@ -28,7 +28,7 @@ Får du 401/tom respons der det åpenbart skal være data: stopp, status `feilet
 
 **B. Talepunkter** `Mandagsmote_uke<nn>_talepunkter.md` samme mappe, samme mal som uke 41: dato/deltakere/varighet, hovedbudskap, hovedendringer siden sist (maks 6), slide-for-slide med tid, spørsmål du bør stille (per slide), ikke i plenum (bare henvisning «se DL-notat»), datarydding som bør gjøres.
 
-**C. DL-notat** i tråden og som Gmail-UTKAST til sindre@h-y.no, emne «DL-notat uke <nn>». Ikke send. Ingen andre mottakere.
+**C. DL-notat** bare i tråden (ALDRI som Gmail-utkast eller e-post – Sindre vil ikke ha notater i utkast-mappen). Ingen andre mottakere.
 
 ## 4. Kritiker før levering
 
@@ -37,8 +37,7 @@ Pass/fail per krav, tabellen i `agent_runs.sjekk`: hvert tall sporbart til kilde
 ## 5. Lever og logg
 
 1. Melding i tråden: filnavn på dekk og talepunkter, hovedbudskapet, de tre punktene, deretter DL-notatet, deretter kritikertabellen.
-2. Gmail-utkast med DL-notatet (over).
-3. Én rad i `agent_runs` (flyt `mandagsmote`, versjon mm-v1) via Supabase REST: status (ok|delvis|feilet), feil, funn_antall, funn, sjekk, sammendrag (talepunktenes hovedbudskap + tre punkter), `handoff` = {tre_punkter:[{tekst, eier, frist}], hovedbudskap, utsatt:[…], forrige_oppgjort:[…]}, frigjort_min (konservativt 90), modell, versjon. Maskin utilgjengelig: JSON-blokk «KJØRELOGG (ikke skrevet)» nederst.
+2. Én rad i `agent_runs` (flyt `mandagsmote`, versjon mm-v1) via Supabase REST: status (ok|delvis|feilet), feil, funn_antall, funn, sjekk, sammendrag (talepunktenes hovedbudskap + tre punkter), `handoff` = {tre_punkter:[{tekst, eier, frist}], hovedbudskap, utsatt:[…], forrige_oppgjort:[…]}, frigjort_min (konservativt 90), modell, versjon. Maskin utilgjengelig: JSON-blokk «KJØRELOGG (ikke skrevet)» nederst.
 
 Svarer Sindre senere i tråden («punkt 2 gjort», «bytt hovedbudskap», nyttig/støy/feil), oppdater handoff-raden og, ved behov, filene.
 

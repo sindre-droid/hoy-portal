@@ -39,7 +39,7 @@ Hovedbudskapet (én setning øverst) er agentens forslag; Sindre skriver det om 
 
 **B. `Mandagsmote_uke<nn>_talepunkter.md`** samme mappe, samme mal som uke 41: hovedbudskap, hovedendringer siden sist, slide for slide med tid, spørsmål å stille per slide (om saker, ikke personer), datarydding som bør gjøres.
 
-**C. DL-notat** – bare til Sindre, i tråden og som Gmail-utkast «DL-notat uke <nn>»: likviditet og gate, bemanning/1:1-saker som ligger i notatene, det agenten mener ikke hører hjemme i plenum, og tre spørsmål Sindre bør ha svar på før møtet. Maks 15 linjer.
+**C. DL-notat** – bare til Sindre, bare i kjøringens tråd (ikke Gmail-utkast – Sindre vil ikke ha notater i utkast-mappen, avklart 16.10): likviditet og gate, bemanning/1:1-saker som ligger i notatene, det agenten mener ikke hører hjemme i plenum, og tre spørsmål Sindre bør ha svar på før møtet. Maks 15 linjer.
 
 Levering: filene i mappen (som i dag), kort melding i tråden med hovedbudskapet og de tre punktene, push-varsel. Ingen e-post til andre enn Sindre; dekket deles av Sindre selv.
 
