@@ -4,3 +4,5 @@ HoY Internportal/hoy-website
 # Lokale secrets
 .env
 befaring-app/.env
+
+HoY Internportal/finn-eksport/*.json
