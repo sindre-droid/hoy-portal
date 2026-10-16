@@ -134,7 +134,10 @@ async function tallForDeal(dealId) {
   const sum = (rows, f) => rows.reduce((a, r) => a + (r[f] || 0), 0);
   const d1 = daily.filter(r => inP(r.dato, p1Start, p1End)), d0 = daily.filter(r => inP(r.dato, p0Start, p0End));
   const firstStat = daily[0]?.dato || null;
-  const publisert = deal.publisert_dato || firstStat;
+  // Publisert = tidligste kjente dato: båtkortets publisert_dato (nettside), første FINN-dagsrad, eller Dealer Hubs firstPublishedAt
+  let dhPub = null;
+  if (deal.finn_kode) { const { data: s0 } = await supabase.from('finn_ad_summary').select('publisert').eq('finn_kode', deal.finn_kode).maybeSingle(); dhPub = s0?.publisert ? day(s0.publisert) : null; }
+  const publisert = [deal.publisert_dato, firstStat, dhPub].filter(Boolean).sort()[0] || null;
   const dager = publisert ? Math.max(0, Math.round((new Date(today) - new Date(publisert)) / 864e5)) : null;
 
   // Henvendelser (vend_leads)
@@ -190,7 +193,8 @@ async function tallForDeal(dealId) {
   tall.henvendelser_per_1000 = totalViews >= 200 ? +((henvTotalt / totalViews) * 1000).toFixed(2) : null;
 
   // Benchmark fra egen portefølje: henvendelser per 1000 visninger på alle annonser med > 500 visninger
-  const { data: allSum } = await supabase.from('finn_ad_summary').select('finn_kode,tellere');
+  // Meldingstelleren er pålitelig først fra 2026 (markedsdata-fase0) → bare annonser publisert 2026+
+  const { data: allSum } = await supabase.from('finn_ad_summary').select('finn_kode,tellere,publisert').gte('publisert', '2026-01-01');
   const bench = (allSum || []).map(s => ({ v: s.tellere?.VIEWS || 0, h: (s.tellere?.CONTACT_FORM_EMAIL_SENT || 0) + (s.tellere?.PHONE_LEADS || 0) })).filter(x => x.v > 500);
   const benchmark = bench.length ? { annonser: bench.length, henvendelser_per_1000: +((bench.reduce((a, x) => a + x.h, 0) / bench.reduce((a, x) => a + x.v, 0)) * 1000).toFixed(2) } : null;
 
