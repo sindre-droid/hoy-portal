@@ -167,11 +167,15 @@ async function tallForDeal(dealId) {
   const cnt = (rows, s, e) => rows.filter(r => inP(r.dato, s, e)).length;
   const t = summary?.tellere || {};
   const totalViews = sum(daily, 'visninger') || t.VIEWS || 0;
+  // Henvendelser: FINN-telleren er sannheten for totalen (vend_leads dekker bare Sindres innboks);
+  // per-uke-tall kommer fra vend_leads der de finnes.
+  const finnHenv = (t.CONTACT_FORM_EMAIL_SENT || 0) + (t.PHONE_LEADS || 0);
+  const henvTotalt = Math.max(leads.length, finnHenv);
   const tall = {
     periode: { denne: [p1Start, p1End], forrige: [p0Start, p0End] },
     visninger_finn: { denne: sum(d1, 'visninger'), forrige: sum(d0, 'visninger'), totalt: totalViews },
     favoritter: { denne: sum(d1, 'favoritter'), forrige: sum(d0, 'favoritter'), totalt: sum(daily, 'favoritter') || t.FAVOURITES || 0 },
-    henvendelser: { denne: cnt(leads, p1Start, p1End), forrige: cnt(leads, p0Start, p0End), totalt: leads.length, finn_tellere: { meldinger: t.CONTACT_FORM_EMAIL_SENT ?? null, telefon: t.PHONE_LEADS ?? null, klikk_ring: t.PHONE_CLICKS ?? null } },
+    henvendelser: { denne: cnt(leads, p1Start, p1End), forrige: cnt(leads, p0Start, p0End), totalt: henvTotalt, kilde: finnHenv > leads.length ? 'finn' : 'vend_leads', finn_tellere: { meldinger: t.CONTACT_FORM_EMAIL_SENT ?? null, telefon: t.PHONE_LEADS ?? null, klikk_ring: t.PHONE_CLICKS ?? null } },
     fysiske_visninger: { denne: cnt(meetings, p1Start, p1End), forrige: cnt(meetings, p0Start, p0End), totalt: meetings.length },
     bud: { denne: cnt(bud, p1Start, p1End), forrige: cnt(bud, p0Start, p0End), totalt: bud.length, hoyeste: bud.length ? Math.max(...bud.map(b => b.amount_nok)) : null, apne: bud.filter(b => b.status === 'Pending').length },
     dager_siden_publisering: dager,
@@ -183,7 +187,7 @@ async function tallForDeal(dealId) {
     const u12 = daily.filter(r => r.dato < addDays(publisert, 14));
     tall.visninger_per_dag.uke1_2 = u12.length ? +(sum(u12, 'visninger') / u12.length).toFixed(1) : null;
   }
-  tall.henvendelser_per_1000 = totalViews >= 200 ? +((leads.length / totalViews) * 1000).toFixed(2) : null;
+  tall.henvendelser_per_1000 = totalViews >= 200 ? +((henvTotalt / totalViews) * 1000).toFixed(2) : null;
 
   // Benchmark fra egen portefølje: henvendelser per 1000 visninger på alle annonser med > 500 visninger
   const { data: allSum } = await supabase.from('finn_ad_summary').select('finn_kode,tellere');
@@ -201,7 +205,7 @@ async function tallForDeal(dealId) {
   const vpd = tall.visninger_per_dag.denne;
   if (tall.bud.apne > 0) diagnose = 'bud';
   else if (tall.fysiske_visninger.totalt > 0 && tall.bud.totalt === 0 && dager > 14) diagnose = 'visninger_ingen_bud';
-  else if (tall.henvendelser.totalt > 0 && tall.fysiske_visninger.totalt === 0 && dager > 14) diagnose = 'henvendelser_ingen_visning';
+  else if (henvTotalt > 0 && tall.fysiske_visninger.totalt === 0 && dager > 14 && tall.henvendelser_per_1000 !== null && tall.henvendelser_per_1000 >= (benchmark?.henvendelser_per_1000 ?? 0.4)) diagnose = 'henvendelser_ingen_visning';
   else if (vpd !== null && vpd < 15 && dager > 14) diagnose = 'lav_trafikk';
   else if (totalViews >= 500 && (tall.henvendelser_per_1000 === null || tall.henvendelser_per_1000 < (benchmark?.henvendelser_per_1000 ?? 2))) diagnose = 'hoy_trafikk_lav_respons';
   else if (daily.length === 0) diagnose = 'mangler_finn_tall';
